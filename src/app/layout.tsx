@@ -14,26 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Studio Komponen — Motion + anime.js + shadcn/ui",
+  title: "Rutina — Kebun Kebiasaan",
   description:
-    "Demo interaktif satu halaman: shadcn/ui sebagai kerangka antarmuka, Motion untuk animasi pegas, dan anime.js untuk koreografi lini masa serta SVG.",
+    "Redesain total Rutina: kebun kebiasaan interaktif dengan shadcn/ui sebagai kerangka, Motion untuk animasi pegas, dan anime.js untuk koreografi tanaman yang tumbuh.",
   keywords: [
+    "Rutina",
+    "habit tracker",
+    "kebiasaan",
     "shadcn/ui",
     "Motion",
     "anime.js",
-    "komponen React",
     "animasi",
-    "demo",
-    "Rutina",
   ],
   authors: [{ name: "Rutina" }],
   icons: {
     icon: "/icons/icon.svg",
   },
   openGraph: {
-    title: "Studio Komponen",
+    title: "Rutina — Kebun Kebiasaan",
     description:
-      "Satu halaman, tiga pustaka — demo Motion, anime.js, dan shadcn/ui",
+      "Sirami kebiasaanmu, tumbuhkan tanaman, pantau runtun dan statistiknya.",
     siteName: "Rutina",
     type: "website",
   },
