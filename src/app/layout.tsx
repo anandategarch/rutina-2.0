@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,24 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina CSS Lab — Kebun Efek CSS",
+  title: "Studio Komponen — Motion + anime.js + shadcn/ui",
   description:
-    "Perpustakaan efek CSS murni bertema taman botani Rutina: demo hidup dan kode siap salin untuk tombol, loader, teks, latar, kartu, input, toggle, dan animasi.",
+    "Demo interaktif satu halaman: shadcn/ui sebagai kerangka antarmuka, Motion untuk animasi pegas, dan anime.js untuk koreografi lini masa serta SVG.",
   keywords: [
+    "shadcn/ui",
+    "Motion",
+    "anime.js",
+    "komponen React",
+    "animasi",
+    "demo",
     "Rutina",
-    "CSS effects",
-    "CSS library",
-    "animasi CSS",
-    "efek CSS",
-    "code snippet",
   ],
   authors: [{ name: "Rutina" }],
   icons: {
     icon: "/icons/icon.svg",
   },
   openGraph: {
-    title: "Rutina CSS Lab",
-    description: "Kebun efek CSS murni — demo hidup & kode siap salin",
+    title: "Studio Komponen",
+    description:
+      "Satu halaman, tiga pustaka — demo Motion, anime.js, dan shadcn/ui",
     siteName: "Rutina",
     type: "website",
   },
@@ -43,12 +45,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
-        <Toaster />
+        <Toaster richColors closeButton position="bottom-right" />
       </body>
     </html>
   );
