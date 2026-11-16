@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Minus, Plus, Save } from "lucide-react";
+import { AlarmClock, Minus, Plus, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 
 import {
   CATEGORY_META,
+  DAY_SHORT,
+  DEFAULT_SCHEDULE,
   HABIT_ICONS,
   HabitIcon,
   makeHabit,
@@ -26,6 +28,9 @@ import {
   type Habit,
 } from "@/lib/rutina";
 import { cn } from "@/lib/utils";
+
+/* Urutan tampil Senin..Minggu */
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 /* ---------- Isi form — terpasang segar tiap dialog dibuka ---------- */
 
@@ -43,6 +48,20 @@ function HabitForm({
     editing?.category ?? "pagi"
   );
   const [target, setTarget] = useState(editing?.target ?? 1);
+  const [schedule, setSchedule] = useState<number[]>(
+    editing?.schedule ?? DEFAULT_SCHEDULE
+  );
+  const [reminder, setReminder] = useState(editing?.reminder ?? "");
+
+  const toggleDay = (d: number) => {
+    setSchedule((prev) => {
+      if (prev.includes(d)) {
+        const next = prev.filter((x) => x !== d);
+        return next.length === 0 ? prev : next; /* minimal satu hari */
+      }
+      return [...prev, d].sort((a, b) => a - b);
+    });
+  };
 
   const submit = () => {
     const trimmed = name.trim();
@@ -56,9 +75,20 @@ function HabitForm({
         name: trimmed,
         category,
         target,
+        schedule,
+        reminder: reminder || null,
       });
     } else {
-      addHabit(makeHabit({ icon, name: trimmed, category, target }));
+      addHabit(
+        makeHabit({
+          icon,
+          name: trimmed,
+          category,
+          target,
+          schedule,
+          reminder: reminder || null,
+        })
+      );
     }
     toast.success("Berhasil disimpan");
     onFinish();
@@ -80,8 +110,8 @@ function HabitForm({
                 className={cn(
                   "grid aspect-square place-items-center rounded-xl border transition",
                   icon === k
-                    ? "border-amber-500 bg-amber-100 text-amber-700"
-                    : "border-stone-200 bg-white text-stone-400 hover:border-stone-300 hover:text-stone-500"
+                    ? "border-amber-500 bg-amber-100 text-amber-700 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-300"
+                    : "border-stone-200 bg-white text-stone-400 hover:border-stone-300 hover:text-stone-500 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700"
                 )}
               >
                 <HabitIcon name={k} className="size-4" />
@@ -115,8 +145,8 @@ function HabitForm({
                   className={cn(
                     "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition",
                     category === c
-                      ? "border-amber-500 bg-amber-50 text-amber-800"
-                      : "border-stone-200 text-stone-500 hover:border-stone-300"
+                      ? "border-amber-500 bg-amber-50 text-amber-800 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-300"
+                      : "border-stone-200 text-stone-500 hover:border-stone-300 dark:border-stone-800 dark:text-stone-400"
                   )}
                 >
                   <meta.icon className="size-3.5" aria-hidden />
@@ -140,7 +170,7 @@ function HabitForm({
             >
               <Minus aria-hidden />
             </Button>
-            <span className="w-20 text-center text-sm font-medium text-stone-700">
+            <span className="w-20 text-center text-sm font-medium text-stone-700 dark:text-stone-300">
               {target} kali
             </span>
             <Button
@@ -155,24 +185,70 @@ function HabitForm({
             </Button>
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label>Jadwal dalam seminggu</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {DAY_ORDER.map((d) => {
+              const active = schedule.includes(d);
+              return (
+                <button
+                  type="button"
+                  key={d}
+                  onClick={() => toggleDay(d)}
+                  aria-pressed={active}
+                  aria-label={`${DAY_SHORT[d]} ${active ? "aktif" : "nonaktif"}`}
+                  className={cn(
+                    "h-10 w-12 rounded-xl border text-xs font-semibold transition",
+                    active
+                      ? "border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-500/60 dark:bg-amber-500/15 dark:text-amber-300"
+                      : "border-stone-200 bg-white text-stone-400 hover:border-stone-300 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700"
+                  )}
+                >
+                  {DAY_SHORT[d]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-stone-400">
+            {schedule.length === 7
+              ? "Aktif tiap hari."
+              : `Aktif ${schedule.length}x seminggu — hari lain bebas tanpa memutus runtun.`}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="habit-reminder" className="flex items-center gap-1.5">
+            <AlarmClock className="size-3.5" aria-hidden /> Pengingat (opsional)
+          </Label>
+          <Input
+            id="habit-reminder"
+            type="time"
+            value={reminder}
+            onChange={(e) => setReminder(e.target.value)}
+            className="w-36 rounded-xl tabular-nums"
+          />
+        </div>
       </div>
 
-      <DialogFooter>
-        <Button
-          variant="outline"
-          className="rounded-full"
-          onClick={onFinish}
-        >
-          Batal
-        </Button>
-        <Button
-          onClick={submit}
-          className="rounded-full bg-amber-600 text-white hover:bg-amber-700"
-        >
-          <Save aria-hidden />
-          {editing ? "Simpan Perubahan" : "Tanam"}
-        </Button>
-      </DialogFooter>
+      <div className="sticky bottom-0 -mx-6 mt-2 rounded-b-3xl border-t border-amber-100 bg-background px-6 pb-6 pt-3 dark:border-stone-800">
+        <DialogFooter>
+          <Button
+            variant="outline"
+            className="rounded-full"
+            onClick={onFinish}
+          >
+            Batal
+          </Button>
+          <Button
+            onClick={submit}
+            className="rounded-full bg-amber-600 text-white hover:bg-amber-700"
+          >
+            <Save aria-hidden />
+            {editing ? "Simpan Perubahan" : "Tanam"}
+          </Button>
+        </DialogFooter>
+      </div>
     </>
   );
 }
@@ -190,7 +266,7 @@ export function HabitDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-3xl border-amber-100 sm:max-w-md">
+      <DialogContent className="max-h-[88vh] overflow-y-auto rounded-3xl border-amber-100 sm:max-w-md dark:border-stone-800">
         <DialogHeader>
           <DialogTitle>
             {editing ? "Ubah kebiasaan" : "Tanam kebiasaan baru"}

@@ -309,6 +309,83 @@ export function ConfettiBurst({ fireKey }: { fireKey: number }) {
   );
 }
 
+/* ---------- Cincin skor kekuatan (anime.js) ---------- */
+
+function scoreColor(score: number): string {
+  if (score >= 70) return "#10B981";
+  if (score >= 40) return "#F59E0B";
+  return "#FB7185";
+}
+
+export function ScoreRing({
+  score,
+  label,
+}: {
+  score: number | null;
+  label?: string;
+}) {
+  const ref = useRef<SVGCircleElement>(null);
+  const shown = score ?? 0;
+  const C = 2 * Math.PI * 44;
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    c.style.strokeDasharray = `${C}`;
+    c.style.strokeDashoffset = `${C}`;
+    if (score === null) return;
+    const anim = animate(c, {
+      strokeDashoffset: C * (1 - shown / 100),
+      duration: 900,
+      ease: "outExpo",
+    });
+    return () => {
+      anim.revert();
+    };
+  }, [shown, C, score]);
+
+  return (
+    <div className="relative mx-auto size-32">
+      <svg viewBox="0 0 120 120" className="size-full -rotate-90">
+        <circle
+          cx="60"
+          cy="60"
+          r="44"
+          fill="none"
+          strokeWidth="11"
+          className="stroke-stone-200 dark:stroke-stone-800"
+        />
+        <circle
+          ref={ref}
+          cx="60"
+          cy="60"
+          r="44"
+          fill="none"
+          stroke={score === null ? "#A8A29E" : scoreColor(shown)}
+          strokeWidth="11"
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          {score === null ? (
+            <span className="text-2xl font-semibold text-stone-400">—</span>
+          ) : (
+            <SpringNumber
+              value={shown}
+              format={(n) => `${n}%`}
+              className="text-3xl font-semibold text-stone-900 dark:text-stone-50"
+            />
+          )}
+          {label ? (
+            <p className="mt-0.5 text-[11px] text-stone-400">{label}</p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Cincin progres matahari (Motion) ---------- */
 
 export function SunRing({ done, total }: { done: number; total: number }) {
@@ -323,8 +400,8 @@ export function SunRing({ done, total }: { done: number; total: number }) {
           cy="60"
           r="52"
           fill="none"
-          stroke="#F0E7D8"
           strokeWidth="10"
+          className="stroke-stone-200 dark:stroke-stone-800"
         />
         <motion.circle
           cx="60"
@@ -350,9 +427,9 @@ export function SunRing({ done, total }: { done: number; total: number }) {
           <SpringNumber
             value={Math.round(ratio * 100)}
             format={(n) => `${n}%`}
-            className="text-4xl font-semibold text-stone-900"
+            className="text-4xl font-semibold text-stone-900 dark:text-stone-50"
           />
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
             {done} dari {total} tersirami
           </p>
         </div>

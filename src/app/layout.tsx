@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Rutina — Kebun Kebiasaan",
   description:
-    "Redesain total Rutina: kebun kebiasaan interaktif dengan shadcn/ui sebagai kerangka, Motion untuk animasi pegas, dan anime.js untuk koreografi tanaman yang tumbuh.",
+    "Rutina versi mobile: kebun kebiasaan dengan jadwal fleksibel, skor kekuatan, pengingat, lencana, dan mode malam — dibangun dengan shadcn/ui, Motion, dan anime.js.",
   keywords: [
     "Rutina",
     "habit tracker",
@@ -29,6 +30,13 @@ export const metadata: Metadata = {
   authors: [{ name: "Rutina" }],
   icons: {
     icon: "/icons/icon.svg",
+    apple: "/icons/icon-192.png",
+  },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Rutina",
   },
   openGraph: {
     title: "Rutina — Kebun Kebiasaan",
@@ -37,6 +45,16 @@ export const metadata: Metadata = {
     siteName: "Rutina",
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FBF7F0" },
+    { media: "(prefers-color-scheme: dark)", color: "#171209" },
+  ],
 };
 
 export default function RootLayout({
@@ -49,8 +67,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster richColors closeButton position="bottom-right" />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster richColors closeButton position="top-center" />
+        </ThemeProvider>
       </body>
     </html>
   );

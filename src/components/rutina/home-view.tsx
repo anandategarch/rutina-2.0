@@ -4,26 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import {
+  AlarmClock,
+  CalendarOff,
   Droplets,
   Flame,
-  MoreVertical,
   PartyPopper,
-  Pencil,
   Plus,
-  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,25 +21,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   CATEGORY_META,
+  DAY_SHORT,
   QUOTES,
   SUGGESTIONS,
   countOn,
+  existedOn,
   isDone,
   makeHabit,
+  ratioOn,
+  scheduledOn,
+  shiftKey,
+  shortDate,
   streakOf,
   todayKey,
   useRutina,
+  weekdayOf,
   type Category,
   type Habit,
   type HabitDraft,
@@ -67,73 +57,90 @@ import {
 
 const CATEGORY_ORDER: Category[] = ["pagi", "siang", "malam", "bebas"];
 
-/* ---------- Menu per baris ---------- */
+/* ---------- Strip mingguan ---------- */
 
-function HabitMenu({
-  habit,
-  onEdit,
+function WeekStrip({
+  selected,
+  onSelect,
+  habits,
 }: {
-  habit: Habit;
-  onEdit: (h: Habit) => void;
+  selected: string;
+  onSelect: (k: string) => void;
+  habits: Habit[];
 }) {
-  const { removeHabit, addHabit } = useRutina();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const doDelete = () => {
-    removeHabit(habit.id);
-    setConfirmOpen(false);
-    toast("Kebiasaan dihapus", {
-      action: { label: "Urungkan", onClick: () => addHabit(habit) },
-    });
-  };
+  const tk = todayKey();
+  const days = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const k = shiftKey(tk, -(6 - i));
+        return {
+          key: k,
+          label: DAY_SHORT[weekdayOf(k)] ?? "",
+          num: Number(k.slice(8, 10)),
+          ratio: ratioOn(habits, k),
+          isToday: k === tk,
+        };
+      }),
+    [habits, tk]
+  );
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0 rounded-full text-stone-400 hover:text-stone-600"
-            aria-label={`Menu ${habit.name}`}
+    <div
+      className="flex gap-1.5"
+      role="tablist"
+      aria-label="Pilih hari dalam seminggu terakhir"
+    >
+      {days.map((d) => {
+        const active = d.key === selected;
+        return (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={active}
+            key={d.key}
+            onClick={() => onSelect(d.key)}
+            className={cn(
+              "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl border px-1 py-2.5 transition",
+              active
+                ? "border-amber-500 bg-amber-100/70 dark:border-amber-500/60 dark:bg-amber-500/15"
+                : "border-stone-200/80 bg-white hover:border-amber-300 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700"
+            )}
           >
-            <MoreVertical aria-hidden />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => onEdit(habit)}>
-            <Pencil aria-hidden /> Ubah
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Trash2 aria-hidden /> Hapus
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent className="rounded-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cabut kebiasaan ini?</AlertDialogTitle>
-            <AlertDialogDescription>
-              &ldquo;{habit.name}&rdquo; beserta riwayatnya akan dicabut dari
-              kebun. Kamu masih bisa mengurungkannya sesaat setelahnya.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={doDelete}
-              className="rounded-full bg-rose-600 hover:bg-rose-700"
+            <span
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wide",
+                d.isToday
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "text-stone-400"
+              )}
             >
-              Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+              {d.isToday ? "Hari ini" : d.label}
+            </span>
+            <span
+              className={cn(
+                "text-sm font-semibold tabular-nums",
+                active
+                  ? "text-stone-900 dark:text-stone-100"
+                  : "text-stone-500 dark:text-stone-400"
+              )}
+            >
+              {d.num}
+            </span>
+            <span
+              aria-hidden
+              className={cn(
+                "mt-0.5 size-1.5 rounded-full",
+                d.ratio >= 1
+                  ? "bg-emerald-500"
+                  : d.ratio > 0
+                    ? "bg-amber-400"
+                    : "bg-transparent"
+              )}
+            />
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -141,20 +148,23 @@ function HabitMenu({
 
 function HabitRow({
   habit,
-  onEdit,
+  dayKey,
+  onDetail,
 }: {
   habit: Habit;
-  onEdit: (h: Habit) => void;
+  dayKey: string;
+  onDetail: (h: Habit) => void;
 }) {
-  const { setTodayCount } = useRutina();
-  const tk = todayKey();
-  const count = countOn(habit, tk);
+  const { setCountOn } = useRutina();
+  const count = countOn(habit, dayKey);
   const done = count >= habit.target;
   const streak = streakOf(habit);
   const meta = CATEGORY_META[habit.category];
+  const offDay = !scheduledOn(habit, dayKey);
 
   const toggle = () => {
-    setTodayCount(habit.id, done ? 0 : count + 1);
+    if (offDay) return;
+    setCountOn(habit.id, dayKey, done ? 0 : count + 1);
     toast.success("Berhasil disimpan");
   };
 
@@ -165,76 +175,102 @@ function HabitRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 320, damping: 30 }}
-      className="list-none"
+      className={cn("list-none", offDay && "opacity-60")}
     >
       <div
         className={cn(
           "flex items-center gap-3 rounded-2xl border px-3.5 py-3 transition-colors",
           done
-            ? "border-emerald-200 bg-emerald-50/60"
-            : "border-stone-200/90 bg-white hover:border-amber-300"
+            ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30"
+            : "border-stone-200/90 bg-white hover:border-amber-300 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-amber-700/60"
         )}
       >
-        <IconChip
-          icon={habit.icon}
-          category={habit.category}
-          done={done}
-        />
-        <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              "truncate text-sm font-medium",
-              done ? "text-stone-400 line-through" : "text-stone-800"
-            )}
-          >
-            {habit.name}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-400">
+        <button
+          type="button"
+          onClick={() => onDetail(habit)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          aria-label={`Buka detail ${habit.name}`}
+        >
+          <IconChip
+            icon={habit.icon}
+            category={habit.category}
+            done={done}
+          />
+          <span className="min-w-0 flex-1">
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 font-medium",
-                done ? "bg-emerald-100 text-emerald-700" : meta.chip
+                "block truncate text-sm font-medium",
+                done
+                  ? "text-stone-400 line-through dark:text-stone-500"
+                  : "text-stone-800 dark:text-stone-100"
               )}
             >
-              {meta.label}
+              {habit.name}
             </span>
-            {streak >= 2 && (
-              <span className="inline-flex items-center gap-1 text-amber-600">
-                <Flame className="size-3.5" aria-hidden />
-                {streak} hari
+            <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-400">
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 font-medium",
+                  done
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    : meta.chip
+                )}
+              >
+                {meta.label}
               </span>
+              {habit.schedule.length < 7 && (
+                <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                  {habit.schedule.length}x/mgg
+                </span>
+              )}
+              {habit.reminder && (
+                <span className="inline-flex items-center gap-1 tabular-nums">
+                  <AlarmClock className="size-3" aria-hidden />
+                  {habit.reminder}
+                </span>
+              )}
+              {streak >= 2 && (
+                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                  <Flame className="size-3.5" aria-hidden />
+                  {streak} hari
+                </span>
+              )}
+              {habit.target > 1 && !offDay && (
+                <span className="tabular-nums">
+                  {count}/{habit.target} kali
+                </span>
+              )}
+            </span>
+            {habit.target > 1 && !done && !offDay && (
+              <Progress
+                value={(count / habit.target) * 100}
+                className="mt-2 h-1.5"
+              />
             )}
-            {habit.target > 1 && (
-              <span className="tabular-nums">
-                {count}/{habit.target} kali
-              </span>
-            )}
-          </div>
-          {habit.target > 1 && !done && (
-            <Progress
-              value={(count / habit.target) * 100}
-              className="mt-2 h-1.5"
-            />
-          )}
-        </div>
+          </span>
+        </button>
 
         <motion.button
           type="button"
           whileTap={{ scale: 0.85 }}
           onClick={toggle}
+          disabled={offDay}
           aria-pressed={done}
-          aria-label={`${done ? "Batalkan" : "Selesaikan"} ${habit.name}`}
+          aria-label={`${done ? "Batalkan" : "Selesaikan"} ${habit.name}${offDay ? " — tidak terjadwal hari ini" : ""}`}
           className={cn(
             "grid size-10 shrink-0 place-items-center rounded-full border-2 transition-colors",
-            done
-              ? "border-emerald-500 bg-emerald-500 text-white"
-              : "border-stone-300 text-transparent hover:border-amber-500"
+            offDay &&
+              "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-300 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-700",
+            !offDay &&
+              done &&
+              "border-emerald-500 bg-emerald-500 text-white",
+            !offDay &&
+              !done &&
+              "border-stone-300 text-transparent hover:border-amber-500 dark:border-stone-700"
           )}
         >
           <CheckDraw done={done} className="size-5" />
         </motion.button>
-
-        <HabitMenu habit={habit} onEdit={onEdit} />
       </div>
     </motion.li>
   );
@@ -254,15 +290,15 @@ function MiniStat({
   suffix?: string;
 }) {
   return (
-    <Card className="gap-0 rounded-3xl border-amber-100 py-0">
+    <Card className="gap-0 rounded-3xl border-amber-100 py-0 dark:border-stone-800">
       <CardContent className="px-4 py-4">
-        <span className="grid size-8 place-items-center rounded-xl bg-amber-100 text-amber-700">
+        <span className="grid size-8 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
           <Icon className="size-4" aria-hidden />
         </span>
         <p className="mt-2">
           <SpringNumber
             value={value}
-            className="text-2xl font-semibold text-stone-900"
+            className="text-2xl font-semibold text-stone-900 dark:text-stone-50"
           />{" "}
           {suffix ? (
             <span className="text-sm text-stone-400">{suffix}</span>
@@ -284,7 +320,7 @@ function EmptyState({
   onSuggest: (s: HabitDraft) => void;
 }) {
   return (
-    <Card className="rounded-3xl border-amber-100">
+    <Card className="rounded-3xl border-amber-100 dark:border-stone-800">
       <CardContent className="grid place-items-center px-6 py-12 text-center">
         <PlantSVG
           stage={1}
@@ -292,10 +328,10 @@ function EmptyState({
           drawKey="kebun-kosong"
           className="h-36 w-36"
         />
-        <h2 className="mt-4 text-xl font-semibold tracking-tight text-stone-900">
+        <h2 className="mt-4 text-xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
           Kebunmu masih kosong
         </h2>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-stone-500">
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-stone-500 dark:text-stone-400">
           Tanam kebiasaan pertamamu — mulai dari yang paling kecil. Pilih
           tanaman jadi di bawah, atau tanam sendiri sesukamu.
         </p>
@@ -305,7 +341,7 @@ function EmptyState({
               type="button"
               key={s.name}
               onClick={() => onSuggest(s)}
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3.5 py-2 text-sm text-stone-600 transition hover:border-amber-400 hover:text-amber-700"
+              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3.5 py-2 text-sm text-stone-600 transition hover:border-amber-400 hover:text-amber-700 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-300 dark:hover:border-amber-600"
             >
               <IconChip
                 icon={s.icon}
@@ -337,6 +373,7 @@ function HomeSkeleton() {
         <Skeleton className="h-10 w-64 rounded-2xl" />
         <Skeleton className="h-4 w-96 max-w-full rounded-full" />
       </div>
+      <Skeleton className="h-20 rounded-2xl" />
       <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
         <Skeleton className="h-80 rounded-3xl" />
         <Skeleton className="h-80 rounded-3xl" />
@@ -349,12 +386,13 @@ function HomeSkeleton() {
 
 export function HomeView({
   onTanam,
-  onEdit,
+  onDetail,
 }: {
   onTanam: () => void;
-  onEdit: (h: Habit) => void;
+  onDetail: (h: Habit) => void;
 }) {
   const { ready, habits, addHabit } = useRutina();
+  const [selKey, setSelKey] = useState(todayKey());
   const [greet, setGreet] = useState<{
     line: string;
     date: string;
@@ -387,21 +425,33 @@ export function HomeView({
   }, []);
 
   const tk = todayKey();
-  const done = habits.filter((h) => isDone(h, tk)).length;
-  const total = habits.length;
+  const isToday = selKey === tk;
+
+  const dayScheduled = useMemo(
+    () => habits.filter((h) => scheduledOn(h, selKey)),
+    [habits, selKey]
+  );
+  const dayOff = useMemo(
+    () =>
+      habits.filter((h) => existedOn(h, selKey) && !scheduledOn(h, selKey)),
+    [habits, selKey]
+  );
+
+  const done = dayScheduled.filter((h) => isDone(h, selKey)).length;
+  const total = dayScheduled.length;
   const allDone = total > 0 && done === total;
 
   const sorted = useMemo(
     () =>
-      [...habits].sort((a, b) => {
-        const da = isDone(a, tk) ? 1 : 0;
-        const db = isDone(b, tk) ? 1 : 0;
+      [...dayScheduled].sort((a, b) => {
+        const da = isDone(a, selKey) ? 1 : 0;
+        const db = isDone(b, selKey) ? 1 : 0;
         if (da !== db) return da - db;
         return (
           CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
         );
       }),
-    [habits, tk]
+    [dayScheduled, selKey]
   );
 
   const maxStreak = habits.reduce((m, h) => Math.max(m, streakOf(h)), 0);
@@ -432,19 +482,22 @@ export function HomeView({
     <div className="space-y-6">
       {/* sapaan */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400">
           {greet?.date ?? "Memuat hari…"}
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl dark:text-stone-50">
           {greet?.line ?? "Halo"}
           <span className="text-amber-600">.</span>
         </h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-stone-500">
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-stone-500 dark:text-stone-400">
           {greet?.quote ?? ""}
         </p>
       </div>
 
-      {total === 0 ? (
+      {/* strip mingguan */}
+      <WeekStrip selected={selKey} onSelect={setSelKey} habits={habits} />
+
+      {total === 0 && dayOff.length === 0 ? (
         <EmptyState
           onTanam={onTanam}
           onSuggest={(s) => {
@@ -456,10 +509,16 @@ export function HomeView({
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
           {/* kolom kiri: cincin matahari + statistik mini */}
           <div className="space-y-5">
-            <Card className="gap-0 overflow-hidden rounded-3xl border-amber-100 py-0">
+            <Card className="gap-0 overflow-hidden rounded-3xl border-amber-100 py-0 dark:border-stone-800">
               <CardHeader className="px-6 pb-2 pt-6">
-                <CardTitle className="text-sm">Hari ini</CardTitle>
-                <CardDescription>Progres penyiraman kebun</CardDescription>
+                <CardTitle className="text-sm">
+                  {isToday ? "Hari ini" : shortDate(selKey)}
+                </CardTitle>
+                <CardDescription>
+                  {isToday
+                    ? "Progres penyiraman kebun"
+                    : "Tinjau atau tandai ulang hari terpilih"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="relative grid place-items-center px-6 pb-6 pt-2">
                 <SunRing done={done} total={total} />
@@ -472,9 +531,9 @@ export function HomeView({
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="overflow-hidden border-t border-emerald-100 bg-emerald-50"
+                    className="overflow-hidden border-t border-emerald-100 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
                   >
-                    <p className="flex items-center gap-2 px-6 py-3 text-sm font-medium text-emerald-700">
+                    <p className="flex items-center gap-2 px-6 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">
                       <PartyPopper className="size-4 shrink-0" aria-hidden />
                       Semua kebiasaan tuntas — kebunmu bersinar hari ini.
                     </p>
@@ -499,18 +558,20 @@ export function HomeView({
           </div>
 
           {/* kolom kanan: daftar kebiasaan */}
-          <Card className="gap-0 self-start rounded-3xl border-amber-100 py-0">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-amber-50 px-5 py-4">
+          <Card className="gap-0 self-start rounded-3xl border-amber-100 py-0 dark:border-stone-800">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-amber-50 px-5 py-4 dark:border-stone-800/70">
               <div>
-                <CardTitle className="text-base">Kebiasaan hari ini</CardTitle>
+                <CardTitle className="text-base">
+                  {isToday ? "Kebiasaan hari ini" : `Kebiasaan ${shortDate(selKey)}`}
+                </CardTitle>
                 <CardDescription>
-                  Ketuk lingkaran untuk menandai tuntas
+                  Ketuk baris untuk detail — lingkaran untuk menandai tuntas
                 </CardDescription>
               </div>
               <Button
                 size="sm"
                 onClick={onTanam}
-                className="rounded-full bg-amber-600 text-white hover:bg-amber-700"
+                className="shrink-0 rounded-full bg-amber-600 text-white hover:bg-amber-700"
               >
                 <Plus aria-hidden /> Tanam
               </Button>
@@ -519,10 +580,34 @@ export function HomeView({
               <ul className="space-y-2.5">
                 <AnimatePresence initial={false}>
                   {sorted.map((h) => (
-                    <HabitRow key={h.id} habit={h} onEdit={onEdit} />
+                    <HabitRow
+                      key={h.id}
+                      habit={h}
+                      dayKey={selKey}
+                      onDetail={onDetail}
+                    />
                   ))}
                 </AnimatePresence>
               </ul>
+
+              {dayOff.length > 0 && (
+                <div className="mt-5">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                    <CalendarOff className="size-3.5" aria-hidden />
+                    Di luar jadwal hari ini
+                  </p>
+                  <ul className="space-y-2">
+                    {dayOff.map((h) => (
+                      <HabitRow
+                        key={h.id}
+                        habit={h}
+                        dayKey={selKey}
+                        onDetail={onDetail}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
