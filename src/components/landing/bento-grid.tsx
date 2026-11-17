@@ -16,7 +16,7 @@ const DOTS = Array.from(
   { length: 35 },
   (_, i) => ((i * 17 + 3) % 9 === 0 ? 0 : ((i * 17 + 3) % 3) + 1),
 )
-const DOT_COLORS = ['bg-[#E9E5DC]', 'bg-[#DCE9D4]', 'bg-[#A3C48E]', 'bg-[#749B58]']
+const DOT_COLORS = ['bg-[#EAE5D9]', 'bg-[#E4EFE0]', 'bg-[#749B58]/60', 'bg-[#749B58]']
 
 type Habit = { id: number; name: string; tag: string; done: boolean }
 const INITIAL_HABITS: Habit[] = [
@@ -42,7 +42,7 @@ function Cell({
       whileHover={{ y: -5 }}
       className={className}
     >
-      <Card className="h-full rounded-3xl border-[#E9E5DC] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-lg hover:shadow-[#E4EFE0] sm:p-5">
+      <Card className="h-full rounded-3xl border-[#4A3B321F] bg-white p-4 shadow-[0_1px_2px_rgba(74,59,50,0.05)] transition-shadow hover:shadow-lg hover:shadow-[#E4EFE0] sm:p-5">
         {children}
       </Card>
     </motion.div>
@@ -78,7 +78,7 @@ export default function BentoGrid() {
         <div className="mx-auto mb-10 max-w-2xl text-center">
           <Badge
             variant="outline"
-            className="gap-1.5 rounded-full border-[#749B58]/30 bg-[#E4EFE0] px-3 py-1 text-[#5E7F47]"
+            className="gap-1.5 rounded-full border-[#749B5833] bg-[#E4EFE0] px-3 py-1 text-[#4A3B32]"
           >
             <Sparkles className="h-3 w-3" /> Rutina 2.0 — sudah rilis
           </Badge>
@@ -86,7 +86,7 @@ export default function BentoGrid() {
             Satu aplikasi, <span className="text-[#749B58]">semua</span> yang perlu
             untuk konsisten
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-[#8A7D72] sm:text-lg">
+          <p className="mt-3 text-sm leading-relaxed text-[#4A3B32]/60 sm:text-lg">
             Dari pengingat pertama sampai streak ke-100 — Rutina menata semuanya rapi
             dalam satu tempat.
           </p>
@@ -104,10 +104,10 @@ export default function BentoGrid() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-[#231F1E]">Streak terpanjang</p>
-                    <p className="text-xs text-[#8A7D72]">Update langsung tiap check-in</p>
+                    <p className="text-xs text-[#4A3B32]/60">Update langsung tiap check-in</p>
                   </div>
                 </div>
-                <Badge className="rounded-full border-0 bg-[#DCE9D4] text-[#5E7F47] hover:bg-[#DCE9D4]">
+                <Badge className="rounded-full border-0 bg-[#E4EFE0] text-[#4A3B32] hover:bg-[#E4EFE0]">
                   +6 minggu ini
                 </Badge>
               </div>
@@ -116,7 +116,7 @@ export default function BentoGrid() {
                 <p className="text-6xl font-semibold tracking-tight text-[#231F1E] sm:text-7xl">
                   <Counter to={128} />
                 </p>
-                <p className="pb-2 text-xs leading-snug text-[#8A7D72]">
+                <p className="pb-2 text-xs leading-snug text-[#4A3B32]/60">
                   hari<br className="sm:hidden" /> berturut-turut
                 </p>
               </div>
@@ -126,7 +126,7 @@ export default function BentoGrid() {
                   <span key={i} className={`h-6 rounded-md opacity-0 sm:h-7 ${DOT_COLORS[lvl]}`} />
                 ))}
               </div>
-              <p className="mt-3 text-[10px] font-medium uppercase tracking-[0.18em] text-[#A99C90]">
+              <p className="mt-3 text-[10px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/50">
                 5 minggu terakhir
               </p>
             </div>
@@ -135,10 +135,10 @@ export default function BentoGrid() {
           {/* Ring konsistensi */}
           <Cell className="col-span-1 lg:col-span-2" delay={0.14}>
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <p className="text-xs font-medium text-[#8A7D72]">Konsistensi minggu ini</p>
+              <p className="text-xs font-medium text-[#4A3B32]/60">Konsistensi minggu ini</p>
               <div className="relative">
                 <svg viewBox="0 0 120 120" className="h-28 w-28 -rotate-90">
-                  <circle cx="60" cy="60" r="44" fill="none" stroke="#E9E5DC" strokeWidth="11" />
+                  <circle cx="60" cy="60" r="44" fill="none" stroke="#E4EFE0" strokeWidth="11" />
                   <motion.circle
                     cx="60"
                     cy="60"
@@ -158,10 +158,10 @@ export default function BentoGrid() {
                   <span className="text-2xl font-semibold text-[#231F1E]">
                     <Counter to={78} stiffness={50} />
                   </span>
-                  <span className="text-[10px] text-[#A99C90]">persen</span>
+                  <span className="text-[10px] text-[#4A3B32]/50">persen</span>
                 </div>
               </div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#A99C90]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/50">
                 Target 80%
               </p>
             </div>
@@ -177,6 +177,7 @@ export default function BentoGrid() {
                 <Switch
                   checked={remindOn}
                   onCheckedChange={setRemindOn}
+                  className="data-[state=checked]:bg-[#749B58] focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
                   aria-label="Aktifkan pengingat"
                 />
               </div>
@@ -190,7 +191,7 @@ export default function BentoGrid() {
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.28 }}
-                      className="overflow-hidden text-xs leading-relaxed text-[#8A7D72]"
+                      className="overflow-hidden text-xs leading-relaxed text-[#4A3B32]/60"
                     >
                       Setiap hari · 07.00 &amp; 21.30 WIB — menyesuaikan jadwalmu.
                     </motion.p>
@@ -201,7 +202,7 @@ export default function BentoGrid() {
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.28 }}
-                      className="overflow-hidden text-xs leading-relaxed text-[#8A7D72]"
+                      className="overflow-hidden text-xs leading-relaxed text-[#4A3B32]/60"
                     >
                       Nonaktif — kamu yang atur waktunya sendiri.
                     </motion.p>
@@ -216,7 +217,7 @@ export default function BentoGrid() {
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-[#231F1E]">Kebiasaan hari ini</p>
-                <span className="text-xs font-semibold tabular-nums text-[#5E7F47]">
+                <span className="text-xs font-semibold tabular-nums text-[#749B58]">
                   {doneCount}/{habits.length} selesai
                 </span>
               </div>
@@ -225,7 +226,7 @@ export default function BentoGrid() {
                   <motion.label
                     layout
                     key={h.id}
-                    className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#E9E5DC] bg-[#EFE9DA]/60 px-3 py-2.5"
+                    className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#4A3B321F] bg-[#E4EFE0]/60 px-3 py-2.5"
                   >
                     <Checkbox
                       checked={h.done}
@@ -234,25 +235,26 @@ export default function BentoGrid() {
                           prev.map((x) => (x.id === h.id ? { ...x, done: !x.done } : x)),
                         )
                       }
+                      className="data-[state=checked]:border-[#749B58] data-[state=checked]:bg-[#749B58] data-[state=checked]:text-[#FAF9F6] focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
                       aria-label={h.name}
                     />
                     <span
                       className={`text-xs font-medium ${
-                        h.done ? 'text-[#8A7D72] line-through' : 'text-[#231F1E]'
+                        h.done ? 'text-[#4A3B32]/60 line-through' : 'text-[#231F1E]'
                       }`}
                     >
                       {h.name}
                     </span>
                     <Badge
                       variant="secondary"
-                      className="ml-auto border-0 bg-white text-[9px] text-[#8A7D72]"
+                      className="ml-auto border-0 bg-white text-[9px] text-[#4A3B32]/60"
                     >
                       {h.tag}
                     </Badge>
                   </motion.label>
                 ))}
               </div>
-              <p className="mt-auto pt-3 text-[10px] text-[#A99C90]">
+              <p className="mt-auto pt-3 text-[10px] text-[#4A3B32]/50">
                 Coba centang — urutannya ikut menyesuaikan.
               </p>
             </div>
@@ -261,50 +263,50 @@ export default function BentoGrid() {
           {/* Statistik angka */}
           <Cell className="col-span-2 lg:col-span-2" delay={0.32}>
             <div className="grid h-full grid-cols-3 gap-2">
-              <div className="flex flex-col justify-center gap-1 rounded-2xl bg-[#EFE9DA]/70 p-3">
+              <div className="flex flex-col justify-center gap-1 rounded-2xl bg-[#E4EFE0]/70 p-3">
                 <p className="text-xl font-semibold tracking-tight text-[#231F1E] sm:text-2xl">
                   <Counter to={128} />
                   <span className="text-sm font-semibold">rb</span>
                 </p>
-                <p className="text-[10px] leading-tight text-[#8A7D72]">kebiasaan aktif</p>
+                <p className="text-[10px] leading-tight text-[#4A3B32]/60">kebiasaan aktif</p>
               </div>
-              <div className="flex flex-col justify-center gap-1 rounded-2xl bg-[#EFE9DA]/70 p-3">
+              <div className="flex flex-col justify-center gap-1 rounded-2xl bg-[#E4EFE0]/70 p-3">
                 <p className="text-xl font-semibold tracking-tight text-[#231F1E] sm:text-2xl">
                   <Counter to={92} />
                   <span className="text-sm font-semibold">%</span>
                 </p>
-                <p className="text-[10px] leading-tight text-[#8A7D72]">tingkat konsistensi</p>
+                <p className="text-[10px] leading-tight text-[#4A3B32]/60">tingkat konsistensi</p>
               </div>
-              <div className="flex flex-col justify-center gap-1 rounded-2xl bg-[#EFE9DA]/70 p-3">
+              <div className="flex flex-col justify-center gap-1 rounded-2xl bg-[#E4EFE0]/70 p-3">
                 <p className="text-xl font-semibold tracking-tight text-[#231F1E] sm:text-2xl">
                   <Counter to={66} />
                 </p>
-                <p className="text-[10px] leading-tight text-[#8A7D72]">hari sampai menempel</p>
+                <p className="text-[10px] leading-tight text-[#4A3B32]/60">hari sampai menempel</p>
               </div>
             </div>
           </Cell>
 
           {/* Testimoni */}
-          <Cell className="col-span-2 lg:col-span-2" delay={0.38}>
+          <Cell className="col-span-2 lg:col-span-2 [&>div]:border-[#4A3B32] [&>div]:bg-[#4A3B32]" delay={0.38}>
             <div className="flex h-full flex-col justify-between gap-4">
-              <Quote className="h-5 w-5 text-[#A3C48E]" />
-              <p className="text-sm leading-relaxed text-[#4A3B32]">
+              <Quote className="h-5 w-5 text-[#E4EFE0]" />
+              <p className="text-sm leading-relaxed text-[#F5F3EE]">
                 &ldquo;Satu-satunya aplikasi kebiasaan yang bertahan lebih dari setahun di HP
                 saya. Streak-nya bikin ogah bolong sehari pun.&rdquo;
               </p>
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#A3C48E] to-[#749B58] text-[10px] font-bold text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#749B58] to-[#658A4C] text-[10px] font-bold text-[#FAF9F6]">
                   DP
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-[#231F1E]">
+                  <p className="truncate text-xs font-semibold text-[#FAF9F6]">
                     Dina Prameswari
                   </p>
-                  <p className="truncate text-[10px] text-[#8A7D72]">
+                  <p className="truncate text-[10px] text-[#F5F3EE]/60">
                     Product Designer · 214 hari streak
                   </p>
                 </div>
-                <div className="ml-auto flex text-[#A3C48E]">
+                <div className="ml-auto flex text-[#749B58]">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className="h-3 w-3 fill-current" />
                   ))}
@@ -318,12 +320,12 @@ export default function BentoGrid() {
         <div className="mt-8 flex flex-col items-center gap-2">
           <Button
             size="lg"
-            onClick={() => goToStyle(2)}
-            className="h-11 rounded-full bg-[#749B58] px-7 text-sm font-semibold text-white hover:bg-[#5E7F47]"
+            onClick={() => goToStyle(0)}
+            className="h-11 rounded-full bg-[#749B58] px-7 text-sm font-semibold text-[#FAF9F6] hover:bg-[#658A4C]"
           >
             Coba Rutina gratis <ArrowRight className="h-4 w-4" />
           </Button>
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#A99C90]">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/50">
             Tanpa kartu kredit · 30 hari penuh
           </p>
         </div>

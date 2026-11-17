@@ -12,16 +12,23 @@ export function Counter({
   to,
   stiffness = 55,
   damping = 16,
+  decimals = 0,
 }: {
   to: number
   stiffness?: number
   damping?: number
+  decimals?: number
 }) {
   const spring = useSpring(0, { stiffness, damping })
   const [text, setText] = useState('0')
 
   useMotionValueEvent(spring, 'change', (v) =>
-    setText(Math.round(v).toLocaleString('id-ID')),
+    setText(
+      v.toLocaleString('id-ID', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      }),
+    ),
   )
 
   useEffect(() => {

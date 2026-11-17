@@ -81,22 +81,22 @@ export default function TypographyDriven() {
     ? {
         bg: 'bg-[#231F1E]',
         text: 'text-[#F5F3EE]',
-        sub: 'text-[#A99C90]',
-        mono: 'text-[#A99C90]',
-        line: 'border-[#F5F3EE]/12',
-        accent: 'text-[#A3C48E]',
-        link: 'decoration-[#A3C48E]',
-        stroke: '[-webkit-text-stroke:1px_rgba(245,243,238,0.10)]',
+        sub: 'text-[#F5F3EE]/60',
+        mono: 'text-[#F5F3EE]/50',
+        line: 'border-[#F5F3EE1F]',
+        accent: 'text-[#749B58]',
+        link: 'decoration-[#749B58]',
+        stroke: '[-webkit-text-stroke:1px_rgba(245,243,238,0.12)]',
       }
     : {
         bg: 'bg-[#F5F3EE]',
         text: 'text-[#231F1E]',
-        sub: 'text-[#8A7D72]',
-        mono: 'text-[#A99C90]',
-        line: 'border-[#231F1E]/10',
-        accent: 'text-[#5E7F47]',
+        sub: 'text-[#4A3B32]/60',
+        mono: 'text-[#4A3B32]/50',
+        line: 'border-[#4A3B321F]',
+        accent: 'text-[#749B58]',
         link: 'decoration-[#749B58]',
-        stroke: '[-webkit-text-stroke:1px_rgba(35,31,30,0.08)]',
+        stroke: '[-webkit-text-stroke:1px_rgba(74,59,50,0.12)]',
       }
 
   return (
@@ -161,7 +161,7 @@ export default function TypographyDriven() {
               href="#"
               onClick={(e) => {
                 e.preventDefault()
-                goToStyle(2)
+                goToStyle(0)
               }}
               className={`group inline-flex items-center gap-1.5 text-sm font-semibold underline decoration-2 underline-offset-8 ${t.text} ${t.link}`}
             >

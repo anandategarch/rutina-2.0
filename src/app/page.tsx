@@ -1,60 +1,30 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import {
-  AppWindow,
-  Columns2,
-  Egg,
-  Hammer,
-  LayoutGrid,
-  Sparkles,
-  Type,
-} from 'lucide-react'
+import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
+import { Columns2, LayoutGrid, NotebookPen, Type } from 'lucide-react'
 import BentoGrid from '@/components/landing/bento-grid'
-import Claymorphism from '@/components/landing/claymorphism'
-import DashboardPreview from '@/components/landing/dashboard-preview'
-import GlassAurora from '@/components/landing/glass-aurora'
-import Neobrutalism from '@/components/landing/neobrutalism'
+import DailyCards from '@/components/landing/daily-cards'
 import SplitScreen from '@/components/landing/split-screen'
 import TypographyDriven from '@/components/landing/typography-driven'
 
 const STYLES = [
+  {
+    id: 'cards',
+    label: 'Kartu Harian',
+    short: 'Kartu',
+    icon: NotebookPen,
+    Component: DailyCards,
+  },
   { id: 'split', label: 'Split Screen', short: 'Split', icon: Columns2, Component: SplitScreen },
   { id: 'bento', label: 'Bento Grid', short: 'Bento', icon: LayoutGrid, Component: BentoGrid },
-  {
-    id: 'demo',
-    label: 'Demo Interaktif',
-    short: 'Demo',
-    icon: AppWindow,
-    Component: DashboardPreview,
-  },
   { id: 'type', label: 'Tipografi', short: 'Tipe', icon: Type, Component: TypographyDriven },
-  {
-    id: 'clay',
-    label: 'Claymorphism',
-    short: 'Clay',
-    icon: Egg,
-    Component: Claymorphism,
-  },
-  {
-    id: 'brutal',
-    label: 'Neobrutalism',
-    short: 'Brutal',
-    icon: Hammer,
-    Component: Neobrutalism,
-  },
-  {
-    id: 'glass',
-    label: 'Glass & Aurora',
-    short: 'Kaca',
-    icon: Sparkles,
-    Component: GlassAurora,
-  },
 ]
 
 export default function Home() {
   const [active, setActive] = useState(0)
+  const { scrollY } = useScroll()
+  const hintOpacity = useTransform(scrollY, [0, 64], [1, 0])
 
   const goTo = useCallback((i: number) => {
     setActive(((i % STYLES.length) + STYLES.length) % STYLES.length)
@@ -72,7 +42,7 @@ export default function Home() {
     return () => window.removeEventListener('keydown', onKey)
   }, [active, goTo])
 
-  // Jembatan dari CTA di dalam gaya (mis. "Lihat demo" -> gaya Demo Interaktif)
+  // Jembatan dari CTA di dalam gaya (mis. "Jelajahi gaya lain" -> pindah gaya)
   useEffect(() => {
     const handler = (e: Event) => goTo((e as CustomEvent<number>).detail)
     window.addEventListener('rutina:goto', handler)
@@ -113,10 +83,13 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Petunjuk keyboard */}
-      <p className="pointer-events-none fixed inset-x-0 top-[60px] z-40 hidden justify-center text-center font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-white mix-blend-difference sm:flex">
+      {/* Petunjuk keyboard — memudar saat halaman digulir */}
+      <motion.p
+        style={{ opacity: hintOpacity }}
+        className="pointer-events-none fixed inset-x-0 top-[60px] z-40 hidden justify-center text-center font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-white mix-blend-difference sm:flex"
+      >
         Tekan 1–{STYLES.length} atau panah kiri/kanan untuk pindah gaya
-      </p>
+      </motion.p>
 
       {/* Konten gaya aktif */}
       <AnimatePresence mode="wait">

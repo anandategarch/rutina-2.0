@@ -15,19 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina — 7 Gaya Landing Page",
+  title: "Rutina — Kartu Harian & Eksplorasi Gaya",
   description:
-    "Tujuh pendekatan desain landing page untuk Rutina: Split Screen, Bento Grid, Demo Interaktif, Tipografi Minimalis, Claymorphism, Neobrutalism, dan Glass & Aurora — dibangun dengan shadcn/ui, Motion, dan anime.js.",
+    "Redesain total Rutina dalam palet earth tone: Kartu Harian, Split Screen, Bento Grid, dan Tipografi — dibangun dengan shadcn/ui, Motion, dan anime.js.",
   keywords: [
     "Rutina",
     "habit tracker",
     "kebiasaan",
-    "landing page",
+    "kartu harian",
+    "earth tone",
+    "matcha green",
+    "jurnal",
+    "mood tracker",
     "split screen",
     "bento grid",
-    "claymorphism",
-    "neobrutalism",
-    "glassmorphism",
+    "tipografi",
     "shadcn/ui",
     "Motion",
     "anime.js",
@@ -45,9 +47,9 @@ export const metadata: Metadata = {
     title: "Rutina",
   },
   openGraph: {
-    title: "Rutina — 7 Gaya Landing Page",
+    title: "Rutina — Kartu Harian & Eksplorasi Gaya",
     description:
-      "Split Screen, Bento Grid, Demo Interaktif, Tipografi, Claymorphism, Neobrutalism, dan Glass & Aurora dalam satu showcase.",
+      "Kartu Harian, Split Screen, Bento Grid, dan Tipografi dalam palet earth tone yang hangat.",
     siteName: "Rutina",
     type: "website",
   },
