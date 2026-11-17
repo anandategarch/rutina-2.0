@@ -20,6 +20,8 @@ import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { HeroDoodle } from '../hero-doodle'
 import { TaskRow } from '../task-row'
+import { FocusWidget } from '../focus-widget'
+import { StreakWidget } from '../streak-widget'
 import { useRutina, FOLDERS, QUOTE_TEXT, QUOTE_AUTHOR } from '../store'
 import type { FolderKey } from '../store'
 
@@ -190,7 +192,16 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* 3 — Kartu Kategori / Folder */}
+      {/* 3 — Bento insight: fokus & streak berdampingan */}
+      <section className="mt-8" aria-label="Insight pekan ini">
+        <SectionTitle title="Insight Pekan" hint="Fokus & konsistensi" />
+        <div className="grid grid-cols-2 gap-3">
+          <FocusWidget />
+          <StreakWidget />
+        </div>
+      </section>
+
+      {/* 4 — Kartu Kategori / Folder */}
       <section className="mt-8" aria-label="Koleksi folder catatan">
         <SectionTitle title="Koleksi" hint="4 folder" />
         <div className="grid grid-cols-2 gap-3">
@@ -251,7 +262,7 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* 4 — Kartu Kutipan & Pengingat (pembatas visual) */}
+      {/* 5 — Kartu Kutipan & Pengingat (pembatas visual) */}
       <motion.section
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}

@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina — Aplikasi Mobile Kebiasaan & Jurnal",
+  title: "Rutina — Split Screen × Bento Grid × Earth Tone",
   description:
-    "Rutina versi mobile: rutinitas harian, jurnal masonry, dan statistik mingguan dalam palet earth tone yang hangat — dibangun dengan shadcn/ui, Motion, dan anime.js.",
+    "Pratinjau desain Rutina: earth tone 60-30-10, komposisi split screen, dasbor bento grid, dan tipografi editorial Playfair × Geist — dibangun dengan shadcn/ui, Motion, dan anime.js.",
   keywords: [
     "Rutina",
     "aplikasi mobile",
@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     "jurnal",
     "earth tone",
     "matcha green",
+    "split screen",
+    "bento grid",
+    "tipografi editorial",
     "mood tracker",
     "statistik kebiasaan",
     "shadcn/ui",
