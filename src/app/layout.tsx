@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina — 4 Gaya Landing Page",
+  title: "Rutina — 7 Gaya Landing Page",
   description:
-    "Empat pendekatan desain landing page untuk Rutina: Split Screen, Bento Grid, Demo Interaktif, dan Tipografi Minimalis — dibangun dengan shadcn/ui, Motion, dan anime.js.",
+    "Tujuh pendekatan desain landing page untuk Rutina: Split Screen, Bento Grid, Demo Interaktif, Tipografi Minimalis, Claymorphism, Neobrutalism, dan Glass & Aurora — dibangun dengan shadcn/ui, Motion, dan anime.js.",
   keywords: [
     "Rutina",
     "habit tracker",
@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     "landing page",
     "split screen",
     "bento grid",
+    "claymorphism",
+    "neobrutalism",
+    "glassmorphism",
     "shadcn/ui",
     "Motion",
     "anime.js",
@@ -42,9 +45,9 @@ export const metadata: Metadata = {
     title: "Rutina",
   },
   openGraph: {
-    title: "Rutina — 4 Gaya Landing Page",
+    title: "Rutina — 7 Gaya Landing Page",
     description:
-      "Split Screen, Bento Grid, Demo Interaktif, dan Tipografi Minimalis dalam satu showcase.",
+      "Split Screen, Bento Grid, Demo Interaktif, Tipografi, Claymorphism, Neobrutalism, dan Glass & Aurora dalam satu showcase.",
     siteName: "Rutina",
     type: "website",
   },

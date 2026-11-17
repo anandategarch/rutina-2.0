@@ -2,9 +2,20 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AppWindow, Columns2, LayoutGrid, Type } from 'lucide-react'
+import {
+  AppWindow,
+  Columns2,
+  Egg,
+  Hammer,
+  LayoutGrid,
+  Sparkles,
+  Type,
+} from 'lucide-react'
 import BentoGrid from '@/components/landing/bento-grid'
+import Claymorphism from '@/components/landing/claymorphism'
 import DashboardPreview from '@/components/landing/dashboard-preview'
+import GlassAurora from '@/components/landing/glass-aurora'
+import Neobrutalism from '@/components/landing/neobrutalism'
 import SplitScreen from '@/components/landing/split-screen'
 import TypographyDriven from '@/components/landing/typography-driven'
 
@@ -19,6 +30,27 @@ const STYLES = [
     Component: DashboardPreview,
   },
   { id: 'type', label: 'Tipografi', short: 'Tipe', icon: Type, Component: TypographyDriven },
+  {
+    id: 'clay',
+    label: 'Claymorphism',
+    short: 'Clay',
+    icon: Egg,
+    Component: Claymorphism,
+  },
+  {
+    id: 'brutal',
+    label: 'Neobrutalism',
+    short: 'Brutal',
+    icon: Hammer,
+    Component: Neobrutalism,
+  },
+  {
+    id: 'glass',
+    label: 'Glass & Aurora',
+    short: 'Kaca',
+    icon: Sparkles,
+    Component: GlassAurora,
+  },
 ]
 
 export default function Home() {
@@ -54,9 +86,9 @@ export default function Home() {
       {/* Switcher gaya */}
       <nav
         aria-label="Pilih gaya landing page"
-        className="fixed inset-x-0 top-3 z-50 flex justify-center px-3"
+        className="fixed inset-x-0 top-3 z-50 flex justify-center overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="flex items-center gap-1 rounded-full border border-zinc-200/80 bg-white/90 p-1 shadow-lg shadow-zinc-900/5 backdrop-blur">
+        <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-zinc-200/80 bg-white/90 p-1 shadow-lg shadow-zinc-900/5 backdrop-blur">
           {STYLES.map((s, i) => (
             <button
               key={s.id}
@@ -83,7 +115,7 @@ export default function Home() {
 
       {/* Petunjuk keyboard */}
       <p className="pointer-events-none fixed inset-x-0 top-[60px] z-40 hidden justify-center text-center font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-white mix-blend-difference sm:flex">
-        Tekan 1–4 atau panah kiri/kanan untuk pindah gaya
+        Tekan 1–{STYLES.length} atau panah kiri/kanan untuk pindah gaya
       </p>
 
       {/* Konten gaya aktif */}
@@ -101,7 +133,8 @@ export default function Home() {
 
       {/* HUD penanda gaya aktif */}
       <div className="pointer-events-none fixed bottom-4 right-4 z-50 hidden font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-white mix-blend-difference sm:block">
-        {String(active + 1).padStart(2, '0')} / 04 — {STYLES[active].label}
+        {String(active + 1).padStart(2, '0')} / {String(STYLES.length).padStart(2, '0')} —{' '}
+        {STYLES[active].label}
       </div>
     </main>
   )
