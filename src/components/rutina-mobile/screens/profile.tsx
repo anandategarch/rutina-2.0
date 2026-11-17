@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { animate, stagger } from 'animejs'
 import {
@@ -24,6 +24,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,7 +37,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 
@@ -70,6 +79,7 @@ export default function ProfileScreen() {
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const setDailyGoal = useRutina((s) => s.setDailyGoal)
+  const [lang, setLang] = useState('id')
 
   const rowsRef = useRef<HTMLDivElement>(null)
 
@@ -125,9 +135,11 @@ export default function ProfileScreen() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="mt-4 flex flex-col items-center rounded-[20px] border border-[#4A3B3214] bg-white p-5 text-center shadow-[0_4px_16px_rgba(74,59,50,0.06)]"
       >
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#4A3B32] text-lg font-bold text-[#FAF9F6]">
-          AN
-        </span>
+        <Avatar className="h-16 w-16 border-4 border-white shadow-[0_6px_18px_rgba(74,59,50,0.18)]">
+          <AvatarFallback className="bg-cocoa text-lg font-bold text-parchment">
+            AN
+          </AvatarFallback>
+        </Avatar>
         <h2 className="mt-3 text-lg font-bold tracking-tight text-[#231F1E]">
           Ananda
         </h2>
@@ -201,6 +213,9 @@ export default function ProfileScreen() {
           </motion.div>
         ))}
       </div>
+
+      {/* Pemisah halus di atas kanvas terracotta (shadcn Separator) */}
+      <Separator className="mt-5 bg-[#FAF9F6]/25" />
 
       {/* Pengaturan — anime.js stagger + shadcn lengkap */}
       <div ref={rowsRef} className="mt-5 space-y-3">
@@ -298,22 +313,54 @@ export default function ProfileScreen() {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => toast('Bahasa Indonesia sudah aktif')}
-              className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-                <Globe className="h-4 w-4" />
-              </span>
-              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-                Bahasa
-              </span>
-              <span className="text-[13px] font-semibold text-[#4A3B32]/70">
-                Indonesia
-              </span>
-              <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-            </button>
+            {/* Pemilih bahasa — DropdownMenu radio (shadcn) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Pilih bahasa aplikasi"
+                  className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                    <Globe className="h-4 w-4" />
+                  </span>
+                  <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                    Bahasa
+                  </span>
+                  <span className="text-[13px] font-semibold text-[#4A3B32]/70">
+                    {lang === 'id' ? 'Indonesia' : 'English'}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                side="top"
+                className="mr-2 min-w-[190px] rounded-2xl border-[#4A3B321F]"
+              >
+                <DropdownMenuRadioGroup
+                  value={lang}
+                  onValueChange={(v) => {
+                    setLang(v)
+                    toast.success(
+                      v === 'id'
+                        ? 'Bahasa Indonesia sudah aktif'
+                        : 'English will be available soon',
+                    )
+                  }}
+                >
+                  <DropdownMenuRadioItem value="id" className="rounded-lg">
+                    Indonesia
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="en" disabled className="rounded-lg">
+                    English
+                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-[#4A3B32]/45">
+                      segera
+                    </span>
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

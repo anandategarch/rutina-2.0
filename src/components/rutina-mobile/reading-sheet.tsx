@@ -5,7 +5,19 @@ import { AnimatePresence, motion, useDragControls } from 'motion/react'
 import { Pin, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { FOLDER_SHORT, useRutina } from './store'
 import { playfair } from './serif'
 
@@ -97,7 +109,9 @@ export function ReadingSheet() {
               </h2>
             </div>
 
-            <p className="mt-3 text-left text-[14px] leading-relaxed text-[#231F1E]/75">
+            <Separator className="mt-4 bg-[#4A3B32]/12" />
+
+            <p className="mt-4 text-left text-[14px] leading-relaxed text-[#231F1E]/75">
               {note.body}
             </p>
 
@@ -119,17 +133,47 @@ export function ReadingSheet() {
                 />
                 {note.pinned ? 'Lepas' : 'Sematkan'}
               </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  deleteNote(note.id)
-                  toast('Catatan dihapus')
-                }}
-                className="h-11 flex-1 rounded-full bg-[#4A3B32] font-semibold text-[#FAF9F6] hover:bg-[#3A2E27]"
-              >
-                <Trash2 className="h-4 w-4" />
-                Hapus
-              </Button>
+
+              {/* Konfirmasi hapus — AlertDialog shadcn mencegah salah ketuk */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    className="h-11 flex-1 rounded-full bg-[#4A3B32] font-semibold text-[#FAF9F6] hover:bg-[#3A2E27]"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Hapus
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214] p-6 sm:max-w-[320px]">
+                  <AlertDialogHeader>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F6E3DA]">
+                      <Trash2 className="h-5 w-5 text-[#B25E3F]" />
+                    </div>
+                    <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-[#231F1E]">
+                      Hapus catatan ini?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-center text-[12.5px] leading-relaxed text-[#4A3B32]/70">
+                      Catatan “{note.title}” akan dihapus permanen dan tidak
+                      bisa dikembalikan.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
+                    <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-[#4A3B321F] text-[13px] font-semibold text-[#4A3B32] hover:bg-[#F5F3EE] hover:text-[#231F1E]">
+                      Batal
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        deleteNote(note.id)
+                        toast('Catatan dihapus')
+                      }}
+                      className="h-10 flex-1 rounded-full bg-[#B25E3F] text-[13px] font-bold text-white hover:bg-[#9E4E33]"
+                    >
+                      Ya, Hapus
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </motion.div>
         </>

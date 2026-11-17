@@ -3,6 +3,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ===== Palet earth tone Rutina 2.0 — design token terpusat =====
+   Menghasilkan utilitas Tailwind (bg-matcha, text-espresso, dst.)
+   agar warna tidak lagi tercecer sebagai nilai heksadesimal arbitrer. */
+@theme {
+  --color-matcha: #749b58;
+  --color-matcha-deep: #5e8347;
+  --color-pistachio: #a3c489;
+  --color-mist: #e4efe0;
+  --color-sand: #f5f3ee;
+  --color-parchment: #faf9f6;
+  --color-espresso: #231f1e;
+  --color-cocoa: #4a3b32;
+  --color-terracotta: #b25e3f;
+  --color-clay: #d98e6b;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -128,6 +144,13 @@
     @apply bg-background text-foreground;
     /* Hilangkan jeda zoom ketuk-ganda; gestur pinch tetap diizinkan. */
     touch-action: manipulation;
+    /* Hilangkan sorotan abu-abu saat ketuk di browser WebKit/Android. */
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Seleksi teks mengikuti identitas merek (pistachio → espresso). */
+  ::selection {
+    background-color: #a3c489;
+    color: #231f1e;
   }
   /* Validasi native: isyarat visual hanya setelah interaksi pengguna
      (:user-invalid) — panduan Forms & UI modern. */
@@ -205,12 +228,47 @@
   }
 }
 
+/* Pop elastis — umpan balik saat pilihan baru aktif (mood, filter). */
+@keyframes rutina-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  55% {
+    transform: scale(1.09);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Geliat kecil — untuk ikon hadiah/streak yang mengundang sentuhan. */
+@keyframes rutina-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-7deg);
+  }
+  60% {
+    transform: rotate(5deg);
+  }
+}
+
 @utility animate-float {
   animation: rutina-float 5s ease-in-out infinite;
 }
 
 @utility animate-pulse-soft {
   animation: rutina-pulse-soft 2.6s ease-in-out infinite;
+}
+
+@utility animate-pop {
+  animation: rutina-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-wiggle {
+  animation: rutina-wiggle 0.7s ease-in-out;
 }
 
 /* Kilau shimmer pada teks XP */

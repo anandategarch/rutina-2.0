@@ -49,10 +49,8 @@ export function BottomNav() {
   const theme = NAV_THEME[screen]
 
   return (
-    <motion.nav
+    <nav
       aria-label="Navigasi utama"
-      initial={false}
-      animate={{ backgroundColor: 'rgba(0,0,0,0)' }}
       className={`z-20 shrink-0 border-t pb-[max(env(safe-area-inset-bottom),10px)] pt-1 backdrop-blur-md transition-colors duration-500 ${theme.shell}`}
     >
       <div className="mx-auto grid w-full max-w-[520px] grid-cols-4">
@@ -65,7 +63,7 @@ export function BottomNav() {
               type="button"
               onClick={() => setScreen(tab.id)}
               aria-current={active ? 'page' : undefined}
-              className="relative flex h-[58px] cursor-pointer flex-col items-center justify-center gap-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+              className="relative flex h-[58px] cursor-pointer flex-col items-center justify-center gap-0.5 transition-transform duration-150 active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
             >
               {active && (
                 <motion.span
@@ -99,6 +97,6 @@ export function BottomNav() {
           )
         })}
       </div>
-    </motion.nav>
+    </nav>
   )
 }

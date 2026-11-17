@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
+import { animate } from 'animejs'
 import {
   BookOpen,
   Check,
@@ -16,6 +17,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
@@ -313,6 +315,25 @@ export default function HomeScreen() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
+  const giftRef = useRef<HTMLSpanElement>(null)
+  const prevBonusRef = useRef(bonusClaimed)
+
+  /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim */
+  useEffect(() => {
+    if (bonusClaimed && !prevBonusRef.current && giftRef.current) {
+      const anim = animate(giftRef.current, {
+        scale: [1, 1.4, 1],
+        rotate: [0, -14, 9, 0],
+        duration: 750,
+        ease: 'outBack(2.2)',
+      })
+      prevBonusRef.current = true
+      return () => {
+        anim.revert()
+      }
+    }
+    prevBonusRef.current = bonusClaimed
+  }, [bonusClaimed])
 
   /* Parallax lembut: hero bergeser & memudar saat daftar digulir */
   const { scrollY } = useScroll({ container: scrollRef })
@@ -362,9 +383,11 @@ export default function HomeScreen() {
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4A3B32] text-[11px] font-bold tracking-widest text-[#FAF9F6]">
-            AN
-          </span>
+          <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+            <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
+              AN
+            </AvatarFallback>
+          </Avatar>
         </div>
       </header>
 
@@ -419,11 +442,13 @@ export default function HomeScreen() {
             />
           </div>
 
-          {/* Strip XP gamified di dalam hero */}
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[#231F1E]/35 px-3.5 py-2.5 backdrop-blur-sm">
+          {/* Strip XP gamified di dalam hero — angka berkilau (shimmer) */}
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
             <span className="flex items-center gap-1.5 text-[12px] font-bold tabular-nums">
-              <Zap className="h-3.5 w-3.5 text-[#A3C489]" strokeWidth={2.4} />
-              <Counter to={xp} /> XP
+              <Zap className="h-3.5 w-3.5 text-pistachio" strokeWidth={2.4} />
+              <span className="text-shimmer">
+                <Counter to={xp} /> XP
+              </span>
             </span>
             <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#FAF9F6]/20">
               <motion.span
@@ -476,8 +501,8 @@ export default function HomeScreen() {
             className={
               'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ' +
               (bonusClaimed
-                ? 'bg-[#749B58]/20 text-[#658A4C]'
-                : 'bg-[#749B58] text-white')
+                ? 'bg-matcha/20 text-[#658A4C]'
+                : 'bg-matcha text-white')
             }
             animate={bonusClaimed ? { scale: 1 } : { scale: [1, 1.07, 1] }}
             transition={
@@ -486,11 +511,15 @@ export default function HomeScreen() {
                 : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }
             }
           >
-            {bonusClaimed ? (
-              <Check className="h-5 w-5" strokeWidth={2.6} />
-            ) : (
-              <Gift className="h-5 w-5" strokeWidth={1.9} />
-            )}
+            {/* Pembungkus dalam: target anime.js terpisah dari motion —
+                keduanya menulis transform tanpa saling menimpa. */}
+            <span ref={giftRef} className="flex">
+              {bonusClaimed ? (
+                <Check className="h-5 w-5" strokeWidth={2.6} />
+              ) : (
+                <Gift className="h-5 w-5" strokeWidth={1.9} />
+              )}
+            </span>
           </motion.span>
           <span className="min-w-0 flex-1">
             <span className="block text-[14px] font-bold text-[#231F1E]">

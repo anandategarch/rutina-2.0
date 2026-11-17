@@ -26,6 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 import { Counter } from '../counter'
 import Heatmap from '../heatmap'
@@ -188,9 +189,11 @@ export default function StatsScreen() {
       <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#F5F3EE]">
         {/* Header pemain */}
         <header className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#749B58] text-[11px] font-bold tracking-widest text-[#FAF9F6]">
-            AN
-          </span>
+          <Avatar className="h-10 w-10 border-2 border-matcha/40">
+            <AvatarFallback className="bg-matcha text-[11px] font-bold tracking-widest text-parchment">
+              AN
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-bold tracking-tight">
               Ananda
@@ -407,17 +410,20 @@ export default function StatsScreen() {
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {MOODS.map((m) => {
                   const MoodIcon = MOOD_ICONS[m]
+                  const selected = mood === m
                   return (
                     <button
-                      key={m}
+                      /* key berubah saat terpilih → tombol dipasang ulang
+                         sehingga animasi pop CSS bermain setiap kali aktif. */
+                      key={selected ? `on-${m}` : `off-${m}`}
                       type="button"
-                      aria-pressed={mood === m}
+                      aria-pressed={selected}
                       aria-label={`Catat suasana hati: ${m}`}
-                      onClick={() => setMood(mood === m ? null : m)}
+                      onClick={() => setMood(selected ? null : m)}
                       className={
                         'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A3C489] ' +
-                        (mood === m
-                          ? 'border-[#749B58] bg-[#749B58] text-white'
+                        (selected
+                          ? 'animate-pop border-[#749B58] bg-[#749B58] text-white'
                           : 'border-[#F5F3EE]/15 bg-[#231F1E] text-[#F5F3EE]/75 hover:bg-[#2A2422]')
                       }
                     >
