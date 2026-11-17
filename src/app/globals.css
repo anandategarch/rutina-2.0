@@ -116,15 +116,45 @@
   * {
     @apply border-border outline-ring/50;
   }
+  :root {
+    /* Deklarasi skema warna — panduan modern web (color-scheme). */
+    color-scheme: light;
+  }
+  html {
+    /* Hentikan scroll-chaining & permulaan pull-to-refresh di tepi aplikasi. */
+    overscroll-behavior: none;
+  }
   body {
     @apply bg-background text-foreground;
+    /* Hilangkan jeda zoom ketuk-ganda; gestur pinch tetap diizinkan. */
+    touch-action: manipulation;
+  }
+  /* Validasi native: isyarat visual hanya setelah interaksi pengguna
+     (:user-invalid) — panduan Forms & UI modern. */
+  input:user-invalid,
+  textarea:user-invalid {
+    border-color: oklch(0.577 0.245 27.325 / 55%);
+  }
+  /* Hormati preferensi gerak minimal — matikan animasi dekoratif CSS.
+     (Animasi JS Motion sudah diatur lewat MotionConfig reducedMotion.) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-/* Sembunyikan scrollbar untuk area gulir di dalam aplikasi mobile */
+/* Sembunyikan scrollbar untuk area gulir di dalam aplikasi mobile;
+   cegah scroll-chaining keluar dari kontainer (panduan modern web). */
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  overscroll-behavior: contain;
   &::-webkit-scrollbar {
     display: none;
   }

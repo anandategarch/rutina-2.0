@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-// (useRef hanya untuk penanda satu kali — bukan untuk arah transisi)
 import {
   AnimatePresence,
   motion,
@@ -17,7 +16,6 @@ import {
 } from './store'
 import { toast } from 'sonner'
 
-import { StatusBar } from './status-bar'
 import { BottomNav } from './bottom-nav'
 import { ComposeSheet } from './compose-sheet'
 import { ReadingSheet } from './reading-sheet'
@@ -36,7 +34,7 @@ const AMBIENT: Record<Screen, [string, string, string]> = {
   beranda: ['rgba(228,239,224,0.9)', 'rgba(116,155,88,0.10)', 'rgba(234,229,217,0.7)'],
   jurnal: ['rgba(250,249,246,0.14)', 'rgba(35,31,30,0.16)', 'rgba(163,196,137,0.30)'],
   statistik: ['rgba(116,155,88,0.20)', 'rgba(74,59,50,0.65)', 'rgba(163,196,137,0.08)'],
-  profil: ['rgba(255,255,255,0.75)', 'rgba(116,155,88,0.16)', 'rgba(234,229,217,0.8)'],
+  profil: ['rgba(250,249,246,0.16)', 'rgba(35,31,30,0.20)', 'rgba(217,142,107,0.35)'],
 }
 
 /* Variants transisi berarah — masuk dari sisi sesuai arah pindah tab. */
@@ -129,8 +127,7 @@ export function RutinaApp() {
               />
             </div>
 
-            <StatusBar tone={theme.statusTone} />
-
+            {/* Area konten — kolom terpusat, layar penuh di perangkat kecil */}
             <div className="relative min-h-0 flex-1">
               <AnimatePresence mode="wait" initial={false} custom={dir}>
                 <motion.div
@@ -141,7 +138,7 @@ export function RutinaApp() {
                   animate="center"
                   exit="exit"
                   transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0"
+                  className="absolute inset-0 mx-auto w-full max-w-[520px]"
                 >
                   {screen === 'beranda' && <HomeScreen />}
                   {screen === 'jurnal' && <JournalScreen />}
@@ -155,12 +152,6 @@ export function RutinaApp() {
             <ComposeSheet />
             <ReadingSheet />
             <CelebrationOverlay active={celebrating} />
-
-            {/* "Dynamic island" — hanya di mode bingkai (sm+) */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-2 z-30 hidden h-[22px] w-24 -translate-x-1/2 rounded-full bg-[#14100D] sm:block"
-            />
           </>
         )}
       </div>

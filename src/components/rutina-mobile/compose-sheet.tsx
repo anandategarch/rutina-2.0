@@ -93,7 +93,7 @@ export function ComposeSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className="absolute inset-x-0 bottom-0 z-50 rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5"
+            className="absolute inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[520px] rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5"
           >
             {/* Pegangan seret */}
             <div
@@ -141,7 +141,7 @@ export function ComposeSheet() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Tulis apa pun yang ada di kepalamu..."
-                  className="min-h-[84px] resize-none rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="min-h-[84px] resize-none rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] [field-sizing:content] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
                 />
               </div>
               <div className="space-y-1.5">

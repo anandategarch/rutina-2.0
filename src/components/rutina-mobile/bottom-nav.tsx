@@ -36,10 +36,10 @@ const NAV_THEME: Record<
     inactive: 'text-[#F5F3EE]/50',
   },
   profil: {
-    shell: 'border-[#4A3B3214] bg-[#F5F3EE]/95',
-    pill: 'bg-[#FAF9F6]',
-    active: 'text-[#749B58]',
-    inactive: 'text-[#4A3B32]/55',
+    shell: 'border-[#FAF9F6]/20 bg-[#B25E3F]/95',
+    pill: 'bg-[#FAF9F6]/22',
+    active: 'text-[#FAF9F6]',
+    inactive: 'text-[#FAF9F6]/65',
   },
 }
 
@@ -55,7 +55,7 @@ export function BottomNav() {
       animate={{ backgroundColor: 'rgba(0,0,0,0)' }}
       className={`z-20 shrink-0 border-t pb-[max(env(safe-area-inset-bottom),10px)] pt-1 backdrop-blur-md transition-colors duration-500 ${theme.shell}`}
     >
-      <div className="grid grid-cols-4">
+      <div className="mx-auto grid w-full max-w-[520px] grid-cols-4">
         {TABS.map((tab) => {
           const active = screen === tab.id
           const tabTheme = NAV_THEME[tab.id]

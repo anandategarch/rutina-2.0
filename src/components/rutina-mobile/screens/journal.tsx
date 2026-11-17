@@ -72,7 +72,7 @@ export default function JournalScreen() {
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5 text-[#FAF9F6]"
+      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#FAF9F6]"
     >
       {/* Header editorial — serif besar, gaya Clean Typography */}
       <motion.header style={{ y: titleY, opacity: titleOpacity }}>
@@ -83,7 +83,7 @@ export default function JournalScreen() {
               Catatan &amp; refleksi
             </p>
             <h1
-              className={`${playfair.className} mt-1.5 text-[38px] font-semibold leading-none tracking-tight`}
+              className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight`}
             >
               Jurnal<span className="text-[#231F1E]/50">.</span>
             </h1>
@@ -183,7 +183,7 @@ export default function JournalScreen() {
                   }
                 }}
                 whileTap={{ scale: 0.97 }}
-                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 transition-shadow duration-300 hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] ${NOTE_TONES[n.tone % 3]}`}
+                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 transition-shadow duration-300 hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3

@@ -61,6 +61,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  /* Keyboard virtual mengubah ukuran viewport agar konten tetap terlihat
+     (interactive-widget) — panduan modern web. */
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F5F3EE" },
     { media: "(prefers-color-scheme: dark)", color: "#231F1E" },

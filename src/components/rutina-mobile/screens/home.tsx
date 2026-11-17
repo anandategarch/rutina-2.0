@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import {
   BookOpen,
@@ -78,6 +78,223 @@ function getClientGreeting(): string {
   return 'Selamat malam'
 }
 
+/* ===== 1 — Horizontal Date Strip (kalender mingguan melayang) ===== */
+
+const DAY_MINI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+interface DayChip {
+  key: string
+  label: string
+  dateNum: number
+  full: string
+  isToday: boolean
+  isFuture: boolean
+  /** Capaian pseudo-deterministik (misi selesai) untuk hari selain hari ini. */
+  done: number
+}
+
+function buildDays(totalTasks: number): DayChip[] {
+  const today = new Date()
+  const chips: DayChip[] = []
+  for (let i = -7; i <= 6; i++) {
+    const d = new Date(today)
+    d.setDate(d.getDate() + i)
+    const isToday = i === 0
+    const dateNum = d.getDate()
+    chips.push({
+      key: d.toDateString(),
+      label: DAY_MINI[d.getDay()],
+      dateNum,
+      full: new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(d),
+      isToday,
+      isFuture: i > 0,
+      done: isToday
+        ? -1
+        : Math.min(((dateNum * 7) % 6) + 1, Math.max(totalTasks, 1)),
+    })
+  }
+  return chips
+}
+
+/* Snapshot klien untuk useSyncExternalStore — di-cache per (hari, jumlah
+   tugas) agar referensi stabil dan tidak memicu render berulang. */
+let daysCache: { key: string; days: DayChip[] } | null = null
+function getDaysSnapshot(totalTasks: number): DayChip[] {
+  const key = `${new Date().toDateString()}#${totalTasks}`
+  if (daysCache?.key === key) return daysCache.days
+  daysCache = { key, days: buildDays(totalTasks) }
+  return daysCache.days
+}
+
+function DateStrip({
+  doneCount,
+  totalTasks,
+}: {
+  doneCount: number
+  totalTasks: number
+}) {
+  const dailyGoal = useRutina((s) => s.dailyGoal)
+  /* Tanggal klien via useSyncExternalStore — snapshot server kosong
+     (kerangka), snapshot klien terisi setelah mount. Aman dari hydration. */
+  const days = useSyncExternalStore(
+    emptySubscribe,
+    () => getDaysSnapshot(totalTasks),
+    () => null,
+  )
+  /* null = ikuti hari ini (tanpa setState di dalam effect). */
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const stripRef = useRef<HTMLDivElement>(null)
+
+  /* Gulir mulus ke hari ini begitu strip siap. */
+  useEffect(() => {
+    if (!days || !stripRef.current) return
+    const el = stripRef.current.querySelector('[data-today="true"]')
+    el?.scrollIntoView({
+      inline: 'center',
+      block: 'nearest',
+      behavior: 'smooth',
+    })
+  }, [days])
+
+  const selected = days
+    ? (days.find((d) => d.key === selectedKey) ??
+      days.find((d) => d.isToday) ??
+      null)
+    : null
+  const goal = Math.max(dailyGoal, 1)
+
+  return (
+    <div className="sticky top-0 z-30 -mx-4 border-b border-[#4A3B32]/5 bg-[#F5F3EE]/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
+      <div
+        ref={stripRef}
+        role="group"
+        aria-label="Kalender dua pekan"
+        className="flex snap-x snap-mandatory gap-2 overflow-x-auto no-scrollbar"
+      >
+        {(days ?? Array.from({ length: 7 }, () => null)).map((d, i) => {
+          if (!d) {
+            /* Kerangka memuat sebelum tanggal klien tersedia (aman SSR) */
+            return (
+              <span
+                key={`skeleton-${i}`}
+                aria-hidden="true"
+                className="h-[54px] w-11 shrink-0 animate-pulse rounded-2xl bg-[#4A3B32]/8"
+              />
+            )
+          }
+          const isSelected = d.key === selectedKey
+          const done = d.isToday ? doneCount : d.done
+          const full = d.isFuture
+            ? 'belum terjadi'
+            : `${Math.min(done, goal)}/${goal} misi`
+          return (
+            <button
+              key={d.key}
+              type="button"
+              data-today={d.isToday ? 'true' : undefined}
+              aria-pressed={isSelected}
+              aria-label={`${d.full} — ${full}`}
+              onClick={() => setSelectedKey(d.key)}
+              className={
+                'relative flex h-[54px] w-11 shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+                (d.isToday
+                  ? 'bg-[#749B58] text-[#FAF9F6] shadow-[0_6px_16px_rgba(116,155,88,0.35)]'
+                  : isSelected
+                    ? 'bg-white text-[#231F1E] ring-2 ring-[#749B58]'
+                    : d.isFuture
+                      ? 'bg-white/40 text-[#4A3B32]/35'
+                      : 'bg-white/80 text-[#4A3B32] hover:bg-white')
+              }
+            >
+              <span className="text-[9px] font-bold uppercase tracking-wider opacity-75">
+                {d.label}
+              </span>
+              <span className="text-[15px] font-bold leading-none tabular-nums">
+                {d.dateNum}
+              </span>
+              {!d.isFuture && (
+                <span
+                  aria-hidden="true"
+                  className={
+                    'absolute bottom-1 h-1 w-1 rounded-full ' +
+                    (done >= goal
+                      ? d.isToday
+                        ? 'bg-[#FAF9F6]'
+                        : 'bg-[#749B58]'
+                      : 'bg-[#749B58]/30')
+                  }
+                />
+              )}
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-2 px-0.5 text-[11px] font-medium text-[#4A3B32]/70">
+        {selected
+          ? selected.isToday
+            ? `Hari ini — ${Math.min(doneCount, goal)}/${goal} misi target tercapai`
+            : selected.isFuture
+              ? `${selected.full} — belum terjadi`
+              : `${selected.full} — ${selected.done} misi selesai`
+          : 'Memuat kalender…'}
+      </p>
+    </div>
+  )
+}
+
+/* ===== 2 — Circular Progress Ring (cincin progres target harian) ===== */
+
+const GOAL_RING_CIRC = 2 * Math.PI * 40
+
+function GoalRing({ done, goal }: { done: number; goal: number }) {
+  const progress = Math.min(done / Math.max(goal, 1), 1)
+  return (
+    <div
+      className="relative h-[92px] w-[92px] shrink-0"
+      role="img"
+      aria-label={`Progres target harian: ${done} dari ${goal} misi`}
+    >
+      <svg viewBox="0 0 96 96" className="h-full w-full -rotate-90">
+        <circle
+          cx="48"
+          cy="48"
+          r="40"
+          fill="none"
+          stroke="#FAF9F6"
+          strokeOpacity="0.25"
+          strokeWidth="8"
+        />
+        <motion.circle
+          cx="48"
+          cy="48"
+          r="40"
+          fill="none"
+          stroke="#FAF9F6"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={GOAL_RING_CIRC}
+          initial={{ strokeDashoffset: GOAL_RING_CIRC }}
+          animate={{ strokeDashoffset: GOAL_RING_CIRC * (1 - progress) }}
+          transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <p className="text-[17px] font-bold leading-none tabular-nums">
+          {done}
+          <span className="text-[11px] font-semibold opacity-60">/{goal}</span>
+        </p>
+        <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.18em] opacity-70">
+          target
+        </p>
+      </div>
+    </div>
+  )
+}
+
 /* ===== Layar Beranda — Bento Grid × Gamified XP ===== */
 
 export default function HomeScreen() {
@@ -92,6 +309,7 @@ export default function HomeScreen() {
   const setCelebrating = useRutina((s) => s.setCelebrating)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const claimBonus = useRutina((s) => s.claimBonus)
+  const dailyGoal = useRutina((s) => s.dailyGoal)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
@@ -132,10 +350,10 @@ export default function HomeScreen() {
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5"
+      className="h-full overflow-y-auto no-scrollbar px-4 pb-28"
     >
       {/* Header aplikasi — wordmark + level + avatar */}
-      <header className="mb-5 flex items-center justify-between">
+      <header className="mb-4 flex items-center justify-between pt-[max(1.25rem,env(safe-area-inset-top))]">
         <p className="text-[19px] font-bold tracking-tight text-[#231F1E]">
           rutina<span className="text-[#749B58]">.</span>
         </p>
@@ -150,14 +368,17 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      {/* 1 — Hero: ringkasan harian + progres XP (Bento × Gamified) */}
+      {/* Kalender mingguan melayang (sticky) */}
+      <DateStrip doneCount={doneCount} totalTasks={tasks.length} />
+
+      {/* 1 — Hero: ringkasan harian + cincin target + progres XP */}
       <motion.section
         style={{ y: heroY, opacity: heroOpacity }}
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Ringkasan harian"
-        className="relative overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6]"
+        className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6]"
       >
         <HeroDoodle />
         <div className="relative z-10">
@@ -165,25 +386,28 @@ export default function HomeScreen() {
             {dateLabel}
           </p>
           <h1
-            className={`${playfair.className} mt-1 text-[28px] font-semibold leading-tight tracking-tight`}
+            className={`${playfair.className} mt-1 text-balance text-[28px] font-semibold leading-tight tracking-tight`}
           >
             {greeting}, Ananda.
           </h1>
 
-          <div className="mt-5">
-            <p className="text-[12px] font-medium text-[#FAF9F6]/75">
-              Tugas selesai
-            </p>
-            <p className="mt-0.5 flex items-baseline gap-1.5">
-              <span className="text-[56px] font-semibold leading-none tracking-tight">
-                <Counter to={pct} />
-              </span>
-              <span className="text-lg font-medium text-[#FAF9F6]/80">%</span>
-            </p>
-            <p className="mt-1.5 text-xs font-medium text-[#FAF9F6]/70">
-              {doneCount} dari {tasks.length} tugas •{' '}
-              {tasks.length - doneCount} tersisa
-            </p>
+          <div className="mt-5 flex items-center gap-5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-medium text-[#FAF9F6]/75">
+                Tugas selesai
+              </p>
+              <p className="mt-0.5 flex items-baseline gap-1.5">
+                <span className="text-[56px] font-semibold leading-none tracking-tight">
+                  <Counter to={pct} />
+                </span>
+                <span className="text-lg font-medium text-[#FAF9F6]/80">%</span>
+              </p>
+              <p className="mt-1.5 text-xs font-medium text-[#FAF9F6]/70">
+                {doneCount} dari {tasks.length} tugas •{' '}
+                {tasks.length - doneCount} tersisa
+              </p>
+            </div>
+            <GoalRing done={doneCount} goal={dailyGoal} />
           </div>
 
           <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#FAF9F6]/25">
@@ -255,11 +479,7 @@ export default function HomeScreen() {
                 ? 'bg-[#749B58]/20 text-[#658A4C]'
                 : 'bg-[#749B58] text-white')
             }
-            animate={
-              bonusClaimed
-                ? { scale: 1 }
-                : { scale: [1, 1.07, 1] }
-            }
+            animate={bonusClaimed ? { scale: 1 } : { scale: [1, 1.07, 1] }}
             transition={
               bonusClaimed
                 ? undefined
@@ -407,7 +627,7 @@ export default function HomeScreen() {
           </span>
         </div>
         <p
-          className={`${playfair.className} mt-4 text-[17px] italic leading-relaxed text-[#F5F3EE]`}
+          className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-[#F5F3EE]`}
         >
           &ldquo;{QUOTE_TEXT}&rdquo;
         </p>
@@ -426,9 +646,7 @@ export default function HomeScreen() {
           }}
           className="mt-5 h-9 rounded-full border border-[#F5F3EE]/35 px-4 text-[13px] font-semibold text-[#F5F3EE] hover:bg-[#F5F3EE]/10 hover:text-[#F5F3EE] disabled:opacity-60"
         >
-          {quoteSaved ? (
-            <Check className="h-4 w-4" strokeWidth={2.5} />
-          ) : null}
+          {quoteSaved ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
           {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
         </Button>
       </motion.section>

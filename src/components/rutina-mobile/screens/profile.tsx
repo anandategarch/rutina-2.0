@@ -104,17 +104,17 @@ export default function ProfileScreen() {
   ]
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5 text-[#231F1E]">
+    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
       {/* Header editorial */}
       <header>
-        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#4A3B32]/55">
-          <Leaf className="h-3.5 w-3.5 text-[#749B58]" />
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FAF9F6]/70">
+          <Leaf className="h-3.5 w-3.5 text-[#FAF9F6]/85" />
           Akun & preferensi
         </p>
         <h1
-          className={`${playfair.className} mt-1.5 text-[38px] font-semibold leading-none tracking-tight text-[#231F1E]`}
+          className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-[#FAF9F6]`}
         >
-          Profil<span className="text-[#749B58]">.</span>
+          Profil<span className="text-[#231F1E]/40">.</span>
         </h1>
       </header>
 
@@ -425,14 +425,14 @@ export default function ProfileScreen() {
           data-row
           type="button"
           onClick={() => toast('Sampai jumpa lagi besok!')}
-          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#4A3B32]/20 bg-white/70 text-[14px] font-semibold text-[#4A3B32] backdrop-blur transition-colors hover:bg-[#EAE5D9] hover:text-[#231F1E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#FAF9F6]/35 bg-[#FAF9F6]/15 text-[14px] font-semibold text-[#FAF9F6] backdrop-blur transition-colors hover:bg-[#FAF9F6]/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6]"
         >
           <LogOut className="h-4 w-4" />
           Keluar
         </button>
       </div>
 
-      <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/50">
+      <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#FAF9F6]/55">
         Earth Tone Edition — 2025
       </p>
     </div>

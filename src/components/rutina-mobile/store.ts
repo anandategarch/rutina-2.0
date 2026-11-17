@@ -73,16 +73,16 @@ export function computeLevel(xp: number): number {
   return xp >= XP_TARGET ? 8 : 7
 }
 
-/* ===== Tema per layar — kanvas & aksen berbeda di tiap tab ===== */
+/* ===== Tema per layar — kanvas & aksen berbeda di tiap tab =====
+   Empat kombinasi warna earth tone yang saling melengkapi:
+   Warm Sand (dasar), Matcha (aksen hijau), Deep Espresso (gelap),
+   dan Terracotta (aksen hangat) — mengikuti aturan 60-30-10. */
 
-export const SCREEN_THEME: Record<
-  Screen,
-  { bg: string; statusTone: 'sand' | 'matcha' | 'espresso' | 'deep' | 'pistachio' }
-> = {
-  beranda: { bg: '#F5F3EE', statusTone: 'sand' },
-  jurnal: { bg: '#749B58', statusTone: 'matcha' },
-  statistik: { bg: '#231F1E', statusTone: 'deep' },
-  profil: { bg: '#E4EFE0', statusTone: 'pistachio' },
+export const SCREEN_THEME: Record<Screen, { bg: string }> = {
+  beranda: { bg: '#F5F3EE' },
+  jurnal: { bg: '#749B58' },
+  statistik: { bg: '#231F1E' },
+  profil: { bg: '#B25E3F' },
 }
 
 /** Riwayat 14 hari deterministik per tugas (aman untuk SSR). */

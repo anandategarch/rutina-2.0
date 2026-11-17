@@ -42,6 +42,18 @@ import {
 } from '../store'
 import TrendLine from '../trend-line'
 
+import {
+  Area,
+  AreaChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+
 /** Keliling ring progres XP (r = 78 pada viewBox 200). */
 const R = 78
 const CIRC = 2 * Math.PI * R
@@ -87,6 +99,37 @@ const MOOD_ICONS: Record<string, typeof Laugh> = {
   Biasa: Meh,
   Lelah: BatteryLow,
 }
+
+/* ===== Data analitik (deterministik, aman SSR) ===== */
+
+/** Distribusi kategori misi — dihitung dari daftar tugas. */
+function categoryData(tasks: { cat?: string }[]) {
+  const counts = new Map<string, number>()
+  for (const t of tasks) {
+    const key = t.cat ?? 'Kebiasaan'
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const colors: Record<string, string> = {
+    Kebiasaan: '#A3C489',
+    Kerja: '#749B58',
+    Kesehatan: '#D98E6B',
+    Pribadi: '#8C7B6B',
+  }
+  return Array.from(counts.entries()).map(([name, value]) => ({
+    name,
+    value,
+    color: colors[name] ?? '#A3C489',
+  }))
+}
+
+/** Tren penyelesaian 30 hari — deterministik. */
+const TREND_30D = Array.from({ length: 30 }, (_, i) => ({
+  d: i + 1,
+  v: 40 + ((i * 13) % 5) * 15,
+}))
+const TREND_AVG = Math.round(
+  TREND_30D.reduce((a, b) => a + b.v, 0) / TREND_30D.length,
+)
 
 function SectionTitle({ title, hint }: { title: string; hint?: string }) {
   return (
@@ -142,7 +185,7 @@ export default function StatsScreen() {
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5 text-[#F5F3EE]">
+      <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#F5F3EE]">
         {/* Header pemain */}
         <header className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#749B58] text-[11px] font-bold tracking-widest text-[#FAF9F6]">
@@ -476,6 +519,165 @@ export default function StatsScreen() {
                   Tiap misi bernilai {XP_PER_TASK} XP — terus jaga ritmenya.
                 </p>
               </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ===== Dashboard Wawasan & Analitik ===== */}
+        <section className="mt-6" aria-label="Wawasan dan analitik">
+          <SectionTitle title="Wawasan & Analitik" hint="30 hari terakhir" />
+          <div className="space-y-3">
+            {/* Donut distribusi kategori */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, ease: EASE }}
+              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+                Distribusi Kategori
+              </p>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="relative h-28 w-28 shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryData(tasks)}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={34}
+                        outerRadius={52}
+                        paddingAngle={3}
+                        stroke="none"
+                        isAnimationActive
+                      >
+                        {categoryData(tasks).map((c) => (
+                          <Cell key={c.name} fill={c.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-[20px] font-semibold leading-none tabular-nums text-[#F5F3EE]">
+                      {tasks.length}
+                    </span>
+                    <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#F5F3EE]/55">
+                      misi
+                    </span>
+                  </div>
+                </div>
+                <ul className="min-w-0 flex-1 space-y-2">
+                  {categoryData(tasks).map((c) => (
+                    <li
+                      key={c.name}
+                      className="flex items-center gap-2.5 text-[12px]"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: c.color }}
+                      />
+                      <span className="flex-1 truncate font-medium text-[#F5F3EE]/80">
+                        {c.name}
+                      </span>
+                      <span className="shrink-0 font-bold tabular-nums text-[#F5F3EE]">
+                        {c.value}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.div>
+
+            {/* Grafik area tren penyelesaian */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+            >
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+                    Tren Penyelesaian
+                  </p>
+                  <p className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="text-[38px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
+                      <Counter to={TREND_AVG} />
+                    </span>
+                    <span className="text-sm font-medium text-[#F5F3EE]/55">
+                      % rata-rata / hari
+                    </span>
+                  </p>
+                </div>
+                <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58]/20 px-2.5 py-1 text-[11px] font-bold text-[#A3C489]">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  stabil
+                </span>
+              </div>
+              <div className="mt-4">
+                <ResponsiveContainer width="100%" height={130}>
+                  <AreaChart
+                    data={TREND_30D}
+                    margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="trendFillDark"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#A3C489"
+                          stopOpacity={0.35}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#A3C489"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="d"
+                      tick={{ fill: 'rgba(245,243,238,0.45)', fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={7}
+                      tickFormatter={(v: number) => `${v}`}
+                    />
+                    <YAxis hide domain={[0, 100]} />
+                    <RechartsTooltip
+                      cursor={{ stroke: 'rgba(245,243,238,0.2)' }}
+                      contentStyle={{
+                        background: '#231F1E',
+                        border: '1px solid rgba(245,243,238,0.12)',
+                        borderRadius: 12,
+                        fontSize: 11,
+                        color: '#F5F3EE',
+                      }}
+                      labelFormatter={(v) => `Hari ke-${v}`}
+                      formatter={(value) => [`${value}%`, 'Selesai']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="v"
+                      stroke="#A3C489"
+                      strokeWidth={2.5}
+                      fill="url(#trendFillDark)"
+                      isAnimationActive
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-2 text-[11px] font-medium text-[#F5F3EE]/55">
+                Konsistensi di atas 70% pada 22 dari 30 hari terakhir.
+              </p>
             </motion.div>
           </div>
         </section>
