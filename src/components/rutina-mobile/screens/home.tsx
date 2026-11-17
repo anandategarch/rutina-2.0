@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { HeroDoodle } from '../hero-doodle'
+import { PunchCard } from '../punch-card'
 import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
@@ -538,6 +539,9 @@ export default function HomeScreen() {
           )}
         </button>
       </motion.section>
+
+      {/* 2.5 — Kartu stempel pekan (pattern punch card loyalti) */}
+      <PunchCard />
 
       {/* 3 — Daftar misi & kebiasaan */}
       <section className="mt-8" aria-label="Daftar tugas harian">

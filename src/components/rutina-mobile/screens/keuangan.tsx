@@ -755,25 +755,32 @@ export default function KeuanganScreen() {
             </button>
           </div>
 
-          <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1">
-            {goals.map((g, i) => (
-              <GoalCard key={g.id} goal={g} index={i} />
-            ))}
+          <div className="relative mt-3">
+            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1">
+              {goals.map((g, i) => (
+                <GoalCard key={g.id} goal={g} index={i} />
+              ))}
 
-            {/* Kartu tambah — putus-putus */}
-            <button
-              type="button"
-              onClick={openGoalDialog}
-              className="flex min-h-[178px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-[#FAF9F6]/30 px-3 py-4 text-[#FAF9F6]/70 transition-all hover:border-[#D9B98C]/60 hover:text-[#E9D5B8] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FAF9F6]/10">
-                <Plus className="h-5 w-5" />
-              </span>
-              <span className="text-[12.5px] font-bold">Tujuan Baru</span>
-              <span className="text-center text-[10.5px] leading-tight opacity-70">
-                tetapkan nama &amp; target
-              </span>
-            </button>
+              {/* Kartu tambah — putus-putus */}
+              <button
+                type="button"
+                onClick={openGoalDialog}
+                className="flex min-h-[178px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-[#FAF9F6]/30 px-3 py-4 text-[#FAF9F6]/70 transition-all hover:border-[#D9B98C]/60 hover:text-[#E9D5B8] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FAF9F6]/10">
+                  <Plus className="h-5 w-5" />
+                </span>
+                <span className="text-[12.5px] font-bold">Tujuan Baru</span>
+                <span className="text-center text-[10.5px] leading-tight opacity-70">
+                  tetapkan nama &amp; target
+                </span>
+              </button>
+            </div>
+            {/* Petunjuk geser — memudar di tepi kanan carousel */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[22px] bg-gradient-to-l from-[#4A3B32] to-transparent"
+            />
           </div>
         </BlurFade>
 
