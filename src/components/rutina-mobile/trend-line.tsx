@@ -69,23 +69,23 @@ export default function TrendLine() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
       transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[16px] border border-[#4A3B321F] bg-white p-5"
+      className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
     >
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/65">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
             Tren Fokus
           </p>
           <p className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="text-[40px] font-semibold leading-none tracking-tight text-[#231F1E]">
+            <span className="text-[40px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
               2,1
             </span>
-            <span className="text-sm font-medium text-[#4A3B32]/60">
+            <span className="text-sm font-medium text-[#F5F3EE]/55">
               jam / hari rata-rata
             </span>
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58]/20 px-2.5 py-1 text-[11px] font-bold text-[#A3C489]">
           <TrendingUp className="h-3.5 w-3.5" />
           +12%
         </span>
@@ -99,14 +99,14 @@ export default function TrendLine() {
         aria-label="Grafik garis waktu fokus tujuh hari terakhir, tren naik"
       >
         <defs>
-          <linearGradient id="focusGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#749B58" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#749B58" stopOpacity="0" />
+          <linearGradient id="focusGradDark" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#A3C489" stopOpacity="0.30" />
+            <stop offset="100%" stopColor="#A3C489" stopOpacity="0" />
           </linearGradient>
         </defs>
         <motion.path
           d={AREA_PATH}
-          fill="url(#focusGrad)"
+          fill="url(#focusGradDark)"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: '-24px' }}
@@ -116,7 +116,7 @@ export default function TrendLine() {
           ref={lineRef}
           d={LINE_PATH}
           fill="none"
-          stroke="#749B58"
+          stroke="#A3C489"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -126,8 +126,8 @@ export default function TrendLine() {
             cx={p.x}
             cy={p.y}
             r={i === POINTS.length - 1 ? 5 : 3.5}
-            fill={i === POINTS.length - 1 ? '#749B58' : '#FFFFFF'}
-            stroke="#749B58"
+            fill={i === POINTS.length - 1 ? '#A3C489' : '#231F1E'}
+            stroke="#A3C489"
             strokeWidth="2"
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
@@ -147,14 +147,14 @@ export default function TrendLine() {
         {DAYS.map((d) => (
           <span
             key={d}
-            className="text-[10px] font-bold text-[#4A3B32]/55"
+            className="text-[10px] font-bold text-[#F5F3EE]/50"
           >
             {d}
           </span>
         ))}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#4A3B32]/70">
+      <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/55">
         Pekan ini naik 12% — Rabu sedikit turun tapi Sabtu–Minggu konsisten
         tinggi.
       </p>

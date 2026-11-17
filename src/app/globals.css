@@ -130,10 +130,79 @@
   }
 }
 
-/* Split screen (lg+): pusatkan toast di panel kanan (preview ponsel),
-   bukan di tengah jendela, agar tidak menabrak panel narasi kiri. */
-@media (min-width: 1024px) {
+/* Tekstur butiran halus (grain) — lapisan dekoratif atas kanvas ambien */
+@utility grain {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Kunci animasi tambahan untuk Rutina 2.0 */
+@keyframes rutina-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes rutina-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes rutina-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@utility animate-float {
+  animation: rutina-float 5s ease-in-out infinite;
+}
+
+@utility animate-pulse-soft {
+  animation: rutina-pulse-soft 2.6s ease-in-out infinite;
+}
+
+/* Kilau shimmer pada teks XP */
+@utility text-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    #a3c489 20%,
+    #faf9f6 40%,
+    #a3c489 60%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: rutina-shimmer 3.2s linear infinite;
+}
+
+/* Toast dipusatkan mengikuti kolom aplikasi (bukan jendela penuh) */
+@media (min-width: 640px) {
   ol[data-sonner-toaster] {
-    left: 75% !important;
+    left: 50% !important;
+    transform: translateX(-50%);
+    width: min(400px, calc(100vw - 3rem));
   }
 }

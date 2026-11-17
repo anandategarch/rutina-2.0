@@ -1,16 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useSyncExternalStore } from 'react'
-import { motion } from 'motion/react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import {
   BookOpen,
-  BookmarkPlus,
-  Briefcase,
   Check,
+  Gift,
   Heart,
   Lightbulb,
   Plus,
   Quote,
+  Sparkles,
+  Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -22,8 +23,18 @@ import { HeroDoodle } from '../hero-doodle'
 import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
-import { useRutina, FOLDERS, QUOTE_TEXT, QUOTE_AUTHOR } from '../store'
-import type { FolderKey } from '../store'
+import {
+  computeLevel,
+  computeXp,
+  FOLDERS,
+  QUOTE_AUTHOR,
+  QUOTE_TEXT,
+  useRutina,
+  XP_BONUS,
+  XP_PER_TASK,
+  XP_TARGET,
+  type FolderKey,
+} from '../store'
 
 /* ===== Potongan kecil ===== */
 
@@ -41,15 +52,14 @@ function SectionTitle({ title, hint }: { title: string; hint?: string }) {
 }
 
 const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
-  kerja: Briefcase,
+  kerja: BookOpen,
   ide: Lightbulb,
   bacaan: BookOpen,
   pribadi: Heart,
 }
 
 /* Tanggal & sapaan live — nilai khusus klien yang aman dari hydration:
-   snapshot server kosong, snapshot klien terisi setelah mount
-   (tanpa setState langsung di dalam effect). */
+   snapshot server kosong, snapshot klien terisi setelah mount. */
 const emptySubscribe = () => () => {}
 
 function getClientDateLabel(): string {
@@ -68,7 +78,7 @@ function getClientGreeting(): string {
   return 'Selamat malam'
 }
 
-/* ===== Layar Beranda ===== */
+/* ===== Layar Beranda — Bento Grid × Gamified XP ===== */
 
 export default function HomeScreen() {
   const tasks = useRutina((s) => s.tasks)
@@ -80,8 +90,16 @@ export default function HomeScreen() {
   const expandedTaskId = useRutina((s) => s.expandedTaskId)
   const toggleExpandedTask = useRutina((s) => s.toggleExpandedTask)
   const setCelebrating = useRutina((s) => s.setCelebrating)
+  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  const claimBonus = useRutina((s) => s.claimBonus)
 
+  const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
+
+  /* Parallax lembut: hero bergeser & memudar saat daftar digulir */
+  const { scrollY } = useScroll({ container: scrollRef })
+  const heroY = useTransform(scrollY, [0, 180], [0, 36])
+  const heroOpacity = useTransform(scrollY, [0, 160], [1, 0.35])
 
   const dateLabel = useSyncExternalStore(
     emptySubscribe,
@@ -97,30 +115,44 @@ export default function HomeScreen() {
   const doneCount = tasks.filter((t) => t.done).length
   const pct =
     tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0
+  const xp = computeXp(doneCount, bonusClaimed)
+  const level = computeLevel(xp)
+  const xpProgress = Math.min(xp / XP_TARGET, 1)
+  const remaining = Math.max(XP_TARGET - xp, 0)
 
   // Perayaan + toast saat semua tugas selesai — hanya sekali
   useEffect(() => {
     if (tasks.length > 0 && tasks.every((t) => t.done) && !firedRef.current) {
       firedRef.current = true
       setCelebrating(true)
-      toast.success('Semua tugas selesai — hari yang produktif!')
+      toast.success('Semua misi selesai — hari yang produktif!')
     }
   }, [tasks, setCelebrating])
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5">
-      {/* Header aplikasi */}
+    <div
+      ref={scrollRef}
+      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5"
+    >
+      {/* Header aplikasi — wordmark + level + avatar */}
       <header className="mb-5 flex items-center justify-between">
         <p className="text-[19px] font-bold tracking-tight text-[#231F1E]">
           rutina<span className="text-[#749B58]">.</span>
         </p>
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4A3B32] text-[11px] font-bold tracking-widest text-[#FAF9F6]">
-          AN
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 items-center gap-1.5 rounded-full border border-[#749B5833] bg-white px-3 text-[11px] font-bold text-[#658A4C] shadow-sm">
+            <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
+            LV {level}
+          </span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4A3B32] text-[11px] font-bold tracking-widest text-[#FAF9F6]">
+            AN
+          </span>
+        </div>
       </header>
 
-      {/* 1 — Kartu Ringkasan Utama (Daily Focus & Hero Summary) */}
+      {/* 1 — Hero: ringkasan harian + progres XP (Bento × Gamified) */}
       <motion.section
+        style={{ y: heroY, opacity: heroOpacity }}
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
@@ -132,11 +164,13 @@ export default function HomeScreen() {
           <p className="text-[13px] font-medium text-[#FAF9F6]/75">
             {dateLabel}
           </p>
-          <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight">
-            {greeting}, Ananda
+          <h1
+            className={`${playfair.className} mt-1 text-[28px] font-semibold leading-tight tracking-tight`}
+          >
+            {greeting}, Ananda.
           </h1>
 
-          <div className="mt-6">
+          <div className="mt-5">
             <p className="text-[12px] font-medium text-[#FAF9F6]/75">
               Tugas selesai
             </p>
@@ -161,10 +195,29 @@ export default function HomeScreen() {
             />
           </div>
 
+          {/* Strip XP gamified di dalam hero */}
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[#231F1E]/35 px-3.5 py-2.5 backdrop-blur-sm">
+            <span className="flex items-center gap-1.5 text-[12px] font-bold tabular-nums">
+              <Zap className="h-3.5 w-3.5 text-[#A3C489]" strokeWidth={2.4} />
+              <Counter to={xp} /> XP
+            </span>
+            <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#FAF9F6]/20">
+              <motion.span
+                initial={false}
+                className="block h-full rounded-full bg-gradient-to-r from-[#A3C489] to-[#FAF9F6]"
+                animate={{ width: `${xpProgress * 100}%` }}
+                transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+              />
+            </span>
+            <span className="text-[10px] font-semibold tabular-nums text-[#FAF9F6]/70">
+              {remaining > 0 ? `${remaining} XP lagi` : 'MAX'}
+            </span>
+          </div>
+
           <Button
             type="button"
             onClick={() => openCompose()}
-            className="mt-5 h-11 w-full rounded-full bg-[#FAF9F6] text-[15px] font-semibold text-[#231F1E] shadow-[0_8px_20px_rgba(35,31,30,0.16)] hover:bg-white hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)]"
+            className="mt-4 h-11 w-full rounded-full bg-[#FAF9F6] text-[15px] font-semibold text-[#231F1E] shadow-[0_8px_20px_rgba(35,31,30,0.16)] hover:bg-white hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)]"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             Catatan Baru
@@ -172,27 +225,103 @@ export default function HomeScreen() {
         </div>
       </motion.section>
 
-      {/* 2 — Daftar Tugas & Kebiasaan */}
+      {/* 2 — Bonus harian (klaim XP) */}
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        aria-label="Bonus harian"
+        className="mt-3"
+      >
+        <button
+          type="button"
+          disabled={bonusClaimed}
+          onClick={() => {
+            claimBonus()
+            toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
+          }}
+          className={
+            'flex w-full cursor-pointer items-center gap-3.5 rounded-[18px] border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+            (bonusClaimed
+              ? 'border-[#749B5826] bg-[#E4EFE0]/60'
+              : 'border-dashed border-[#749B58]/45 bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(116,155,88,0.18)]')
+          }
+        >
+          <motion.span
+            aria-hidden="true"
+            className={
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ' +
+              (bonusClaimed
+                ? 'bg-[#749B58]/20 text-[#658A4C]'
+                : 'bg-[#749B58] text-white')
+            }
+            animate={
+              bonusClaimed
+                ? { scale: 1 }
+                : { scale: [1, 1.07, 1] }
+            }
+            transition={
+              bonusClaimed
+                ? undefined
+                : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }
+            }
+          >
+            {bonusClaimed ? (
+              <Check className="h-5 w-5" strokeWidth={2.6} />
+            ) : (
+              <Gift className="h-5 w-5" strokeWidth={1.9} />
+            )}
+          </motion.span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-bold text-[#231F1E]">
+              {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
+            </span>
+            <span className="mt-0.5 block text-[12px] font-medium text-[#4A3B32]/70">
+              {bonusClaimed
+                ? `+${XP_BONUS} XP sudah masuk ke saldo kamu`
+                : `Hadiah konsistensi: +${XP_BONUS} XP gratis setiap hari`}
+            </span>
+          </span>
+          {!bonusClaimed && (
+            <span className="shrink-0 rounded-full bg-[#749B58]/15 px-2.5 py-1 text-[11px] font-bold text-[#658A4C]">
+              +{XP_BONUS} XP
+            </span>
+          )}
+        </button>
+      </motion.section>
+
+      {/* 3 — Daftar misi & kebiasaan */}
       <section className="mt-8" aria-label="Daftar tugas harian">
         <SectionTitle
-          title="Fokus Hari Ini"
+          title="Misi Hari Ini"
           hint={`${doneCount}/${tasks.length} selesai`}
         />
         <div className="space-y-2.5">
-          {tasks.map((t) => (
-            <TaskRow
+          {tasks.map((t, i) => (
+            <motion.div
               key={t.id}
-              task={t}
-              done={t.done}
-              expanded={expandedTaskId === t.id}
-              onToggle={() => toggleTask(t.id)}
-              onExpand={() => toggleExpandedTask(t.id)}
-            />
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.4,
+                delay: 0.14 + i * 0.05,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              <TaskRow
+                task={t}
+                done={t.done}
+                expanded={expandedTaskId === t.id}
+                xp={XP_PER_TASK}
+                onToggle={() => toggleTask(t.id)}
+                onExpand={() => toggleExpandedTask(t.id)}
+              />
+            </motion.div>
           ))}
         </div>
       </section>
 
-      {/* 3 — Bento insight: fokus & streak berdampingan */}
+      {/* 4 — Bento insight: fokus & streak berdampingan */}
       <section className="mt-8" aria-label="Insight pekan ini">
         <SectionTitle title="Insight Pekan" hint="Fokus & konsistensi" />
         <div className="grid grid-cols-2 gap-3">
@@ -201,7 +330,7 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* 4 — Kartu Kategori / Folder */}
+      {/* 5 — Kartu Kategori / Folder */}
       <section className="mt-8" aria-label="Koleksi folder catatan">
         <SectionTitle title="Koleksi" hint="4 folder" />
         <div className="grid grid-cols-2 gap-3">
@@ -230,10 +359,10 @@ export default function HomeScreen() {
                     openFolder(f.key)
                   }
                 }}
-                className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-[#E4EFE0] p-4 transition-shadow duration-300 hover:shadow-[0_10px_24px_rgba(74,59,50,0.10)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-white p-4 shadow-[0_2px_10px_rgba(74,59,50,0.05)] transition-shadow duration-300 hover:shadow-[0_10px_24px_rgba(74,59,50,0.10)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
               >
                 <div className="flex items-start justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#4A3B32]">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
                     <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                   </span>
                   <button
@@ -243,7 +372,7 @@ export default function HomeScreen() {
                       e.stopPropagation()
                       openCompose(f.key)
                     }}
-                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/70 text-[#4A3B32] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#E4EFE0]/70 text-[#4A3B32] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
                   >
                     <Plus className="h-4 w-4" strokeWidth={2.5} />
                   </button>
@@ -262,7 +391,7 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* 5 — Kartu Kutipan & Pengingat (pembatas visual) */}
+      {/* 6 — Kartu Kutipan & Pengingat (pembatas visual) */}
       <motion.section
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -299,9 +428,7 @@ export default function HomeScreen() {
         >
           {quoteSaved ? (
             <Check className="h-4 w-4" strokeWidth={2.5} />
-          ) : (
-            <BookmarkPlus className="h-4 w-4" />
-          )}
+          ) : null}
           {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
         </Button>
       </motion.section>

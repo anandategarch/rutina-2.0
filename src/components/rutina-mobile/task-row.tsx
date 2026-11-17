@@ -7,7 +7,7 @@ import {
   useMotionValue,
   useTransform,
 } from 'motion/react'
-import { Check, ChevronDown, Flame, Undo2 } from 'lucide-react'
+import { Check, ChevronDown, Flame, Undo2, Zap } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { type Task } from './store'
@@ -15,17 +15,20 @@ import { type Task } from './store'
 /**
  * Baris tugas tingkat lanjut: geser kanan untuk menandai selesai,
  * geser kiri untuk membatalkan, ketuk untuk membuka detail.
+ * Menampilkan ganjaran XP + animasi pop saat selesai.
  */
 export function TaskRow({
   task,
   done,
   expanded,
+  xp,
   onToggle,
   onExpand,
 }: {
   task: Task
   done: boolean
   expanded: boolean
+  xp?: number
   onToggle: () => void
   onExpand: () => void
 }) {
@@ -36,7 +39,7 @@ export function TaskRow({
   const fillR = useTransform(x, [10, 80], [0, 1])
   /* Isi pasir yang terkuak saat menggeser ke kiri (batalkan) */
   const fillL = useTransform(x, [-80, -10], [1, 0])
-  /* Opasitas ikon petunjuk di tepi kartu selama geser */
+  /* Opasitas ikon petunjuk di tepi kartu selama menggeser */
   const hintR = useTransform(x, [10, 60], [0, 1])
   const hintL = useTransform(x, [-60, -10], [0, 1])
 
@@ -170,6 +173,20 @@ export function TaskRow({
           </span>
         ) : null}
 
+        {/* Ganjaran XP */}
+        {typeof xp === 'number' && (
+          <span
+            className={
+              'flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold tabular-nums transition-colors duration-300 ' +
+              (done
+                ? 'bg-[#4A3B32]/10 text-[#4A3B32]/45'
+                : 'bg-[#749B58]/15 text-[#658A4C]')
+            }
+          >
+            <Zap className="h-3 w-3" strokeWidth={2.4} />+{xp}
+          </span>
+        )}
+
         {/* Chevron detail */}
         <motion.span
           animate={{ rotate: expanded ? 180 : 0 }}
@@ -178,6 +195,23 @@ export function TaskRow({
         >
           <ChevronDown className="h-4 w-4" />
         </motion.span>
+
+        {/* XP pop — mengambang naik saat tugas baru selesai */}
+        <AnimatePresence>
+          {done && typeof xp === 'number' && (
+            <motion.span
+              key="xp-pop"
+              aria-hidden="true"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: [0, 1, 1, 0], y: -30 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, times: [0, 0.2, 0.75, 1] }}
+              className="pointer-events-none absolute right-12 top-1/2 text-[11px] font-bold text-[#658A4C]"
+            >
+              +{xp} XP
+            </motion.span>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Detail yang bisa dibuka-tutup */}

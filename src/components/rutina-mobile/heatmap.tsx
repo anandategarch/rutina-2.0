@@ -9,7 +9,8 @@ import { DAYS } from './store'
 /* ===== Data demo (deterministik, tanpa Math.random) ===== */
 
 const WEEKS = 12
-const LEVEL_COLORS = ['#EDEAE3', '#E4EFE0', '#CBE0C2', '#A3C489', '#749B58']
+/** Palet level gelap: dari espresso redup ke matcha terang. */
+const LEVEL_COLORS = ['#2E2824', '#3E4A34', '#51633F', '#65894C', '#A3C489']
 
 /** level 0-4 per sel; deterministik */
 const levelAt = (w: number, d: number): number => (w * 13 + d * 29) % 5
@@ -45,12 +46,12 @@ export default function Heatmap() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[16px] border border-[#4A3B321F] bg-white p-5"
+      className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/65">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
         Konsistensi
       </p>
-      <p className="mt-1 text-[11px] font-medium text-[#4A3B32]/70">
+      <p className="mt-1 text-[11px] font-medium text-[#F5F3EE]/55">
         12 pekan terakhir
       </p>
 
@@ -70,8 +71,8 @@ export default function Heatmap() {
                 aria-label={`Pekan ${12 - w}, ${DAYS[d]} — ${LEVEL_COUNTS[level]} kebiasaan`}
                 onClick={() => setSel({ w, d })}
                 className={
-                  'h-5 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58] ' +
-                  (isToday ? 'ring-2 ring-[#749B58] ring-offset-1' : '')
+                  'h-5 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#A3C489] ' +
+                  (isToday ? 'ring-2 ring-[#A3C489] ring-offset-1 ring-offset-[#4A3B32]' : '')
                 }
                 style={{ backgroundColor: LEVEL_COLORS[level] }}
               />
@@ -80,7 +81,7 @@ export default function Heatmap() {
         )}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#4A3B32]/70">
+      <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/55">
         {sel
           ? `Pekan ${12 - sel.w}, ${DAYS[sel.d]} — ${
               selCount === 0
@@ -91,7 +92,7 @@ export default function Heatmap() {
       </p>
 
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/50">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#F5F3EE]/45">
           Sedikit
         </span>
         {LEVEL_COLORS.map((c) => (
@@ -101,7 +102,7 @@ export default function Heatmap() {
             style={{ backgroundColor: c }}
           />
         ))}
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/50">
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#F5F3EE]/45">
           Banyak
         </span>
       </div>

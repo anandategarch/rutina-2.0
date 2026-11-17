@@ -44,12 +44,46 @@ export const FOLDER_SHORT: Record<FolderKey, string> = {
 export const DAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 /** Jam fokus Senin–Minggu; total 14,5 jam. */
 export const FOCUS = [1.5, 2.2, 1.8, 2.0, 2.4, 2.0, 2.6]
+/** Agregat fokus 4 pekan (untuk tab "Bulan" di Statistik). */
+export const FOCUS_MONTH = [
+  { label: 'P1', value: 11.2 },
+  { label: 'P2', value: 12.8 },
+  { label: 'P3', value: 13.5 },
+  { label: 'P4', value: 14.5 },
+]
 
 export const MOODS = ['Ceria', 'Baik', 'Biasa', 'Lelah']
 
 export const QUOTE_TEXT =
   'Kebiasaan kecil yang konsisten akan mengalahkan motivasi besar yang sesaat.'
 export const QUOTE_AUTHOR = 'James Clear, Atomic Habits'
+
+/* ===== Ekonomi XP (gabungan varian Gamified ke dalam app utuh) ===== */
+
+export const XP_BASE = 1840
+export const XP_PER_TASK = 80
+export const XP_BONUS = 120
+export const XP_TARGET = 2400
+
+export function computeXp(doneCount: number, bonusClaimed: boolean): number {
+  return XP_BASE + doneCount * XP_PER_TASK + (bonusClaimed ? XP_BONUS : 0)
+}
+
+export function computeLevel(xp: number): number {
+  return xp >= XP_TARGET ? 8 : 7
+}
+
+/* ===== Tema per layar — kanvas & aksen berbeda di tiap tab ===== */
+
+export const SCREEN_THEME: Record<
+  Screen,
+  { bg: string; statusTone: 'sand' | 'matcha' | 'espresso' | 'deep' | 'pistachio' }
+> = {
+  beranda: { bg: '#F5F3EE', statusTone: 'sand' },
+  jurnal: { bg: '#749B58', statusTone: 'matcha' },
+  statistik: { bg: '#231F1E', statusTone: 'deep' },
+  profil: { bg: '#E4EFE0', statusTone: 'pistachio' },
+}
 
 /** Riwayat 14 hari deterministik per tugas (aman untuk SSR). */
 const hist = (seed: number): boolean[] =>
@@ -165,6 +199,7 @@ const SEED_NOTES: Note[] = [
 
 interface RutinaState {
   screen: Screen
+  prevScreen: Screen
   journalFilter: FolderKey | 'semua'
   composeOpen: boolean
   composeFolder: FolderKey
@@ -175,6 +210,8 @@ interface RutinaState {
   expandedTaskId: string | null
   readingNoteId: string | null
   celebrating: boolean
+  bonusClaimed: boolean
+  dailyGoal: number
   setScreen: (screen: Screen) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
@@ -190,10 +227,13 @@ interface RutinaState {
   openReading: (id: string) => void
   closeReading: () => void
   setCelebrating: (v: boolean) => void
+  claimBonus: () => void
+  setDailyGoal: (n: number) => void
 }
 
 export const useRutina = create<RutinaState>((set, get) => ({
   screen: 'beranda',
+  prevScreen: 'beranda',
   journalFilter: 'semua',
   composeOpen: false,
   composeFolder: 'pribadi',
@@ -204,8 +244,11 @@ export const useRutina = create<RutinaState>((set, get) => ({
   expandedTaskId: null,
   readingNoteId: null,
   celebrating: false,
+  bonusClaimed: false,
+  dailyGoal: 6,
 
-  setScreen: (screen) => set({ screen }),
+  setScreen: (screen) =>
+    set((s) => ({ screen, prevScreen: s.screen })),
 
   setJournalFilter: (journalFilter) => set({ journalFilter }),
 
@@ -281,4 +324,11 @@ export const useRutina = create<RutinaState>((set, get) => ({
   closeReading: () => set({ readingNoteId: null }),
 
   setCelebrating: (celebrating) => set({ celebrating }),
+
+  claimBonus: () => {
+    if (get().bonusClaimed) return
+    set({ bonusClaimed: true })
+  },
+
+  setDailyGoal: (dailyGoal) => set({ dailyGoal }),
 }))

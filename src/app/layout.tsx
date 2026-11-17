@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina — Split Screen × Bento Grid × Earth Tone",
+  title: "Rutina — Kebiasaan, Jurnal & Petualangan XP",
   description:
-    "Pratinjau desain Rutina: earth tone 60-30-10, komposisi split screen, dasbor bento grid, dan tipografi editorial Playfair × Geist — dibangun dengan shadcn/ui, Motion, dan anime.js.",
+    "Rutina 2.0: aplikasi kebiasaan utuh dengan dasbor bento, misi berhadiah XP, jurnal editorial, dan statistik gamified — dalam palet earth tone yang hangat.",
   keywords: [
     "Rutina",
     "aplikasi mobile",
@@ -26,11 +26,12 @@ export const metadata: Metadata = {
     "jurnal",
     "earth tone",
     "matcha green",
-    "split screen",
     "bento grid",
     "tipografi editorial",
     "mood tracker",
     "statistik kebiasaan",
+    "XP",
+    "gamifikasi",
     "shadcn/ui",
     "Motion",
     "anime.js",
@@ -48,7 +49,7 @@ export const metadata: Metadata = {
     title: "Rutina",
   },
   openGraph: {
-    title: "Rutina — Aplikasi Mobile Kebiasaan & Jurnal",
+    title: "Rutina — Kebiasaan, Jurnal & Petualangan XP",
     description:
       "Rutinitas harian, jurnal masonry, dan statistik mingguan dalam palet earth tone yang hangat.",
     siteName: "Rutina",

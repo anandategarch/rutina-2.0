@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { BatteryFull, Signal, Wifi } from 'lucide-react'
 
-/** Nada warna bar status mengikuti tema varian layar. */
+/** Nada warna bar status mengikuti tema layar aktif. */
 const TONES = {
   sand: 'bg-[#F5F3EE] text-[#231F1E]',
   espresso: 'bg-[#4A3B32] text-[#F5F3EE]',
   matcha: 'bg-[#749B58] text-[#FAF9F6]',
+  deep: 'bg-[#231F1E] text-[#F5F3EE]',
+  pistachio: 'bg-[#E4EFE0] text-[#231F1E]',
 } as const
 
 export type StatusTone = keyof typeof TONES
@@ -31,7 +33,7 @@ export function StatusBar({ tone = 'sand' }: { tone?: StatusTone }) {
 
   return (
     <div
-      className={`hidden h-11 shrink-0 items-center justify-between px-7 pt-1 sm:flex ${TONES[tone]}`}
+      className={`hidden h-11 shrink-0 items-center justify-between px-7 pt-1 transition-colors duration-500 sm:flex ${TONES[tone]}`}
     >
       <span className="text-[13px] font-semibold tabular-nums">
         {time || '09.41'}

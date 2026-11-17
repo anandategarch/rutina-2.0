@@ -1,16 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'motion/react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { animate, stagger } from 'animejs'
-import { BookOpen, Pin, Plus, Search } from 'lucide-react'
+import { BookOpen, Feather, Pin, Plus, Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 
 import { playfair } from '../serif'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from '../store'
 
-/** Variasi latar kartu jurnal: putih bergaris tipis, pistachio, warm sand gelap. */
+/** Variasi latar kartu jurnal: putih, pistachio muda, warm sand —
+    semuanya kontras di atas kanvas matcha. */
 const NOTE_TONES = [
   'border border-[#4A3B321F] bg-white',
   'bg-[#E4EFE0]',
@@ -32,6 +33,12 @@ export default function JournalScreen() {
   const openReading = useRutina((s) => s.openReading)
 
   const listRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  /* Parallax editorial: judul serif bergeser & memudar saat menggulir */
+  const { scrollY } = useScroll({ container: scrollRef })
+  const titleY = useTransform(scrollY, [0, 120], [0, -28])
+  const titleOpacity = useTransform(scrollY, [0, 110], [1, 0.25])
 
   // anime.js — orkestrasi masuk kartu jurnal saat filter/pencarian berubah
   useEffect(() => {
@@ -63,40 +70,62 @@ export default function JournalScreen() {
   )
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5">
-      {/* Header + tombol buat catatan */}
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[19px] font-bold tracking-tight text-[#231F1E]">
-            Jurnal
-          </h1>
-          <p className="mt-0.5 text-xs font-medium text-[#4A3B32]/70">
-            {notes.length} catatan • {pinnedCount} disematkan
-          </p>
+    <div
+      ref={scrollRef}
+      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5 text-[#FAF9F6]"
+    >
+      {/* Header editorial — serif besar, gaya Clean Typography */}
+      <motion.header style={{ y: titleY, opacity: titleOpacity }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FAF9F6]/65">
+              <Feather className="h-3.5 w-3.5" />
+              Catatan &amp; refleksi
+            </p>
+            <h1
+              className={`${playfair.className} mt-1.5 text-[38px] font-semibold leading-none tracking-tight`}
+            >
+              Jurnal<span className="text-[#231F1E]/50">.</span>
+            </h1>
+            <p className="mt-2 text-xs font-medium text-[#FAF9F6]/75">
+              {notes.length} catatan • {pinnedCount} disematkan
+            </p>
+          </div>
+          <motion.button
+            type="button"
+            aria-label="Buat catatan baru"
+            onClick={() => openCompose()}
+            whileTap={{ scale: 0.9 }}
+            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FAF9F6] text-[#231F1E] shadow-[0_8px_20px_rgba(35,31,30,0.28)] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6]"
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+          </motion.button>
         </div>
-        <button
-          type="button"
-          aria-label="Buat catatan baru"
-          onClick={() => openCompose()}
-          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#749B58] text-white shadow-[0_6px_16px_rgba(116,155,88,0.35)] transition-colors hover:bg-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-        >
-          <Plus className="h-5 w-5" strokeWidth={2.5} />
-        </button>
-      </header>
+      </motion.header>
 
-      {/* Pencarian */}
-      <div className="relative mt-4">
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A3B32]/45" />
+      {/* Pencarian — kaca susu di atas kanvas hijau */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mt-5"
+      >
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#231F1E]/45" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari judul atau isi catatan…"
-          className="h-11 rounded-xl border-[#4A3B321F] bg-white pl-10 text-sm text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+          className="h-11 rounded-xl border-transparent bg-[#FAF9F6]/95 pl-10 text-sm text-[#231F1E] shadow-sm placeholder:text-[#4A3B32]/40 focus-visible:border-[#231F1E]/20 focus-visible:ring-[#231F1E]/15"
         />
-      </div>
+      </motion.div>
 
-      {/* Chip filter folder — gradien kanan memberi isyarat bisa digulir */}
-      <div className="relative mt-3">
+      {/* Chip filter folder — pil kaca di atas hijau */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mt-3"
+      >
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {FILTERS.map((f) => {
             const active = journalFilter === f.key
@@ -107,10 +136,10 @@ export default function JournalScreen() {
                 aria-pressed={active}
                 onClick={() => setJournalFilter(f.key)}
                 className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] ' +
                   (active
-                    ? 'bg-[#749B58] text-white'
-                    : 'border border-[#4A3B321F] bg-white text-[#4A3B32] hover:bg-[#E4EFE0]')
+                    ? 'bg-[#FAF9F6] text-[#231F1E] shadow-[0_4px_12px_rgba(35,31,30,0.2)]'
+                    : 'border border-[#FAF9F6]/40 bg-[#FAF9F6]/10 text-[#FAF9F6] backdrop-blur-sm hover:bg-[#FAF9F6]/20')
                 }
               >
                 {f.label}
@@ -120,21 +149,21 @@ export default function JournalScreen() {
         </div>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#F5F3EE] to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#749B58] to-transparent"
         />
-      </div>
+      </motion.div>
 
       {/* Masonry kartu catatan */}
       <section className="mt-5" aria-label="Daftar catatan jurnal">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E4EFE0]">
-              <BookOpen className="h-6 w-6 text-[#4A3B32]" />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF9F6]/15">
+              <BookOpen className="h-6 w-6 text-[#FAF9F6]" />
             </span>
-            <p className="mt-4 text-[15px] font-semibold text-[#231F1E]">
+            <p className="mt-4 text-[15px] font-semibold text-[#FAF9F6]">
               Tidak ada catatan
             </p>
-            <p className="mt-1 text-xs text-[#4A3B32]/60">
+            <p className="mt-1 text-xs text-[#FAF9F6]/65">
               Coba kata kunci lain atau buat catatan baru.
             </p>
           </div>
@@ -154,7 +183,7 @@ export default function JournalScreen() {
                   }
                 }}
                 whileTap={{ scale: 0.97 }}
-                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 transition-shadow duration-300 hover:shadow-[0_8px_20px_rgba(74,59,50,0.10)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${NOTE_TONES[n.tone % 3]}`}
+                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 transition-shadow duration-300 hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] ${NOTE_TONES[n.tone % 3]}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3
@@ -165,7 +194,10 @@ export default function JournalScreen() {
                   <button
                     type="button"
                     aria-label={n.pinned ? 'Lepas sematan catatan' : 'Sematkan catatan'}
-                    onClick={() => togglePin(n.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      togglePin(n.id)
+                    }}
                     className={
                       '-mr-1 -mt-1 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-[#4A3B32]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
                       (n.pinned ? 'text-[#4A3B32]' : 'text-[#4A3B32]/40')

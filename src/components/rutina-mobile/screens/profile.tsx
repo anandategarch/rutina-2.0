@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
+import { animate, stagger } from 'animejs'
 import {
   Bell,
   ChevronRight,
@@ -10,19 +12,90 @@ import {
   Leaf,
   LogOut,
   Moon,
+  Sparkles,
+  Target,
+  Volume2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Progress } from '@/components/ui/progress'
+import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 
 import { Counter } from '../counter'
-import { useRutina } from '../store'
+import { playfair } from '../serif'
+import {
+  computeLevel,
+  computeXp,
+  useRutina,
+  XP_TARGET,
+} from '../store'
+
+const FAQ_ITEMS = [
+  {
+    q: 'Bagaimana cara kerja XP dan level?',
+    a: 'Setiap misi yang selesai bernilai 80 XP, bonus harian 120 XP. Kumpulkan cukup XP untuk naik level dan membuka lencana baru.',
+  },
+  {
+    q: 'Apa itu streak dan bagaimana menjaganya?',
+    a: 'Streak adalah jumlah hari berturut-turut kamu menyelesaikan kebiasaan. Cukup centang minimal satu misi setiap hari agar api streak tetap menyala.',
+  },
+  {
+    q: 'Apakah data saya tersimpan otomatis?',
+    a: 'Ya. Rutina menyimpan catatan dan progres secara lokal di perangkatmu — tanpa perlu akun, tanpa internet.',
+  },
+]
 
 export default function ProfileScreen() {
   const notes = useRutina((s) => s.notes)
   const tasks = useRutina((s) => s.tasks)
+  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  const dailyGoal = useRutina((s) => s.dailyGoal)
+  const setDailyGoal = useRutina((s) => s.setDailyGoal)
 
-  const pct = Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100)
+  const rowsRef = useRef<HTMLDivElement>(null)
+
+  const doneCount = tasks.filter((t) => t.done).length
+  const pct = Math.round((doneCount / tasks.length) * 100)
+  const xp = computeXp(doneCount, bonusClaimed)
+  const level = computeLevel(xp)
+  const xpPct = Math.min(Math.round((xp / XP_TARGET) * 100), 100)
+
+  /* anime.js — baris pengaturan masuk bergiliran saat layar dibuka */
+  useEffect(() => {
+    if (!rowsRef.current) return
+    const anim = animate(
+      rowsRef.current.querySelectorAll('[data-row]'),
+      {
+        translateX: [-18, 0],
+        opacity: [0, 1],
+        delay: stagger(60),
+        duration: 560,
+        ease: 'outExpo',
+      },
+    )
+    return () => {
+      anim.revert()
+    }
+  }, [])
 
   const stats = [
     { label: 'Catatan', value: notes.length, percent: false },
@@ -31,20 +104,26 @@ export default function ProfileScreen() {
   ]
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5">
+    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5 text-[#231F1E]">
+      {/* Header editorial */}
       <header>
-        <h1 className="text-[19px] font-bold tracking-tight text-[#231F1E]">
-          Profil
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#4A3B32]/55">
+          <Leaf className="h-3.5 w-3.5 text-[#749B58]" />
+          Akun & preferensi
+        </p>
+        <h1
+          className={`${playfair.className} mt-1.5 text-[38px] font-semibold leading-none tracking-tight text-[#231F1E]`}
+        >
+          Profil<span className="text-[#749B58]">.</span>
         </h1>
       </header>
 
-      {/* Kartu profil */}
+      {/* Kartu profil + progres level (shadcn Progress & Badge) */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-24px' }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-4 flex flex-col items-center rounded-[20px] border border-[#4A3B321F] bg-white p-5 text-center"
+        className="mt-4 flex flex-col items-center rounded-[20px] border border-[#4A3B3214] bg-white p-5 text-center shadow-[0_4px_16px_rgba(74,59,50,0.06)]"
       >
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#4A3B32] text-lg font-bold text-[#FAF9F6]">
           AN
@@ -55,10 +134,43 @@ export default function ProfileScreen() {
         <p className="mt-0.5 text-xs font-medium text-[#4A3B32]/65">
           ananda@rutina.app
         </p>
-        <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#E4EFE0] px-3 py-1 text-[11px] font-bold text-[#4A3B32]">
-          <Leaf className="h-3 w-3 text-[#749B58]" />
-          Anggota sejak Juni 2025
-        </span>
+        <div className="mt-3 flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className="gap-1.5 rounded-full border-[#749B58]/40 bg-[#E4EFE0] px-3 py-1 text-[11px] font-bold text-[#658A4C]"
+          >
+            <Sparkles className="h-3 w-3" />
+            Level {level}
+          </Badge>
+          <Badge
+            variant="outline"
+            className="rounded-full border-[#4A3B32]/20 bg-[#F5F3EE] px-3 py-1 text-[11px] font-bold text-[#4A3B32]"
+          >
+            Anggota sejak Juni 2025
+          </Badge>
+        </div>
+
+        {/* Progres XP menuju level berikutnya */}
+        <div className="mt-5 w-full">
+          <div className="flex items-baseline justify-between px-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/60">
+              Progres Level
+            </span>
+            <span className="text-[11px] font-bold tabular-nums text-[#658A4C]">
+              <Counter to={xp} /> / {XP_TARGET} XP
+            </span>
+          </div>
+          <Progress
+            value={xpPct}
+            className="mt-2 h-2.5 rounded-full bg-[#E4EFE0]"
+            aria-label="Progres XP menuju level berikutnya"
+          />
+          <p className="mt-2 text-[11px] font-medium text-[#4A3B32]/65">
+            {level >= 8
+              ? 'Level maksimal tercapai — petualang sejati!'
+              : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
+          </p>
+        </div>
       </motion.div>
 
       {/* Baris statistik ringkas */}
@@ -67,14 +179,13 @@ export default function ProfileScreen() {
           <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-24px' }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{
               duration: 0.5,
-              delay: i * 0.06,
+              delay: 0.06 + i * 0.06,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="flex flex-col items-center rounded-[16px] border border-[#4A3B321F] bg-white p-3.5"
+            className="flex flex-col items-center rounded-[16px] border border-[#4A3B3214] bg-white p-3.5 shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
           >
             <p className="flex items-baseline">
               <span className="text-[22px] font-semibold leading-none tracking-tight text-[#231F1E]">
@@ -91,102 +202,235 @@ export default function ProfileScreen() {
         ))}
       </div>
 
-      {/* Kartu pengaturan */}
-      <div className="mt-3 overflow-hidden rounded-[20px] border border-[#4A3B321F] bg-white">
-        <div className="divide-y divide-[#4A3B3214]">
-          {/* Notifikasi */}
-          <div className="flex min-h-[54px] items-center gap-3 px-4">
+      {/* Pengaturan — anime.js stagger + shadcn lengkap */}
+      <div ref={rowsRef} className="mt-5 space-y-3">
+        {/* Target harian (shadcn Slider) */}
+        <motion.section
+          data-row
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+          aria-label="Target misi harian"
+        >
+          <div className="flex items-center gap-3">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-              <Bell className="h-4 w-4" />
+              <Target className="h-4 w-4" />
             </span>
-            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-              Notifikasi
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold text-[#231F1E]">
+                Target Misi Harian
+              </p>
+              <p className="text-[11px] font-medium text-[#4A3B32]/60">
+                Berapa misi yang ingin kamu selesaikan tiap hari?
+              </p>
+            </div>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#749B58] text-[13px] font-bold tabular-nums text-white">
+              {dailyGoal}
             </span>
-            <Switch
-              defaultChecked
-              aria-label="Notifikasi"
-              onCheckedChange={(checked) =>
-                toast(`Notifikasi ${checked ? 'diaktifkan' : 'dimatikan'}`)
-              }
-              className="data-[state=checked]:bg-[#749B58]"
-            />
           </div>
-
-          {/* Mode Gelap */}
-          <div className="flex min-h-[54px] items-center gap-3 px-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-              <Moon className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-              Mode Gelap
-            </span>
-            <Switch
-              checked={false}
-              aria-label="Mode gelap"
-              onCheckedChange={() => toast('Mode gelap segera hadir')}
-              className="data-[state=checked]:bg-[#749B58]"
-            />
+          <Slider
+            value={[dailyGoal]}
+            onValueChange={(v) => setDailyGoal(v[0])}
+            min={1}
+            max={12}
+            step={1}
+            aria-label="Target misi harian"
+            className="mt-4 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[#749B58] [&_[data-slot=slider-thumb]]:border-[#749B58] [&_[data-slot=slider-thumb]]:bg-white"
+          />
+          <div className="mt-2 flex justify-between text-[10px] font-bold text-[#4A3B32]/50">
+            <span>Santai (1)</span>
+            <span>Seimbang (6)</span>
+            <span>Produktif (12)</span>
           </div>
+        </motion.section>
 
-          {/* Bahasa */}
-          <button
-            type="button"
-            onClick={() => toast('Bahasa Indonesia sudah aktif')}
-            className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-              <Globe className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-              Bahasa
-            </span>
-            <span className="text-[13px] font-semibold text-[#4A3B32]/70">
-              Indonesia
-            </span>
-            <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-          </button>
+        {/* Sakelar preferensi */}
+        <div
+          data-row
+          className="overflow-hidden rounded-[20px] border border-[#4A3B3214] bg-white shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+        >
+          <div className="divide-y divide-[#4A3B3214]">
+            <div className="flex min-h-[54px] items-center gap-3 px-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                <Bell className="h-4 w-4" />
+              </span>
+              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                Notifikasi
+              </span>
+              <Switch
+                defaultChecked
+                aria-label="Notifikasi"
+                onCheckedChange={(checked) =>
+                  toast(`Notifikasi ${checked ? 'diaktifkan' : 'dimatikan'}`)
+                }
+                className="data-[state=checked]:bg-[#749B58]"
+              />
+            </div>
 
-          {/* Pusat Bantuan */}
-          <button
-            type="button"
-            onClick={() => toast('Pusat bantuan segera hadir')}
-            className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-              <HelpCircle className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-              Pusat Bantuan
-            </span>
-            <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-          </button>
+            <div className="flex min-h-[54px] items-center gap-3 px-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                <Volume2 className="h-4 w-4" />
+              </span>
+              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                Efek Suara
+              </span>
+              <Switch
+                aria-label="Efek suara"
+                onCheckedChange={(checked) =>
+                  toast(`Efek suara ${checked ? 'dinyalakan' : 'dimatikan'}`)
+                }
+                className="data-[state=checked]:bg-[#749B58]"
+              />
+            </div>
 
-          {/* Tentang Rutina */}
-          <button
-            type="button"
-            onClick={() => toast('Rutina 2.0 — Earth Tone Edition')}
-            className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-              <Info className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-              Tentang Rutina
-            </span>
-            <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-          </button>
+            <div className="flex min-h-[54px] items-center gap-3 px-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                <Moon className="h-4 w-4" />
+              </span>
+              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                Mode Gelap
+              </span>
+              <Switch
+                checked={false}
+                aria-label="Mode gelap"
+                onCheckedChange={() => toast('Mode gelap segera hadir')}
+                className="data-[state=checked]:bg-[#749B58]"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => toast('Bahasa Indonesia sudah aktif')}
+              className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                <Globe className="h-4 w-4" />
+              </span>
+              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                Bahasa
+              </span>
+              <span className="text-[13px] font-semibold text-[#4A3B32]/70">
+                Indonesia
+              </span>
+              <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Keluar */}
-      <button
-        type="button"
-        onClick={() => toast('Sampai jumpa lagi besok!')}
-        className="mt-4 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#4A3B32]/20 bg-white text-[14px] font-semibold text-[#4A3B32] transition-colors hover:bg-[#EAE5D9] hover:text-[#231F1E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-      >
-        <LogOut className="h-4 w-4" />
-        Keluar
-      </button>
+        {/* Pertanyaan umum (shadcn Accordion) */}
+        <motion.section
+          data-row
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-[20px] border border-[#4A3B3214] bg-white px-4 shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+          aria-label="Pertanyaan umum"
+        >
+          <Accordion type="single" collapsible className="w-full">
+            {FAQ_ITEMS.map((f, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="border-[#4A3B3214]"
+              >
+                <AccordionTrigger className="py-4 text-left text-[13.5px] font-semibold text-[#231F1E] hover:no-underline [&>svg]:text-[#749B58]">
+                  {f.q}
+                </AccordionTrigger>
+                <AccordionContent className="pb-4 text-[12.5px] leading-relaxed text-[#4A3B32]/75">
+                  {f.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </motion.section>
+
+        {/* Tentang (shadcn Dialog) */}
+        <motion.section
+          data-row
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-[0_2px_10px_rgba(74,59,50,0.04)] transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                  <Info className="h-4 w-4" />
+                </span>
+                <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                  Tentang Rutina
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214] bg-white p-6 sm:max-w-[320px]">
+              <DialogHeader>
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#E4EFE0]">
+                  <Leaf className="h-6 w-6 text-[#749B58]" />
+                </div>
+                <DialogTitle className="text-center text-lg font-bold tracking-tight text-[#231F1E]">
+                  Rutina 2.0
+                </DialogTitle>
+                <DialogDescription className="text-center text-[12.5px] leading-relaxed text-[#4A3B32]/70">
+                  Aplikasi kebiasaan &amp; jurnal dengan palet earth tone.
+                  Dibangun dengan Next.js, Tailwind CSS 4, shadcn/ui, Motion,
+                  dan anime.js.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-center gap-2">
+                <Badge className="rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                  Earth Tone
+                </Badge>
+                <Badge className="rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                  Gamified
+                </Badge>
+                <Badge className="rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                  Editorial
+                </Badge>
+              </div>
+              <DialogFooter className="sm:justify-center">
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    className="h-9 rounded-full bg-[#749B58] px-6 text-[13px] font-bold text-white hover:bg-[#658A4C]"
+                    onClick={() => toast('Terima kasih sudah memakai Rutina!')}
+                  >
+                    Mengerti
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </motion.section>
+
+        {/* Pusat bantuan */}
+        <button
+          data-row
+          type="button"
+          onClick={() => toast('Pusat bantuan segera hadir')}
+          className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-[0_2px_10px_rgba(74,59,50,0.04)] transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+            <HelpCircle className="h-4 w-4" />
+          </span>
+          <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+            Pusat Bantuan
+          </span>
+          <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+        </button>
+
+        {/* Keluar */}
+        <button
+          data-row
+          type="button"
+          onClick={() => toast('Sampai jumpa lagi besok!')}
+          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#4A3B32]/20 bg-white/70 text-[14px] font-semibold text-[#4A3B32] backdrop-blur transition-colors hover:bg-[#EAE5D9] hover:text-[#231F1E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        >
+          <LogOut className="h-4 w-4" />
+          Keluar
+        </button>
+      </div>
 
       <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/50">
         Earth Tone Edition — 2025
