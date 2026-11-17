@@ -96,7 +96,7 @@ export default function JournalScreen() {
             aria-label="Buat catatan baru"
             onClick={() => openCompose()}
             whileTap={{ scale: 0.9 }}
-            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FAF9F6] text-[#231F1E] shadow-[0_8px_20px_rgba(35,31,30,0.28)] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6]"
+            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FAF9F6] text-[#231F1E] shadow-[0_8px_20px_rgba(12,9,7,0.35)] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6]"
           >
             <Plus className="h-5 w-5" strokeWidth={2.5} />
           </motion.button>
@@ -183,7 +183,7 @@ export default function JournalScreen() {
                   }
                 }}
                 whileTap={{ scale: 0.97 }}
-                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 transition-shadow duration-300 hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
+                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 shadow-ink transition-all duration-300 hover:-translate-y-0.5 hover:shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3

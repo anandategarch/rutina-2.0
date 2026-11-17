@@ -401,7 +401,7 @@ export default function HomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Ringkasan harian"
-        className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6]"
+        className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6] shadow-leaf"
       >
         <HeroDoodle />
         <div className="relative z-10 sm:mx-auto sm:max-w-[600px]">
@@ -608,7 +608,7 @@ export default function HomeScreen() {
                     openFolder(f.key)
                   }
                 }}
-                className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-white p-4 shadow-[0_2px_10px_rgba(74,59,50,0.05)] transition-shadow duration-300 hover:shadow-[0_10px_24px_rgba(74,59,50,0.10)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-pop focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
               >
                 <div className="flex items-start justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
@@ -647,7 +647,7 @@ export default function HomeScreen() {
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Refleksi hari ini"
-        className="mt-8 rounded-[20px] bg-[#4A3B32] p-6 text-[#F5F3EE]"
+        className="mt-8 rounded-[20px] bg-[#4A3B32] p-6 text-[#F5F3EE] shadow-ink"
       >
         <div className="sm:mx-auto sm:max-w-[600px]">
         <div className="flex items-start justify-between gap-3">

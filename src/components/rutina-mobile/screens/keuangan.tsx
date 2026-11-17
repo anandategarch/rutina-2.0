@@ -88,7 +88,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
       initial={{ opacity: 0, y: 20, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, ease: EASE, delay: index * 0.07 }}
-      className="w-[188px] shrink-0 snap-start rounded-[22px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-[0_14px_30px_rgba(35,31,30,0.38)]"
+      className="w-[188px] shrink-0 snap-start rounded-[22px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink"
     >
       <div className="flex items-center gap-3.5">
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
@@ -170,7 +170,7 @@ function TxRow({ tx }: { tx: Tx }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -32, scale: 0.97, transition: { duration: 0.2 } }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-      className="overflow-hidden rounded-[16px] bg-[#FAF9F6] text-[#231F1E]"
+      className="overflow-hidden rounded-[16px] bg-[#FAF9F6] text-[#231F1E] shadow-ink"
     >
       <motion.button
         type="button"
@@ -411,7 +411,7 @@ export default function KeuanganScreen() {
             onClick={openTxSheet}
             whileTap={{ scale: 0.88 }}
             aria-label="Tambah transaksi baru"
-            className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#D9B98C] text-[#4A3B32] shadow-[0_10px_26px_rgba(217,185,140,0.4)] transition-colors hover:bg-[#E9D5B8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+            className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#D9B98C] text-[#4A3B32] shadow-gold transition-colors hover:bg-[#E9D5B8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
           >
             <Plus className="h-5 w-5" strokeWidth={2.6} />
           </motion.button>
@@ -419,7 +419,7 @@ export default function KeuanganScreen() {
 
         {/* ===== Chip totals per periode ===== */}
         <BlurFade delay={0.06} className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-2xl bg-[#A3C489]/15 px-3.5 py-3">
+          <div className="rounded-2xl bg-[#A3C489]/15 px-3.5 py-3 shadow-ink">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/70">
               <ArrowUpRight className="h-3.5 w-3.5 text-[#A3C489]" />
               Masuk · periode ini
@@ -428,7 +428,7 @@ export default function KeuanganScreen() {
               +{formatIDRShort(totals.masuk)}
             </p>
           </div>
-          <div className="rounded-2xl bg-[#E08A6D]/15 px-3.5 py-3">
+          <div className="rounded-2xl bg-[#E08A6D]/15 px-3.5 py-3 shadow-ink">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/70">
               <ArrowDownRight className="h-3.5 w-3.5 text-[#E08A6D]" />
               Keluar · periode ini
@@ -442,7 +442,7 @@ export default function KeuanganScreen() {
         {/* ===== Arus kas: kontrol periode + grafik ===== */}
         <BlurFade
           delay={0.1}
-          className="rounded-[24px] border border-[#FAF9F6]/12 bg-[#FAF9F6]/[0.07] p-4"
+          className="rounded-[24px] border border-[#FAF9F6]/12 bg-[#FAF9F6]/[0.07] p-4 shadow-ink"
         >
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#E9D5B8]">
@@ -544,7 +544,7 @@ export default function KeuanganScreen() {
         {/* ===== Anggaran — kartu premium dengan ShineBorder (magicui) ===== */}
         <BlurFade
           delay={0.06}
-          className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-[0_18px_44px_rgba(35,31,30,0.4)]"
+          className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink-deep"
         >
           <ShineBorder borderWidth={1.5} duration={7} shineColor={['#D9B98C', '#A3C489']} />
           <div className="flex items-center justify-between gap-3">

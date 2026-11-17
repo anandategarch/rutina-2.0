@@ -312,7 +312,7 @@ export default function StatsScreen() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-24px' }}
           transition={{ duration: 0.5, ease: EASE }}
-          className="mt-6 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+          className="mt-6 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink"
           aria-label="Grafik waktu fokus"
         >
           <div className="flex items-start justify-between gap-3">
@@ -402,7 +402,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, ease: EASE }}
-              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4"
+              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4 shadow-ink"
             >
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
                 Suasana Hati
@@ -446,7 +446,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
-              className="flex flex-col rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4"
+              className="flex flex-col rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4 shadow-ink"
             >
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
                 Streak Terpanjang
@@ -483,7 +483,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
-              className="col-span-2 flex items-center gap-5 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 sm:col-span-1"
+              className="col-span-2 flex items-center gap-5 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink sm:col-span-1"
             >
               <div className="relative h-24 w-24 shrink-0">
                 <svg viewBox="0 0 96 96" className="h-24 w-24 -rotate-90" aria-hidden="true">
@@ -539,7 +539,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, ease: EASE }}
-              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink"
             >
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
                 Distribusi Kategori
@@ -602,7 +602,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
-              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink"
             >
               <div className="flex items-end justify-between gap-3">
                 <div>
@@ -763,7 +763,7 @@ export default function StatsScreen() {
           className="mt-3"
           aria-label="Streak berjalan"
         >
-          <div className="flex items-center gap-4 rounded-[20px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4">
+          <div className="flex items-center gap-4 rounded-[20px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4 shadow-ink">
             <motion.span
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#749B58]/20"
               animate={{ scale: [1, 1.08, 1] }}

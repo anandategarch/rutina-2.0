@@ -147,7 +147,7 @@ export default function ProfileScreen() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-4 flex flex-col items-center rounded-[20px] border border-[#4A3B3214] bg-white p-5 text-center shadow-[0_4px_16px_rgba(74,59,50,0.06)]"
+        className="mt-4 flex flex-col items-center rounded-[20px] border border-[#4A3B3214] bg-white p-5 text-center shadow-card"
       >
         <Avatar className="h-16 w-16 border-4 border-white shadow-[0_6px_18px_rgba(74,59,50,0.18)]">
           <AvatarFallback className="bg-cocoa text-lg font-bold text-parchment">
@@ -211,7 +211,7 @@ export default function ProfileScreen() {
               delay: 0.06 + i * 0.06,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="flex flex-col items-center rounded-[16px] border border-[#4A3B3214] bg-white p-3.5 shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+            className="flex flex-col items-center rounded-[16px] border border-[#4A3B3214] bg-white p-3.5 shadow-soft"
           >
             <p className="flex items-baseline">
               <span className="text-[22px] font-semibold leading-none tracking-tight text-[#231F1E]">
@@ -256,7 +256,7 @@ export default function ProfileScreen() {
           data-row
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+          className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-soft"
           aria-label="Target misi harian"
         >
           <div className="flex items-center gap-3">
@@ -294,7 +294,7 @@ export default function ProfileScreen() {
         {/* Sakelar preferensi */}
         <div
           data-row
-          className="overflow-hidden rounded-[20px] border border-[#4A3B3214] bg-white shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+          className="overflow-hidden rounded-[20px] border border-[#4A3B3214] bg-white shadow-soft"
         >
           <div className="divide-y divide-[#4A3B3214]">
             <div className="flex min-h-[54px] items-center gap-3 px-4">
@@ -401,7 +401,7 @@ export default function ProfileScreen() {
           data-row
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="rounded-[20px] border border-[#4A3B3214] bg-white px-4 shadow-[0_2px_10px_rgba(74,59,50,0.04)]"
+          className="rounded-[20px] border border-[#4A3B3214] bg-white px-4 shadow-soft"
           aria-label="Pertanyaan umum"
         >
           <Accordion type="single" collapsible className="w-full">
@@ -432,7 +432,7 @@ export default function ProfileScreen() {
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-[0_2px_10px_rgba(74,59,50,0.04)] transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
                   <Info className="h-4 w-4" />
@@ -488,7 +488,7 @@ export default function ProfileScreen() {
           data-row
           type="button"
           onClick={() => toast('Pusat bantuan segera hadir')}
-          className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-[0_2px_10px_rgba(74,59,50,0.04)] transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+          className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
             <HelpCircle className="h-4 w-4" />
