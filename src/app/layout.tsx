@@ -15,13 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina — Kebun Kebiasaan",
+  title: "Rutina — 4 Gaya Landing Page",
   description:
-    "Rutina versi mobile: kebun kebiasaan dengan jadwal fleksibel, skor kekuatan, pengingat, lencana, dan mode malam — dibangun dengan shadcn/ui, Motion, dan anime.js.",
+    "Empat pendekatan desain landing page untuk Rutina: Split Screen, Bento Grid, Demo Interaktif, dan Tipografi Minimalis — dibangun dengan shadcn/ui, Motion, dan anime.js.",
   keywords: [
     "Rutina",
     "habit tracker",
     "kebiasaan",
+    "landing page",
+    "split screen",
+    "bento grid",
     "shadcn/ui",
     "Motion",
     "anime.js",
@@ -39,9 +42,9 @@ export const metadata: Metadata = {
     title: "Rutina",
   },
   openGraph: {
-    title: "Rutina — Kebun Kebiasaan",
+    title: "Rutina — 4 Gaya Landing Page",
     description:
-      "Sirami kebiasaanmu, tumbuhkan tanaman, pantau runtun dan statistiknya.",
+      "Split Screen, Bento Grid, Demo Interaktif, dan Tipografi Minimalis dalam satu showcase.",
     siteName: "Rutina",
     type: "website",
   },
