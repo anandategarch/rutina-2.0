@@ -21,19 +21,23 @@ import { ComposeSheet } from './compose-sheet'
 import { ReadingSheet } from './reading-sheet'
 import { CelebrationOverlay } from './celebration'
 import { Splash } from './splash'
+import { AddTxSheet } from './finance/add-tx-sheet'
+import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
+import KeuanganScreen from './screens/keuangan'
 import StatsScreen from './screens/stats'
 import ProfileScreen from './screens/profile'
 
 /* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan). */
-const ORDER: Screen[] = ['beranda', 'jurnal', 'statistik', 'profil']
+const ORDER: Screen[] = ['beranda', 'jurnal', 'keuangan', 'statistik', 'profil']
 
 /** Cahaya ambien per layar: tiga blob radial dengan warna khas tiap tab. */
 const AMBIENT: Record<Screen, [string, string, string]> = {
   beranda: ['rgba(228,239,224,0.9)', 'rgba(116,155,88,0.10)', 'rgba(234,229,217,0.7)'],
   jurnal: ['rgba(250,249,246,0.14)', 'rgba(35,31,30,0.16)', 'rgba(163,196,137,0.30)'],
+  keuangan: ['rgba(217,185,140,0.30)', 'rgba(35,31,30,0.55)', 'rgba(163,196,137,0.12)'],
   statistik: ['rgba(116,155,88,0.20)', 'rgba(74,59,50,0.65)', 'rgba(163,196,137,0.08)'],
   profil: ['rgba(250,249,246,0.16)', 'rgba(35,31,30,0.20)', 'rgba(217,142,107,0.35)'],
 }
@@ -143,6 +147,7 @@ export function RutinaApp() {
                 >
                   {screen === 'beranda' && <HomeScreen />}
                   {screen === 'jurnal' && <JournalScreen />}
+                  {screen === 'keuangan' && <KeuanganScreen />}
                   {screen === 'statistik' && <StatsScreen />}
                   {screen === 'profil' && <ProfileScreen />}
                 </motion.div>
@@ -152,6 +157,9 @@ export function RutinaApp() {
             <BottomNav />
             <ComposeSheet />
             <ReadingSheet />
+            <AddTxSheet />
+            <ContributeGoalSheet />
+            <NewGoalDialog />
             <CelebrationOverlay active={celebrating} />
           </>
         )}

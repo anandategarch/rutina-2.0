@@ -1,13 +1,14 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { BarChart3, BookOpen, Home, User } from 'lucide-react'
+import { BarChart3, BookOpen, Home, User, Wallet } from 'lucide-react'
 import { useRutina, type Screen } from './store'
 import { CONTENT_W } from './layout-widths'
 
 const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'jurnal', label: 'Jurnal', icon: BookOpen },
+  { id: 'keuangan', label: 'Keuangan', icon: Wallet },
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
   { id: 'profil', label: 'Profil', icon: User },
 ]
@@ -29,6 +30,12 @@ const NAV_THEME: Record<
     pill: 'bg-[#FAF9F6]/20',
     active: 'text-[#FAF9F6]',
     inactive: 'text-[#FAF9F6]/60',
+  },
+  keuangan: {
+    shell: 'border-[#FAF9F6]/12 bg-[#3A2E24]/95',
+    pill: 'bg-[#6B5744]',
+    active: 'text-[#E9D5B8]',
+    inactive: 'text-[#FAF9F6]/55',
   },
   statistik: {
     shell: 'border-[#F5F3EE]/10 bg-[#231F1E]/95',
@@ -54,7 +61,7 @@ export function BottomNav() {
       aria-label="Navigasi utama"
       className={`z-20 shrink-0 border-t pb-[max(env(safe-area-inset-bottom),10px)] pt-1 backdrop-blur-md transition-colors duration-500 ${theme.shell}`}
     >
-      <div className={`mx-auto grid w-full grid-cols-4 ${CONTENT_W}`}>
+      <div className={`mx-auto grid w-full grid-cols-5 ${CONTENT_W}`}>
         {TABS.map((tab) => {
           const active = screen === tab.id
           const tabTheme = NAV_THEME[tab.id]
