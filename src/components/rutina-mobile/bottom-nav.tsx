@@ -3,6 +3,7 @@
 import { motion } from 'motion/react'
 import { BarChart3, BookOpen, Home, User } from 'lucide-react'
 import { useRutina, type Screen } from './store'
+import { CONTENT_W } from './layout-widths'
 
 const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
@@ -53,7 +54,7 @@ export function BottomNav() {
       aria-label="Navigasi utama"
       className={`z-20 shrink-0 border-t pb-[max(env(safe-area-inset-bottom),10px)] pt-1 backdrop-blur-md transition-colors duration-500 ${theme.shell}`}
     >
-      <div className="mx-auto grid w-full max-w-[520px] grid-cols-4">
+      <div className={`mx-auto grid w-full grid-cols-4 ${CONTENT_W}`}>
         {TABS.map((tab) => {
           const active = screen === tab.id
           const tabTheme = NAV_THEME[tab.id]

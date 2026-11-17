@@ -168,7 +168,7 @@ export default function JournalScreen() {
             </p>
           </div>
         ) : (
-          <div ref={listRef} className="columns-2 gap-3">
+          <div ref={listRef} className="columns-2 gap-3 sm:columns-3 xl:columns-4">
             {sorted.map((n) => (
               <motion.article
                 key={n.id}

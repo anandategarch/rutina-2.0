@@ -395,7 +395,7 @@ export default function StatsScreen() {
         {/* Ringkasan pekan */}
         <section className="mt-6" aria-label="Ringkasan pekan">
           <SectionTitle title="Ringkasan Pekan" />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {/* Suasana hati */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -483,7 +483,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
-              className="col-span-2 flex items-center gap-5 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+              className="col-span-2 flex items-center gap-5 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 sm:col-span-1"
             >
               <div className="relative h-24 w-24 shrink-0">
                 <svg viewBox="0 0 96 96" className="h-24 w-24 -rotate-90" aria-hidden="true">
@@ -532,7 +532,7 @@ export default function StatsScreen() {
         {/* ===== Dashboard Wawasan & Analitik ===== */}
         <section className="mt-6" aria-label="Wawasan dan analitik">
           <SectionTitle title="Wawasan & Analitik" hint="30 hari terakhir" />
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Donut distribusi kategori */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -689,7 +689,7 @@ export default function StatsScreen() {
         </section>
 
         {/* Konsistensi & tren fokus (widget gelap) */}
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Heatmap />
           <TrendLine />
         </div>

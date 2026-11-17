@@ -404,7 +404,7 @@ export default function HomeScreen() {
         className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6]"
       >
         <HeroDoodle />
-        <div className="relative z-10">
+        <div className="relative z-10 sm:mx-auto sm:max-w-[600px]">
           <p className="text-[13px] font-medium text-[#FAF9F6]/75">
             {dateLabel}
           </p>
@@ -545,7 +545,7 @@ export default function HomeScreen() {
           title="Misi Hari Ini"
           hint={`${doneCount}/${tasks.length} selesai`}
         />
-        <div className="space-y-2.5">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {tasks.map((t, i) => (
             <motion.div
               key={t.id}
@@ -582,7 +582,7 @@ export default function HomeScreen() {
       {/* 5 — Kartu Kategori / Folder */}
       <section className="mt-8" aria-label="Koleksi folder catatan">
         <SectionTitle title="Koleksi" hint="4 folder" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {FOLDERS.map((f, i) => {
             const Icon = FOLDER_ICONS[f.key]
             return (
@@ -649,6 +649,7 @@ export default function HomeScreen() {
         aria-label="Refleksi hari ini"
         className="mt-8 rounded-[20px] bg-[#4A3B32] p-6 text-[#F5F3EE]"
       >
+        <div className="sm:mx-auto sm:max-w-[600px]">
         <div className="flex items-start justify-between gap-3">
           <Quote className="h-6 w-6 shrink-0 text-[#F5F3EE]/45" />
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/60">
@@ -678,6 +679,7 @@ export default function HomeScreen() {
           {quoteSaved ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
           {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
         </Button>
+        </div>
       </motion.section>
     </div>
   )

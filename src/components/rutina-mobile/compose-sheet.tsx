@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { CONTENT_W } from './layout-widths'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from './store'
 
 /**
@@ -93,7 +94,7 @@ export function ComposeSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className="absolute inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[520px] rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5"
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div

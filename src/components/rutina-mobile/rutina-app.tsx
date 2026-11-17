@@ -21,6 +21,7 @@ import { ComposeSheet } from './compose-sheet'
 import { ReadingSheet } from './reading-sheet'
 import { CelebrationOverlay } from './celebration'
 import { Splash } from './splash'
+import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
 import StatsScreen from './screens/stats'
@@ -138,7 +139,7 @@ export function RutinaApp() {
                   animate="center"
                   exit="exit"
                   transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0 mx-auto w-full max-w-[520px]"
+                  className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}
                 >
                   {screen === 'beranda' && <HomeScreen />}
                   {screen === 'jurnal' && <JournalScreen />}

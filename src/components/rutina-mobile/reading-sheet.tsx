@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { CONTENT_W } from './layout-widths'
 import { FOLDER_SHORT, useRutina } from './store'
 import { playfair } from './serif'
 
@@ -76,7 +77,7 @@ export function ReadingSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className="absolute inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[520px] rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5"
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div

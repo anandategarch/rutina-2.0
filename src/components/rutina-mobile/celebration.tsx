@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import { Check } from 'lucide-react'
 
 import { useRutina } from './store'
+import { CONTENT_W } from './layout-widths'
 
 /**
  * Perayaan konfeti saat semua tugas selesai.
@@ -44,7 +45,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
     >
       {/* Partikel & kartu terpusat dalam kolom aplikasi agar tetap
           proporsional di layar lebar (mode layar penuh). */}
-      <div className="absolute inset-0 mx-auto w-full max-w-[520px]">
+      <div className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}>
         {PIECES.map((p, i) => (
           <motion.span
             key={i}
