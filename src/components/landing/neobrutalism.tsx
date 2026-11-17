@@ -12,17 +12,17 @@ const TICKER_TEXT = 'KONSISTENSI // STREAK // FOKUS // DISIPLIN // RUTINITAS // 
 type Habit = { id: number; name: string; tag: string; tagBg: string; done: boolean }
 
 const INITIAL_HABITS: Habit[] = [
-  { id: 1, name: 'Minum 8 gelas air', tag: 'Kesehatan', tagBg: 'bg-rose-300', done: true },
-  { id: 2, name: 'Baca 20 halaman', tag: 'Belajar', tagBg: 'bg-lime-300', done: false },
-  { id: 3, name: 'Lari pagi 3 km', tag: 'Kebugaran', tagBg: 'bg-yellow-300', done: false },
-  { id: 4, name: 'Meditasi 10 menit', tag: 'Pikiran', tagBg: 'bg-orange-300', done: false },
-  { id: 5, name: 'Tidur sebelum 23.00', tag: 'Istirahat', tagBg: 'bg-rose-300', done: false },
+  { id: 1, name: 'Minum 8 gelas air', tag: 'Kesehatan', tagBg: 'bg-[#E4EFE0]', done: true },
+  { id: 2, name: 'Baca 20 halaman', tag: 'Belajar', tagBg: 'bg-[#EFE9DA]', done: false },
+  { id: 3, name: 'Lari pagi 3 km', tag: 'Kebugaran', tagBg: 'bg-[#DCE9D4]', done: false },
+  { id: 4, name: 'Meditasi 10 menit', tag: 'Pikiran', tagBg: 'bg-[#E8E0D5]', done: false },
+  { id: 5, name: 'Tidur sebelum 23.00', tag: 'Istirahat', tagBg: 'bg-[#E4EFE0]', done: false },
 ]
 
 const STATS = [
-  { bg: 'bg-[#FDE047]', rotate: '-rotate-1', value: 27, suffix: '', label: 'Hari streak terpanjang' },
-  { bg: 'bg-[#FDA4AF]', rotate: 'rotate-1', value: 82, suffix: '%', label: 'Tingkat konsistensi' },
-  { bg: 'bg-[#BEF264]', rotate: '-rotate-1', value: 1248, suffix: '', label: 'Total check-in' },
+  { bg: 'bg-[#E4EFE0]', rotate: '-rotate-1', value: 27, suffix: '', label: 'Hari streak terpanjang' },
+  { bg: 'bg-[#EFE9DA]', rotate: 'rotate-1', value: 82, suffix: '%', label: 'Tingkat konsistensi' },
+  { bg: 'bg-[#DCE9D4]', rotate: '-rotate-1', value: 1248, suffix: '', label: 'Total check-in' },
 ]
 
 const ctaToast = () =>
@@ -91,9 +91,9 @@ export default function Neobrutalism() {
   }
 
   return (
-    <section className="w-full overflow-hidden bg-amber-100 pb-0 pt-20 text-stone-950">
+    <section className="w-full overflow-hidden bg-[#F5F3EE] pb-0 pt-20 text-[#231F1E]">
       {/* ===================== NAV ===================== */}
-      <nav aria-label="Navigasi utama" className="w-full border-b-[2.5px] border-stone-950 bg-white">
+      <nav aria-label="Navigasi utama" className="w-full border-b-[2.5px] border-[#4A3B32] bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <a
             href="#"
@@ -101,7 +101,7 @@ export default function Neobrutalism() {
             className="flex items-center gap-2.5"
             aria-label="Rutina — kembali ke atas"
           >
-            <span className="flex size-9 items-center justify-center bg-stone-950">
+            <span className="flex size-9 items-center justify-center bg-[#231F1E]">
               <CheckCheck className="size-5 text-white" strokeWidth={2.5} />
             </span>
             <span className="text-lg font-black uppercase tracking-tight">Rutina</span>
@@ -121,7 +121,7 @@ export default function Neobrutalism() {
           <button
             type="button"
             onClick={ctaToast}
-            className="inline-flex h-10 items-center border-[2.5px] border-stone-950 bg-[#FDE047] px-4 text-xs font-bold uppercase tracking-wide shadow-[4px_4px_0_0_#1c1917] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+            className="inline-flex h-10 items-center border-[2.5px] border-[#4A3B32] bg-[#E4EFE0] px-4 text-xs font-bold uppercase tracking-wide text-[#231F1E] shadow-[4px_4px_0_0_#4A3B32] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
           >
             Daftar gratis
           </button>
@@ -136,7 +136,7 @@ export default function Neobrutalism() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05, duration: 0.45 }}
-            className="inline-block -rotate-2 border-[2.5px] border-stone-950 bg-rose-300 px-3 py-1 text-xs font-black uppercase tracking-wide shadow-[3px_3px_0_0_#1c1917]"
+            className="inline-block -rotate-2 border-[2.5px] border-[#4A3B32] bg-[#E4EFE0] px-3 py-1 text-xs font-black uppercase tracking-wide shadow-[3px_3px_0_0_#4A3B32]"
           >
             Gratis 30 hari
           </motion.span>
@@ -149,14 +149,14 @@ export default function Neobrutalism() {
             <span className="block">Bangun</span>
             <span className="block">kebiasaan.</span>
             <span className="mt-1 block">
-              <span className="box-decoration-clone bg-[#BEF264] px-2">Tanpa basa-basi.</span>
+              <span className="box-decoration-clone bg-[#A3C48E] px-2 py-[0.14em]">Tanpa basa-basi.</span>
             </span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.24, duration: 0.5 }}
-            className="mt-5 max-w-md text-sm font-medium leading-relaxed text-stone-700 sm:text-base"
+            className="mt-5 max-w-md text-sm font-medium leading-relaxed text-[#4A3B32] sm:text-base"
           >
             Rutina itu lugas: centang yang selesai, jaga streak tetap menyala, ulangi besok.
             Tanpa fitur ribet, tanpa notifikasi culun.
@@ -170,14 +170,14 @@ export default function Neobrutalism() {
             <button
               type="button"
               onClick={ctaToast}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 border-[2.5px] border-stone-950 bg-[#FDE047] px-6 text-sm font-black uppercase tracking-wide shadow-[5px_5px_0_0_#1c1917] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1c1917] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 border-[2.5px] border-[#4A3B32] bg-[#749B58] px-6 text-sm font-black uppercase tracking-wide text-white shadow-[5px_5px_0_0_#4A3B32] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#5E7F47] hover:shadow-[6px_6px_0_0_#4A3B32] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none sm:w-auto"
             >
               Mulai sekarang <ArrowRight className="size-4" strokeWidth={3} />
             </button>
             <button
               type="button"
               onClick={() => goToStyle(2)}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 border-[2.5px] border-stone-950 bg-white px-6 text-sm font-black uppercase tracking-wide shadow-[5px_5px_0_0_#1c1917] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1c1917] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 border-[2.5px] border-[#4A3B32] bg-white px-6 text-sm font-black uppercase tracking-wide shadow-[5px_5px_0_0_#4A3B32] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#4A3B32] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none sm:w-auto"
             >
               <Play className="size-4" strokeWidth={3} /> Lihat demo
             </button>
@@ -186,7 +186,7 @@ export default function Neobrutalism() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.42, duration: 0.5 }}
-            className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500"
+            className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A7D72]"
           >
             Tanpa kartu kredit — batalkan kapan saja
           </motion.p>
@@ -201,8 +201,8 @@ export default function Neobrutalism() {
             <svg viewBox="0 0 24 24" className="size-9 rotate-12" fill="none">
               <path
                 d="M12 1.5 14.6 9.4 22.5 12 14.6 14.6 12 22.5 9.4 14.6 1.5 12 9.4 9.4Z"
-                fill="#BEF264"
-                stroke="#1c1917"
+                fill="#A3C48E"
+                stroke="#4A3B32"
                 strokeWidth="1.6"
               />
             </svg>
@@ -211,7 +211,7 @@ export default function Neobrutalism() {
             <svg viewBox="0 0 36 16" className="w-11 -rotate-6" fill="none">
               <path
                 d="M2 13 9 3l7 10 7-10 7 10"
-                stroke="#FB923C"
+                stroke="#749B58"
                 strokeWidth="4"
                 strokeLinecap="square"
               />
@@ -221,7 +221,7 @@ export default function Neobrutalism() {
             <svg viewBox="0 0 24 24" className="size-8" fill="none">
               <path
                 d="M12 2v20M3.3 7l17.4 10M20.7 7 3.3 17"
-                stroke="#FDA4AF"
+                stroke="#4A3B32"
                 strokeWidth="4.5"
                 strokeLinecap="round"
               />
@@ -239,17 +239,17 @@ export default function Neobrutalism() {
             transition={{ delay: 0.35, type: 'spring', stiffness: 190, damping: 15 }}
             className="relative z-10 rotate-3 cursor-grab touch-none active:cursor-grabbing"
           >
-            <div className="w-full max-w-xs rounded-2xl border-[2.5px] border-stone-950 bg-white p-6 text-center shadow-[6px_6px_0_0_#1c1917] sm:p-7">
-              <div className="mx-auto flex size-24 items-center justify-center rounded-2xl border-[2.5px] border-stone-950 bg-orange-300">
-                <Flame className="size-12 text-stone-950" strokeWidth={2.5} />
+            <div className="w-full max-w-xs rounded-2xl border-[2.5px] border-[#4A3B32] bg-white p-6 text-center shadow-[6px_6px_0_0_#4A3B32] sm:p-7">
+              <div className="mx-auto flex size-24 items-center justify-center rounded-2xl border-[2.5px] border-[#4A3B32] bg-[#EFE9DA]">
+                <Flame className="size-12 text-[#4A3B32]" strokeWidth={2.5} />
               </div>
               <p className="mt-5 text-3xl font-black uppercase leading-none tracking-tight">
                 27 hari streak!
               </p>
-              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-stone-700">
+              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#4A3B32]">
                 Jangan biarkan apinya padam
               </p>
-              <p className="mt-5 flex items-center justify-center gap-1.5 border-t-[2.5px] border-dashed border-stone-950 pt-4 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">
+              <p className="mt-5 flex items-center justify-center gap-1.5 border-t-[2.5px] border-dashed border-[#4A3B32] pt-4 text-[10px] font-black uppercase tracking-[0.2em] text-[#8A7D72]">
                 <MoveHorizontal className="size-4" /> Geser aku
               </p>
             </div>
@@ -262,9 +262,9 @@ export default function Neobrutalism() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.55, duration: 0.5 }}
-        className="-ml-[1%] w-[102%] -rotate-1 overflow-hidden border-y-[2.5px] border-stone-950 bg-white"
+        className="-ml-[1%] w-[102%] -rotate-1 overflow-hidden border-y-[2.5px] border-[#4A3B32] bg-white"
       >
-        <p className="whitespace-nowrap py-2.5 text-sm font-black uppercase tracking-wide text-stone-950">
+        <p className="whitespace-nowrap py-2.5 text-sm font-black uppercase tracking-wide text-[#231F1E]">
           {Array.from({ length: 6 }, (_, i) => (
             <span key={i} aria-hidden={i > 0}>
               {TICKER_TEXT}
@@ -286,11 +286,11 @@ export default function Neobrutalism() {
               <h2 className="text-3xl font-black uppercase tracking-tight sm:text-4xl">
                 Ceklis hari ini
               </h2>
-              <span className="rotate-2 border-2 border-stone-950 bg-[#FDE047] px-1.5 py-0.5 text-[9px] font-black uppercase shadow-[2px_2px_0_0_#1c1917]">
+              <span className="rotate-2 border-2 border-[#4A3B32] bg-[#EFE9DA] px-1.5 py-0.5 text-[9px] font-black uppercase shadow-[2px_2px_0_0_#4A3B32]">
                 Interaktif
               </span>
             </div>
-            <p className="mt-2 max-w-sm text-sm font-medium text-stone-700">
+            <p className="mt-2 max-w-sm text-sm font-medium text-[#4A3B32]">
               Lima kebiasaan, satu misi: jangan bolong. Sentil kotaknya.
             </p>
           </motion.div>
@@ -305,12 +305,12 @@ export default function Neobrutalism() {
               <span>Progres</span>
               <span className="tabular-nums">{done}/5 selesai</span>
             </div>
-            <div className="h-5 overflow-hidden rounded-full border-[2.5px] border-stone-950 bg-white">
+            <div className="h-5 overflow-hidden rounded-full border-[2.5px] border-[#4A3B32] bg-white">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(done / 5) * 100}%` }}
                 transition={{ type: 'spring', stiffness: 160, damping: 22 }}
-                className={`h-full rounded-full ${done === 5 ? 'bg-lime-300' : 'bg-[#FDE047]'}`}
+                className={`h-full rounded-full ${done === 5 ? 'bg-[#A3C48E]' : 'bg-[#749B58]'}`}
               />
             </div>
           </motion.div>
@@ -319,15 +319,15 @@ export default function Neobrutalism() {
         <div ref={gridRef} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {habits.map((h) => (
             <div key={h.id} className="opacity-0">
-              <div className="flex h-full items-center gap-3 rounded-xl border-[2.5px] border-stone-950 bg-white p-4 shadow-[5px_5px_0_0_#1c1917] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_0_#1c1917]">
+              <div className="flex h-full items-center gap-3 rounded-xl border-[2.5px] border-[#4A3B32] bg-white p-4 shadow-[5px_5px_0_0_#4A3B32] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[7px_7px_0_0_#4A3B32]">
                 <button
                   type="button"
                   role="checkbox"
                   aria-checked={h.done}
                   aria-label={h.name}
                   onClick={() => toggle(h.id)}
-                  className={`flex size-9 shrink-0 items-center justify-center border-[2.5px] border-stone-950 transition-colors ${
-                    h.done ? 'bg-lime-300' : 'bg-white hover:bg-stone-100'
+                  className={`flex size-9 shrink-0 items-center justify-center border-[2.5px] border-[#4A3B32] transition-colors ${
+                    h.done ? 'bg-[#749B58]' : 'bg-white hover:bg-[#F5F3EE]'
                   }`}
                 >
                   <AnimatePresence initial={false}>
@@ -340,20 +340,20 @@ export default function Neobrutalism() {
                         transition={{ type: 'spring', stiffness: 500, damping: 20 }}
                         className="flex"
                       >
-                        <Check className="size-5 text-stone-950" strokeWidth={3.5} />
+                        <Check className="size-5 text-white" strokeWidth={3.5} />
                       </motion.span>
                     )}
                   </AnimatePresence>
                 </button>
                 <p
                   className={`min-w-0 flex-1 text-sm font-bold uppercase leading-snug ${
-                    h.done ? 'text-stone-400 line-through' : ''
+                    h.done ? 'text-[#A99C90] line-through' : ''
                   }`}
                 >
                   {h.name}
                 </p>
                 <span
-                  className={`-rotate-1 shrink-0 border-2 border-stone-950 px-1.5 py-0.5 text-[9px] font-black uppercase ${h.tagBg}`}
+                  className={`-rotate-1 shrink-0 border-2 border-[#4A3B32] px-1.5 py-0.5 text-[9px] font-black uppercase ${h.tagBg}`}
                 >
                   {h.tag}
                 </span>
@@ -375,7 +375,7 @@ export default function Neobrutalism() {
               transition={{ delay: i * 0.09, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
               <div
-                className={`flex h-full flex-col items-center justify-center rounded-xl border-[2.5px] border-stone-950 p-4 text-center shadow-[6px_6px_0_0_#1c1917] transition-transform hover:rotate-0 sm:p-6 ${s.bg} ${s.rotate}`}
+                className={`flex h-full flex-col items-center justify-center rounded-xl border-[2.5px] border-[#4A3B32] p-4 text-center shadow-[6px_6px_0_0_#4A3B32] transition-transform hover:rotate-0 sm:p-6 ${s.bg} ${s.rotate}`}
               >
                 <p className="text-2xl font-black tabular-nums tracking-tight sm:text-5xl">
                   <Counter to={s.value} />
@@ -398,46 +398,46 @@ export default function Neobrutalism() {
           viewport={{ once: true, margin: '-60px' }}
           transition={{ type: 'spring', stiffness: 140, damping: 17 }}
         >
-          <div className="relative flex flex-col rounded-2xl border-[2.5px] border-stone-950 bg-white shadow-[8px_8px_0_0_#1c1917] sm:flex-row">
+          <div className="relative flex flex-col rounded-2xl border-[2.5px] border-[#4A3B32] bg-white shadow-[8px_8px_0_0_#4A3B32] sm:flex-row">
             {/* Setengah kiri */}
             <div className="flex-1 p-6 sm:p-8">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8A7D72]">
                 Tiket masuk
               </p>
               <h2 className="mt-2 text-2xl font-black uppercase tracking-tight sm:text-3xl">
                 Klaim mode percobaanmu
               </h2>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-stone-700">
+              <p className="mt-2 text-sm font-medium leading-relaxed text-[#4A3B32]">
                 30 hari akses penuh. Tanpa kartu kredit, tanpa komitmen, tanpa drama.
               </p>
               <button
                 type="button"
                 onClick={() => toast.success('Tiket percobaan 30 hari diklaim! (demo)')}
-                className="mt-6 inline-flex h-11 items-center border-[2.5px] border-stone-950 bg-stone-950 px-5 text-xs font-black uppercase tracking-wide text-white shadow-[5px_5px_0_0_rgba(0,0,0,0.25)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-[5px] active:translate-y-[5px] active:shadow-none"
+                className="mt-6 inline-flex h-11 items-center border-[2.5px] border-[#4A3B32] bg-[#231F1E] px-5 text-xs font-black uppercase tracking-wide text-white shadow-[5px_5px_0_0_rgba(74,59,50,0.25)] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-[5px] active:translate-y-[5px] active:shadow-none"
               >
                 Ambil tiketmu
               </button>
             </div>
             {/* Setengah kanan + lubang sobekan */}
-            <div className="relative flex flex-1 flex-col items-center justify-center border-t-[2.5px] border-dashed border-stone-950 p-6 sm:border-l-[2.5px] sm:border-t-0">
+            <div className="relative flex flex-1 flex-col items-center justify-center border-t-[2.5px] border-dashed border-[#4A3B32] p-6 sm:border-l-[2.5px] sm:border-t-0">
               <span
                 aria-hidden
-                className="absolute -top-3 left-5 size-6 rounded-full border-[2.5px] border-stone-950 bg-amber-100 sm:hidden"
+                className="absolute -top-3 left-5 size-6 rounded-full border-[2.5px] border-[#4A3B32] bg-[#F5F3EE] sm:hidden"
               />
               <span
                 aria-hidden
-                className="absolute -top-3 right-5 size-6 rounded-full border-[2.5px] border-stone-950 bg-amber-100 sm:hidden"
+                className="absolute -top-3 right-5 size-6 rounded-full border-[2.5px] border-[#4A3B32] bg-[#F5F3EE] sm:hidden"
               />
               <span
                 aria-hidden
-                className="absolute -top-3.5 left-0 hidden size-6 -translate-x-1/2 rounded-full border-[2.5px] border-stone-950 bg-amber-100 sm:block"
+                className="absolute -top-3.5 left-0 hidden size-6 -translate-x-1/2 rounded-full border-[2.5px] border-[#4A3B32] bg-[#F5F3EE] sm:block"
               />
               <span
                 aria-hidden
-                className="absolute -bottom-3.5 left-0 hidden size-6 -translate-x-1/2 rounded-full border-[2.5px] border-stone-950 bg-amber-100 sm:block"
+                className="absolute -bottom-3.5 left-0 hidden size-6 -translate-x-1/2 rounded-full border-[2.5px] border-[#4A3B32] bg-[#F5F3EE] sm:block"
               />
               <p className="text-3xl font-black uppercase tracking-tight">30 hari</p>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#8A7D72]">
                 Percobaan penuh
               </p>
             </div>
@@ -446,10 +446,10 @@ export default function Neobrutalism() {
       </div>
 
       {/* ===================== FOOTER ===================== */}
-      <footer className="bg-stone-950 px-4 py-8 text-stone-100 sm:px-6">
+      <footer className="bg-[#231F1E] px-4 py-8 text-[#F5F3EE] sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
           <span className="text-lg font-black uppercase tracking-tight">Rutina</span>
-          <nav aria-label="Navigasi footer" className="flex items-center gap-5 text-xs font-bold uppercase text-stone-300">
+          <nav aria-label="Navigasi footer" className="flex items-center gap-5 text-xs font-bold uppercase text-[#E9E5DC]">
             {['Tentang', 'Bantuan', 'Privasi'].map((l) => (
               <a
                 key={l}
@@ -461,7 +461,7 @@ export default function Neobrutalism() {
               </a>
             ))}
           </nav>
-          <p className="text-xs text-stone-400">© 2025 — dibangun tanpa basa-basi.</p>
+          <p className="text-xs text-[#A99C90]">© 2025 — dibangun tanpa basa-basi.</p>
         </div>
       </footer>
     </section>

@@ -40,10 +40,10 @@ const HEAT = Array.from(
   (_, i) => ((i * 13 + 5) % 7 === 0 ? 0 : ((i * 13 + 5) % 3) + 1),
 )
 const HEAT_COLORS = [
-  'bg-zinc-800/70',
-  'bg-emerald-500/25',
-  'bg-emerald-500/55',
-  'bg-emerald-500/90',
+  'bg-[#4A3B32]/80',
+  'bg-[#749B58]/25',
+  'bg-[#749B58]/55',
+  'bg-[#749B58]/90',
 ]
 
 type Habit = {
@@ -62,7 +62,7 @@ const INITIAL: Habit[] = [
 
 /** Ledakan konfeti imperatif memakai anime.js (dipanggil saat semua kebiasaan selesai). */
 function burstConfetti(host: HTMLElement) {
-  const colors = ['#f97316', '#fbbf24', '#34d399', '#fb7185', '#a3e635']
+  const colors = ['#749B58', '#A3C48E', '#E4EFE0', '#5E7F47', '#C9BFB2']
   for (let i = 0; i < 30; i++) {
     const p = document.createElement('span')
     p.style.cssText = `position:absolute;left:50%;top:42%;width:7px;height:10px;border-radius:2px;background:${
@@ -163,8 +163,8 @@ function Dashboard() {
   const stats = [
     {
       icon: Flame,
-      color: 'text-orange-400',
-      box: 'bg-orange-500/10',
+      color: 'text-[#A3C48E]',
+      box: 'bg-[#749B58]/15',
       value: <Counter to={12} />,
       unit: 'hari',
       sub: 'streak saat ini',
@@ -172,8 +172,8 @@ function Dashboard() {
     },
     {
       icon: Check,
-      color: 'text-emerald-400',
-      box: 'bg-emerald-500/10',
+      color: 'text-[#A3C48E]',
+      box: 'bg-[#749B58]/15',
       value: (
         <span className="tabular-nums">
           {doneCount}/{habits.length}
@@ -185,8 +185,8 @@ function Dashboard() {
     },
     {
       icon: Timer,
-      color: 'text-amber-400',
-      box: 'bg-amber-500/10',
+      color: 'text-[#C9BFB2]',
+      box: 'bg-[#E4EFE0]/10',
       value: <Counter to={45} />,
       unit: 'menit',
       sub: 'total fokus',
@@ -194,8 +194,8 @@ function Dashboard() {
     },
     {
       icon: TrendingUp,
-      color: 'text-rose-400',
-      box: 'bg-rose-500/10',
+      color: 'text-[#C9BFB2]',
+      box: 'bg-[#E4EFE0]/10',
       value: <Counter to={86} />,
       unit: '%',
       sub: 'rasio minggu ini',
@@ -206,16 +206,16 @@ function Dashboard() {
   return (
     <div
       ref={rootRef}
-      className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 text-left shadow-2xl shadow-black/50"
+      className="relative overflow-hidden rounded-2xl border border-[#4A3B32] bg-[#2B2523]/70 text-left shadow-2xl shadow-[#231F1E]/50"
     >
       {/* Chrome browser */}
-      <div className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-[#4A3B32] bg-[#2B2523] px-4 py-3">
         <div className="flex gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-rose-400/80" />
-          <span className="h-3 w-3 rounded-full bg-amber-400/80" />
-          <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
+          <span className="h-3 w-3 rounded-full bg-[#C58B6A]/80" />
+          <span className="h-3 w-3 rounded-full bg-[#C09A5C]/80" />
+          <span className="h-3 w-3 rounded-full bg-[#749B58]/80" />
         </div>
-        <div className="mx-auto flex h-7 w-full max-w-xs items-center justify-center gap-1.5 rounded-md bg-zinc-800/70 text-[11px] text-zinc-400">
+        <div className="mx-auto flex h-7 w-full max-w-xs items-center justify-center gap-1.5 rounded-md bg-[#4A3B32]/60 text-[11px] text-[#A99C90]">
           <Lock className="h-3 w-3" /> rutina.app/beranda
         </div>
         <div className="hidden w-[52px] sm:block" />
@@ -225,14 +225,14 @@ function Dashboard() {
         {/* Sidebar */}
         <aside
           data-dp="fade"
-          className="hidden w-52 shrink-0 flex-col justify-between border-r border-zinc-800 p-4 opacity-0 lg:flex"
+          className="hidden w-52 shrink-0 flex-col justify-between border-r border-[#4A3B32] p-4 opacity-0 lg:flex"
         >
           <div>
             <div className="flex items-center gap-2 px-2 pb-5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-400">
-                <Check className="h-3.5 w-3.5 text-zinc-950" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#749B58] to-[#A3C48E]">
+                <Check className="h-3.5 w-3.5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-zinc-100">rutina</span>
+              <span className="text-sm font-semibold text-[#F5F3EE]">rutina</span>
             </div>
             <nav className="space-y-1">
               {[
@@ -245,8 +245,8 @@ function Dashboard() {
                   key={item.label}
                   className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium ${
                     item.active
-                      ? 'bg-zinc-800 text-white'
-                      : 'text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-200'
+                      ? 'bg-[#4A3B32] text-[#F5F3EE]'
+                      : 'text-[#A99C90] hover:bg-[#4A3B32]/50 hover:text-[#E4EFE0]'
                   }`}
                 >
                   <item.icon className="h-3.5 w-3.5" /> {item.label}
@@ -254,35 +254,35 @@ function Dashboard() {
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900 p-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-400 text-[10px] font-bold text-zinc-950">
+          <div className="flex items-center gap-2.5 rounded-xl border border-[#4A3B32] bg-[#2B2523] p-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#749B58] to-[#A3C48E] text-[10px] font-bold text-white">
               AR
             </span>
             <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-zinc-100">Ana Rahma</p>
-              <p className="text-[10px] text-zinc-500">Pengguna Pro</p>
+              <p className="truncate text-xs font-semibold text-[#F5F3EE]">Ana Rahma</p>
+              <p className="text-[10px] text-[#A99C90]">Pengguna Pro</p>
             </div>
           </div>
         </aside>
 
         {/* Konten utama */}
-        <div className="min-w-0 flex-1 space-y-5 bg-zinc-950/60 p-4 sm:p-6">
+        <div className="min-w-0 flex-1 space-y-5 bg-[#231F1E]/60 p-4 sm:p-6">
           {/* Header */}
           <div
             data-dp="fade"
             className="flex items-center justify-between gap-3 opacity-0"
           >
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-500">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#A99C90]">
                 Selasa, 4 Juni
               </p>
-              <h3 className="mt-1 text-lg font-semibold text-zinc-100 sm:text-xl">
+              <h3 className="mt-1 text-lg font-semibold text-[#F5F3EE] sm:text-xl">
                 Selamat pagi, Ana.
               </h3>
             </div>
             <Badge
               variant="outline"
-              className="rounded-full border-orange-500/30 bg-orange-500/10 text-orange-400"
+              className="rounded-full border-[#749B58]/40 bg-[#749B58]/15 text-[#A3C48E]"
             >
               <Flame className="mr-1 h-3 w-3" /> Streak 12 hari
             </Badge>
@@ -294,19 +294,19 @@ function Dashboard() {
               <div
                 key={s.sub}
                 data-dp="fade"
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-3.5 opacity-0 sm:p-4"
+                className="rounded-2xl border border-[#4A3B32] bg-[#2B2523]/60 p-3.5 opacity-0 sm:p-4"
               >
                 <div className="flex items-center justify-between">
                   <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.box}`}>
                     <s.icon className={`h-4 w-4 ${s.color}`} />
                   </span>
-                  <span className="text-[10px] font-semibold text-emerald-400">{s.trend}</span>
+                  <span className="text-[10px] font-semibold text-[#A3C48E]">{s.trend}</span>
                 </div>
-                <p className="mt-3 text-2xl font-semibold tracking-tight text-zinc-100">
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-[#F5F3EE]">
                   {s.value}
-                  <span className="ml-1 text-xs font-normal text-zinc-500">{s.unit}</span>
+                  <span className="ml-1 text-xs font-normal text-[#A99C90]">{s.unit}</span>
                 </p>
-                <p className="text-[10px] text-zinc-500">{s.sub}</p>
+                <p className="text-[10px] text-[#A99C90]">{s.sub}</p>
               </div>
             ))}
           </div>
@@ -316,21 +316,21 @@ function Dashboard() {
             {/* Kebiasaan hari ini */}
             <div
               data-dp="fade"
-              className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 opacity-0 sm:p-5"
+              className="rounded-2xl border border-[#4A3B32] bg-[#2B2523]/60 p-4 opacity-0 sm:p-5"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-zinc-100">Kebiasaan hari ini</p>
-                  <p className="text-[10px] text-zinc-500">Klik untuk menandai selesai</p>
+                  <p className="text-sm font-semibold text-[#F5F3EE]">Kebiasaan hari ini</p>
+                  <p className="text-[10px] text-[#A99C90]">Klik untuk menandai selesai</p>
                 </div>
-                <span className="text-xs font-semibold tabular-nums text-zinc-400">
+                <span className="text-xs font-semibold tabular-nums text-[#C9BFB2]">
                   {doneCount}/{habits.length}
                 </span>
               </div>
               <div className="mt-4">
                 <Progress
                   value={(doneCount / habits.length) * 100}
-                  className="h-1.5 bg-zinc-800 [&>div]:bg-gradient-to-r [&>div]:from-orange-500 [&>div]:to-amber-400"
+                  className="h-1.5 bg-[#4A3B32]/70 [&>div]:bg-gradient-to-r [&>div]:from-[#749B58] [&>div]:to-[#A3C48E]"
                 />
               </div>
               <div className="mt-4 space-y-2.5">
@@ -343,13 +343,13 @@ function Dashboard() {
                       aria-pressed={h.done}
                       className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors ${
                         h.done
-                          ? 'border-emerald-500/30 bg-emerald-500/10'
-                          : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-900'
+                          ? 'border-[#749B58]/40 bg-[#749B58]/12'
+                          : 'border-[#4A3B32] bg-[#2B2523]/70 hover:border-[#5E7F47]/60 hover:bg-[#2B2523]'
                       }`}
                     >
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                          h.done ? 'bg-emerald-500 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
+                          h.done ? 'bg-[#749B58] text-white' : 'bg-[#4A3B32] text-[#C9BFB2]'
                         }`}
                       >
                         {h.done ? <Check className="h-4 w-4" /> : <h.icon className="h-4 w-4" />}
@@ -357,18 +357,18 @@ function Dashboard() {
                       <span className="min-w-0 flex-1">
                         <span
                           className={`block truncate text-sm font-medium ${
-                            h.done ? 'text-zinc-500 line-through' : 'text-zinc-100'
+                            h.done ? 'text-[#A99C90] line-through' : 'text-[#F5F3EE]'
                           }`}
                         >
                           {h.name}
                         </span>
-                        <span className="text-[10px] text-zinc-500">
+                        <span className="text-[10px] text-[#A99C90]">
                           {h.time} · setiap hari
                         </span>
                       </span>
                       <span
                         className={`shrink-0 text-[10px] font-semibold uppercase tracking-wider ${
-                          h.done ? 'text-emerald-400' : 'text-zinc-600'
+                          h.done ? 'text-[#A3C48E]' : 'text-[#8A7D72]'
                         }`}
                       >
                         {h.done ? 'Selesai' : 'Tandai'}
@@ -384,14 +384,14 @@ function Dashboard() {
               {/* Bar chart */}
               <div
                 data-dp="fade"
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 opacity-0 sm:p-5"
+                className="rounded-2xl border border-[#4A3B32] bg-[#2B2523]/60 p-4 opacity-0 sm:p-5"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-zinc-100">Aktivitas minggu ini</p>
-                    <p className="text-[10px] text-zinc-500">Persentase check-in harian</p>
+                    <p className="text-sm font-semibold text-[#F5F3EE]">Aktivitas minggu ini</p>
+                    <p className="text-[10px] text-[#A99C90]">Persentase check-in harian</p>
                   </div>
-                  <Badge className="border-0 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/15">
+                  <Badge className="border-0 bg-[#749B58]/15 text-[#A3C48E] hover:bg-[#749B58]/15">
                     +12%
                   </Badge>
                 </div>
@@ -404,8 +404,8 @@ function Dashboard() {
                           style={{ height: 0 }}
                           className={`w-full rounded-t-md ${
                             i === BARS.length - 1
-                              ? 'bg-gradient-to-t from-emerald-600 to-emerald-400'
-                              : 'bg-gradient-to-t from-orange-600 to-amber-400'
+                              ? 'bg-gradient-to-t from-[#5E7F47] to-[#A3C48E]'
+                              : 'bg-gradient-to-t from-[#8A7D72] to-[#C9BFB2]'
                           }`}
                         />
                       </div>
@@ -415,7 +415,7 @@ function Dashboard() {
                     {BARS.map((b) => (
                       <span
                         key={b.d}
-                        className="flex-1 text-center text-[9px] font-medium uppercase tracking-wide text-zinc-600"
+                        className="flex-1 text-center text-[9px] font-medium uppercase tracking-wide text-[#8A7D72]"
                       >
                         {b.d}
                       </span>
@@ -427,10 +427,10 @@ function Dashboard() {
               {/* Heatmap */}
               <div
                 data-dp="fade"
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 opacity-0 sm:p-5"
+                className="rounded-2xl border border-[#4A3B32] bg-[#2B2523]/60 p-4 opacity-0 sm:p-5"
               >
-                <p className="text-sm font-semibold text-zinc-100">Riwayat 12 minggu</p>
-                <p className="text-[10px] text-zinc-500">Setiap titik adalah satu hari</p>
+                <p className="text-sm font-semibold text-[#F5F3EE]">Riwayat 12 minggu</p>
+                <p className="text-[10px] text-[#A99C90]">Setiap titik adalah satu hari</p>
                 <div className="mt-4 grid grid-flow-col grid-rows-7 gap-[3px]">
                   {HEAT.map((lvl, i) => (
                     <span
@@ -453,24 +453,24 @@ export default function DashboardPreview() {
   const [run, setRun] = useState(0)
 
   return (
-    <section className="relative min-h-screen w-full overflow-hidden bg-zinc-950 px-4 py-24 sm:px-6">
+    <section className="relative min-h-screen w-full overflow-hidden bg-[#231F1E] px-4 py-24 sm:px-6">
       <div
         aria-hidden
-        className="absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-orange-500/10 blur-3xl"
+        className="absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-[#749B58]/12 blur-3xl"
       />
       <div className="relative mx-auto max-w-5xl">
         <div className="mx-auto max-w-2xl text-center">
           <Badge
             variant="outline"
-            className="rounded-full border-zinc-700 bg-zinc-900 text-zinc-300"
+            className="rounded-full border-[#4A3B32] bg-[#2B2523] text-[#C9BFB2]"
           >
             Demo interaktif
           </Badge>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-            Jangan cuma baca fiturnya. <span className="text-orange-400">Cobain</span>{' '}
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[#F5F3EE] sm:text-5xl">
+            Jangan cuma baca fiturnya. <span className="text-[#A3C48E]">Cobain</span>{' '}
             langsung.
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-500 sm:text-lg">
+          <p className="mt-3 text-sm leading-relaxed text-[#A99C90] sm:text-lg">
             Dasbor di bawah ini hidup — centang kebiasaannya, lihat progres dan grafiknya
             bereaksi.
           </p>
@@ -491,11 +491,11 @@ export default function DashboardPreview() {
             variant="outline"
             size="sm"
             onClick={() => setRun((r) => r + 1)}
-            className="h-9 rounded-full border-zinc-700 bg-zinc-900 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            className="h-9 rounded-full border-[#4A3B32] bg-[#2B2523] text-xs text-[#C9BFB2] hover:bg-[#4A3B32]/60 hover:text-white"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Putar ulang demo
           </Button>
-          <p className="text-center text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-600">
+          <p className="text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#A99C90]">
             Coba centang semua kebiasaan — ada kejutan kecil
           </p>
         </div>

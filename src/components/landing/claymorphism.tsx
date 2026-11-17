@@ -27,17 +27,17 @@ import { Counter, goToStyle } from './bits'
 
 /* ===== Resep clay: bayangan jatuh lembut + cahaya dari atas + gelap dari bawah ===== */
 const CLAY_BASE =
-  'shadow-[0_14px_28px_rgba(214,138,94,0.22),inset_0_6px_10px_rgba(255,255,255,0.85),inset_0_-8px_14px_rgba(214,138,94,0.10)]'
+  'shadow-[0_14px_28px_rgba(74,59,50,0.18),inset_0_6px_10px_rgba(255,255,255,0.85),inset_0_-8px_14px_rgba(74,59,50,0.09)]'
 const CLAY_PEACH =
-  'shadow-[0_14px_28px_rgba(214,138,94,0.22),inset_0_6px_10px_rgba(255,255,255,0.75),inset_0_-8px_14px_rgba(214,138,94,0.16)]'
+  'shadow-[0_14px_28px_rgba(74,59,50,0.22),inset_0_6px_10px_rgba(255,255,255,0.75),inset_0_-8px_14px_rgba(74,59,50,0.16)]'
 const CLAY_MINT =
-  'shadow-[0_14px_28px_rgba(96,160,120,0.20),inset_0_6px_10px_rgba(255,255,255,0.75),inset_0_-8px_14px_rgba(96,160,120,0.14)]'
+  'shadow-[0_14px_28px_rgba(116,155,88,0.20),inset_0_6px_10px_rgba(255,255,255,0.75),inset_0_-8px_14px_rgba(116,155,88,0.14)]'
 const CLAY_BUTTER =
-  'shadow-[0_14px_28px_rgba(214,178,84,0.22),inset_0_6px_10px_rgba(255,255,255,0.80),inset_0_-8px_14px_rgba(214,178,84,0.14)]'
+  'shadow-[0_14px_28px_rgba(139,128,110,0.22),inset_0_6px_10px_rgba(255,255,255,0.80),inset_0_-8px_14px_rgba(139,128,110,0.14)]'
 const CLAY_ROSE =
-  'shadow-[0_14px_28px_rgba(214,110,140,0.18),inset_0_6px_10px_rgba(255,255,255,0.80),inset_0_-8px_14px_rgba(214,110,140,0.12)]'
+  'shadow-[0_14px_28px_rgba(120,105,92,0.18),inset_0_6px_10px_rgba(255,255,255,0.80),inset_0_-8px_14px_rgba(120,105,92,0.12)]'
 const CLAY_CORAL =
-  'shadow-[0_10px_22px_rgba(214,110,60,0.35),inset_0_4px_8px_rgba(255,255,255,0.40),inset_0_-6px_10px_rgba(214,110,60,0.28)]'
+  'shadow-[0_10px_22px_rgba(94,127,71,0.35),inset_0_4px_8px_rgba(255,255,255,0.40),inset_0_-6px_10px_rgba(94,127,71,0.28)]'
 
 /* Resep squish: semua elemen clay membalas sentuhan seperti tanah liat */
 const SQUISH = { type: 'spring', stiffness: 320, damping: 16 } as const
@@ -72,11 +72,11 @@ const MARQUEE_ROW_2: MarqueeItem[] = [
 ]
 
 const PILL_COLORS = [
-  { bg: 'bg-[#FFFEFB]', shadow: CLAY_BASE, icon: 'text-[#FF7A50]' },
-  { bg: 'bg-[#FFDFC7]', shadow: CLAY_PEACH, icon: 'text-[#E8603A]' },
-  { bg: 'bg-[#D7F0DF]', shadow: CLAY_MINT, icon: 'text-[#4E9668]' },
-  { bg: 'bg-[#FFEFBF]', shadow: CLAY_BUTTER, icon: 'text-[#C0962F]' },
-  { bg: 'bg-[#FFDCE5]', shadow: CLAY_ROSE, icon: 'text-[#D2708F]' },
+  { bg: 'bg-[#FFFFFF]', shadow: CLAY_BASE, icon: 'text-[#5E7F47]' },
+  { bg: 'bg-[#E4EFE0]', shadow: CLAY_PEACH, icon: 'text-[#4A3B32]' },
+  { bg: 'bg-[#DCE9D4]', shadow: CLAY_MINT, icon: 'text-[#5E7F47]' },
+  { bg: 'bg-[#EFE9DA]', shadow: CLAY_BUTTER, icon: 'text-[#4A3B32]' },
+  { bg: 'bg-[#E8E0D5]', shadow: CLAY_ROSE, icon: 'text-[#4A3B32]' },
 ]
 
 const MOCK_CARDS = [
@@ -84,9 +84,9 @@ const MOCK_CARDS = [
     name: 'Minum 8 gelas air',
     time: 'Mulai 08.00 · tiap jam',
     icon: Droplets,
-    bg: 'bg-[#FFDFC7]',
+    bg: 'bg-[#E4EFE0]',
     shadow: CLAY_PEACH,
-    iconClass: 'text-[#E8603A]',
+    iconClass: 'text-[#4A3B32]',
     rot: -6,
     done: false,
     note: 'Sisa 2 gelas',
@@ -95,9 +95,9 @@ const MOCK_CARDS = [
     name: 'Meditasi 10 menit',
     time: 'Pukul 06.30',
     icon: Moon,
-    bg: 'bg-[#D7F0DF]',
+    bg: 'bg-[#DCE9D4]',
     shadow: CLAY_MINT,
-    iconClass: 'text-[#4E9668]',
+    iconClass: 'text-[#5E7F47]',
     rot: 2,
     done: true,
     note: '',
@@ -106,9 +106,9 @@ const MOCK_CARDS = [
     name: 'Lari pagi 3 km',
     time: 'Pukul 07.00',
     icon: Flame,
-    bg: 'bg-[#FFEFBF]',
+    bg: 'bg-[#EFE9DA]',
     shadow: CLAY_BUTTER,
-    iconClass: 'text-[#C0962F]',
+    iconClass: 'text-[#4A3B32]',
     rot: -3,
     done: true,
     note: 'Streak 12 hari',
@@ -120,25 +120,25 @@ const FEATURES = [
     icon: Bell,
     title: 'Pengingat pintar',
     desc: 'Notifikasi lembut di jam yang paling pas dengan ritme harianmu.',
-    bg: 'bg-[#FFDFC7]',
+    bg: 'bg-[#E4EFE0]',
     shadow: CLAY_PEACH,
-    iconClass: 'text-[#E8603A]',
+    iconClass: 'text-[#4A3B32]',
   },
   {
     icon: Flame,
     title: 'Streak & reward',
     desc: 'Api streak dan lencana yang bikin ogah bolong sehari pun.',
-    bg: 'bg-[#D7F0DF]',
+    bg: 'bg-[#DCE9D4]',
     shadow: CLAY_MINT,
-    iconClass: 'text-[#4E9668]',
+    iconClass: 'text-[#5E7F47]',
   },
   {
     icon: BarChart3,
     title: 'Statistik hangat',
     desc: 'Grafik mingguan yang enak dibaca sekilas sambil ngopi.',
-    bg: 'bg-[#FFEFBF]',
+    bg: 'bg-[#EFE9DA]',
     shadow: CLAY_BUTTER,
-    iconClass: 'text-[#C0962F]',
+    iconClass: 'text-[#4A3B32]',
   },
 ]
 
@@ -161,12 +161,12 @@ const WEEK = [
 ]
 
 const BAR_CORAL =
-  'bg-[#FF7A50] shadow-[0_8px_18px_rgba(214,110,60,0.30),inset_0_3px_5px_rgba(255,255,255,0.45),inset_0_-5px_9px_rgba(214,110,60,0.22)]'
+  'bg-[#749B58] shadow-[0_8px_18px_rgba(94,127,71,0.30),inset_0_3px_5px_rgba(255,255,255,0.45),inset_0_-5px_9px_rgba(94,127,71,0.22)]'
 const BAR_PEACH =
-  'bg-[#FFDFC7] shadow-[0_8px_18px_rgba(214,138,94,0.25),inset_0_3px_5px_rgba(255,255,255,0.80),inset_0_-5px_9px_rgba(214,138,94,0.15)]'
+  'bg-[#E4EFE0] shadow-[0_8px_18px_rgba(74,59,50,0.20),inset_0_3px_5px_rgba(255,255,255,0.80),inset_0_-5px_9px_rgba(74,59,50,0.12)]'
 
 const FOCUS_VISIBLE =
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF7A50]'
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]'
 
 /* ===== Sakelar clay: trek cekung saat mati, coral mengembang saat hidup ===== */
 function ClayToggle({
@@ -190,13 +190,13 @@ function ClayToggle({
       transition={SQUISH}
       className={`relative h-8 w-14 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${FOCUS_VISIBLE} ${
         on
-          ? 'bg-[#FF7A50] shadow-[0_6px_14px_rgba(214,110,60,0.35),inset_0_3px_6px_rgba(255,255,255,0.40),inset_0_-4px_8px_rgba(214,110,60,0.25)]'
-          : 'bg-[#F3E2CE] shadow-[inset_0_3px_6px_rgba(180,130,90,0.25),inset_0_-2px_4px_rgba(255,255,255,0.7)]'
+          ? 'bg-[#749B58] shadow-[0_6px_14px_rgba(94,127,71,0.35),inset_0_3px_6px_rgba(255,255,255,0.40),inset_0_-4px_8px_rgba(94,127,71,0.25)]'
+          : 'bg-[#E9E5DC] shadow-[inset_0_3px_6px_rgba(74,59,50,0.25),inset_0_-2px_4px_rgba(255,255,255,0.7)]'
       }`}
     >
       <motion.span
         aria-hidden
-        className="absolute top-1 left-0 size-6 rounded-full bg-white shadow-[0_3px_6px_rgba(120,70,40,0.3)]"
+        className="absolute top-1 left-0 size-6 rounded-full bg-white shadow-[0_3px_6px_rgba(74,59,50,0.3)]"
         animate={{ x: on ? 28 : 4 }}
         transition={{ type: 'spring', stiffness: 420, damping: 26 }}
       />
@@ -227,7 +227,7 @@ function MarqueeRow({
               <span
                 key={`${copy}-${item.label}`}
                 aria-hidden={copy === 1}
-                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-[#6B5544] ${color.bg} ${color.shadow}`}
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-[#4A3B32] ${color.bg} ${color.shadow}`}
               >
                 <Icon className={`size-4 ${color.icon}`} />
                 {item.label}
@@ -315,25 +315,25 @@ export default function Claymorphism() {
   const doneCount = habits.filter((h) => h.done).length
 
   return (
-    <section className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#FFF3E4] pt-20">
+    <section className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#F5F3EE] pt-20">
       {/* Blob pastel penghias latar hero */}
       <div
         aria-hidden
-        className={`pointer-events-none absolute -right-28 top-14 size-72 rounded-full bg-[#FFDFC7] opacity-75 ${CLAY_PEACH}`}
+        className={`pointer-events-none absolute -right-28 top-14 size-72 rounded-full bg-[#E4EFE0] opacity-75 ${CLAY_PEACH}`}
       />
       <div
         aria-hidden
-        className={`pointer-events-none absolute -left-24 top-80 size-56 rounded-full bg-[#D7F0DF] opacity-75 ${CLAY_MINT}`}
+        className={`pointer-events-none absolute -left-24 top-80 size-56 rounded-full bg-[#DCE9D4] opacity-75 ${CLAY_MINT}`}
       />
       <div
         aria-hidden
-        className={`pointer-events-none absolute right-[12%] top-[34rem] size-36 rounded-full bg-[#FFEFBF] opacity-80 ${CLAY_BUTTER}`}
+        className={`pointer-events-none absolute right-[12%] top-[34rem] size-36 rounded-full bg-[#EFE9DA] opacity-80 ${CLAY_BUTTER}`}
       />
 
       {/* ===== Elemen 1: Pulau navbar melayang ===== */}
       <nav
         aria-label="Navigasi utama"
-        className={`relative z-30 mx-auto mt-5 flex w-[calc(100%-2rem)] max-w-3xl items-center justify-between gap-3 rounded-full bg-[#FFFEFB] px-4 py-2.5 sm:px-5 ${CLAY_BASE}`}
+        className={`relative z-30 mx-auto mt-5 flex w-[calc(100%-2rem)] max-w-3xl items-center justify-between gap-3 rounded-full bg-[#FFFFFF] px-4 py-2.5 sm:px-5 ${CLAY_BASE}`}
       >
         <a
           href="#"
@@ -343,10 +343,10 @@ export default function Claymorphism() {
           }}
           className={`flex items-center gap-2 rounded-full ${FOCUS_VISIBLE}`}
         >
-          <span className={`flex size-9 items-center justify-center rounded-full bg-[#FF7A50] ${CLAY_CORAL}`}>
+          <span className={`flex size-9 items-center justify-center rounded-full bg-[#749B58] ${CLAY_CORAL}`}>
             <CheckCheck className="size-4 text-white" aria-hidden />
           </span>
-          <span className="text-lg font-bold tracking-tight text-[#4A382C]">rutina</span>
+          <span className="text-lg font-bold tracking-tight text-[#231F1E]">rutina</span>
         </a>
 
         <div className="hidden items-center gap-1 md:flex">
@@ -358,7 +358,7 @@ export default function Claymorphism() {
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.94 }}
               transition={SQUISH}
-              className={`rounded-full px-3 py-2.5 text-sm font-medium text-[#8A7361] transition-colors hover:text-[#4A382C] ${FOCUS_VISIBLE}`}
+              className={`rounded-full px-3 py-2.5 text-sm font-medium text-[#8A7D72] transition-colors hover:text-[#231F1E] ${FOCUS_VISIBLE}`}
             >
               {l.label}
             </motion.a>
@@ -371,7 +371,7 @@ export default function Claymorphism() {
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
           transition={SQUISH}
-          className={`flex h-10 items-center gap-1.5 rounded-full bg-[#FF7A50] px-4 text-sm font-bold text-white ${CLAY_CORAL} ${FOCUS_VISIBLE}`}
+          className={`flex h-10 items-center gap-1.5 rounded-full bg-[#749B58] px-4 text-sm font-bold text-white ${CLAY_CORAL} ${FOCUS_VISIBLE}`}
         >
           Mulai <ArrowRight className="size-3.5" aria-hidden />
         </motion.button>
@@ -384,7 +384,7 @@ export default function Claymorphism() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className={`inline-flex items-center gap-1.5 rounded-full bg-[#D7F0DF] px-3.5 py-1.5 text-xs font-bold text-[#3E7D57] ${CLAY_MINT}`}
+            className={`inline-flex items-center gap-1.5 rounded-full bg-[#DCE9D4] px-3.5 py-1.5 text-xs font-bold text-[#5E7F47] ${CLAY_MINT}`}
           >
             <Sparkles className="size-3.5" aria-hidden /> Baru — Mode Fokus
           </motion.span>
@@ -393,10 +393,10 @@ export default function Claymorphism() {
             initial={{ opacity: 0, y: 22, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 0.1, type: 'spring', stiffness: 160, damping: 18 }}
-            className="mt-5 text-4xl font-bold tracking-tight text-[#4A382C] sm:text-6xl"
+            className="mt-5 text-4xl font-bold tracking-tight text-[#231F1E] sm:text-6xl"
           >
             Bentuk harimu seperti{' '}
-            <span className="bg-gradient-to-b from-[#FF9A6E] to-[#E8603A] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-b from-[#8FB47A] to-[#5E7F47] bg-clip-text text-transparent">
               tanah liat.
             </span>
           </motion.h1>
@@ -405,7 +405,7 @@ export default function Claymorphism() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.22, duration: 0.5 }}
-            className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#8A7361] sm:text-lg"
+            className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#8A7D72] sm:text-lg"
           >
             rutina membantu kebiasaan kecil menempel setiap hari — lembut, membulat,
             dan menyenangkan disentuh.
@@ -423,7 +423,7 @@ export default function Claymorphism() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.94 }}
               transition={SQUISH}
-              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#FF7A50] px-6 text-base font-bold text-white sm:w-auto ${CLAY_CORAL} ${FOCUS_VISIBLE}`}
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#749B58] px-6 text-base font-bold text-white sm:w-auto ${CLAY_CORAL} ${FOCUS_VISIBLE}`}
             >
               Mulai gratis <ArrowRight className="size-4" aria-hidden />
             </motion.button>
@@ -433,9 +433,9 @@ export default function Claymorphism() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.94 }}
               transition={SQUISH}
-              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#FFFEFB] px-6 text-base font-bold text-[#4A382C] sm:w-auto ${CLAY_BASE} ${FOCUS_VISIBLE}`}
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#FFFFFF] px-6 text-base font-bold text-[#231F1E] sm:w-auto ${CLAY_BASE} ${FOCUS_VISIBLE}`}
             >
-              <Play className="size-4 text-[#FF7A50]" aria-hidden /> Lihat demo
+              <Play className="size-4 text-[#5E7F47]" aria-hidden /> Lihat demo
             </motion.button>
           </motion.div>
 
@@ -443,7 +443,7 @@ export default function Claymorphism() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.46, duration: 0.5 }}
-            className="mt-4 text-[11px] font-medium text-[#B99E86]"
+            className="mt-4 text-[11px] font-medium text-[#A99C90]"
           >
             Gratis 30 hari · tanpa kartu kredit
           </motion.p>
@@ -471,23 +471,23 @@ export default function Claymorphism() {
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.94 }}
                   transition={SQUISH}
-                  className={`w-56 cursor-default rounded-[28px] p-4 sm:w-60 sm:p-5 ${c.bg} ${c.shadow}`}
+                  className={`w-64 cursor-default rounded-[28px] p-4 sm:w-60 sm:p-5 ${c.bg} ${c.shadow}`}
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FFFEFB] ${CLAY_BASE}`}
+                      className={`flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FFFFFF] ${CLAY_BASE}`}
                     >
                       <c.icon className={`size-5 ${c.iconClass}`} aria-hidden />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-[#4A382C]">{c.name}</p>
-                      <p className="text-[11px] text-[#8A7361]">{c.time}</p>
+                      <p className="text-sm font-bold leading-snug text-[#231F1E]">{c.name}</p>
+                      <p className="text-[11px] text-[#8A7D72]">{c.time}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-2">
                     {i === 1 ? (
                       <>
-                        <span className="text-[10px] font-semibold text-[#8A7361]">
+                        <span className="text-[10px] font-semibold text-[#8A7D72]">
                           Tandai selesai
                         </span>
                         <ClayToggle
@@ -501,14 +501,14 @@ export default function Claymorphism() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${
                             c.done
-                              ? `bg-[#D7F0DF] text-[#3E7D57] ${CLAY_MINT}`
-                              : `bg-[#FFDCE5] text-[#C4557E] ${CLAY_ROSE}`
+                              ? `bg-[#DCE9D4] text-[#5E7F47] ${CLAY_MINT}`
+                              : `bg-[#E8E0D5] text-[#6B5B50] ${CLAY_ROSE}`
                           }`}
                         >
                           {c.done ? <Check className="size-3" aria-hidden /> : null}
                           {c.done ? 'Selesai' : 'Belum'}
                         </span>
-                        <span className="min-w-0 truncate text-[10px] font-semibold text-[#8A7361]">
+                        <span className="min-w-0 truncate text-[10px] font-semibold text-[#8A7D72]">
                           {c.note}
                         </span>
                       </>
@@ -539,10 +539,10 @@ export default function Claymorphism() {
         {/* ===== Fitur ===== */}
         <section id="clay-fitur" className="mx-auto mt-16 w-full max-w-5xl px-4 sm:mt-24">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#4A382C] sm:text-4xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#231F1E] sm:text-4xl">
               Semua terasa membulat
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#8A7361] sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-[#8A7D72] sm:text-base">
               Setiap sudut, tombol, dan kartu dibuat empuk — nyaman dilihat, lebih nyaman
               disentuh.
             </p>
@@ -551,12 +551,12 @@ export default function Claymorphism() {
             {FEATURES.map((f) => (
               <div key={f.title} className={`rounded-[28px] p-5 opacity-0 sm:p-6 ${f.bg} ${f.shadow}`}>
                 <span
-                  className={`flex size-12 items-center justify-center rounded-full bg-[#FFFEFB] ${CLAY_BASE}`}
+                  className={`flex size-12 items-center justify-center rounded-full bg-[#FFFFFF] ${CLAY_BASE}`}
                 >
                   <f.icon className={`size-5 ${f.iconClass}`} aria-hidden />
                 </span>
-                <h3 className="mt-4 text-base font-bold text-[#4A382C]">{f.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-[#8A7361]">{f.desc}</p>
+                <h3 className="mt-4 text-base font-bold text-[#231F1E]">{f.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#8A7D72]">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -565,10 +565,10 @@ export default function Claymorphism() {
         {/* ===== Daftar kebiasaan interaktif ===== */}
         <section id="clay-cara-kerja" className="mx-auto mt-16 w-full max-w-md px-4 sm:mt-24">
           <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#4A382C] sm:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#231F1E] sm:text-3xl">
               Coba sentuh
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#8A7361]">
+            <p className="mt-2 text-sm leading-relaxed text-[#8A7D72]">
               Geser sakelarnya pelan-pelan — semuanya empuk dan membalas.
             </p>
           </div>
@@ -577,15 +577,15 @@ export default function Claymorphism() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.55, ease: 'easeOut' }}
-            className={`mt-8 rounded-[28px] bg-[#FFFEFB] p-5 sm:p-6 ${CLAY_BASE}`}
+            className={`mt-8 rounded-[28px] bg-[#FFFFFF] p-5 sm:p-6 ${CLAY_BASE}`}
           >
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-[#4A382C]">Kebiasaan hari ini</h3>
-                <p className="text-xs text-[#8A7361]">Selasa, 10 Juni</p>
+                <h3 className="text-sm font-bold text-[#231F1E]">Kebiasaan hari ini</h3>
+                <p className="text-xs text-[#8A7D72]">Selasa, 10 Juni</p>
               </div>
               <span
-                className={`rounded-full bg-[#FFEFBF] px-3 py-1 text-xs font-bold tabular-nums text-[#A87B1E] ${CLAY_BUTTER}`}
+                className={`rounded-full bg-[#EFE9DA] px-3 py-1 text-xs font-bold tabular-nums text-[#8A7D72] ${CLAY_BUTTER}`}
               >
                 {doneCount}/{habits.length} selesai
               </span>
@@ -595,12 +595,12 @@ export default function Claymorphism() {
                 <div
                   key={h.id}
                   className={`flex items-center justify-between gap-3 rounded-[20px] px-3.5 py-2 transition-colors duration-200 ${
-                    h.done ? 'bg-[#D7F0DF]/60' : 'bg-[#F7EBDA]/70'
+                    h.done ? 'bg-[#DCE9D4]/60' : 'bg-[#E9E5DC]/70'
                   }`}
                 >
                   <span
                     className={`truncate text-sm font-semibold ${
-                      h.done ? 'text-[#8A7361] line-through' : 'text-[#4A382C]'
+                      h.done ? 'text-[#8A7D72] line-through' : 'text-[#231F1E]'
                     }`}
                   >
                     {h.name}
@@ -613,7 +613,7 @@ export default function Claymorphism() {
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-center text-[11px] text-[#B99E86]">
+            <p className="mt-4 text-center text-[11px] text-[#A99C90]">
               Selesaikan semuanya — ada kejutan kecil menunggu.
             </p>
           </motion.div>
@@ -622,10 +622,10 @@ export default function Claymorphism() {
         {/* ===== Batang konsistensi mingguan ===== */}
         <section className="mx-auto mt-16 w-full max-w-lg px-4 sm:mt-20">
           <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-[#4A382C] sm:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#231F1E] sm:text-3xl">
               Konsistensi mingguan
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#8A7361]">
+            <p className="mt-2 text-sm leading-relaxed text-[#8A7D72]">
               Tujuh hari terakhir, membulat dan mudah dibaca.
             </p>
           </div>
@@ -634,22 +634,22 @@ export default function Claymorphism() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.55, ease: 'easeOut' }}
-            className={`mt-8 rounded-[28px] bg-[#FFFEFB] p-5 sm:p-7 ${CLAY_BASE}`}
+            className={`mt-8 rounded-[28px] bg-[#FFFFFF] p-5 sm:p-7 ${CLAY_BASE}`}
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <span
-                  className={`flex size-10 items-center justify-center rounded-full bg-[#FFDFC7] ${CLAY_PEACH}`}
+                  className={`flex size-10 items-center justify-center rounded-full bg-[#E4EFE0] ${CLAY_PEACH}`}
                 >
-                  <CalendarCheck className="size-4 text-[#E8603A]" aria-hidden />
+                  <CalendarCheck className="size-4 text-[#4A3B32]" aria-hidden />
                 </span>
                 <div>
-                  <p className="text-sm font-bold text-[#4A382C]">Minggu ini</p>
-                  <p className="text-[11px] text-[#8A7361]">9–15 Juni</p>
+                  <p className="text-sm font-bold text-[#231F1E]">Minggu ini</p>
+                  <p className="text-[11px] text-[#8A7D72]">9–15 Juni</p>
                 </div>
               </div>
               <span
-                className={`rounded-full bg-[#D7F0DF] px-3 py-1.5 text-xs font-bold text-[#3E7D57] ${CLAY_MINT}`}
+                className={`rounded-full bg-[#DCE9D4] px-3 py-1.5 text-xs font-bold text-[#5E7F47] ${CLAY_MINT}`}
               >
                 Rata-rata <Counter to={67} />%
               </span>
@@ -673,7 +673,7 @@ export default function Claymorphism() {
                 {WEEK.map((d) => (
                   <span
                     key={d.label}
-                    className="flex-1 text-center text-[10px] font-semibold text-[#8A7361]"
+                    className="flex-1 text-center text-[10px] font-semibold text-[#8A7D72]"
                   >
                     {d.label}
                   </span>
@@ -700,25 +700,25 @@ export default function Claymorphism() {
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.94 }}
               transition={SQUISH}
-              className={`rounded-full px-2 py-1.5 text-sm font-medium text-[#8A7361] transition-colors hover:text-[#4A382C] ${FOCUS_VISIBLE}`}
+              className={`rounded-full px-2 py-1.5 text-sm font-medium text-[#8A7D72] transition-colors hover:text-[#231F1E] ${FOCUS_VISIBLE}`}
             >
               {label}
             </motion.a>
           ))}
         </div>
-        <p className="mt-3 px-4 text-center text-xs text-[#B99E86]">
+        <p className="mt-3 px-4 text-center text-xs text-[#A99C90]">
           Kebiasaan baik, dibentuk pelan-pelan.
         </p>
         <div className="mt-3 overflow-hidden px-4 py-8 sm:py-10">
           <div
             ref={wordRef}
             aria-hidden
-            className="select-none bg-gradient-to-b from-[#FFB98A] to-[#FF7A50] bg-clip-text text-center text-[24vw] font-black lowercase leading-[0.82] tracking-tighter text-transparent opacity-0 drop-shadow-[0_14px_18px_rgba(214,110,60,0.25)] sm:text-[20vw]"
+            className="select-none bg-gradient-to-b from-[#A3C48E] to-[#749B58] bg-clip-text text-center text-[24vw] font-black lowercase leading-[0.82] tracking-tighter text-transparent opacity-0 drop-shadow-[0_14px_18px_rgba(94,127,71,0.25)] sm:text-[20vw]"
           >
             rutina
           </div>
         </div>
-        <p className="pb-6 pt-1 text-center text-[11px] text-[#B99E86]">
+        <p className="pb-6 pt-1 text-center text-[11px] text-[#A99C90]">
           © 2025 rutina — dibentuk dengan sabar.
         </p>
       </footer>

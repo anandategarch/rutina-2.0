@@ -79,24 +79,24 @@ export default function TypographyDriven() {
 
   const t = dark
     ? {
-        bg: 'bg-zinc-950',
-        text: 'text-stone-100',
-        sub: 'text-stone-400',
-        mono: 'text-stone-500',
-        line: 'border-stone-200/15',
-        accent: 'text-orange-400',
-        link: 'decoration-orange-400',
-        stroke: '[-webkit-text-stroke:1px_rgba(228,228,231,0.10)]',
+        bg: 'bg-[#231F1E]',
+        text: 'text-[#F5F3EE]',
+        sub: 'text-[#A99C90]',
+        mono: 'text-[#A99C90]',
+        line: 'border-[#F5F3EE]/12',
+        accent: 'text-[#A3C48E]',
+        link: 'decoration-[#A3C48E]',
+        stroke: '[-webkit-text-stroke:1px_rgba(245,243,238,0.10)]',
       }
     : {
-        bg: 'bg-[#f4f1ea]',
-        text: 'text-zinc-950',
-        sub: 'text-zinc-500',
-        mono: 'text-zinc-400',
-        line: 'border-zinc-950/10',
-        accent: 'text-orange-600',
-        link: 'decoration-orange-500',
-        stroke: '[-webkit-text-stroke:1px_rgba(9,9,11,0.08)]',
+        bg: 'bg-[#F5F3EE]',
+        text: 'text-[#231F1E]',
+        sub: 'text-[#8A7D72]',
+        mono: 'text-[#A99C90]',
+        line: 'border-[#231F1E]/10',
+        accent: 'text-[#5E7F47]',
+        link: 'decoration-[#749B58]',
+        stroke: '[-webkit-text-stroke:1px_rgba(35,31,30,0.08)]',
       }
 
   return (

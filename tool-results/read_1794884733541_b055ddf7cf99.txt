@@ -1,0 +1,728 @@
+     1→'use client'
+     2→
+     3→import { useEffect, useRef, useState, type MouseEvent } from 'react'
+     4→import { motion, useInView } from 'motion/react'
+     5→import { animate, stagger } from 'animejs'
+     6→import { toast } from 'sonner'
+     7→import {
+     8→  ArrowRight,
+     9→  BarChart3,
+    10→  Bell,
+    11→  CalendarCheck,
+    12→  Check,
+    13→  CheckCheck,
+    14→  CloudUpload,
+    15→  Droplets,
+    16→  Flame,
+    17→  Moon,
+    18→  Play,
+    19→  ShieldCheck,
+    20→  Sparkles,
+    21→  Users,
+    22→  WifiOff,
+    23→  Zap,
+    24→  type LucideIcon,
+    25→} from 'lucide-react'
+    26→import { Counter, goToStyle } from './bits'
+    27→
+    28→/* ===== Resep clay: bayangan jatuh lembut + cahaya dari atas + gelap dari bawah ===== */
+    29→const CLAY_BASE =
+    30→  'shadow-[0_14px_28px_rgba(214,138,94,0.22),inset_0_6px_10px_rgba(255,255,255,0.85),inset_0_-8px_14px_rgba(214,138,94,0.10)]'
+    31→const CLAY_PEACH =
+    32→  'shadow-[0_14px_28px_rgba(214,138,94,0.22),inset_0_6px_10px_rgba(255,255,255,0.75),inset_0_-8px_14px_rgba(214,138,94,0.16)]'
+    33→const CLAY_MINT =
+    34→  'shadow-[0_14px_28px_rgba(96,160,120,0.20),inset_0_6px_10px_rgba(255,255,255,0.75),inset_0_-8px_14px_rgba(96,160,120,0.14)]'
+    35→const CLAY_BUTTER =
+    36→  'shadow-[0_14px_28px_rgba(214,178,84,0.22),inset_0_6px_10px_rgba(255,255,255,0.80),inset_0_-8px_14px_rgba(214,178,84,0.14)]'
+    37→const CLAY_ROSE =
+    38→  'shadow-[0_14px_28px_rgba(214,110,140,0.18),inset_0_6px_10px_rgba(255,255,255,0.80),inset_0_-8px_14px_rgba(214,110,140,0.12)]'
+    39→const CLAY_CORAL =
+    40→  'shadow-[0_10px_22px_rgba(214,110,60,0.35),inset_0_4px_8px_rgba(255,255,255,0.40),inset_0_-6px_10px_rgba(214,110,60,0.28)]'
+    41→
+    42→/* Resep squish: semua elemen clay membalas sentuhan seperti tanah liat */
+    43→const SQUISH = { type: 'spring', stiffness: 320, damping: 16 } as const
+    44→
+    45→const NAV_LINKS = [
+    46→  { label: 'Fitur', id: 'clay-fitur' },
+    47→  { label: 'Cara kerja', id: 'clay-cara-kerja' },
+    48→  { label: 'Cerita', id: 'clay-cerita' },
+    49→]
+    50→
+    51→const FOOTER_LINKS = ['Tentang', 'Bantuan', 'Privasi']
+    52→
+    53→type MarqueeItem = { icon: LucideIcon; label: string }
+    54→
+    55→const MARQUEE_ROW_1: MarqueeItem[] = [
+    56→  { icon: Bell, label: 'Pengingat pintar' },
+    57→  { icon: WifiOff, label: 'Mode offline' },
+    58→  { icon: BarChart3, label: 'Statistik mendalam' },
+    59→  { icon: CalendarCheck, label: 'Streak & kalender' },
+    60→  { icon: Moon, label: 'Mode malam' },
+    61→  { icon: Sparkles, label: 'Badge & reward' },
+    62→  { icon: Users, label: 'Komunitas' },
+    63→  { icon: Zap, label: 'Super ringan' },
+    64→  { icon: ShieldCheck, label: 'Tanpa iklan' },
+    65→  { icon: CloudUpload, label: 'Backup otomatis' },
+    66→]
+    67→
+    68→/* Baris kedua: urutan digeser 5 (deterministik) supaya tidak identik */
+    69→const MARQUEE_ROW_2: MarqueeItem[] = [
+    70→  ...MARQUEE_ROW_1.slice(5),
+    71→  ...MARQUEE_ROW_1.slice(0, 5),
+    72→]
+    73→
+    74→const PILL_COLORS = [
+    75→  { bg: 'bg-[#FFFEFB]', shadow: CLAY_BASE, icon: 'text-[#FF7A50]' },
+    76→  { bg: 'bg-[#FFDFC7]', shadow: CLAY_PEACH, icon: 'text-[#E8603A]' },
+    77→  { bg: 'bg-[#D7F0DF]', shadow: CLAY_MINT, icon: 'text-[#4E9668]' },
+    78→  { bg: 'bg-[#FFEFBF]', shadow: CLAY_BUTTER, icon: 'text-[#C0962F]' },
+    79→  { bg: 'bg-[#FFDCE5]', shadow: CLAY_ROSE, icon: 'text-[#D2708F]' },
+    80→]
+    81→
+    82→const MOCK_CARDS = [
+    83→  {
+    84→    name: 'Minum 8 gelas air',
+    85→    time: 'Mulai 08.00 · tiap jam',
+    86→    icon: Droplets,
+    87→    bg: 'bg-[#FFDFC7]',
+    88→    shadow: CLAY_PEACH,
+    89→    iconClass: 'text-[#E8603A]',
+    90→    rot: -6,
+    91→    done: false,
+    92→    note: 'Sisa 2 gelas',
+    93→  },
+    94→  {
+    95→    name: 'Meditasi 10 menit',
+    96→    time: 'Pukul 06.30',
+    97→    icon: Moon,
+    98→    bg: 'bg-[#D7F0DF]',
+    99→    shadow: CLAY_MINT,
+   100→    iconClass: 'text-[#4E9668]',
+   101→    rot: 2,
+   102→    done: true,
+   103→    note: '',
+   104→  },
+   105→  {
+   106→    name: 'Lari pagi 3 km',
+   107→    time: 'Pukul 07.00',
+   108→    icon: Flame,
+   109→    bg: 'bg-[#FFEFBF]',
+   110→    shadow: CLAY_BUTTER,
+   111→    iconClass: 'text-[#C0962F]',
+   112→    rot: -3,
+   113→    done: true,
+   114→    note: 'Streak 12 hari',
+   115→  },
+   116→]
+   117→
+   118→const FEATURES = [
+   119→  {
+   120→    icon: Bell,
+   121→    title: 'Pengingat pintar',
+   122→    desc: 'Notifikasi lembut di jam yang paling pas dengan ritme harianmu.',
+   123→    bg: 'bg-[#FFDFC7]',
+   124→    shadow: CLAY_PEACH,
+   125→    iconClass: 'text-[#E8603A]',
+   126→  },
+   127→  {
+   128→    icon: Flame,
+   129→    title: 'Streak & reward',
+   130→    desc: 'Api streak dan lencana yang bikin ogah bolong sehari pun.',
+   131→    bg: 'bg-[#D7F0DF]',
+   132→    shadow: CLAY_MINT,
+   133→    iconClass: 'text-[#4E9668]',
+   134→  },
+   135→  {
+   136→    icon: BarChart3,
+   137→    title: 'Statistik hangat',
+   138→    desc: 'Grafik mingguan yang enak dibaca sekilas sambil ngopi.',
+   139→    bg: 'bg-[#FFEFBF]',
+   140→    shadow: CLAY_BUTTER,
+   141→    iconClass: 'text-[#C0962F]',
+   142→  },
+   143→]
+   144→
+   145→type Habit = { id: number; name: string; done: boolean }
+   146→const INITIAL_HABITS: Habit[] = [
+   147→  { id: 1, name: 'Minum 8 gelas air', done: true },
+   148→  { id: 2, name: 'Baca 20 halaman', done: false },
+   149→  { id: 3, name: 'Lari pagi 3 km', done: false },
+   150→  { id: 4, name: 'Meditasi 10 menit', done: false },
+   151→]
+   152→
+   153→const WEEK = [
+   154→  { label: 'Sn', h: 42 },
+   155→  { label: 'Sl', h: 68 },
+   156→  { label: 'Rb', h: 50 },
+   157→  { label: 'Km', h: 85 },
+   158→  { label: 'Jm', h: 58 },
+   159→  { label: 'Sb', h: 92 },
+   160→  { label: 'Mn', h: 74 },
+   161→]
+   162→
+   163→const BAR_CORAL =
+   164→  'bg-[#FF7A50] shadow-[0_8px_18px_rgba(214,110,60,0.30),inset_0_3px_5px_rgba(255,255,255,0.45),inset_0_-5px_9px_rgba(214,110,60,0.22)]'
+   165→const BAR_PEACH =
+   166→  'bg-[#FFDFC7] shadow-[0_8px_18px_rgba(214,138,94,0.25),inset_0_3px_5px_rgba(255,255,255,0.80),inset_0_-5px_9px_rgba(214,138,94,0.15)]'
+   167→
+   168→const FOCUS_VISIBLE =
+   169→  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF7A50]'
+   170→
+   171→/* ===== Sakelar clay: trek cekung saat mati, coral mengembang saat hidup ===== */
+   172→function ClayToggle({
+   173→  on,
+   174→  onToggle,
+   175→  label,
+   176→}: {
+   177→  on: boolean
+   178→  onToggle: () => void
+   179→  label: string
+   180→}) {
+   181→  return (
+   182→    <motion.button
+   183→      type="button"
+   184→      role="switch"
+   185→      aria-checked={on}
+   186→      aria-label={label}
+   187→      onClick={onToggle}
+   188→      whileHover={{ scale: 1.06 }}
+   189→      whileTap={{ scale: 0.94 }}
+   190→      transition={SQUISH}
+   191→      className={`relative h-8 w-14 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${FOCUS_VISIBLE} ${
+   192→        on
+   193→          ? 'bg-[#FF7A50] shadow-[0_6px_14px_rgba(214,110,60,0.35),inset_0_3px_6px_rgba(255,255,255,0.40),inset_0_-4px_8px_rgba(214,110,60,0.25)]'
+   194→          : 'bg-[#F3E2CE] shadow-[inset_0_3px_6px_rgba(180,130,90,0.25),inset_0_-2px_4px_rgba(255,255,255,0.7)]'
+   195→      }`}
+   196→    >
+   197→      <motion.span
+   198→        aria-hidden
+   199→        className="absolute top-1 left-0 size-6 rounded-full bg-white shadow-[0_3px_6px_rgba(120,70,40,0.3)]"
+   200→        animate={{ x: on ? 28 : 4 }}
+   201→        transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+   202→      />
+   203→    </motion.button>
+   204→  )
+   205→}
+   206→
+   207→/* ===== Satu baris marquee: track diduplikasi 2x untuk loop -50% yang mulus ===== */
+   208→function MarqueeRow({
+   209→  items,
+   210→  animation,
+   211→  colorOffset,
+   212→}: {
+   213→  items: MarqueeItem[]
+   214→  animation: string
+   215→  colorOffset: number
+   216→}) {
+   217→  return (
+   218→    <div className="group overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+   219→      <div
+   220→        className={`flex w-max gap-3 pr-3 will-change-transform group-hover:[animation-play-state:paused] motion-reduce:animate-none ${animation}`}
+   221→      >
+   222→        {[0, 1].map((copy) =>
+   223→          items.map((item, i) => {
+   224→            const color = PILL_COLORS[(i + colorOffset) % PILL_COLORS.length]
+   225→            const Icon = item.icon
+   226→            return (
+   227→              <span
+   228→                key={`${copy}-${item.label}`}
+   229→                aria-hidden={copy === 1}
+   230→                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-[#6B5544] ${color.bg} ${color.shadow}`}
+   231→              >
+   232→                <Icon className={`size-4 ${color.icon}`} />
+   233→                {item.label}
+   234→              </span>
+   235→            )
+   236→          }),
+   237→        )}
+   238→      </div>
+   239→    </div>
+   240→  )
+   241→}
+   242→
+   243→export default function Claymorphism() {
+   244→  const featuresRef = useRef<HTMLDivElement>(null)
+   245→  const featuresInView = useInView(featuresRef, { once: true, margin: '-60px' })
+   246→  const barsRef = useRef<HTMLDivElement>(null)
+   247→  const barsInView = useInView(barsRef, { once: true, margin: '-40px' })
+   248→  const wordRef = useRef<HTMLDivElement>(null)
+   249→  const wordInView = useInView(wordRef, { once: true, margin: '-40px' })
+   250→
+   251→  const [mockToggleOn, setMockToggleOn] = useState(true)
+   252→  const [habits, setHabits] = useState(INITIAL_HABITS)
+   253→
+   254→  /* Kartu fitur masuk bergiliran (anime.js stagger) */
+   255→  useEffect(() => {
+   256→    if (!featuresInView || !featuresRef.current) return
+   257→    const anim = animate(Array.from(featuresRef.current.children) as HTMLElement[], {
+   258→      opacity: [0, 1],
+   259→      y: [24, 0],
+   260→      duration: 600,
+   261→      delay: stagger(90),
+   262→      ease: 'outExpo',
+   263→    })
+   264→    return () => {
+   265→      anim.revert()
+   266→    }
+   267→  }, [featuresInView])
+   268→
+   269→  /* Batang mingguan tumbuh dari bawah dengan overshoot kenyal */
+   270→  useEffect(() => {
+   271→    if (!barsInView || !barsRef.current) return
+   272→    const anim = animate(Array.from(barsRef.current.children) as HTMLElement[], {
+   273→      scaleY: [0, 1],
+   274→      duration: 750,
+   275→      delay: stagger(70),
+   276→      ease: 'outBack(1.4)',
+   277→    })
+   278→    return () => {
+   279→      anim.revert()
+   280→    }
+   281→  }, [barsInView])
+   282→
+   283→  /* Wordmark raksasa mengembang saat masuk layar */
+   284→  useEffect(() => {
+   285→    if (!wordInView || !wordRef.current) return
+   286→    const anim = animate(wordRef.current, {
+   287→      opacity: [0, 1],
+   288→      scale: [0.92, 1],
+   289→      duration: 900,
+   290→      ease: 'outBack(1.2)',
+   291→    })
+   292→    return () => {
+   293→      anim.revert()
+   294→    }
+   295→  }, [wordInView])
+   296→
+   297→  const demoToast = () =>
+   298→    toast.info('Ini contoh gaya Claymorphism', {
+   299→      description: 'Di produksi, tombol ini membuka pendaftaran.',
+   300→    })
+   301→
+   302→  const goToSection = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
+   303→    event.preventDefault()
+   304→    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+   305→  }
+   306→
+   307→  const toggleHabit = (id: number) => {
+   308→    const next = habits.map((h) => (h.id === id ? { ...h, done: !h.done } : h))
+   309→    setHabits(next)
+   310→    if (next.every((h) => h.done)) {
+   311→      toast.success('Sempurna! Semua kebiasaan hari ini tuntas.')
+   312→    }
+   313→  }
+   314→
+   315→  const doneCount = habits.filter((h) => h.done).length
+   316→
+   317→  return (
+   318→    <section className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#FFF3E4] pt-20">
+   319→      {/* Blob pastel penghias latar hero */}
+   320→      <div
+   321→        aria-hidden
+   322→        className={`pointer-events-none absolute -right-28 top-14 size-72 rounded-full bg-[#FFDFC7] opacity-75 ${CLAY_PEACH}`}
+   323→      />
+   324→      <div
+   325→        aria-hidden
+   326→        className={`pointer-events-none absolute -left-24 top-80 size-56 rounded-full bg-[#D7F0DF] opacity-75 ${CLAY_MINT}`}
+   327→      />
+   328→      <div
+   329→        aria-hidden
+   330→        className={`pointer-events-none absolute right-[12%] top-[34rem] size-36 rounded-full bg-[#FFEFBF] opacity-80 ${CLAY_BUTTER}`}
+   331→      />
+   332→
+   333→      {/* ===== Elemen 1: Pulau navbar melayang ===== */}
+   334→      <nav
+   335→        aria-label="Navigasi utama"
+   336→        className={`relative z-30 mx-auto mt-5 flex w-[calc(100%-2rem)] max-w-3xl items-center justify-between gap-3 rounded-full bg-[#FFFEFB] px-4 py-2.5 sm:px-5 ${CLAY_BASE}`}
+   337→      >
+   338→        <a
+   339→          href="#"
+   340→          onClick={(e) => {
+   341→            e.preventDefault()
+   342→            window.scrollTo({ top: 0, behavior: 'smooth' })
+   343→          }}
+   344→          className={`flex items-center gap-2 rounded-full ${FOCUS_VISIBLE}`}
+   345→        >
+   346→          <span className={`flex size-9 items-center justify-center rounded-full bg-[#FF7A50] ${CLAY_CORAL}`}>
+   347→            <CheckCheck className="size-4 text-white" aria-hidden />
+   348→          </span>
+   349→          <span className="text-lg font-bold tracking-tight text-[#4A382C]">rutina</span>
+   350→        </a>
+   351→
+   352→        <div className="hidden items-center gap-1 md:flex">
+   353→          {NAV_LINKS.map((l) => (
+   354→            <motion.a
+   355→              key={l.id}
+   356→              href={`#${l.id}`}
+   357→              onClick={(e) => goToSection(e, l.id)}
+   358→              whileHover={{ scale: 1.08 }}
+   359→              whileTap={{ scale: 0.94 }}
+   360→              transition={SQUISH}
+   361→              className={`rounded-full px-3 py-2.5 text-sm font-medium text-[#8A7361] transition-colors hover:text-[#4A382C] ${FOCUS_VISIBLE}`}
+   362→            >
+   363→              {l.label}
+   364→            </motion.a>
+   365→          ))}
+   366→        </div>
+   367→
+   368→        <motion.button
+   369→          type="button"
+   370→          onClick={demoToast}
+   371→          whileHover={{ scale: 1.04 }}
+   372→          whileTap={{ scale: 0.94 }}
+   373→          transition={SQUISH}
+   374→          className={`flex h-10 items-center gap-1.5 rounded-full bg-[#FF7A50] px-4 text-sm font-bold text-white ${CLAY_CORAL} ${FOCUS_VISIBLE}`}
+   375→        >
+   376→          Mulai <ArrowRight className="size-3.5" aria-hidden />
+   377→        </motion.button>
+   378→      </nav>
+   379→
+   380→      <main className="relative z-10 flex-1">
+   381→        {/* ===== Hero ===== */}
+   382→        <div className="mx-auto mt-10 max-w-3xl px-4 text-center sm:mt-14">
+   383→          <motion.span
+   384→            initial={{ opacity: 0, y: 12 }}
+   385→            animate={{ opacity: 1, y: 0 }}
+   386→            transition={{ duration: 0.45 }}
+   387→            className={`inline-flex items-center gap-1.5 rounded-full bg-[#D7F0DF] px-3.5 py-1.5 text-xs font-bold text-[#3E7D57] ${CLAY_MINT}`}
+   388→          >
+   389→            <Sparkles className="size-3.5" aria-hidden /> Baru — Mode Fokus
+   390→          </motion.span>
+   391→
+   392→          <motion.h1
+   393→            initial={{ opacity: 0, y: 22, scale: 0.97 }}
+   394→            animate={{ opacity: 1, y: 0, scale: 1 }}
+   395→            transition={{ delay: 0.1, type: 'spring', stiffness: 160, damping: 18 }}
+   396→            className="mt-5 text-4xl font-bold tracking-tight text-[#4A382C] sm:text-6xl"
+   397→          >
+   398→            Bentuk harimu seperti{' '}
+   399→            <span className="bg-gradient-to-b from-[#FF9A6E] to-[#E8603A] bg-clip-text text-transparent">
+   400→              tanah liat.
+   401→            </span>
+   402→          </motion.h1>
+   403→
+   404→          <motion.p
+   405→            initial={{ opacity: 0, y: 16 }}
+   406→            animate={{ opacity: 1, y: 0 }}
+   407→            transition={{ delay: 0.22, duration: 0.5 }}
+   408→            className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-[#8A7361] sm:text-lg"
+   409→          >
+   410→            rutina membantu kebiasaan kecil menempel setiap hari — lembut, membulat,
+   411→            dan menyenangkan disentuh.
+   412→          </motion.p>
+   413→
+   414→          <motion.div
+   415→            initial={{ opacity: 0, y: 16 }}
+   416→            animate={{ opacity: 1, y: 0 }}
+   417→            transition={{ delay: 0.34, duration: 0.5 }}
+   418→            className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
+   419→          >
+   420→            <motion.button
+   421→              type="button"
+   422→              onClick={demoToast}
+   423→              whileHover={{ scale: 1.04 }}
+   424→              whileTap={{ scale: 0.94 }}
+   425→              transition={SQUISH}
+   426→              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#FF7A50] px-6 text-base font-bold text-white sm:w-auto ${CLAY_CORAL} ${FOCUS_VISIBLE}`}
+   427→            >
+   428→              Mulai gratis <ArrowRight className="size-4" aria-hidden />
+   429→            </motion.button>
+   430→            <motion.button
+   431→              type="button"
+   432→              onClick={() => goToStyle(2)}
+   433→              whileHover={{ scale: 1.04 }}
+   434→              whileTap={{ scale: 0.94 }}
+   435→              transition={SQUISH}
+   436→              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#FFFEFB] px-6 text-base font-bold text-[#4A382C] sm:w-auto ${CLAY_BASE} ${FOCUS_VISIBLE}`}
+   437→            >
+   438→              <Play className="size-4 text-[#FF7A50]" aria-hidden /> Lihat demo
+   439→            </motion.button>
+   440→          </motion.div>
+   441→
+   442→          <motion.p
+   443→            initial={{ opacity: 0 }}
+   444→            animate={{ opacity: 1 }}
+   445→            transition={{ delay: 0.46, duration: 0.5 }}
+   446→            className="mt-4 text-[11px] font-medium text-[#B99E86]"
+   447→          >
+   448→            Gratis 30 hari · tanpa kartu kredit
+   449→          </motion.p>
+   450→        </div>
+   451→
+   452→        {/* ===== Tumpukan kartu kebiasaan clay ===== */}
+   453→        <div className="mx-auto mt-12 flex max-w-3xl flex-col items-center gap-5 px-4 sm:mt-16 sm:flex-row sm:items-center sm:justify-center sm:gap-5">
+   454→          {MOCK_CARDS.map((c, i) => (
+   455→            <motion.div
+   456→              key={c.name}
+   457→              initial={{ opacity: 0, y: 44, scale: 0.88, rotate: 0 }}
+   458→              animate={{ opacity: 1, y: 0, scale: 1, rotate: c.rot }}
+   459→              transition={{ delay: 0.5 + i * 0.12, type: 'spring', stiffness: 150, damping: 16 }}
+   460→            >
+   461→              <motion.div
+   462→                animate={{ y: [0, -9, 0] }}
+   463→                transition={{
+   464→                  duration: 3.4 + i * 0.7,
+   465→                  repeat: Infinity,
+   466→                  ease: 'easeInOut',
+   467→                  delay: 0.8 + i * 0.5,
+   468→                }}
+   469→              >
+   470→                <motion.div
+   471→                  whileHover={{ scale: 1.04 }}
+   472→                  whileTap={{ scale: 0.94 }}
+   473→                  transition={SQUISH}
+   474→                  className={`w-56 cursor-default rounded-[28px] p-4 sm:w-60 sm:p-5 ${c.bg} ${c.shadow}`}
+   475→                >
+   476→                  <div className="flex items-center gap-3">
+   477→                    <span
+   478→                      className={`flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FFFEFB] ${CLAY_BASE}`}
+   479→                    >
+   480→                      <c.icon className={`size-5 ${c.iconClass}`} aria-hidden />
+   481→                    </span>
+   482→                    <div className="min-w-0">
+   483→                      <p className="truncate text-sm font-bold text-[#4A382C]">{c.name}</p>
+   484→                      <p className="text-[11px] text-[#8A7361]">{c.time}</p>
+   485→                    </div>
+   486→                  </div>
+   487→                  <div className="mt-4 flex items-center justify-between gap-2">
+   488→                    {i === 1 ? (
+   489→                      <>
+   490→                        <span className="text-[10px] font-semibold text-[#8A7361]">
+   491→                          Tandai selesai
+   492→                        </span>
+   493→                        <ClayToggle
+   494→                          on={mockToggleOn}
+   495→                          onToggle={() => setMockToggleOn((v) => !v)}
+   496→                          label="Sakelar contoh: Meditasi 10 menit"
+   497→                        />
+   498→                      </>
+   499→                    ) : (
+   500→                      <>
+   501→                        <span
+   502→                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${
+   503→                            c.done
+   504→                              ? `bg-[#D7F0DF] text-[#3E7D57] ${CLAY_MINT}`
+   505→                              : `bg-[#FFDCE5] text-[#C4557E] ${CLAY_ROSE}`
+   506→                          }`}
+   507→                        >
+   508→                          {c.done ? <Check className="size-3" aria-hidden /> : null}
+   509→                          {c.done ? 'Selesai' : 'Belum'}
+   510→                        </span>
+   511→                        <span className="min-w-0 truncate text-[10px] font-semibold text-[#8A7361]">
+   512→                          {c.note}
+   513→                        </span>
+   514→                      </>
+   515→                    )}
+   516→                  </div>
+   517→                </motion.div>
+   518→              </motion.div>
+   519→            </motion.div>
+   520→          ))}
+   521→        </div>
+   522→
+   523→        {/* ===== Elemen 2: Marquee tak berujung ===== */}
+   524→        <div className="relative my-10 -rotate-1 sm:my-14">
+   525→          <MarqueeRow
+   526→            items={MARQUEE_ROW_1}
+   527→            animation="animate-[marquee-left_34s_linear_infinite]"
+   528→            colorOffset={0}
+   529→          />
+   530→          <div className="mt-3 sm:mt-4">
+   531→            <MarqueeRow
+   532→              items={MARQUEE_ROW_2}
+   533→              animation="animate-[marquee-right_46s_linear_infinite]"
+   534→              colorOffset={2}
+   535→            />
+   536→          </div>
+   537→        </div>
+   538→
+   539→        {/* ===== Fitur ===== */}
+   540→        <section id="clay-fitur" className="mx-auto mt-16 w-full max-w-5xl px-4 sm:mt-24">
+   541→          <div className="mx-auto max-w-2xl text-center">
+   542→            <h2 className="text-2xl font-bold tracking-tight text-[#4A382C] sm:text-4xl">
+   543→              Semua terasa membulat
+   544→            </h2>
+   545→            <p className="mt-3 text-sm leading-relaxed text-[#8A7361] sm:text-base">
+   546→              Setiap sudut, tombol, dan kartu dibuat empuk — nyaman dilihat, lebih nyaman
+   547→              disentuh.
+   548→            </p>
+   549→          </div>
+   550→          <div ref={featuresRef} className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-3 sm:gap-5">
+   551→            {FEATURES.map((f) => (
+   552→              <div key={f.title} className={`rounded-[28px] p-5 opacity-0 sm:p-6 ${f.bg} ${f.shadow}`}>
+   553→                <span
+   554→                  className={`flex size-12 items-center justify-center rounded-full bg-[#FFFEFB] ${CLAY_BASE}`}
+   555→                >
+   556→                  <f.icon className={`size-5 ${f.iconClass}`} aria-hidden />
+   557→                </span>
+   558→                <h3 className="mt-4 text-base font-bold text-[#4A382C]">{f.title}</h3>
+   559→                <p className="mt-1.5 text-sm leading-relaxed text-[#8A7361]">{f.desc}</p>
+   560→              </div>
+   561→            ))}
+   562→          </div>
+   563→        </section>
+   564→
+   565→        {/* ===== Daftar kebiasaan interaktif ===== */}
+   566→        <section id="clay-cara-kerja" className="mx-auto mt-16 w-full max-w-md px-4 sm:mt-24">
+   567→          <div className="text-center">
+   568→            <h2 className="text-2xl font-bold tracking-tight text-[#4A382C] sm:text-3xl">
+   569→              Coba sentuh
+   570→            </h2>
+   571→            <p className="mt-2 text-sm leading-relaxed text-[#8A7361]">
+   572→              Geser sakelarnya pelan-pelan — semuanya empuk dan membalas.
+   573→            </p>
+   574→          </div>
+   575→          <motion.div
+   576→            initial={{ opacity: 0, y: 26 }}
+   577→            whileInView={{ opacity: 1, y: 0 }}
+   578→            viewport={{ once: true, margin: '-60px' }}
+   579→            transition={{ duration: 0.55, ease: 'easeOut' }}
+   580→            className={`mt-8 rounded-[28px] bg-[#FFFEFB] p-5 sm:p-6 ${CLAY_BASE}`}
+   581→          >
+   582→            <div className="flex items-center justify-between gap-3">
+   583→              <div>
+   584→                <h3 className="text-sm font-bold text-[#4A382C]">Kebiasaan hari ini</h3>
+   585→                <p className="text-xs text-[#8A7361]">Selasa, 10 Juni</p>
+   586→              </div>
+   587→              <span
+   588→                className={`rounded-full bg-[#FFEFBF] px-3 py-1 text-xs font-bold tabular-nums text-[#A87B1E] ${CLAY_BUTTER}`}
+   589→              >
+   590→                {doneCount}/{habits.length} selesai
+   591→              </span>
+   592→            </div>
+   593→            <div className="mt-4 space-y-2.5">
+   594→              {habits.map((h) => (
+   595→                <div
+   596→                  key={h.id}
+   597→                  className={`flex items-center justify-between gap-3 rounded-[20px] px-3.5 py-2 transition-colors duration-200 ${
+   598→                    h.done ? 'bg-[#D7F0DF]/60' : 'bg-[#F7EBDA]/70'
+   599→                  }`}
+   600→                >
+   601→                  <span
+   602→                    className={`truncate text-sm font-semibold ${
+   603→                      h.done ? 'text-[#8A7361] line-through' : 'text-[#4A382C]'
+   604→                    }`}
+   605→                  >
+   606→                    {h.name}
+   607→                  </span>
+   608→                  <ClayToggle
+   609→                    on={h.done}
+   610→                    onToggle={() => toggleHabit(h.id)}
+   611→                    label={`Tandai "${h.name}" selesai`}
+   612→                  />
+   613→                </div>
+   614→              ))}
+   615→            </div>
+   616→            <p className="mt-4 text-center text-[11px] text-[#B99E86]">
+   617→              Selesaikan semuanya — ada kejutan kecil menunggu.
+   618→            </p>
+   619→          </motion.div>
+   620→        </section>
+   621→
+   622→        {/* ===== Batang konsistensi mingguan ===== */}
+   623→        <section className="mx-auto mt-16 w-full max-w-lg px-4 sm:mt-20">
+   624→          <div className="text-center">
+   625→            <h2 className="text-2xl font-bold tracking-tight text-[#4A382C] sm:text-3xl">
+   626→              Konsistensi mingguan
+   627→            </h2>
+   628→            <p className="mt-2 text-sm leading-relaxed text-[#8A7361]">
+   629→              Tujuh hari terakhir, membulat dan mudah dibaca.
+   630→            </p>
+   631→          </div>
+   632→          <motion.div
+   633→            initial={{ opacity: 0, y: 26 }}
+   634→            whileInView={{ opacity: 1, y: 0 }}
+   635→            viewport={{ once: true, margin: '-60px' }}
+   636→            transition={{ duration: 0.55, ease: 'easeOut' }}
+   637→            className={`mt-8 rounded-[28px] bg-[#FFFEFB] p-5 sm:p-7 ${CLAY_BASE}`}
+   638→          >
+   639→            <div className="flex items-center justify-between gap-3">
+   640→              <div className="flex items-center gap-2.5">
+   641→                <span
+   642→                  className={`flex size-10 items-center justify-center rounded-full bg-[#FFDFC7] ${CLAY_PEACH}`}
+   643→                >
+   644→                  <CalendarCheck className="size-4 text-[#E8603A]" aria-hidden />
+   645→                </span>
+   646→                <div>
+   647→                  <p className="text-sm font-bold text-[#4A382C]">Minggu ini</p>
+   648→                  <p className="text-[11px] text-[#8A7361]">9–15 Juni</p>
+   649→                </div>
+   650→              </div>
+   651→              <span
+   652→                className={`rounded-full bg-[#D7F0DF] px-3 py-1.5 text-xs font-bold text-[#3E7D57] ${CLAY_MINT}`}
+   653→              >
+   654→                Rata-rata <Counter to={67} />%
+   655→              </span>
+   656→            </div>
+   657→            <div className="mt-6">
+   658→              <div
+   659→                ref={barsRef}
+   660→                role="img"
+   661→                aria-label="Grafik batang konsistensi mingguan dengan rata-rata 67 persen"
+   662→                className="flex h-40 items-end gap-2 sm:gap-3"
+   663→              >
+   664→                {WEEK.map((d, i) => (
+   665→                  <div
+   666→                    key={d.label}
+   667→                    className={`flex-1 rounded-full ${i % 2 === 0 ? BAR_CORAL : BAR_PEACH}`}
+   668→                    style={{ height: `${d.h}%`, transform: 'scaleY(0)', transformOrigin: 'bottom' }}
+   669→                  />
+   670→                ))}
+   671→              </div>
+   672→              <div className="mt-2.5 flex gap-2 sm:gap-3">
+   673→                {WEEK.map((d) => (
+   674→                  <span
+   675→                    key={d.label}
+   676→                    className="flex-1 text-center text-[10px] font-semibold text-[#8A7361]"
+   677→                  >
+   678→                    {d.label}
+   679→                  </span>
+   680→                ))}
+   681→              </div>
+   682→            </div>
+   683→          </motion.div>
+   684→        </section>
+   685→      </main>
+   686→
+   687→      {/* ===== Elemen 3: Mega footer brand ===== */}
+   688→      <footer id="clay-cerita" className="relative mt-16 sm:mt-24">
+   689→        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4">
+   690→          {FOOTER_LINKS.map((label) => (
+   691→            <motion.a
+   692→              key={label}
+   693→              href="#"
+   694→              onClick={(e) => {
+   695→                e.preventDefault()
+   696→                toast.info('Ini contoh gaya Claymorphism', {
+   697→                  description: `Di produksi, tautan "${label}" membuka halamannya.`,
+   698→                })
+   699→              }}
+   700→              whileHover={{ scale: 1.06 }}
+   701→              whileTap={{ scale: 0.94 }}
+   702→              transition={SQUISH}
+   703→              className={`rounded-full px-2 py-1.5 text-sm font-medium text-[#8A7361] transition-colors hover:text-[#4A382C] ${FOCUS_VISIBLE}`}
+   704→            >
+   705→              {label}
+   706→            </motion.a>
+   707→          ))}
+   708→        </div>
+   709→        <p className="mt-3 px-4 text-center text-xs text-[#B99E86]">
+   710→          Kebiasaan baik, dibentuk pelan-pelan.
+   711→        </p>
+   712→        <div className="mt-3 overflow-hidden px-4 py-8 sm:py-10">
+   713→          <div
+   714→            ref={wordRef}
+   715→            aria-hidden
+   716→            className="select-none bg-gradient-to-b from-[#FFB98A] to-[#FF7A50] bg-clip-text text-center text-[24vw] font-black lowercase leading-[0.82] tracking-tighter text-transparent opacity-0 drop-shadow-[0_14px_18px_rgba(214,110,60,0.25)] sm:text-[20vw]"
+   717→          >
+   718→            rutina
+   719→          </div>
+   720→        </div>
+   721→        <p className="pb-6 pt-1 text-center text-[11px] text-[#B99E86]">
+   722→          © 2025 rutina — dibentuk dengan sabar.
+   723→        </p>
+   724→      </footer>
+   725→    </section>
+   726→  )
+   727→}
+   728→

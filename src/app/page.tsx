@@ -82,26 +82,26 @@ export default function Home() {
   const Current = STYLES[active].Component
 
   return (
-    <main className="relative min-h-screen bg-zinc-100">
+    <main className="relative min-h-screen bg-[#F5F3EE]">
       {/* Switcher gaya */}
       <nav
         aria-label="Pilih gaya landing page"
         className="fixed inset-x-0 top-3 z-50 flex justify-center overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-zinc-200/80 bg-white/90 p-1 shadow-lg shadow-zinc-900/5 backdrop-blur">
+        <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-[#E9E5DC] bg-white/90 p-1 shadow-lg shadow-[#4A3B32]/10 backdrop-blur">
           {STYLES.map((s, i) => (
             <button
               key={s.id}
               type="button"
               onClick={() => goTo(i)}
               className={`relative flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
-                i === active ? 'text-white' : 'text-zinc-500 hover:text-zinc-900'
+                i === active ? 'text-white' : 'text-[#8A7D72] hover:text-[#231F1E]'
               }`}
             >
               {i === active && (
                 <motion.span
                   layoutId="style-pill"
-                  className="absolute inset-0 rounded-full bg-zinc-900"
+                  className="absolute inset-0 rounded-full bg-[#749B58]"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}

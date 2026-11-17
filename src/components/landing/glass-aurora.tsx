@@ -77,19 +77,19 @@ const INITIAL_HABITS: Habit[] = [
 const FEATURES = [
   {
     icon: Bell,
-    color: 'text-emerald-300',
+    color: 'text-[#A3C48E]',
     title: 'Pengingat pintar',
     desc: 'Notifikasi lembut di jam yang paling sering kamu berhasil — bukan yang paling berisik.',
   },
   {
     icon: Flame,
-    color: 'text-amber-300',
+    color: 'text-[#A3C48E]',
     title: 'Streak & reward',
     desc: 'Rantai hari tak putus yang bikin ogah bolong. Kumpulkan apinya, jaga tetap menyala.',
   },
   {
     icon: BarChart3,
-    color: 'text-rose-300',
+    color: 'text-[#A3C48E]',
     title: 'Statistik mendalam',
     desc: 'Pola mingguan, jam terbaik, dan tren konsistensi — semuanya jernih sekali lihat.',
   },
@@ -148,23 +148,23 @@ export default function GlassAurora() {
   }
 
   return (
-    <section className="relative flex min-h-screen w-full flex-col overflow-hidden bg-stone-950 pb-0 pt-16 text-stone-100">
+    <section className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#231F1E] pb-0 pt-16 text-[#F5F3EE]">
       {/* ===================== LATAR AURORA ===================== */}
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -left-40 -top-40 size-[34rem] rounded-full bg-emerald-500/25 blur-[110px] will-change-transform"
+        className="pointer-events-none absolute -left-40 -top-40 size-[34rem] rounded-full bg-[#749B58]/30 blur-[110px] will-change-transform"
         animate={{ x: [0, 40, -25, 0], y: [0, -35, 20, 0], scale: [1, 1.12, 0.96, 1] }}
         transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -bottom-48 -right-32 size-[30rem] rounded-full bg-rose-500/20 blur-[110px] will-change-transform"
+        className="pointer-events-none absolute -bottom-48 -right-32 size-[30rem] rounded-full bg-[#E4EFE0]/15 blur-[110px] will-change-transform"
         animate={{ x: [0, -35, 25, 0], y: [0, 30, -18, 0], scale: [1, 0.95, 1.1, 1] }}
         transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -right-48 top-1/3 size-[36rem] rounded-full bg-amber-400/15 blur-[120px] will-change-transform"
+        className="pointer-events-none absolute -right-48 top-1/3 size-[36rem] rounded-full bg-[#F5F3EE]/10 blur-[120px] will-change-transform"
         animate={{ x: [0, 30, -40, 0], y: [0, -24, 28, 0], scale: [1, 1.08, 0.94, 1] }}
         transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -184,7 +184,7 @@ export default function GlassAurora() {
             className="flex items-center gap-2.5"
             aria-label="rutina — kembali ke atas"
           >
-            <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-amber-300">
+            <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[#A3C48E] to-[#E4EFE0]">
               <Flame className="size-4 text-white" />
             </span>
             <span className="text-base font-semibold tracking-tight">rutina</span>
@@ -195,7 +195,7 @@ export default function GlassAurora() {
                 key={l}
                 href="#"
                 onClick={(e) => e.preventDefault()}
-                className="text-sm text-white/70 transition-colors hover:text-white"
+                className="text-sm text-[#F5F3EE]/80 transition-colors hover:text-white"
               >
                 {l}
               </a>
@@ -204,7 +204,7 @@ export default function GlassAurora() {
           <button
             type="button"
             onClick={ctaToast}
-            className="inline-flex h-9 items-center rounded-full bg-white px-4 text-sm font-semibold text-stone-950 transition-colors hover:bg-white/90"
+            className="inline-flex h-9 items-center rounded-full bg-[#749B58] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#5E7F47]"
           >
             Mulai gratis
           </button>
@@ -216,9 +216,9 @@ export default function GlassAurora() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45 }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs text-white/70 backdrop-blur-xl"
+            className="inline-flex items-center gap-2 rounded-full border border-[#E4EFE0]/30 bg-white/10 px-3.5 py-1.5 text-xs text-[#F5F3EE]/85 backdrop-blur-xl"
           >
-            <Sparkles className="size-3.5 text-amber-300" /> v2.0 — kini dengan aurora
+            <Sparkles className="size-3.5 text-[#A3C48E]" /> v2.0 — kini dengan aurora
           </motion.span>
           <motion.h1
             initial={{ opacity: 0, y: 22 }}
@@ -227,7 +227,7 @@ export default function GlassAurora() {
             className="mt-5 text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl"
           >
             Lacak kebiasaanmu,
-            <span className="block bg-gradient-to-r from-emerald-300 to-amber-200 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-[#A3C48E] to-[#E4EFE0] bg-clip-text text-transparent">
               jernih seperti kaca.
             </span>
           </motion.h1>
@@ -249,14 +249,14 @@ export default function GlassAurora() {
             <button
               type="button"
               onClick={ctaToast}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-stone-950 transition-colors hover:bg-white/90 sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#749B58] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#5E7F47] sm:w-auto"
             >
               Mulai gratis <ArrowRight className="size-4" />
             </button>
             <button
               type="button"
               onClick={() => goToStyle(2)}
-              className="inline-flex h-12 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-xl transition-colors hover:border-white/35 hover:bg-white/15 sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center rounded-full border border-[#E4EFE0]/35 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-xl transition-colors hover:border-[#E4EFE0]/60 hover:bg-white/15 sm:w-auto"
             >
               Lihat demo
             </button>
@@ -323,7 +323,7 @@ export default function GlassAurora() {
                   key={`${range}-${i}`}
                   data-bar
                   title={barTitle(range, b.label, b.h)}
-                  className="min-h-2 flex-1 cursor-pointer rounded-full bg-gradient-to-t from-emerald-400/80 to-amber-300/80 transition-[filter] hover:brightness-125"
+                  className="min-h-2 flex-1 cursor-pointer rounded-full bg-gradient-to-t from-[#749B58]/80 to-[#A3C48E]/80 transition-[filter] hover:brightness-125"
                   style={{ height: `${b.h}%`, transform: 'scaleY(0.2)', transformOrigin: 'bottom' }}
                 />
               ))}
@@ -342,7 +342,7 @@ export default function GlassAurora() {
                   initial={{ width: 0 }}
                   animate={{ width: `${(doneCount / 3) * 100}%` }}
                   transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-amber-300"
+                  className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C48E]"
                 />
               </div>
             </div>
@@ -366,7 +366,7 @@ export default function GlassAurora() {
                   onClick={() => toggle(h.id)}
                   className={`flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors ${
                     h.done
-                      ? 'border-emerald-300 bg-emerald-400'
+                      ? 'border-[#A3C48E] bg-[#749B58]'
                       : 'border-white/25 bg-white/10 hover:border-white/40'
                   }`}
                 >
@@ -380,7 +380,7 @@ export default function GlassAurora() {
                         transition={{ type: 'spring', stiffness: 500, damping: 20 }}
                         className="flex"
                       >
-                        <Check className="size-4 text-stone-950" strokeWidth={3.5} />
+                        <Check className="size-4 text-white" strokeWidth={3.5} />
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -446,7 +446,7 @@ export default function GlassAurora() {
             <button
               type="button"
               onClick={ctaToast}
-              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-stone-950 transition-colors hover:bg-white/90"
+              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#749B58] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#5E7F47]"
             >
               Mulai gratis <ArrowRight className="size-4" />
             </button>

@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { goToStyle } from './bits'
 
 const AVATARS = ['AP', 'BD', 'CR', 'DI']
-const AVATAR_BG = ['bg-amber-300', 'bg-rose-300', 'bg-emerald-300', 'bg-orange-300']
+const AVATAR_BG = ['bg-[#E4EFE0]', 'bg-[#EFE9DA]', 'bg-[#DCE9D4]', 'bg-[#E8E0D5]']
 
 const PHONE_HABITS = [
   { name: 'Meditasi 10 menit', time: '06.30', done: true },
@@ -87,14 +87,14 @@ export default function SplitScreen() {
   return (
     <section className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
       {/* ============ Panel kiri (gelap) ============ */}
-      <div className="relative flex flex-col justify-center overflow-hidden bg-zinc-950 px-6 pb-16 pt-28 text-zinc-100 sm:px-10 lg:h-screen lg:py-0">
+      <div className="relative flex flex-col justify-center overflow-hidden bg-[#231F1E] px-6 pb-16 pt-28 text-[#F5F3EE] sm:px-10 lg:h-screen lg:py-0">
         <div
           aria-hidden
-          className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-orange-500/15 blur-3xl"
+          className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[#749B58]/15 blur-3xl"
         />
         <div
           aria-hidden
-          className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-amber-400/10 blur-3xl"
+          className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-[#E4EFE0]/10 blur-3xl"
         />
 
         <div className="relative mx-auto w-full max-w-lg">
@@ -104,13 +104,13 @@ export default function SplitScreen() {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-2.5"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-400 shadow-lg shadow-orange-500/25">
-              <CheckCheck className="h-5 w-5 text-zinc-950" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#749B58] to-[#A3C48E] shadow-lg shadow-[#749B58]/25">
+              <CheckCheck className="h-5 w-5 text-white" />
             </div>
             <span className="text-lg font-semibold tracking-tight">rutina</span>
             <Badge
               variant="secondary"
-              className="border border-zinc-700 bg-zinc-900 text-zinc-300"
+              className="border border-[#4A3B32] bg-[#2B2523] text-[#C9BFB2]"
             >
               v2.0
             </Badge>
@@ -120,9 +120,9 @@ export default function SplitScreen() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.12, duration: 0.5 }}
-            className="mt-10 inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs text-zinc-400"
+            className="mt-10 inline-flex items-center gap-2 rounded-full border border-[#4A3B32] bg-[#4A3B32]/40 px-3 py-1.5 text-xs text-[#A99C90]"
           >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#A3C48E]" />
             Pelacak kebiasaan — sekarang dengan mode fokus
           </motion.div>
 
@@ -130,7 +130,7 @@ export default function SplitScreen() {
             <Word delay={0.2}>Kebiasaan kecil,</Word>
             <Word
               delay={0.32}
-              className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent"
+              className="bg-gradient-to-r from-[#A3C48E] to-[#749B58] bg-clip-text text-transparent"
             >
               dampak besar.
             </Word>
@@ -140,7 +140,7 @@ export default function SplitScreen() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.5 }}
-            className="mt-5 max-w-md text-base leading-relaxed text-zinc-400 sm:text-lg"
+            className="mt-5 max-w-md text-base leading-relaxed text-[#A99C90] sm:text-lg"
           >
             Rutina mengubah niat harian menjadi sistem: pengingat tepat waktu,
             streak yang memotivasi, dan progres yang benar-benar terlihat.
@@ -159,7 +159,7 @@ export default function SplitScreen() {
                   description: 'Di produksi, tombol ini membuka form pendaftaran.',
                 })
               }
-              className="h-12 rounded-xl bg-orange-500 px-6 text-base font-semibold text-zinc-950 shadow-lg shadow-orange-500/25 hover:bg-orange-400"
+              className="h-12 rounded-xl bg-[#749B58] px-6 text-base font-semibold text-white shadow-lg shadow-[#749B58]/25 hover:bg-[#5E7F47]"
             >
               Mulai gratis <ArrowRight className="h-4 w-4" />
             </Button>
@@ -167,7 +167,7 @@ export default function SplitScreen() {
               size="lg"
               variant="outline"
               onClick={() => goToStyle(2)}
-              className="h-12 rounded-xl border-zinc-700 bg-transparent px-6 text-base text-zinc-200 hover:bg-zinc-800 hover:text-white"
+              className="h-12 rounded-xl border-[#4A3B32] bg-transparent px-6 text-base text-[#F5F3EE] hover:bg-[#4A3B32]/50 hover:text-white"
             >
               <Play className="h-4 w-4" /> Lihat demo 2 menit
             </Button>
@@ -183,19 +183,19 @@ export default function SplitScreen() {
               {AVATARS.map((a, i) => (
                 <span
                   key={a}
-                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-zinc-950 text-[10px] font-bold text-zinc-950 ${AVATAR_BG[i]}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#231F1E] text-[10px] font-bold text-[#4A3B32] ${AVATAR_BG[i]}`}
                 >
                   {a}
                 </span>
               ))}
             </div>
             <div>
-              <div className="flex text-amber-400">
+              <div className="flex text-[#A3C48E]">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="h-3.5 w-3.5 fill-current" />
                 ))}
               </div>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-[#A99C90]">
                 4.9/5 · dipakai 12.400+ orang di Indonesia
               </p>
             </div>
@@ -206,19 +206,19 @@ export default function SplitScreen() {
       {/* ============ Panel kanan (terang) ============ */}
       <div
         ref={panelRef}
-        className="relative flex items-center justify-center overflow-hidden bg-stone-100 px-6 py-16 sm:py-20 lg:h-screen"
+        className="relative flex items-center justify-center overflow-hidden bg-[#F5F3EE] px-6 py-16 sm:py-20 lg:h-screen"
       >
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            backgroundImage: 'radial-gradient(#d6d3d1 1.2px, transparent 1.2px)',
+            backgroundImage: 'radial-gradient(#E9E5DC 1.2px, transparent 1.2px)',
             backgroundSize: '22px 22px',
           }}
         />
         <div
           aria-hidden
-          className="absolute h-[30rem] w-[30rem] rounded-full bg-orange-200/60 blur-3xl"
+          className="absolute h-[30rem] w-[30rem] rounded-full bg-[#E4EFE0]/70 blur-3xl"
         />
 
         <div className="relative">
@@ -229,33 +229,33 @@ export default function SplitScreen() {
             transition={{ delay: 0.25, type: 'spring', stiffness: 120, damping: 16 }}
             className="relative z-10"
           >
-            <div className="w-[240px] rounded-[2.4rem] border-[7px] border-zinc-900 bg-white shadow-2xl shadow-zinc-900/20 sm:w-[264px]">
-              <div className="relative overflow-hidden rounded-[1.8rem] bg-stone-50">
-                <div className="absolute left-1/2 top-2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-zinc-900" />
+            <div className="w-[240px] rounded-[2.4rem] border-[7px] border-[#231F1E] bg-white shadow-2xl shadow-[#4A3B32]/20 sm:w-[264px]">
+              <div className="relative overflow-hidden rounded-[1.8rem] bg-[#F5F3EE]">
+                <div className="absolute left-1/2 top-2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-[#231F1E]" />
                 <div className="space-y-2.5 p-4 pt-9">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-400">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-[#8A7D72]">
                         Selasa, 4 Juni
                       </p>
-                      <h3 className="text-base font-semibold text-zinc-900">Hari ini</h3>
+                      <h3 className="text-base font-semibold text-[#231F1E]">Hari ini</h3>
                     </div>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
-                      <Flame className="h-4 w-4 text-orange-600" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E4EFE0]">
+                      <Flame className="h-4 w-4 text-[#4A3B32]" />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-stone-200/70 bg-white p-3 shadow-sm">
+                  <div className="rounded-2xl border border-[#E9E5DC] bg-white p-3 shadow-sm">
                     <div className="flex justify-between text-[10px] font-medium">
-                      <span className="text-stone-500">Progres hari ini</span>
-                      <span className="font-semibold text-orange-600">2 dari 3</span>
+                      <span className="text-[#8A7D72]">Progres hari ini</span>
+                      <span className="font-semibold text-[#5E7F47]">2 dari 3</span>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200">
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E9E5DC]">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: '66%' }}
                         transition={{ delay: 0.9, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                        className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
+                        className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C48E]"
                       />
                     </div>
                   </div>
@@ -266,34 +266,34 @@ export default function SplitScreen() {
                       initial={{ opacity: 0, x: 14 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 + i * 0.12 }}
-                      className="flex items-center gap-2.5 rounded-2xl border border-stone-200/70 bg-white p-2.5"
+                      className="flex items-center gap-2.5 rounded-2xl border border-[#E9E5DC] bg-white p-2.5"
                     >
                       <span
                         className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                          h.done ? 'bg-emerald-500 text-white' : 'border-2 border-stone-300'
+                          h.done ? 'bg-[#749B58] text-white' : 'border-2 border-[#D6CFC2]'
                         }`}
                       >
                         {h.done && <Check className="h-3 w-3" />}
                       </span>
                       <span
                         className={`flex-1 text-xs font-medium ${
-                          h.done ? 'text-stone-400 line-through' : 'text-zinc-800'
+                          h.done ? 'text-[#8A7D72] line-through' : 'text-[#231F1E]'
                         }`}
                       >
                         {h.name}
                       </span>
-                      <span className="text-[10px] text-stone-400">{h.time}</span>
+                      <span className="text-[10px] text-[#8A7D72]">{h.time}</span>
                     </motion.div>
                   ))}
 
-                  <div className="flex items-center justify-between rounded-2xl bg-zinc-950 p-3 text-white">
+                  <div className="flex items-center justify-between rounded-2xl bg-[#231F1E] p-3 text-white">
                     <div>
-                      <p className="text-[10px] text-zinc-400">Streak saat ini</p>
+                      <p className="text-[10px] text-[#A99C90]">Streak saat ini</p>
                       <p className="text-lg font-semibold leading-tight">
-                        12 <span className="text-[10px] font-normal text-zinc-400">hari</span>
+                        12 <span className="text-[10px] font-normal text-[#A99C90]">hari</span>
                       </p>
                     </div>
-                    <Flame className="h-5 w-5 animate-pulse text-orange-400" />
+                    <Flame className="h-5 w-5 animate-pulse text-[#A3C48E]" />
                   </div>
                 </div>
               </div>
@@ -302,14 +302,14 @@ export default function SplitScreen() {
 
           {/* Kartu melayang: streak */}
           <Float className="-left-6 -top-14 sm:-left-36 sm:top-6 lg:-left-16 lg:-top-12 xl:-left-36 xl:top-6" delay={0.7}>
-            <div className="w-36 rounded-2xl border border-stone-200/80 bg-white/95 p-3 shadow-xl shadow-zinc-900/10 backdrop-blur sm:w-40">
+            <div className="w-36 rounded-2xl border border-[#E9E5DC] bg-white/95 p-3 shadow-xl shadow-[#4A3B32]/10 backdrop-blur sm:w-40">
               <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100">
-                  <Flame className="h-4 w-4 text-orange-600" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#E4EFE0]">
+                  <Flame className="h-4 w-4 text-[#4A3B32]" />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-zinc-900">30 hari</p>
-                  <p className="text-[10px] text-stone-500">streak terpanjang</p>
+                  <p className="text-sm font-semibold text-[#231F1E]">30 hari</p>
+                  <p className="text-[10px] text-[#8A7D72]">streak terpanjang</p>
                 </div>
               </div>
             </div>
@@ -317,25 +317,25 @@ export default function SplitScreen() {
 
           {/* Kartu melayang: fokus */}
           <Float className="-bottom-16 -right-5 sm:-bottom-8 sm:-right-36 lg:-bottom-14 lg:-right-16 xl:-bottom-8 xl:-right-36" delay={0.85}>
-            <div className="w-40 rounded-2xl border border-stone-200/80 bg-white/95 p-3 shadow-xl shadow-zinc-900/10 backdrop-blur">
+            <div className="w-40 rounded-2xl border border-[#E9E5DC] bg-white/95 p-3 shadow-xl shadow-[#4A3B32]/10 backdrop-blur">
               <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100">
-                  <Timer className="h-4 w-4 text-emerald-600" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#E4EFE0]">
+                  <Timer className="h-4 w-4 text-[#4A3B32]" />
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold tabular-nums text-zinc-900">25:00</p>
-                  <p className="flex items-center gap-1 text-[10px] text-stone-500">
-                    <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-500" />
+                  <p className="text-sm font-semibold tabular-nums text-[#231F1E]">25:00</p>
+                  <p className="flex items-center gap-1 text-[10px] text-[#8A7D72]">
+                    <span className="h-1 w-1 animate-pulse rounded-full bg-[#749B58]" />
                     sesi fokus berjalan
                   </p>
                 </div>
               </div>
-              <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-stone-200">
+              <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#E9E5DC]">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: '62%' }}
                   transition={{ delay: 1.3, duration: 1 }}
-                  className="h-full rounded-full bg-emerald-500"
+                  className="h-full rounded-full bg-[#749B58]"
                 />
               </div>
             </div>
@@ -343,9 +343,9 @@ export default function SplitScreen() {
 
           {/* Badge konsistensi */}
           <Float className="-top-11 -right-3 hidden sm:-right-10 sm:flex" delay={1}>
-            <div className="flex items-center gap-2 rounded-full border border-stone-200/80 bg-white/95 px-3.5 py-2 shadow-lg shadow-zinc-900/10 backdrop-blur">
-              <TrendingUp className="h-3.5 w-3.5 text-orange-600" />
-              <span className="text-xs font-semibold text-zinc-900">92% konsisten</span>
+            <div className="flex items-center gap-2 rounded-full border border-[#E9E5DC] bg-white/95 px-3.5 py-2 shadow-lg shadow-[#4A3B32]/10 backdrop-blur">
+              <TrendingUp className="h-3.5 w-3.5 text-[#5E7F47]" />
+              <span className="text-xs font-semibold text-[#231F1E]">92% konsisten</span>
             </div>
           </Float>
         </div>
@@ -360,7 +360,7 @@ export default function SplitScreen() {
           transition={{ delay: 1.4 }}
           whileHover={{ scale: 1.03 }}
           whileDrag={{ scale: 1.06 }}
-          className="absolute bottom-6 left-6 z-30 flex h-11 cursor-grab touch-none items-center gap-2 rounded-full border border-stone-300 bg-white/90 px-4 text-xs font-medium text-zinc-600 shadow-lg backdrop-blur active:cursor-grabbing"
+          className="absolute bottom-6 left-6 z-30 flex h-11 cursor-grab touch-none items-center gap-2 rounded-full border border-[#D6CFC2] bg-white/90 px-4 text-xs font-medium text-[#4A3B32] shadow-lg backdrop-blur active:cursor-grabbing"
         >
           <Move className="h-3.5 w-3.5" /> Geser aku
         </motion.div>
