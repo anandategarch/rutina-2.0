@@ -228,6 +228,27 @@
   }
 }
 
+/* Sapuan kilau pada tepi kartu — adaptasi magicui shine-border
+   (github.com/magicuidesign/magicui, 23.3k ★). */
+@keyframes rutina-shine {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 200%;
+  }
+}
+
+/* Gulir horizontal tanpa henti — adaptasi magicui marquee. */
+@keyframes rutina-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--marquee-gap, 0px)));
+  }
+}
+
 /* Pop elastis — umpan balik saat pilihan baru aktif (mood, filter). */
 @keyframes rutina-pop {
   0% {
@@ -269,6 +290,16 @@
 
 @utility animate-wiggle {
   animation: rutina-wiggle 0.7s ease-in-out;
+}
+
+/* Kilau menyapu tepi elemen (dipasangkan dgn mask di komponen ShineBorder). */
+@utility animate-shine {
+  animation: rutina-shine var(--shine-duration, 8s) linear infinite;
+}
+
+/* Duplikat konten bergulir — penggunaan: animate-marquee [animation-play-state:paused] saat hover. */
+@utility animate-marquee {
+  animation: rutina-marquee var(--marquee-duration, 30s) linear infinite;
 }
 
 /* Kilau shimmer pada teks XP */

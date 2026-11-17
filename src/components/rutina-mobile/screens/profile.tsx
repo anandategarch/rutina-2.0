@@ -50,6 +50,7 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 
 import { Counter } from '../counter'
+import { BlurFade, Marquee, SplitText } from '../motion-kit'
 import { playfair } from '../serif'
 import {
   computeLevel,
@@ -71,6 +72,18 @@ const FAQ_ITEMS = [
     q: 'Apakah data saya tersimpan otomatis?',
     a: 'Ya. Rutina menyimpan catatan dan progres secara lokal di perangkatmu — tanpa perlu akun, tanpa internet.',
   },
+]
+
+/* Pita kata kunci — isi Marquee (pola magicui) di layar profil. */
+const FOCUS_WORDS = [
+  'Konsisten',
+  'Fokus',
+  'Hemat',
+  'Bergerak',
+  'Tenang',
+  'Baca Buku',
+  'Tidur Cukup',
+  'Syukur',
 ]
 
 export default function ProfileScreen() {
@@ -124,7 +137,8 @@ export default function ProfileScreen() {
         <h1
           className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-[#FAF9F6]`}
         >
-          Profil<span className="text-[#231F1E]/40">.</span>
+          <SplitText text="Profil" inView />
+          <span className="text-[#231F1E]/40">.</span>
         </h1>
       </header>
 
@@ -213,6 +227,24 @@ export default function ProfileScreen() {
           </motion.div>
         ))}
       </div>
+
+      {/* Pita kata kunci bergulir — pola Marquee magicui (23.3k ★),
+          tepi memudar agar terasa menyatu dengan kanvas. */}
+      <BlurFade delay={0.18} className="mt-4">
+        <div className="[mask-image:linear-gradient(to_right,transparent,black_14%,black_86%,transparent)]">
+          <Marquee duration={26} gap="0.75rem">
+            {FOCUS_WORDS.map((w) => (
+              <span
+                key={w}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#FAF9F6]/20 bg-[#FAF9F6]/10 px-3.5 py-1.5 text-[11px] font-bold text-[#FAF9F6]/85"
+              >
+                <Leaf className="h-3 w-3 text-[#D9B98C]" aria-hidden="true" />
+                {w}
+              </span>
+            ))}
+          </Marquee>
+        </div>
+      </BlurFade>
 
       {/* Pemisah halus di atas kanvas terracotta (shadcn Separator) */}
       <Separator className="mt-5 bg-[#FAF9F6]/25" />

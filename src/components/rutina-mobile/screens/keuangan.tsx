@@ -36,6 +36,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
+import { BlurFade, ShineBorder } from '../motion-kit'
 import {
   BUDGETS,
   useRutina,
@@ -60,14 +61,6 @@ import {
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
-const stagger: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
-}
-const item: Variants = {
-  hidden: { opacity: 0, y: 22 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
-}
 const rowStagger: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.06 } },
@@ -173,10 +166,10 @@ function TxRow({ tx }: { tx: Tx }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 16, scale: 0.94 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -32, scale: 0.97, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.45, ease: EASE }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       className="overflow-hidden rounded-[16px] bg-[#FAF9F6] text-[#231F1E]"
     >
       <motion.button
@@ -391,14 +384,11 @@ export default function KeuanganScreen() {
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#FAF9F6]">
-      <motion.div
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-        className="flex flex-col gap-5"
-      >
+      {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
+          masuk viewport — pengganti staggervariants statis. */}
+      <div className="flex flex-col gap-5">
         {/* ===== Kepala: saldo + tombol tambah ===== */}
-        <motion.section variants={item} className="flex items-start justify-between gap-4">
+        <BlurFade className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#FAF9F6]/60">
               Saldo Tersedia
@@ -425,10 +415,10 @@ export default function KeuanganScreen() {
           >
             <Plus className="h-5 w-5" strokeWidth={2.6} />
           </motion.button>
-        </motion.section>
+        </BlurFade>
 
         {/* ===== Chip totals per periode ===== */}
-        <motion.section variants={item} className="grid grid-cols-2 gap-2.5">
+        <BlurFade delay={0.06} className="grid grid-cols-2 gap-2.5">
           <div className="rounded-2xl bg-[#A3C489]/15 px-3.5 py-3">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/70">
               <ArrowUpRight className="h-3.5 w-3.5 text-[#A3C489]" />
@@ -447,11 +437,11 @@ export default function KeuanganScreen() {
               −{formatIDRShort(totals.keluar)}
             </p>
           </div>
-        </motion.section>
+        </BlurFade>
 
         {/* ===== Arus kas: kontrol periode + grafik ===== */}
-        <motion.section
-          variants={item}
+        <BlurFade
+          delay={0.1}
           className="rounded-[24px] border border-[#FAF9F6]/12 bg-[#FAF9F6]/[0.07] p-4"
         >
           <div className="flex items-baseline justify-between gap-3">
@@ -549,13 +539,14 @@ export default function KeuanganScreen() {
           <div className="mx-auto mt-2 w-full max-w-[560px]">
             <FinChart points={series} active={active} onPick={setActive} />
           </div>
-        </motion.section>
+        </BlurFade>
 
-        {/* ===== Anggaran ===== */}
-        <motion.section
-          variants={item}
-          className="rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-[0_18px_44px_rgba(35,31,30,0.4)]"
+        {/* ===== Anggaran — kartu premium dengan ShineBorder (magicui) ===== */}
+        <BlurFade
+          delay={0.06}
+          className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-[0_18px_44px_rgba(35,31,30,0.4)]"
         >
+          <ShineBorder borderWidth={1.5} duration={7} shineColor={['#D9B98C', '#A3C489']} />
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
               Anggaran Juni
@@ -581,8 +572,13 @@ export default function KeuanganScreen() {
             </div>
           </div>
 
-          {/* Baris per kategori */}
-          <motion.div variants={rowStagger} className="mt-4 space-y-4">
+          {/* Baris per kategori — stagger mandiri (varian diorkestrasi lokal) */}
+          <motion.div
+            variants={rowStagger}
+            initial="hidden"
+            animate="show"
+            className="mt-4 space-y-4"
+          >
             {BUDGETS.map((b) => {
               const used = spent[b.cat] ?? 0
               const pct = Math.round((used / b.limit) * 100)
@@ -632,10 +628,10 @@ export default function KeuanganScreen() {
               )
             })}
           </motion.div>
-        </motion.section>
+        </BlurFade>
 
         {/* ===== Tujuan tabungan ===== */}
-        <motion.section variants={item}>
+        <BlurFade delay={0.06}>
           <div className="flex items-center justify-between gap-3 px-0.5">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#E9D5B8]">
               Tujuan Tabungan
@@ -669,10 +665,10 @@ export default function KeuanganScreen() {
               </span>
             </button>
           </div>
-        </motion.section>
+        </BlurFade>
 
         {/* ===== Transaksi ===== */}
-        <motion.section variants={item}>
+        <BlurFade delay={0.06}>
           <div className="flex items-center justify-between gap-3 px-0.5">
             <div className="flex items-center gap-2">
               <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#E9D5B8]">
@@ -716,8 +712,8 @@ export default function KeuanganScreen() {
               )}
             </AnimatePresence>
           </div>
-        </motion.section>
-      </motion.div>
+        </BlurFade>
+      </div>
     </div>
   )
 }
