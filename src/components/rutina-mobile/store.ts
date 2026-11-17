@@ -11,6 +11,9 @@ export interface Task {
   cat?: string
   streak?: number
   done: boolean
+  desc: string
+  /** Riwayat 14 hari terakhir untuk detail tugas. */
+  history: boolean[]
 }
 
 export interface Note {
@@ -48,13 +51,59 @@ export const QUOTE_TEXT =
   'Kebiasaan kecil yang konsisten akan mengalahkan motivasi besar yang sesaat.'
 export const QUOTE_AUTHOR = 'James Clear, Atomic Habits'
 
+/** Riwayat 14 hari deterministik per tugas (aman untuk SSR). */
+const hist = (seed: number): boolean[] =>
+  Array.from({ length: 14 }, (_, j) => (seed * 7 + j * 3) % 4 !== 0)
+
 const SEED_TASKS: Task[] = [
-  { id: 't1', title: 'Meditasi 10 menit', streak: 5, done: true },
-  { id: 't2', title: 'Review laporan mingguan', cat: 'Kerja', done: false },
-  { id: 't3', title: 'Baca 20 halaman buku', streak: 12, done: true },
-  { id: 't4', title: 'Jalan pagi 30 menit', cat: 'Kesehatan', done: false },
-  { id: 't5', title: 'Belajar kosakata baru', streak: 21, done: false },
-  { id: 't6', title: 'Rapikan meja kerja', cat: 'Pribadi', done: false },
+  {
+    id: 't1',
+    title: 'Meditasi 10 menit',
+    streak: 5,
+    done: true,
+    desc: 'Duduk dengan punggung tegak, tarik napas 4 hitungan, tahan 4, hembuskan 6. Tutup sesi dengan tiga tarikan napas dalam dan ucapkan satu niat untuk hari ini.',
+    history: hist(1),
+  },
+  {
+    id: 't2',
+    title: 'Review laporan mingguan',
+    cat: 'Kerja',
+    done: false,
+    desc: 'Bandingkan angka pekan ini dengan target bulanan, tandai tiga temuan utama, lalu siapkan poin pembahasan untuk rapat Senin.',
+    history: hist(2),
+  },
+  {
+    id: 't3',
+    title: 'Baca 20 halaman buku',
+    streak: 12,
+    done: true,
+    desc: 'Lanjutkan bab tentang disiplin atomik. Catat satu kutipan yang paling relevan dengan pekan ini di jurnal bacaan.',
+    history: hist(3),
+  },
+  {
+    id: 't4',
+    title: 'Jalan pagi 30 menit',
+    cat: 'Kesehatan',
+    done: false,
+    desc: 'Putaran kompleks dua kali sambil mendengarkan podcast. Jaga tempo ringan — ini jalan santai, bukan lomba.',
+    history: hist(4),
+  },
+  {
+    id: 't5',
+    title: 'Belajar kosakata baru',
+    streak: 21,
+    done: false,
+    desc: 'Lima kosakata baru lengkap dengan contoh kalimat, lalu ulangi kosakata kemarin lewat kartu acak sampai lancar.',
+    history: hist(5),
+  },
+  {
+    id: 't6',
+    title: 'Rapikan meja kerja',
+    cat: 'Pribadi',
+    done: false,
+    desc: 'Kosongkan meja dari kertas berserakan, lap layar laptop, dan kembalikan setiap barang ke tempatnya masing-masing.',
+    history: hist(6),
+  },
 ]
 
 const SEED_NOTES: Note[] = [
@@ -123,6 +172,9 @@ interface RutinaState {
   notes: Note[]
   quoteSaved: boolean
   mood: string | null
+  expandedTaskId: string | null
+  readingNoteId: string | null
+  celebrating: boolean
   setScreen: (screen: Screen) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
@@ -131,8 +183,13 @@ interface RutinaState {
   toggleTask: (id: string) => void
   addNote: (input: { title: string; body: string; folder: FolderKey }) => void
   togglePin: (id: string) => void
+  deleteNote: (id: string) => void
   saveQuote: () => void
   setMood: (mood: string | null) => void
+  toggleExpandedTask: (id: string) => void
+  openReading: (id: string) => void
+  closeReading: () => void
+  setCelebrating: (v: boolean) => void
 }
 
 export const useRutina = create<RutinaState>((set, get) => ({
@@ -144,6 +201,9 @@ export const useRutina = create<RutinaState>((set, get) => ({
   notes: SEED_NOTES,
   quoteSaved: false,
   mood: null,
+  expandedTaskId: null,
+  readingNoteId: null,
+  celebrating: false,
 
   setScreen: (screen) => set({ screen }),
 
@@ -184,6 +244,12 @@ export const useRutina = create<RutinaState>((set, get) => ({
       ),
     })),
 
+  deleteNote: (id) =>
+    set((s) => ({
+      notes: s.notes.filter((n) => n.id !== id),
+      readingNoteId: s.readingNoteId === id ? null : s.readingNoteId,
+    })),
+
   saveQuote: () => {
     if (get().quoteSaved) return
     set((s) => ({
@@ -204,4 +270,15 @@ export const useRutina = create<RutinaState>((set, get) => ({
   },
 
   setMood: (mood) => set({ mood }),
+
+  toggleExpandedTask: (id) =>
+    set((s) => ({
+      expandedTaskId: s.expandedTaskId === id ? null : id,
+    })),
+
+  openReading: (id) => set({ readingNoteId: id }),
+
+  closeReading: () => set({ readingNoteId: null }),
+
+  setCelebrating: (celebrating) => set({ celebrating }),
 }))

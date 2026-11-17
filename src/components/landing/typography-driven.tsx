@@ -74,7 +74,9 @@ export default function TypographyDriven() {
     if (!track) return
     const w = track.scrollWidth / 2
     const anim = animate(track, { x: [0, -w], duration: 26000, loop: true, ease: 'linear' })
-    return () => anim.revert()
+    return () => {
+      anim.revert()
+    }
   }, [])
 
   const t = dark

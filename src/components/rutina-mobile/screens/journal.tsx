@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'motion/react'
 import { animate, stagger } from 'animejs'
 import { BookOpen, Pin, Plus, Search } from 'lucide-react'
 
@@ -28,6 +29,7 @@ export default function JournalScreen() {
   const setJournalFilter = useRutina((s) => s.setJournalFilter)
   const openCompose = useRutina((s) => s.openCompose)
   const togglePin = useRutina((s) => s.togglePin)
+  const openReading = useRutina((s) => s.openReading)
 
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -139,9 +141,20 @@ export default function JournalScreen() {
         ) : (
           <div ref={listRef} className="columns-2 gap-3">
             {sorted.map((n) => (
-              <article
+              <motion.article
                 key={n.id}
-                className={`mb-3 break-inside-avoid rounded-[14px] p-4 ${NOTE_TONES[n.tone % 3]}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Baca catatan: ${n.title}`}
+                onClick={() => openReading(n.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    openReading(n.id)
+                  }
+                }}
+                whileTap={{ scale: 0.97 }}
+                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 transition-shadow duration-300 hover:shadow-[0_8px_20px_rgba(74,59,50,0.10)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${NOTE_TONES[n.tone % 3]}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3
@@ -175,7 +188,7 @@ export default function JournalScreen() {
                     {FOLDER_SHORT[n.folder]}
                   </span>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         )}

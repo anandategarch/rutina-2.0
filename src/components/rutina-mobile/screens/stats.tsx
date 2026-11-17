@@ -6,7 +6,9 @@ import { animate, stagger } from 'animejs'
 import { BatteryLow, Flame, Laugh, Meh, Smile, TrendingUp } from 'lucide-react'
 
 import { Counter } from '../counter'
+import Heatmap from '../heatmap'
 import { DAYS, FOCUS, MOODS, useRutina } from '../store'
+import TrendLine from '../trend-line'
 
 /** Keliling ring progres (r = 42 pada viewBox 96). */
 const RING_CIRCUMFERENCE = 2 * Math.PI * 42
@@ -267,6 +269,12 @@ export default function StatsScreen() {
               Hari ini kamu fokus 2,6 jam — tertinggi minggu ini.
             </p>
           </motion.div>
+        </div>
+
+        {/* Konsistensi & tren fokus */}
+        <div className="mt-3 space-y-3">
+          <Heatmap />
+          <TrendLine />
         </div>
       </section>
     </div>

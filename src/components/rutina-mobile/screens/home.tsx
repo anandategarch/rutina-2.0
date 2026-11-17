@@ -2,13 +2,11 @@
 
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { motion } from 'motion/react'
-import { animate, stagger } from 'animejs'
 import {
   BookOpen,
   BookmarkPlus,
   Briefcase,
   Check,
-  Flame,
   Heart,
   Lightbulb,
   Plus,
@@ -21,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { HeroDoodle } from '../hero-doodle'
+import { TaskRow } from '../task-row'
 import { useRutina, FOLDERS, QUOTE_TEXT, QUOTE_AUTHOR } from '../store'
 import type { FolderKey } from '../store'
 
@@ -76,8 +75,10 @@ export default function HomeScreen() {
   const openCompose = useRutina((s) => s.openCompose)
   const quoteSaved = useRutina((s) => s.quoteSaved)
   const saveQuote = useRutina((s) => s.saveQuote)
+  const expandedTaskId = useRutina((s) => s.expandedTaskId)
+  const toggleExpandedTask = useRutina((s) => s.toggleExpandedTask)
+  const setCelebrating = useRutina((s) => s.setCelebrating)
 
-  const taskListRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
 
   const dateLabel = useSyncExternalStore(
@@ -91,32 +92,18 @@ export default function HomeScreen() {
     () => 'Selamat pagi',
   )
 
-  // anime.js — orkestrasi masuk daftar tugas
-  useEffect(() => {
-    if (!taskListRef.current) return
-    const anim = animate(taskListRef.current.querySelectorAll(':scope > div'), {
-      translateY: [18, 0],
-      opacity: [0, 1],
-      delay: stagger(70),
-      duration: 720,
-      ease: 'outExpo',
-    })
-    return () => {
-      anim.revert()
-    }
-  }, [])
-
   const doneCount = tasks.filter((t) => t.done).length
   const pct =
     tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0
 
-  // Toast saat semua tugas selesai — hanya sekali
+  // Perayaan + toast saat semua tugas selesai — hanya sekali
   useEffect(() => {
     if (tasks.length > 0 && tasks.every((t) => t.done) && !firedRef.current) {
       firedRef.current = true
+      setCelebrating(true)
       toast.success('Semua tugas selesai — hari yang produktif!')
     }
-  }, [tasks])
+  }, [tasks, setCelebrating])
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-5">
@@ -189,69 +176,16 @@ export default function HomeScreen() {
           title="Fokus Hari Ini"
           hint={`${doneCount}/${tasks.length} selesai`}
         />
-        <div ref={taskListRef} className="space-y-2.5">
+        <div className="space-y-2.5">
           {tasks.map((t) => (
-            <motion.div
+            <TaskRow
               key={t.id}
-              role="checkbox"
-              aria-checked={t.done}
-              aria-label={`Tandai selesai: ${t.title}`}
-              tabIndex={0}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => toggleTask(t.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  toggleTask(t.id)
-                }
-              }}
-              className={`flex cursor-pointer items-center gap-3 rounded-[16px] border p-3.5 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
-                t.done
-                  ? 'border-[#749B5833] bg-[#E4EFE0]'
-                  : 'border-[#4A3B321F] bg-white'
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
-                  t.done
-                    ? 'border-[#749B58] bg-[#749B58] text-white'
-                    : 'border-[#4A3B3240] text-transparent'
-                }`}
-              >
-                <motion.span
-                  key={String(t.done)}
-                  initial={{ scale: 0.4, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-                  className="flex"
-                >
-                  <Check className="h-4 w-4" strokeWidth={3} />
-                </motion.span>
-              </span>
-
-              <span
-                className={
-                  'min-w-0 flex-1 truncate text-left text-[15px] font-medium transition-colors duration-300 ' +
-                  (t.done
-                    ? 'text-[#231F1E]/45 line-through decoration-[#231F1E]/30'
-                    : 'text-[#231F1E]')
-                }
-              >
-                {t.title}
-              </span>
-
-              {t.streak ? (
-                <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#EAE5D9] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
-                  <Flame className="h-3.5 w-3.5" />
-                  {t.streak} hari
-                </span>
-              ) : t.cat ? (
-                <span className="shrink-0 rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
-                  {t.cat}
-                </span>
-              ) : null}
-            </motion.div>
+              task={t}
+              done={t.done}
+              expanded={expandedTaskId === t.id}
+              onToggle={() => toggleTask(t.id)}
+              onExpand={() => toggleExpandedTask(t.id)}
+            />
           ))}
         </div>
       </section>

@@ -65,7 +65,9 @@ export default function BentoGrid() {
       delay: stagger(26, { from: 'center' }),
       ease: 'outBack(1.4)',
     })
-    return () => anim.revert()
+    return () => {
+      anim.revert()
+    }
   }, [dotsInView])
 
   const doneCount = habits.filter((h) => h.done).length
