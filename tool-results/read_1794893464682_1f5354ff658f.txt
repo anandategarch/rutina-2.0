@@ -1,0 +1,789 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useEffect, useRef, useState } from 'react'
+     4→     4→import { motion, useInView } from 'motion/react'
+     5→     5→import { animate, stagger } from 'animejs'
+     6→     6→import {
+     7→     7→  BatteryLow,
+     8→     8→  BookOpen,
+     9→     9→  BookmarkPlus,
+    10→    10→  Briefcase,
+    11→    11→  Check,
+    12→    12→  Flame,
+    13→    13→  Heart,
+    14→    14→  Laugh,
+    15→    15→  Leaf,
+    16→    16→  Lightbulb,
+    17→    17→  Meh,
+    18→    18→  PenLine,
+    19→    19→  Pin,
+    20→    20→  Plus,
+    21→    21→  Quote,
+    22→    22→  Smile,
+    23→    23→  TrendingUp,
+    24→    24→} from 'lucide-react'
+    25→    25→import { Playfair_Display } from 'next/font/google'
+    26→    26→import { toast } from 'sonner'
+    27→    27→
+    28→    28→import { Button } from '@/components/ui/button'
+    29→    29→import {
+    30→    30→  Dialog,
+    31→    31→  DialogContent,
+    32→    32→  DialogDescription,
+    33→    33→  DialogFooter,
+    34→    34→  DialogHeader,
+    35→    35→  DialogTitle,
+    36→    36→} from '@/components/ui/dialog'
+    37→    37→import { Input } from '@/components/ui/input'
+    38→    38→import { Label } from '@/components/ui/label'
+    39→    39→import { Textarea } from '@/components/ui/textarea'
+    40→    40→import { Counter, goToStyle } from './bits'
+    41→    41→
+    42→    42→const playfair = Playfair_Display({
+    43→    43→  subsets: ['latin'],
+    44→    44→  style: ['normal', 'italic'],
+    45→    45→})
+    46→    46→
+    47→    47→/* ===== Data demo (deterministik, tanpa Math.random) ===== */
+    48→    48→
+    49→    49→type Task = { id: string; title: string; cat?: string; streak?: number }
+    50→    50→
+    51→    51→const TASKS: Task[] = [
+    52→    52→  { id: 't1', title: 'Meditasi 10 menit', streak: 5 },
+    53→    53→  { id: 't2', title: 'Review laporan mingguan', cat: 'Kerja' },
+    54→    54→  { id: 't3', title: 'Baca 20 halaman buku', streak: 12 },
+    55→    55→  { id: 't4', title: 'Jalan pagi 30 menit', cat: 'Kesehatan' },
+    56→    56→  { id: 't5', title: 'Belajar kosakata baru', streak: 21 },
+    57→    57→  { id: 't6', title: 'Rapikan meja kerja', cat: 'Pribadi' },
+    58→    58→]
+    59→    59→
+    60→    60→const INITIAL_DONE = [true, false, true, false, false, false]
+    61→    61→
+    62→    62→type Note = {
+    63→    63→  id: string
+    64→    64→  title: string
+    65→    65→  body: string
+    66→    66→  date: string
+    67→    67→  pinned: boolean
+    68→    68→  tone: number
+    69→    69→}
+    70→    70→
+    71→    71→/** Variasi latar kartu jurnal: putih bergaris tipis, pistachio, warm sand gelap. */
+    72→    72→const NOTE_TONES = [
+    73→    73→  'border border-[#4A3B321F] bg-white',
+    74→    74→  'bg-[#E4EFE0]',
+    75→    75→  'bg-[#EAE5D9]',
+    76→    76→]
+    77→    77→
+    78→    78→const SEED_NOTES: Note[] = [
+    79→    79→  {
+    80→    80→    id: 'n1',
+    81→    81→    title: 'Ritual Pagi yang Tenang',
+    82→    82→    body: 'Bangun jam 5.30 tanpa langsung membuka ponsel. Air putih, peregangan singkat, lalu menulis tiga hal yang disyukuri.',
+    83→    83→    date: '15 Jun',
+    84→    84→    pinned: true,
+    85→    85→    tone: 1,
+    86→    86→  },
+    87→    87→  {
+    88→    88→    id: 'n2',
+    89→    89→    title: 'Ide Fitur Rutina 2.0',
+    90→    90→    body: 'Mode fokus dengan timer pomodoro, laporan mingguan yang bisa diekspor, dan widget streak di layar utama.',
+    91→    91→    date: '13 Jun',
+    92→    92→    pinned: false,
+    93→    93→    tone: 0,
+    94→    94→  },
+    95→    95→  {
+    96→    96→    id: 'n3',
+    97→    97→    title: 'Refleksi: Pekan ke-3',
+    98→    98→    body: 'Konsistensi mulai terasa. Meditasi jadi lebih mudah dan otak tidak lagi menolak saat bangun pagi.',
+    99→    99→    date: '12 Jun',
+   100→   100→    pinned: false,
+   101→   101→    tone: 2,
+   102→   102→  },
+   103→   103→  {
+   104→   104→    id: 'n4',
+   105→   105→    title: 'Bahan Bacaan Bulan Ini',
+   106→   106→    body: 'Atomic Habits (ulang bab 3), Deep Work, dan artikel tentang kebiasaan digital minimalis.',
+   107→   107→    date: '10 Jun',
+   108→   108→    pinned: false,
+   109→   109→    tone: 1,
+   110→   110→  },
+   111→   111→  {
+   112→   112→    id: 'n5',
+   113→   113→    title: 'Yang Aku Syukuri Hari Ini',
+   114→   114→    body: 'Es kopi di warung pojok, obrolan singkat dengan Ibu, dan hujan sore yang tepat waktu.',
+   115→   115→    date: '9 Jun',
+   116→   116→    pinned: true,
+   117→   117→    tone: 0,
+   118→   118→  },
+   119→   119→  {
+   120→   120→    id: 'n6',
+   121→   121→    title: 'Rencana Proyek Desain',
+   122→   122→    body: 'Kumpulkan referensi moodboard earth tone, sketsa tiga arah layout, lalu uji kontras warna.',
+   123→   123→    date: '7 Jun',
+   124→   124→    pinned: false,
+   125→   125→    tone: 2,
+   126→   126→  },
+   127→   127→]
+   128→   128→
+   129→   129→const FOLDERS = [
+   130→   130→  { name: 'Kerja', count: 12, icon: Briefcase },
+   131→   131→  { name: 'Ide & Gagasan', count: 8, icon: Lightbulb },
+   132→   132→  { name: 'Bacaan', count: 5, icon: BookOpen },
+   133→   133→  { name: 'Pribadi', count: 9, icon: Heart },
+   134→   134→]
+   135→   135→
+   136→   136→const DAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
+   137→   137→/** Jam fokus Senin–Minggu; total 14,5 jam. */
+   138→   138→const FOCUS = [1.5, 2.2, 1.8, 2.0, 2.4, 2.0, 2.6]
+   139→   139→
+   140→   140→const MOODS = [
+   141→   141→  { label: 'Ceria', icon: Laugh },
+   142→   142→  { label: 'Baik', icon: Smile },
+   143→   143→  { label: 'Biasa', icon: Meh },
+   144→   144→  { label: 'Lelah', icon: BatteryLow },
+   145→   145→]
+   146→   146→
+   147→   147→const QUOTE_TEXT =
+   148→   148→  'Kebiasaan kecil yang konsisten akan mengalahkan motivasi besar yang sesaat.'
+   149→   149→const QUOTE_AUTHOR = 'James Clear, Atomic Habits'
+   150→   150→
+   151→   151→/* ===== Potongan kecil ===== */
+   152→   152→
+   153→   153→function SectionTitle({ title, hint }: { title: string; hint?: string }) {
+   154→   154→  return (
+   155→   155→    <div className="mb-3 flex items-baseline justify-between gap-3">
+   156→   156→      <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+   157→   157→        {title}
+   158→   158→      </h2>
+   159→   159→      {hint ? (
+   160→   160→        <span className="text-xs font-medium text-[#4A3B32]/70">{hint}</span>
+   161→   161→      ) : null}
+   162→   162→    </div>
+   163→   163→  )
+   164→   164→}
+   165→   165→
+   166→   166→/** Ilustrasi garis minimalis: matahari, bukit, dan tunas. */
+   167→   167→function HeroIllustration() {
+   168→   168→  return (
+   169→   169→    <motion.svg
+   170→   170→      viewBox="0 0 140 140"
+   171→   171→      aria-hidden="true"
+   172→   172→      animate={{ y: [0, -6, 0] }}
+   173→   173→      transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+   174→   174→      className="pointer-events-none absolute -bottom-2 -right-2 h-32 w-32 text-[#FAF9F6]/40"
+   175→   175→      fill="none"
+   176→   176→      stroke="currentColor"
+   177→   177→      strokeWidth="2"
+   178→   178→      strokeLinecap="round"
+   179→   179→      strokeLinejoin="round"
+   180→   180→    >
+   181→   181→      <circle cx="98" cy="34" r="12" />
+   182→   182→      <path d="M98 14v5M98 49v5M78 34h5M113 34h5" />
+   183→   183→      <path d="M4 106q34-36 68 0" />
+   184→   184→      <path d="M52 120q30-28 60 0" />
+   185→   185→      <path d="M26 122v-10" />
+   186→   186→      <path d="M26 112c-8-1-12-6-12-13 8 1 12 6 12 13z" />
+   187→   187→      <path d="M26 112c8-1 12-6 12-13-8 1-12 6-12 13z" />
+   188→   188→    </motion.svg>
+   189→   189→  )
+   190→   190→}
+   191→   191→
+   192→   192→/* ===== Komponen utama ===== */
+   193→   193→
+   194→   194→export default function DailyCards() {
+   195→   195→  const [done, setDone] = useState<boolean[]>(INITIAL_DONE)
+   196→   196→  const [mood, setMood] = useState<string | null>(null)
+   197→   197→  const [notes, setNotes] = useState<Note[]>(SEED_NOTES)
+   198→   198→  const [quoteSaved, setQuoteSaved] = useState(false)
+   199→   199→  const [dialogOpen, setDialogOpen] = useState(false)
+   200→   200→  const [draft, setDraft] = useState({ title: '', body: '' })
+   201→   201→
+   202→   202→  const taskListRef = useRef<HTMLDivElement>(null)
+   203→   203→  const chartRef = useRef<HTMLDivElement>(null)
+   204→   204→  const chartInView = useInView(chartRef, { once: true, margin: '-40px' })
+   205→   205→
+   206→   206→  //anime.js — orkestrasi masuk daftar tugas
+   207→   207→  useEffect(() => {
+   208→   208→    if (!taskListRef.current) return
+   209→   209→    const anim = animate(taskListRef.current.querySelectorAll(':scope > div'), {
+   210→   210→      translateY: [18, 0],
+   211→   211→      opacity: [0, 1],
+   212→   212→      delay: stagger(70),
+   213→   213→      duration: 720,
+   214→   214→      ease: 'outExpo',
+   215→   215→    })
+   216→   216→    return () => {
+   217→   217→      anim.revert()
+   218→   218→    }
+   219→   219→  }, [])
+   220→   220→
+   221→   221→  // anime.js — batang grafik tumbuh saat terlihat
+   222→   222→  useEffect(() => {
+   223→   223→    if (!chartInView || !chartRef.current) return
+   224→   224→    const anim = animate(chartRef.current.querySelectorAll('[data-bar]'), {
+   225→   225→      scaleY: [0, 1],
+   226→   226→      delay: stagger(55),
+   227→   227→      duration: 850,
+   228→   228→      ease: 'outBack(1.3)',
+   229→   229→    })
+   230→   230→    return () => {
+   231→   231→      anim.revert()
+   232→   232→    }
+   233→   233→  }, [chartInView])
+   234→   234→
+   235→   235→  const doneCount = done.filter(Boolean).length
+   236→   236→  const pct = Math.round((doneCount / TASKS.length) * 100)
+   237→   237→
+   238→   238→  const toggleTask = (i: number) => {
+   239→   239→    const next = done.map((d, j) => (j === i ? !d : d))
+   240→   240→    setDone(next)
+   241→   241→    if (next.every(Boolean)) {
+   242→   242→      toast.success('Semua tugas selesai — hari yang produktif!')
+   243→   243→    }
+   244→   244→  }
+   245→   245→
+   246→   246→  const addNote = () => {
+   247→   247→    const title = draft.title.trim()
+   248→   248→    if (!title) {
+   249→   249→      toast.warning('Judul catatan masih kosong')
+   250→   250→      return
+   251→   251→    }
+   252→   252→    setNotes((prev) => [
+   253→   253→      {
+   254→   254→        id: `note-${Date.now()}`,
+   255→   255→        title,
+   256→   256→        body: draft.body.trim() || 'Catatan kosong — lanjutkan menulis nanti.',
+   257→   257→        date: '15 Jun',
+   258→   258→        pinned: false,
+   259→   259→        tone: 0,
+   260→   260→      },
+   261→   261→      ...prev,
+   262→   262→    ])
+   263→   263→    setDialogOpen(false)
+   264→   264→    setDraft({ title: '', body: '' })
+   265→   265→    toast.success('Catatan baru ditambahkan ke jurnal')
+   266→   266→  }
+   267→   267→
+   268→   268→  const saveQuote = () => {
+   269→   269→    if (quoteSaved) return
+   270→   270→    setNotes((prev) => [
+   271→   271→      {
+   272→   272→        id: `quote-${Date.now()}`,
+   273→   273→        title: 'Kutipan Hari Ini',
+   274→   274→        body: `"${QUOTE_TEXT}" — ${QUOTE_AUTHOR}`,
+   275→   275→        date: '15 Jun',
+   276→   276→        pinned: true,
+   277→   277→        tone: 1,
+   278→   278→      },
+   279→   279→      ...prev,
+   280→   280→    ])
+   281→   281→    setQuoteSaved(true)
+   282→   282→    toast.success('Kutipan disimpan ke jurnal')
+   283→   283→  }
+   284→   284→
+   285→   285→  return (
+   286→   286→    <div className="flex min-h-screen flex-col">
+   287→   287→      <main className="mx-auto w-full max-w-md px-4 pt-24">
+   288→   288→        {/* Header aplikasi */}
+   289→   289→        <header className="mb-5 flex items-center justify-between">
+   290→   290→          <p className="text-[19px] font-bold tracking-tight text-[#231F1E]">
+   291→   291→            rutina<span className="text-[#749B58]">.</span>
+   292→   292→          </p>
+   293→   293→          <span
+   294→   294→            aria-hidden="true"
+   295→   295→            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4A3B32] text-[11px] font-bold tracking-widest text-[#FAF9F6]"
+   296→   296→          >
+   297→   297→            AN
+   298→   298→          </span>
+   299→   299→        </header>
+   300→   300→
+   301→   301→        {/* 1 — Kartu Ringkasan Utama (Daily Focus & Hero Summary) */}
+   302→   302→        <motion.section
+   303→   303→          initial={{ opacity: 0, y: 22 }}
+   304→   304→          animate={{ opacity: 1, y: 0 }}
+   305→   305→          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+   306→   306→          aria-label="Ringkasan harian"
+   307→   307→          className="relative overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6]"
+   308→   308→        >
+   309→   309→          <HeroIllustration />
+   310→   310→          <div className="relative z-10">
+   311→   311→            <p className="text-[13px] font-medium text-[#FAF9F6]/75">
+   312→   312→              Minggu, 15 Juni
+   313→   313→            </p>
+   314→   314→            <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight">
+   315→   315→              Selamat pagi, Ananda
+   316→   316→            </h1>
+   317→   317→
+   318→   318→            <div className="mt-6">
+   319→   319→              <p className="text-[12px] font-medium text-[#FAF9F6]/75">
+   320→   320→                Tugas selesai
+   321→   321→              </p>
+   322→   322→              <p className="mt-0.5 flex items-baseline gap-1.5">
+   323→   323→                <span className="text-[56px] font-semibold leading-none tracking-tight">
+   324→   324→                  <Counter to={pct} />
+   325→   325→                </span>
+   326→   326→                <span className="text-lg font-medium text-[#FAF9F6]/80">%</span>
+   327→   327→              </p>
+   328→   328→              <p className="mt-1.5 text-xs font-medium text-[#FAF9F6]/70">
+   329→   329→                {doneCount} dari {TASKS.length} tugas •{' '}
+   330→   330→                {TASKS.length - doneCount} tersisa
+   331→   331→              </p>
+   332→   332→            </div>
+   333→   333→
+   334→   334→            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#FAF9F6]/25">
+   335→   335→              <motion.div
+   336→   336→                initial={false}
+   337→   337→                className="h-full rounded-full bg-[#FAF9F6]"
+   338→   338→                animate={{ width: `${pct}%` }}
+   339→   339→                transition={{ type: 'spring', stiffness: 130, damping: 22 }}
+   340→   340→              />
+   341→   341→            </div>
+   342→   342→
+   343→   343→            <Button
+   344→   344→              type="button"
+   345→   345→              onClick={() => setDialogOpen(true)}
+   346→   346→              className="mt-5 h-11 w-full rounded-full bg-[#FAF9F6] text-[15px] font-semibold text-[#231F1E] shadow-[0_8px_20px_rgba(35,31,30,0.16)] hover:bg-white hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)]"
+   347→   347→            >
+   348→   348→              <Plus className="h-4 w-4" strokeWidth={2.5} />
+   349→   349→              Catatan Baru
+   350→   350→            </Button>
+   351→   351→          </div>
+   352→   352→        </motion.section>
+   353→   353→
+   354→   354→        {/* 2 — Kartu Daftar Tugas & Kebiasaan */}
+   355→   355→        <section className="mt-8" aria-label="Daftar tugas harian">
+   356→   356→          <SectionTitle
+   357→   357→            title="Fokus Hari Ini"
+   358→   358→            hint={`${doneCount}/${TASKS.length} selesai`}
+   359→   359→          />
+   360→   360→          <div ref={taskListRef} className="space-y-2.5">
+   361→   361→            {TASKS.map((t, i) => (
+   362→   362→              <div
+   363→   363→                key={t.id}
+   364→   364→                className={`flex items-center gap-3 rounded-[16px] border p-3.5 transition-colors duration-300 ${
+   365→   365→                  done[i]
+   366→   366→                    ? 'border-[#749B5833] bg-[#E4EFE0]'
+   367→   367→                    : 'border-[#4A3B321F] bg-white'
+   368→   368→                }`}
+   369→   369→              >
+   370→   370→                <motion.button
+   371→   371→                  type="button"
+   372→   372→                  role="checkbox"
+   373→   373→                  aria-checked={done[i]}
+   374→   374→                  aria-label={`Tandai selesai: ${t.title}`}
+   375→   375→                  whileTap={{ scale: 0.85 }}
+   376→   376→                  onClick={() => toggleTask(i)}
+   377→   377→                  className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+   378→   378→                    done[i]
+   379→   379→                      ? 'border-[#749B58] bg-[#749B58] text-white'
+   380→   380→                      : 'border-[#4A3B3240] bg-transparent text-transparent hover:border-[#749B58]/60'
+   381→   381→                  }`}
+   382→   382→                >
+   383→   383→                  <Check className="h-4 w-4" strokeWidth={3} />
+   384→   384→                </motion.button>
+   385→   385→
+   386→   386→                <span
+   387→   387→                  className={`min-w-0 flex-1 truncate text-left text-[15px] font-medium transition-colors duration-300 ${
+   388→   388→                    done[i]
+   389→   389→                      ? 'text-[#231F1E]/45 line-through decoration-[#231F1E]/30'
+   390→   390→                      : 'text-[#231F1E]'
+   391→   391→                  }`}
+   392→   392→                >
+   393→   393→                  {t.title}
+   394→   394→                </span>
+   395→   395→
+   396→   396→                {t.streak ? (
+   397→   397→                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#EAE5D9] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
+   398→   398→                    <Flame className="h-3.5 w-3.5" />
+   399→   399→                    {t.streak} hari
+   400→   400→                  </span>
+   401→   401→                ) : (
+   402→   402→                  <span className="shrink-0 rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
+   403→   403→                    {t.cat}
+   404→   404→                  </span>
+   405→   405→                )}
+   406→   406→              </div>
+   407→   407→            ))}
+   408→   408→          </div>
+   409→   409→        </section>
+   410→   410→
+   411→   411→        {/* 6 — Kartu Kutipan & Pengingat (pembatas visual) */}
+   412→   412→        <motion.section
+   413→   413→          initial={{ opacity: 0, y: 18 }}
+   414→   414→          whileInView={{ opacity: 1, y: 0 }}
+   415→   415→          viewport={{ once: true, margin: '-40px' }}
+   416→   416→          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+   417→   417→          aria-label="Refleksi hari ini"
+   418→   418→          className="mt-8 rounded-[20px] bg-[#4A3B32] p-6 text-[#F5F3EE]"
+   419→   419→        >
+   420→   420→          <div className="flex items-start justify-between gap-3">
+   421→   421→            <Quote className="h-6 w-6 shrink-0 text-[#F5F3EE]/45" />
+   422→   422→            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/60">
+   423→   423→              Refleksi Hari Ini
+   424→   424→            </span>
+   425→   425→          </div>
+   426→   426→          <p className={`${playfair.className} mt-4 text-[17px] italic leading-relaxed text-[#F5F3EE]`}>
+   427→   427→            &ldquo;{QUOTE_TEXT}&rdquo;
+   428→   428→          </p>
+   429→   429→          <p className="mt-3 text-xs font-medium text-[#F5F3EE]/70">
+   430→   430→            — {QUOTE_AUTHOR}
+   431→   431→          </p>
+   432→   432→          <Button
+   433→   433→            type="button"
+   434→   434→            variant="ghost"
+   435→   435→            onClick={saveQuote}
+   436→   436→            disabled={quoteSaved}
+   437→   437→            className="mt-5 h-9 rounded-full border border-[#F5F3EE]/35 px-4 text-[13px] font-semibold text-[#F5F3EE] hover:bg-[#F5F3EE]/10 hover:text-[#F5F3EE] disabled:opacity-60"
+   438→   438→          >
+   439→   439→            {quoteSaved ? (
+   440→   440→              <Check className="h-4 w-4" strokeWidth={2.5} />
+   441→   441→            ) : (
+   442→   442→              <BookmarkPlus className="h-4 w-4" />
+   443→   443→            )}
+   444→   444→            {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
+   445→   445→          </Button>
+   446→   446→        </motion.section>
+   447→   447→
+   448→   448→        {/* 4 — Widget Statistik & Suasana Hati */}
+   449→   449→        <section className="mt-8" aria-label="Statistik dan suasana hati">
+   450→   450→          <SectionTitle title="Ringkasan Pekan" />
+   451→   451→          <div className="grid grid-cols-2 gap-3">
+   452→   452→            <motion.div
+   453→   453→              initial={{ opacity: 0, y: 16 }}
+   454→   454→              whileInView={{ opacity: 1, y: 0 }}
+   455→   455→              viewport={{ once: true, margin: '-24px' }}
+   456→   456→              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+   457→   457→              className="rounded-[16px] border border-[#4A3B321F] bg-white p-4"
+   458→   458→            >
+   459→   459→              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/65">
+   460→   460→                Suasana Hati
+   461→   461→              </p>
+   462→   462→              <div className="mt-3 grid grid-cols-2 gap-2">
+   463→   463→                {MOODS.map((m) => (
+   464→   464→                  <button
+   465→   465→                    key={m.label}
+   466→   466→                    type="button"
+   467→   467→                    aria-pressed={mood === m.label}
+   468→   468→                    aria-label={`Catat suasana hati: ${m.label}`}
+   469→   469→                    onClick={() => setMood(mood === m.label ? null : m.label)}
+   470→   470→                    className={`flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+   471→   471→                      mood === m.label
+   472→   472→                        ? 'border-[#749B58] bg-[#749B58] text-white'
+   473→   473→                        : 'border-[#4A3B321F] bg-[#F5F3EE] text-[#4A3B32] hover:bg-[#E4EFE0]'
+   474→   474→                    }`}
+   475→   475→                  >
+   476→   476→                    <m.icon className="h-4 w-4" />
+   477→   477→                    <span className="text-[11px] font-bold">{m.label}</span>
+   478→   478→                  </button>
+   479→   479→                ))}
+   480→   480→              </div>
+   481→   481→              <p className="mt-3 text-[11px] font-medium text-[#4A3B32]/70">
+   482→   482→                {mood
+   483→   483→                  ? `Kamu merasa ${mood.toLowerCase()} hari ini`
+   484→   484→                  : 'Bagaimana perasaanmu?'}
+   485→   485→              </p>
+   486→   486→            </motion.div>
+   487→   487→
+   488→   488→            <motion.div
+   489→   489→              initial={{ opacity: 0, y: 16 }}
+   490→   490→              whileInView={{ opacity: 1, y: 0 }}
+   491→   491→              viewport={{ once: true, margin: '-24px' }}
+   492→   492→              transition={{
+   493→   493→                duration: 0.5,
+   494→   494→                delay: 0.06,
+   495→   495→                ease: [0.22, 1, 0.36, 1],
+   496→   496→              }}
+   497→   497→              className="flex flex-col rounded-[16px] border border-[#4A3B321F] bg-white p-4"
+   498→   498→            >
+   499→   499→              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/65">
+   500→   500→                Streak Terpanjang
+   501→   501→              </p>
+   502→   502→              <div className="mt-2 flex items-start justify-between gap-2">
+   503→   503→                <div>
+   504→   504→                  <p className="flex items-baseline gap-1">
+   505→   505→                    <span className="text-[44px] font-semibold leading-none tracking-tight text-[#749B58]">
+   506→   506→                      <Counter to={21} />
+   507→   507→                    </span>
+   508→   508→                    <span className="text-sm font-medium text-[#4A3B32]/60">
+   509→   509→                      hari
+   510→   510→                    </span>
+   511→   511→                  </p>
+   512→   512→                  <p className="mt-1.5 text-[11px] font-medium text-[#4A3B32]/70">
+   513→   513→                    Belajar kosakata baru
+   514→   514→                  </p>
+   515→   515→                </div>
+   516→   516→                <Flame
+   517→   517→                  className="h-9 w-9 shrink-0 text-[#4A3B32]/15"
+   518→   518→                  strokeWidth={1.5}
+   519→   519→                />
+   520→   520→              </div>
+   521→   521→              <p className="mt-auto pt-3 text-[11px] font-medium text-[#4A3B32]/70">
+   522→   522→                Rekor pribadi: 34 hari
+   523→   523→              </p>
+   524→   524→            </motion.div>
+   525→   525→
+   526→   526→            <motion.div
+   527→   527→              ref={chartRef}
+   528→   528→              initial={{ opacity: 0, y: 16 }}
+   529→   529→              whileInView={{ opacity: 1, y: 0 }}
+   530→   530→              viewport={{ once: true, margin: '-24px' }}
+   531→   531→              transition={{
+   532→   532→                duration: 0.5,
+   533→   533→                delay: 0.12,
+   534→   534→                ease: [0.22, 1, 0.36, 1],
+   535→   535→              }}
+   536→   536→              className="col-span-2 rounded-[16px] border border-[#4A3B321F] bg-white p-5"
+   537→   537→            >
+   538→   538→              <div className="flex items-end justify-between gap-3">
+   539→   539→                <div>
+   540→   540→                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/65">
+   541→   541→                    Fokus Minggu Ini
+   542→   542→                  </p>
+   543→   543→                  <p className="mt-1.5 flex items-baseline gap-1.5">
+   544→   544→                    <span className="text-[40px] font-semibold leading-none tracking-tight text-[#231F1E]">
+   545→   545→                      <Counter to={14.5} decimals={1} />
+   546→   546→                    </span>
+   547→   547→                    <span className="text-sm font-medium text-[#4A3B32]/60">
+   548→   548→                      jam total
+   549→   549→                    </span>
+   550→   550→                  </p>
+   551→   551→                </div>
+   552→   552→                <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
+   553→   553→                  <TrendingUp className="h-3.5 w-3.5" />
+   554→   554→                  +2,1 jam
+   555→   555→                </span>
+   556→   556→              </div>
+   557→   557→              <div
+   558→   558→                className="mt-5 flex items-end justify-between gap-2"
+   559→   559→                role="img"
+   560→   560→                aria-label="Grafik batang waktu fokus tujuh hari terakhir, hari ini paling tinggi"
+   561→   561→              >
+   562→   562→                {FOCUS.map((f, i) => {
+   563→   563→                  const isToday = i === FOCUS.length - 1
+   564→   564→                  return (
+   565→   565→                    <div
+   566→   566→                      key={i}
+   567→   567→                      className="flex flex-1 flex-col items-center gap-1.5"
+   568→   568→                    >
+   569→   569→                      <div
+   570→   570→                        data-bar
+   571→   571→                        className={`w-full origin-bottom rounded-full ${
+   572→   572→                          isToday ? 'bg-[#749B58]' : 'bg-[#E4EFE0]'
+   573→   573→                        }`}
+   574→   574→                        style={{ height: `${Math.round((f / 2.6) * 84)}px` }}
+   575→   575→                      />
+   576→   576→                      <span
+   577→   577→                        className={`text-[10px] font-bold ${
+   578→   578→                          isToday ? 'text-[#749B58]' : 'text-[#4A3B32]/55'
+   579→   579→                        }`}
+   580→   580→                      >
+   581→   581→                        {DAYS[i]}
+   582→   582→                      </span>
+   583→   583→                    </div>
+   584→   584→                  )
+   585→   585→                })}
+   586→   586→              </div>
+   587→   587→              <p className="mt-3 text-[11px] font-medium text-[#4A3B32]/70">
+   588→   588→                Hari ini kamu fokus 2,6 jam — tertinggi minggu ini.
+   589→   589→              </p>
+   590→   590→            </motion.div>
+   591→   591→          </div>
+   592→   592→        </section>
+   593→   593→
+   594→   594→        {/* 5 — Kartu Kategori / Folder */}
+   595→   595→        <section className="mt-8" aria-label="Koleksi folder catatan">
+   596→   596→          <SectionTitle title="Koleksi" hint="4 folder" />
+   597→   597→          <div className="grid grid-cols-2 gap-3">
+   598→   598→            {FOLDERS.map((folder, i) => (
+   599→   599→              <motion.div
+   600→   600→                key={folder.name}
+   601→   601→                role="button"
+   602→   602→                tabIndex={0}
+   603→   603→                aria-label={`Buka folder ${folder.name}, ${folder.count} catatan`}
+   604→   604→                initial={{ opacity: 0, y: 14 }}
+   605→   605→                whileInView={{ opacity: 1, y: 0 }}
+   606→   606→                viewport={{ once: true, margin: '-20px' }}
+   607→   607→                transition={{
+   608→   608→                  duration: 0.45,
+   609→   609→                  delay: i * 0.05,
+   610→   610→                  ease: [0.22, 1, 0.36, 1],
+   611→   611→                }}
+   612→   612→                whileHover={{ y: -3 }}
+   613→   613→                whileTap={{ scale: 0.97 }}
+   614→   614→                onClick={() =>
+   615→   615→                  toast(
+   616→   616→                    `Folder “${folder.name}” dibuka — ${folder.count} catatan`,
+   617→   617→                  )
+   618→   618→                }
+   619→   619→                onKeyDown={(e) => {
+   620→   620→                  if (e.key === 'Enter' || e.key === ' ') {
+   621→   621→                    e.preventDefault()
+   622→   622→                    toast(
+   623→   623→                      `Folder “${folder.name}” dibuka — ${folder.count} catatan`,
+   624→   624→                    )
+   625→   625→                  }
+   626→   626→                }}
+   627→   627→                className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-[#E4EFE0] p-4 transition-shadow duration-300 hover:shadow-[0_10px_24px_rgba(74,59,50,0.10)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+   628→   628→              >
+   629→   629→                <div className="flex items-start justify-between">
+   630→   630→                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#4A3B32]">
+   631→   631→                    <folder.icon
+   632→   632→                      className="h-[18px] w-[18px]"
+   633→   633→                      strokeWidth={1.8}
+   634→   634→                    />
+   635→   635→                  </span>
+   636→   636→                  <button
+   637→   637→                    type="button"
+   638→   638→                    aria-label={`Buat catatan baru di folder ${folder.name}`}
+   639→   639→                    onClick={(e) => {
+   640→   640→                      e.stopPropagation()
+   641→   641→                      toast(`Catatan baru di folder “${folder.name}”`)
+   642→   642→                    }}
+   643→   643→                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/70 text-[#4A3B32] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+   644→   644→                  >
+   645→   645→                    <Plus className="h-4 w-4" strokeWidth={2.5} />
+   646→   646→                  </button>
+   647→   647→                </div>
+   648→   648→                <span>
+   649→   649→                  <span className="block text-[15px] font-semibold leading-tight text-[#231F1E]">
+   650→   650→                    {folder.name}
+   651→   651→                  </span>
+   652→   652→                  <span className="mt-0.5 block text-xs font-medium text-[#4A3B32]/70">
+   653→   653→                    {folder.count} Catatan
+   654→   654→                  </span>
+   655→   655→                </span>
+   656→   656→              </motion.div>
+   657→   657→            ))}
+   658→   658→          </div>
+   659→   659→        </section>
+   660→   660→
+   661→   661→        {/* 3 — Kartu Catatan Tempel / Jurnal (masonry) */}
+   662→   662→        <section className="mt-8" aria-label="Jurnal catatan">
+   663→   663→          <SectionTitle title="Jurnal" hint={`${notes.length} catatan`} />
+   664→   664→          <div className="columns-2 gap-3">
+   665→   665→            {notes.map((n, i) => (
+   666→   666→              <motion.article
+   667→   667→                key={n.id}
+   668→   668→                initial={{ opacity: 0, y: 16 }}
+   669→   669→                whileInView={{ opacity: 1, y: 0 }}
+   670→   670→                viewport={{ once: true, margin: '-16px' }}
+   671→   671→                transition={{
+   672→   672→                  duration: 0.5,
+   673→   673→                  delay: (i % 2) * 0.07,
+   674→   674→                  ease: [0.22, 1, 0.36, 1],
+   675→   675→                }}
+   676→   676→                className={`mb-3 break-inside-avoid rounded-[14px] p-4 ${NOTE_TONES[n.tone]}`}
+   677→   677→              >
+   678→   678→                <div className="flex items-start justify-between gap-2">
+   679→   679→                  <h3 className={`${playfair.className} text-[15px] font-semibold leading-snug text-[#231F1E]`}>
+   680→   680→                    {n.title}
+   681→   681→                  </h3>
+   682→   682→                  {n.pinned ? (
+   683→   683→                    <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#4A3B32]/55" />
+   684→   684→                  ) : null}
+   685→   685→                </div>
+   686→   686→                <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-[#231F1E]/65">
+   687→   687→                  {n.body}
+   688→   688→                </p>
+   689→   689→                <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/75">
+   690→   690→                  {n.date}
+   691→   691→                </p>
+   692→   692→              </motion.article>
+   693→   693→            ))}
+   694→   694→          </div>
+   695→   695→        </section>
+   696→   696→      </main>
+   697→   697→
+   698→   698→      {/* Footer aplikasi */}
+   699→   699→      <footer className="mt-auto">
+   700→   700→        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-1.5 px-4 pb-10 pt-10 text-center">
+   701→   701→          <p className="flex items-center gap-1.5 text-[15px] font-bold tracking-tight text-[#4A3B32]">
+   702→   702→            <Leaf className="h-4 w-4 text-[#749B58]" />
+   703→   703→            rutina
+   704→   704→          </p>
+   705→   705→          <p className="text-xs font-medium text-[#4A3B32]/70">
+   706→   706→            Kebiasaan kecil, perubahan besar.
+   707→   707→          </p>
+   708→   708→          <button
+   709→   709→            type="button"
+   710→   710→            onClick={() => goToStyle(1)}
+   711→   711→            className="mt-2 cursor-pointer rounded-full border border-[#4A3B32]/15 px-3.5 py-1.5 text-[11px] font-bold text-[#4A3B32] transition-colors hover:border-[#749B58]/40 hover:text-[#231F1E]"
+   712→   712→          >
+   713→   713→            Jelajahi 3 gaya lainnya
+   714→   714→          </button>
+   715→   715→          <p className="mt-3 text-[10px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/50">
+   716→   716→            Earth Tone Edition — 2025
+   717→   717→          </p>
+   718→   718→        </div>
+   719→   719→      </footer>
+   720→   720→
+   721→   721→      {/* Dialog catatan baru */}
+   722→   722→      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+   723→   723→        <DialogContent className="max-w-sm rounded-[24px] border-[#4A3B321F] p-6">
+   724→   724→          <DialogHeader className="text-left">
+   725→   725→            <DialogTitle className="text-lg font-semibold tracking-tight text-[#231F1E]">
+   726→   726→              Catatan Baru
+   727→   727→            </DialogTitle>
+   728→   728→            <DialogDescription className="text-[13px] text-[#4A3B32]/70">
+   729→   729→              Simpan pikiran atau ide hari ini ke jurnal.
+   730→   730→            </DialogDescription>
+   731→   731→          </DialogHeader>
+   732→   732→          <div className="space-y-4">
+   733→   733→            <div className="space-y-1.5">
+   734→   734→              <Label
+   735→   735→                htmlFor="note-title"
+   736→   736→                className="text-[13px] font-semibold text-[#4A3B32]"
+   737→   737→              >
+   738→   738→                Judul
+   739→   739→              </Label>
+   740→   740→              <Input
+   741→   741→                id="note-title"
+   742→   742→                value={draft.title}
+   743→   743→                onChange={(e) =>
+   744→   744→                  setDraft((d) => ({ ...d, title: e.target.value }))
+   745→   745→                }
+   746→   746→                placeholder="mis. Ide pagi ini"
+   747→   747→                className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+   748→   748→              />
+   749→   749→            </div>
+   750→   750→            <div className="space-y-1.5">
+   751→   751→              <Label
+   752→   752→                htmlFor="note-body"
+   753→   753→                className="text-[13px] font-semibold text-[#4A3B32]"
+   754→   754→              >
+   755→   755→                Isi catatan
+   756→   756→              </Label>
+   757→   757→              <Textarea
+   758→   758→                id="note-body"
+   759→   759→                value={draft.body}
+   760→   760→                onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
+   761→   761→                placeholder="Tulis apa pun yang ada di kepalamu..."
+   762→   762→                className="min-h-[96px] resize-none rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+   763→   763→              />
+   764→   764→            </div>
+   765→   765→          </div>
+   766→   766→          <DialogFooter className="flex-row gap-2 pt-2">
+   767→   767→            <Button
+   768→   768→              type="button"
+   769→   769→              variant="ghost"
+   770→   770→              onClick={() => setDialogOpen(false)}
+   771→   771→              className="flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+   772→   772→            >
+   773→   773→              Batal
+   774→   774→            </Button>
+   775→   775→            <Button
+   776→   776→              type="button"
+   777→   777→              onClick={addNote}
+   778→   778→              className="flex-1 rounded-full bg-[#749B58] font-semibold text-white hover:bg-[#658A4C]"
+   779→   779→            >
+   780→   780→              <PenLine className="h-4 w-4" />
+   781→   781→              Simpan
+   782→   782→            </Button>
+   783→   783→          </DialogFooter>
+   784→   784→        </DialogContent>
+   785→   785→      </Dialog>
+   786→   786→    </div>
+   787→   787→  )
+   788→   788→}
+   789→   789→

@@ -15,21 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rutina — Kartu Harian & Eksplorasi Gaya",
+  title: "Rutina — Aplikasi Mobile Kebiasaan & Jurnal",
   description:
-    "Redesain total Rutina dalam palet earth tone: Kartu Harian, Split Screen, Bento Grid, dan Tipografi — dibangun dengan shadcn/ui, Motion, dan anime.js.",
+    "Rutina versi mobile: rutinitas harian, jurnal masonry, dan statistik mingguan dalam palet earth tone yang hangat — dibangun dengan shadcn/ui, Motion, dan anime.js.",
   keywords: [
     "Rutina",
+    "aplikasi mobile",
     "habit tracker",
     "kebiasaan",
-    "kartu harian",
+    "jurnal",
     "earth tone",
     "matcha green",
-    "jurnal",
     "mood tracker",
-    "split screen",
-    "bento grid",
-    "tipografi",
+    "statistik kebiasaan",
     "shadcn/ui",
     "Motion",
     "anime.js",
@@ -47,9 +45,9 @@ export const metadata: Metadata = {
     title: "Rutina",
   },
   openGraph: {
-    title: "Rutina — Kartu Harian & Eksplorasi Gaya",
+    title: "Rutina — Aplikasi Mobile Kebiasaan & Jurnal",
     description:
-      "Kartu Harian, Split Screen, Bento Grid, dan Tipografi dalam palet earth tone yang hangat.",
+      "Rutinitas harian, jurnal masonry, dan statistik mingguan dalam palet earth tone yang hangat.",
     siteName: "Rutina",
     type: "website",
   },

@@ -1,113 +1,29 @@
-'use client'
+import { RutinaApp } from '@/components/rutina-mobile/rutina-app'
 
-import { useCallback, useEffect, useState } from 'react'
-import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
-import { Columns2, LayoutGrid, NotebookPen, Type } from 'lucide-react'
-import BentoGrid from '@/components/landing/bento-grid'
-import DailyCards from '@/components/landing/daily-cards'
-import SplitScreen from '@/components/landing/split-screen'
-import TypographyDriven from '@/components/landing/typography-driven'
-
-const STYLES = [
-  {
-    id: 'cards',
-    label: 'Kartu Harian',
-    short: 'Kartu',
-    icon: NotebookPen,
-    Component: DailyCards,
-  },
-  { id: 'split', label: 'Split Screen', short: 'Split', icon: Columns2, Component: SplitScreen },
-  { id: 'bento', label: 'Bento Grid', short: 'Bento', icon: LayoutGrid, Component: BentoGrid },
-  { id: 'type', label: 'Tipografi', short: 'Tipe', icon: Type, Component: TypographyDriven },
-]
-
-export default function Home() {
-  const [active, setActive] = useState(0)
-  const { scrollY } = useScroll()
-  const hintOpacity = useTransform(scrollY, [0, 64], [1, 0])
-
-  const goTo = useCallback((i: number) => {
-    setActive(((i % STYLES.length) + STYLES.length) % STYLES.length)
-    window.scrollTo(0, 0)
-  }, [])
-
-  // Pintasan keyboard: 1–4 untuk lompat, panah kiri/kanan untuk berpindah
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key >= '1' && e.key <= String(STYLES.length)) goTo(Number(e.key) - 1)
-      if (e.key === 'ArrowRight') goTo(active + 1)
-      if (e.key === 'ArrowLeft') goTo(active - 1)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [active, goTo])
-
-  // Jembatan dari CTA di dalam gaya (mis. "Jelajahi gaya lain" -> pindah gaya)
-  useEffect(() => {
-    const handler = (e: Event) => goTo((e as CustomEvent<number>).detail)
-    window.addEventListener('rutina:goto', handler)
-    return () => window.removeEventListener('rutina:goto', handler)
-  }, [goTo])
-
-  const Current = STYLES[active].Component
-
+export default function Page() {
   return (
-    <main className="relative min-h-screen bg-[#F5F3EE]">
-      {/* Switcher gaya */}
-      <nav
-        aria-label="Pilih gaya landing page"
-        className="fixed inset-x-0 top-3 z-50 flex justify-center overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-[#E9E5DC] bg-white/90 p-1 shadow-lg shadow-[#4A3B32]/10 backdrop-blur">
-          {STYLES.map((s, i) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => goTo(i)}
-              className={`relative flex h-9 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
-                i === active ? 'text-white' : 'text-[#8A7D72] hover:text-[#231F1E]'
-              }`}
-            >
-              {i === active && (
-                <motion.span
-                  layoutId="style-pill"
-                  className="absolute inset-0 rounded-full bg-[#749B58]"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                />
-              )}
-              <s.icon className="relative z-10 h-3.5 w-3.5" />
-              <span className="relative z-10 hidden sm:inline">{s.label}</span>
-              <span className="relative z-10 sm:hidden">{s.short}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
+    <main className="relative flex min-h-dvh w-full flex-col items-center justify-center gap-6 overflow-hidden bg-[#F5F3EE] sm:py-10">
+      {/* Cahaya ambien lembut di latar (mode desktop) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-[#E4EFE0]/70 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-48 -right-32 h-[34rem] w-[34rem] rounded-full bg-[#749B58]/15 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[42rem] w-[42rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#EAE5D9]/50 blur-3xl"
+      />
 
-      {/* Petunjuk keyboard — memudar saat halaman digulir */}
-      <motion.p
-        style={{ opacity: hintOpacity }}
-        className="pointer-events-none fixed inset-x-0 top-[60px] z-40 hidden justify-center text-center font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-white mix-blend-difference sm:flex"
-      >
-        Tekan 1–{STYLES.length} atau panah kiri/kanan untuk pindah gaya
-      </motion.p>
+      <p className="hidden text-[11px] font-bold uppercase tracking-[0.38em] text-[#4A3B32]/50 sm:block">
+        Rutina — Pratinjau Aplikasi Mobile
+      </p>
 
-      {/* Konten gaya aktif */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={STYLES[active].id}
-          initial={{ opacity: 0, y: 26 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -18 }}
-          transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <Current />
-        </motion.div>
-      </AnimatePresence>
-
-      {/* HUD penanda gaya aktif */}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-50 hidden font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-white mix-blend-difference sm:block">
-        {String(active + 1).padStart(2, '0')} / {String(STYLES.length).padStart(2, '0')} —{' '}
-        {STYLES[active].label}
+      {/* Bingkai ponsel di desktop; layar penuh di perangkat mobile */}
+      <div className="relative h-dvh w-full overflow-hidden bg-[#F5F3EE] sm:h-[min(840px,84vh)] sm:w-[400px] sm:rounded-[3rem] sm:border-[10px] sm:border-[#14100D] sm:shadow-[0_60px_120px_-40px_rgba(35,31,30,0.5)]">
+        <RutinaApp />
       </div>
     </main>
   )
