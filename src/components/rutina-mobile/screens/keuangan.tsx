@@ -5,6 +5,7 @@ import { animate } from 'animejs'
 import {
   AnimatePresence,
   motion,
+  useSpring,
   type Variants,
 } from 'motion/react'
 import {
@@ -13,6 +14,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Laptop,
+  Nfc,
   Plane,
   PiggyBank,
   Plus,
@@ -36,7 +38,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
-import { BlurFade, ShineBorder } from '../motion-kit'
+import { BlurFade, ShineBorder, Spotlight } from '../motion-kit'
 import {
   BUDGETS,
   useRutina,
@@ -84,12 +86,13 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   const C = 2 * Math.PI * R
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, ease: EASE, delay: index * 0.07 }}
-      className="w-[188px] shrink-0 snap-start rounded-[22px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink"
-    >
+    <Spotlight className="w-[188px] shrink-0 snap-start rounded-[22px]">
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: EASE, delay: index * 0.07 }}
+        className="h-full rounded-[22px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink"
+      >
       <div className="flex items-center gap-3.5">
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
           <svg viewBox="0 0 56 56" className="absolute inset-0 h-full w-full -rotate-90">
@@ -150,7 +153,8 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
           Tambah
         </button>
       )}
-    </motion.div>
+      </motion.div>
+    </Spotlight>
   )
 }
 
@@ -308,6 +312,126 @@ function TxRow({ tx }: { tx: Tx }) {
   )
 }
 
+/* ===== Kartu saldo gaya kartu bank (pattern credit card) =====
+   Tilt 3D halus mengikuti kursor + sapuan kilau ShineBorder. */
+
+function SaldoCard({
+  saldo,
+  saldoRef,
+  onAdd,
+}: {
+  saldo: number
+  saldoRef: React.RefObject<HTMLSpanElement | null>
+  onAdd: () => void
+}) {
+  /* Tilt 3D — hanya untuk pointer presisi (mouse); sentuhan tetap datar
+     agar tidak mengganggu gulir. */
+  const rx = useSpring(0, { stiffness: 260, damping: 22 })
+  const ry = useSpring(0, { stiffness: 260, damping: 22 })
+
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse') return
+    const r = e.currentTarget.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    ry.set(px * 7)
+    rx.set(-py * 7)
+  }
+  const onLeave = () => {
+    rx.set(0)
+    ry.set(0)
+  }
+
+  return (
+    <motion.div
+      role="button"
+      tabIndex={0}
+      aria-label={`Kartu saldo Rutina Vault, saldo ${formatIDR(saldo)}. Ketuk untuk menambah transaksi.`}
+      onClick={onAdd}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onAdd()
+        }
+      }}
+      onPointerMove={onMove}
+      onPointerLeave={onLeave}
+      whileTap={{ scale: 0.985 }}
+      style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
+      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#31281F_0%,#423425_46%,#282019_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+    >
+      <ShineBorder borderWidth={1.5} duration={7} shineColor={['#D9B98C', '#A3C489']} />
+
+      {/* Cahaya emas lembut dari sudut kiri atas */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-[#D9B98C]/12 blur-3xl"
+      />
+
+      {/* Baris merek + NFC */}
+      <div className="relative z-10 flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.26em] text-[#D9B98C]">
+          <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
+          Rutina Vault
+        </p>
+        <Nfc className="h-4 w-4 text-[#FAF9F6]/40" aria-hidden="true" />
+      </div>
+
+      {/* Chip + saldo */}
+      <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          {/* Chip emas bergaya SIM */}
+          <svg
+            viewBox="0 0 34 26"
+            aria-hidden="true"
+            className="h-[24px] w-[32px] rounded-[6px]"
+          >
+            <rect width="34" height="26" rx="6" fill="#D9B98C" />
+            <path
+              d="M11 0v8H0M11 26v-8H0M23 0v8h11M23 26v-8h11M11 8h12v10H11z"
+              fill="none"
+              stroke="#A98650"
+              strokeWidth="1.4"
+            />
+          </svg>
+          <p className="mt-2.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[#FAF9F6]/50">
+            Saldo Tersedia
+          </p>
+          <div className="mt-0.5 flex items-baseline gap-1">
+            <span className="text-[19px] font-bold text-[#D9B98C]">Rp</span>
+            <span
+              ref={saldoRef}
+              className="text-[31px] font-bold leading-none tabular-nums text-[#FAF9F6]"
+            >
+              <Counter to={saldo} />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Nomor samar + pemegang */}
+      <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-[8.5px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/40">
+            Nomor Kartu
+          </p>
+          <p className="mt-0.5 text-[13px] font-semibold tracking-[0.22em] text-[#FAF9F6]/85">
+            •••• •••• •••• 4821
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[8.5px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/40">
+            Pemegang
+          </p>
+          <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-[#E9D5B8]">
+            ANANDA
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 /* ===== Layar utama ===== */
 
 const PERIODS: { id: FinPeriod; label: string }[] = [
@@ -387,34 +511,20 @@ export default function KeuanganScreen() {
       {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
           masuk viewport — pengganti staggervariants statis. */}
       <div className="flex flex-col gap-5">
-        {/* ===== Kepala: saldo + tombol tambah ===== */}
-        <BlurFade className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#FAF9F6]/60">
-              Saldo Tersedia
-            </p>
-            <div className="mt-1.5 flex items-baseline gap-1">
-              <span className="text-[20px] font-bold text-[#D9B98C]">Rp</span>
-              <span
-                ref={saldoRef}
-                className="text-[34px] font-bold leading-none tabular-nums text-[#FAF9F6]"
-              >
-                <Counter to={saldo} />
-              </span>
-            </div>
-            <p className="mt-1.5 text-[11.5px] text-[#FAF9F6]/60">
-              Juni 2025 · pemasukan dikurangi pengeluaran
-            </p>
+        {/* ===== Kepala: kartu saldo gaya bank + FAB tambah ===== */}
+        <BlurFade>
+          <div className="relative">
+            <motion.button
+              type="button"
+              onClick={openTxSheet}
+              whileTap={{ scale: 0.88 }}
+              aria-label="Tambah transaksi baru"
+              className="absolute -top-3 right-4 z-20 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-[#D9B98C] text-[#4A3B32] shadow-gold transition-colors hover:bg-[#E9D5B8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+            >
+              <Plus className="h-5 w-5" strokeWidth={2.6} />
+            </motion.button>
+            <SaldoCard saldo={saldo} saldoRef={saldoRef} onAdd={openTxSheet} />
           </div>
-          <motion.button
-            type="button"
-            onClick={openTxSheet}
-            whileTap={{ scale: 0.88 }}
-            aria-label="Tambah transaksi baru"
-            className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#D9B98C] text-[#4A3B32] shadow-gold transition-colors hover:bg-[#E9D5B8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
-          >
-            <Plus className="h-5 w-5" strokeWidth={2.6} />
-          </motion.button>
         </BlurFade>
 
         {/* ===== Chip totals per periode ===== */}

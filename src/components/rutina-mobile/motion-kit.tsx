@@ -250,3 +250,51 @@ export function SplitText({
     </motion.span>
   )
 }
+
+/* ------------------------------------------------------------------ */
+/* Spotlight — sorotan radial mengikuti kursor/sentuhan di dalam       */
+/* kartu. Sumber: cult-ui "SpotlightCard" (7.5k ★) & magicui Spotlight */
+/* ------------------------------------------------------------------ */
+
+interface SpotlightProps {
+  children: ReactNode
+  className?: string
+  /** Warna sorotan (rgba). */
+  color?: string
+  /** Radius sorotan (px). */
+  size?: number
+}
+
+export function Spotlight({
+  children,
+  className,
+  color = 'rgba(217, 185, 140, 0.22)',
+  size = 220,
+}: SpotlightProps) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    el.style.setProperty('--spot-x', `${e.clientX - r.left}px`)
+    el.style.setProperty('--spot-y', `${e.clientY - r.top}px`)
+  }
+
+  return (
+    <div
+      ref={ref}
+      onPointerMove={onMove}
+      className={cn('group/spot relative overflow-hidden rounded-[inherit]', className)}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[5] rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover/spot:opacity-100"
+        style={{
+          background: `radial-gradient(${size}px circle at var(--spot-x, 50%) var(--spot-y, 50%), ${color}, transparent 70%)`,
+        }}
+      />
+      {children}
+    </div>
+  )
+}
