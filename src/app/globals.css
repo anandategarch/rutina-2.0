@@ -129,3 +129,11 @@
     display: none;
   }
 }
+
+/* Split screen (lg+): pusatkan toast di panel kanan (preview ponsel),
+   bukan di tengah jendela, agar tidak menabrak panel narasi kiri. */
+@media (min-width: 1024px) {
+  ol[data-sonner-toaster] {
+    left: 75% !important;
+  }
+}

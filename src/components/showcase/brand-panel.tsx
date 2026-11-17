@@ -139,7 +139,9 @@ export function BrandPanel() {
           Satu halaman, empat pilar: palet earth tone yang menenangkan,
           komposisi split screen, dasbor bento grid, dan tipografi editorial.
           Ponsel di sebelah kanan bukan gambar — centang tugasnya, tulis
-          catatannya, rasakan gerakannya.
+          catatannya, rasakan gerakannya. Pil di atasnya membalik kanvas:
+          cobalah varian <span className="font-bold">Gamified</span> (Espresso)
+          dan <span className="font-bold">Clean</span> (Matcha).
         </motion.p>
 
         {/* Bento prinsip */}

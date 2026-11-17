@@ -11,7 +11,7 @@
 | **Tanggal** | 17 November 2026 |
 | **Pemilik** | Tim Desain & Engineering Rutina |
 
-> **Aturan pengiriman (non-negosiabel):** deliverable ini hanya berupa *preview* pada panel pratinjau lokal. **Repo asli tidak boleh di-`git push` atau diubah strukturnya.**
+> **Aturan pengiriman:** deliverable dipush ke repo **baru** [`anandategarch/rutina-2.0`](https://github.com/anandategarch/rutina-2.0) atas permintaan pemilik (17 Nov 2026). **Repo asli tetap tidak disentuh** — tidak ada `git push` maupun perubahan struktur pada repo rutina lama.
 
 ---
 
@@ -43,7 +43,7 @@ Pertanyaan kunci yang dijawab dokumen ini: *"Bisakah split screen, tipografi, da
 
 - Backend / persistensi data (semua state bersifat demo di memori).
 - Dark mode aplikasi (preview fokus light earth tone).
-- Penulisan ke repo asli / deployment — **dilarang push**.
+- Penulisan ke repo asli / deployment — **dilarang push** (pengecualian: repo preview baru `rutina-2.0` atas permintaan eksplisit pemilik).
 - Pengujian otomatis (unit test) — verifikasi manual + browser.
 
 ---
@@ -65,6 +65,8 @@ Pertanyaan kunci yang dijawab dokumen ini: *"Bisakah split screen, tipografi, da
 | A5 | Menekan "Simpan ke Jurnal" pada kartu kutipan | Tombol berubah "Tersimpan", kutipan masuk jurnal |
 | A6 | Menavigasi 4 tab (Beranda / Jurnal / Statistik / Profil) | Pil aktif meluncur (layout animation), konten crossfade |
 | A7 | Menyematkan (pin) kartu jurnal, membaca catatan, menghapus | State tersinkron antar layar |
+| A8 | Mengganti varian lewat sakelar pil (Bento / Gamified / Clean) | Pil aktif berwarna kanvas varian; konten ponsel crossfade; state tugas tetap tersinkron antar varian |
+| A9 | Varian Gamified: menuntaskan misi & klaim bonus hingga XP ≥ 2.400 | Ring XP terisi penuh, level naik ke 8, konfeti + toast |
 
 ---
 
@@ -240,7 +242,19 @@ Skala (mobile):
 
 ### 6.9 Pendukung
 
-- **StatusBar**: jam live deterministik, indikator; **BottomNav**: 4 tab + pil aktif layout animation; **ComposeSheet/ReadingSheet**: sheet bawah dengan drag handle; **Splash**: wordmark serif + reveal; **Celebration**: confeti saat semua tugas selesai.
+- **StatusBar**: jam live deterministik, indikator — kini menerima prop `tone` (`sand` / `espresso` / `matcha`) agar mengikuti kanvas varian; **BottomNav**: 4 tab + pil aktif layout animation; **ComposeSheet/ReadingSheet**: sheet bawah dengan drag handle; **Splash**: wordmark serif + reveal; **Celebration**: confeti saat semua tugas selesai — kini melepas diri sendiri (timeout 2,5 detik) sehingga diwarisi semua varian.
+
+### 6.10 Penjelajah Varian Hero (Variant Explorer) — BARU
+
+Sakelar pil di atas bingkai ponsel (alur normal `sm+`; mengambang & `fixed` di `max-sm:`) mengganti seluruh isi ponsel antar tiga varian desain. **Pil tab aktif sendiri mengambil warna kanvas varian** (Sand / Espresso / Matcha) — tab tidak selalu putih. Cahaya ambien panel kanan ikut bertransisi (`transition-colors` 700ms).
+
+| # | Varian | Kanvas (pembalikan) | Anatomi | Interaksi kunci |
+|---|---|---|---|---|
+| 01 | **Bento Grid** (aplikasi penuh) | Warm Sand `#F5F3EE` | layar Beranda/Jurnal/Statistik/Profil + bottom nav (spesifikasi 6.1–6.8) | A1–A7 |
+| 02 | **Gamified & Interactive Hero** | **Espresso `#4A3B32` jadi latar**; kartu Deep Espresso; aksen Matcha & `#A3C489` | header pemain (avatar, chip LV) → **ring XP SVG** (r 86, spring strokeDashoffset; Level + XP Counter) → daftar misi (chip +80 XP, pop "+80 XP" melayang) → kartu streak → 4 lencana (terbuka/terkunci) → bar bawah (XP live + Klaim +120) | centang misi → ring & XP bereaksi; semua misi + klaim → XP ≥ 2.400 → naik Level 8 + confeti; tap lencana → toast |
+| 03 | **Clean Centered / Typography + Floating Widgets** | **Matcha `#749B58` jadi latar**; teks & serif `#FAF9F6`; kartu putih | wordmark → eyebrow tanggal → sapaan Playfair italic + nama → **angka persen serif 76px (Counter)** → 3 widget putih melayang (streak/fokus/jurnal; rotasi −5°…+4°, osilasi y 8px, spring masuk) → daftar tugas kartu putih → kutipan kartu garis transparan → CTA Espresso | centang tugas → persen bereaksi; widget melayang bisa diketuk (toast); Simpan ke Jurnal & Catatan Baru terhubung store |
+
+Ketiga varian berbagi satu store Zustand (`useRutina`) — tugas yang dicentang di satu varian tetap tersinkron saat berpindah. Varian 02 & 03 adalah **konsep satu layar** (tanpa bottom nav) untuk eksplorasi arah desain; sheet composer, reader, dan overlay perayaan tetap tersedia di semua varian.
 
 ---
 
@@ -269,15 +283,20 @@ Skala (mobile):
 src/
 ├─ app/
 │  ├─ layout.tsx            # font, metadata, Toaster
-│  └─ page.tsx              # split screen: BrandPanel + preview ponsel
+│  └─ page.tsx              # split screen: BrandPanel + PreviewStage
 ├─ components/
 │  ├─ showcase/
-│  │  └─ brand-panel.tsx    # panel kiri (tipografi + bento prinsip) — BARU
+│  │  ├─ brand-panel.tsx    # panel kiri (tipografi + bento prinsip)
+│  │  └─ preview-stage.tsx  # panel kanan: sakelar varian + panggung ponsel — BARU
 │  └─ rutina-mobile/
-│     ├─ rutina-app.tsx     # cangkang aplikasi + MotionConfig
+│     ├─ rutina-app.tsx     # cangkang aplikasi (prop skipSplash)
+│     ├─ status-bar.tsx     # prop tone: sand/espresso/matcha — DIPERLUAS
+│     ├─ variants/          # — BARU
+│     │  ├─ gamified-hero.tsx      # varian 02, kanvas Espresso
+│     │  └─ clean-typography.tsx   # varian 03, kanvas Matcha
 │     ├─ store.ts           # zustand + data demo deterministik
-│     ├─ focus-widget.tsx   # widget bento fokus — BARU
-│     ├─ streak-widget.tsx  # widget bento streak — BARU
+│     ├─ focus-widget.tsx   # widget bento fokus
+│     ├─ streak-widget.tsx  # widget bento streak
 │     ├─ screens/           # beranda, jurnal, statistik, profil
 │     └─ ...                # task-row, bottom-nav, sheet, dsb.
 docs/
@@ -291,7 +310,8 @@ docs/
 - [ ] `bun run lint` bersih tanpa peringatan baru.
 - [ ] Desktop 1440px: split screen 50:50; kedua panel scroll mandiri; ponsel interaktif penuh.
 - [ ] 390px: panel kiri hilang; aplikasi full-bleed; **nol** overflow horizontal; **nol** error console.
-- [ ] Semua alur emas A1–A7 berjalan (centang → progress, catatan baru → jurnal, kutipan tersimpan, navigasi tab, pin).
+- [ ] Semua alur emas A1–A9 berjalan (centang → progress, catatan baru → jurnal, kutipan tersimpan, navigasi tab, pin, ganti varian, naik level di varian Gamified).
+- [ ] Sakelar varian: pil aktif berwarna kanvas (Sand/Espresso/Matcha); transisi crossfade 280ms; splash hanya sekali; state tugas sinkron antar varian.
 - [ ] Batang anime.js tumbuh saat terlihat; angka counter spring; confetti saat 100%.
 - [ ] Kontras teks utama AA; semua interaksi ada focus ring.
 - [ ] Data demo deterministik (tanpa `Math.random`), aman SSR/hydration.
@@ -306,7 +326,7 @@ docs/
 
 | Risiko | Mitigasi |
 |---|---|
-| Split screen memakan ruang di layar pendek | Panel scroll mandiri + ponsel `h-[min(840px,84vh)]` |
+| Split screen memakan ruang di layar pendek | Panel scroll mandiri + ponsel `h-[min(840px,calc(100dvh-235px))]` (mengompensasi sakelar varian + caption) |
 | Hydration mismatch (tanggal/jam) | `useSyncExternalStore` dengan snapshot server kosong |
 | MotionValue sebagai child React (crash) | Selalu lewat `<Counter>` / state string |
 | anime.js v4 API berbeda (ease, cleanup) | ease string id; `anim.revert()` di cleanup; tanpa `setDashoffset` |

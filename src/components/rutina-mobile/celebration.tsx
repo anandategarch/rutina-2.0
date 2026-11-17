@@ -1,7 +1,10 @@
 'use client'
 
+import { useEffect } from 'react'
 import { motion } from 'motion/react'
 import { Check } from 'lucide-react'
+
+import { useRutina } from './store'
 
 /**
  * Perayaan konfeti saat semua tugas selesai.
@@ -22,6 +25,16 @@ const PIECES = Array.from({ length: 28 }, (_, i) => ({
 }))
 
 export function CelebrationOverlay({ active }: { active: boolean }) {
+  // Perayaan berakhir otomatis setelah partikel konfeti selesai jatuh —
+  // dipusatkan di sini agar setiap varian layar mewarisinya.
+  const setCelebrating = useRutina((s) => s.setCelebrating)
+
+  useEffect(() => {
+    if (!active) return
+    const t = setTimeout(() => setCelebrating(false), 2500)
+    return () => clearTimeout(t)
+  }, [active, setCelebrating])
+
   if (!active) return null
 
   return (

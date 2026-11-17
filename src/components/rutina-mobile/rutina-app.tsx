@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
 import { useRutina } from './store'
 import { StatusBar } from './status-bar'
@@ -14,18 +14,12 @@ import JournalScreen from './screens/journal'
 import StatsScreen from './screens/stats'
 import ProfileScreen from './screens/profile'
 
-export function RutinaApp() {
+export function RutinaApp({ skipSplash = false }: { skipSplash?: boolean }) {
   const screen = useRutina((s) => s.screen)
   const celebrating = useRutina((s) => s.celebrating)
-  const setCelebrating = useRutina((s) => s.setCelebrating)
-  const [phase, setPhase] = useState<'splash' | 'app'>('splash')
-
-  // Perayaan berakhir otomatis setelah partikel konfeti selesai jatuh
-  useEffect(() => {
-    if (!celebrating) return
-    const t = setTimeout(() => setCelebrating(false), 2500)
-    return () => clearTimeout(t)
-  }, [celebrating, setCelebrating])
+  const [phase, setPhase] = useState<'splash' | 'app'>(
+    skipSplash ? 'app' : 'splash',
+  )
 
   return (
     <MotionConfig reducedMotion="user">
