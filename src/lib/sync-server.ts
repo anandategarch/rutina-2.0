@@ -1,0 +1,407 @@
+import { db, isTurso } from '@/lib/db'
+import {
+  SYNC_SETTING_KEYS,
+  type SyncState,
+  type HabitWire,
+  type NoteWire,
+  type TxWire,
+  type WorkoutWire,
+  type FoodEntryWire,
+} from '@/lib/sync-schema'
+
+/* =====================================================================
+ * Lapisan baca/tulis snapshot penuh — dipakai GET/PUT /api/state.
+ *
+ * Kebijakan data (aplikasi personal, satu pengguna):
+ *  - PUT /api/state mengganti seluruh isi tabel rutina_* dalam SATU
+ *    transaksi array (deleteMany → createMany) lalu menandai
+ *    sync.initialized — sehingga snapshot server selalu konvergen
+ *    dengan state klien terakhir yang menulis.
+ *  - GET /api/state melaporkan `initialized` — klien baru memakainya
+ *    untuk memutuskan: server-menang (tarik) atau unggah lokal.
+ * ===================================================================== */
+
+export interface FullStateResult {
+  initialized: boolean
+  state: SyncState | null
+  backend: 'turso' | 'sqlite-local'
+  syncedAt: string | null
+}
+
+function parseSchedule(json: string): number[] {
+  try {
+    const parsed = JSON.parse(json)
+    return Array.isArray(parsed) ? (parsed as number[]) : []
+  } catch {
+    return []
+  }
+}
+
+function parseSets(json: string): WorkoutWire['sets'] {
+  try {
+    const parsed = JSON.parse(json)
+    return Array.isArray(parsed) ? (parsed as WorkoutWire['sets']) : []
+  } catch {
+    return []
+  }
+}
+
+/* ===== Baca snapshot penuh ===== */
+
+export async function readFullState(): Promise<FullStateResult> {
+  const [
+    habits,
+    logs,
+    notes,
+    wallets,
+    txs,
+    budgets,
+    goals,
+    workouts,
+    foods,
+    bodyLogs,
+    settings,
+  ] = await Promise.all([
+    db.habit.findMany(),
+    db.habitLog.findMany(),
+    db.journalNote.findMany(),
+    db.wallet.findMany(),
+    db.transaction.findMany(),
+    db.budget.findMany(),
+    db.goal.findMany(),
+    db.workoutSession.findMany(),
+    db.foodEntry.findMany(),
+    db.bodyLog.findMany(),
+    db.appSetting.findMany(),
+  ])
+
+  const settingsMap = new Map(settings.map((s) => [s.key, s.value]))
+  const initialized =
+    settingsMap.get(SYNC_SETTING_KEYS.initialized) === 'true'
+
+  const result: FullStateResult = {
+    initialized: false,
+    state: null,
+    backend: isTurso ? 'turso' : 'sqlite-local',
+    syncedAt: settingsMap.get(SYNC_SETTING_KEYS.lastPushAt) ?? null,
+  }
+  if (!initialized) return result
+
+  /* completions[tanggal][habitId] = true */
+  const completions: SyncState['completions'] = {}
+  for (const log of logs) {
+    ;(completions[log.date] ??= {})[log.habitId] = true
+  }
+
+  /* bodyLogs[tanggal] */
+  const bodyLogMap: SyncState['bodyLogs'] = {}
+  for (const b of bodyLogs) {
+    bodyLogMap[b.date] = {
+      water: b.water,
+      weight: b.weight ?? null,
+      sleepH: b.sleepH ?? null,
+      energy: b.energy ?? null,
+    }
+  }
+
+  const habitWires: HabitWire[] = habits.map((h) => ({
+    id: h.id,
+    title: h.title,
+    desc: h.desc,
+    cat: h.cat,
+    schedule: parseSchedule(h.schedule),
+    weeklyTarget: h.weeklyTarget,
+    reminder: h.reminder ?? null,
+    archived: h.archived,
+    createdAt: h.createdAt,
+  }))
+
+  const noteWires: NoteWire[] = notes.map((n) => ({
+    id: n.id,
+    title: n.title,
+    body: n.body,
+    date: n.date,
+    pinned: n.pinned,
+    tone: n.tone,
+    folder: n.folder,
+  }))
+
+  const txWires: TxWire[] = txs.map((t) => ({
+    id: t.id,
+    type: t.type as TxWire['type'],
+    cat: t.cat,
+    amount: t.amount,
+    note: t.note,
+    ts: t.ts,
+    walletId: t.walletId ?? null,
+    toWalletId: t.toWalletId ?? null,
+    recurrence: (t.recurrence as TxWire['recurrence']) ?? null,
+    recurOf: t.recurOf ?? null,
+  }))
+
+  const workoutWires: WorkoutWire[] = workouts.map((w) => ({
+    id: w.id,
+    kind: w.kind as WorkoutWire['kind'],
+    date: w.date,
+    duration: w.duration,
+    note: w.note,
+    sets: parseSets(w.sets),
+    distance: w.distance ?? null,
+  }))
+
+  const foodWires: FoodEntryWire[] = foods.map((f) => ({
+    id: f.id,
+    date: f.date,
+    name: f.name,
+    cat: f.cat,
+    unit: f.unit,
+    portion: f.portion,
+    meal: f.meal,
+    kcal: f.kcal,
+    protein: f.protein ?? null,
+    carb: f.carb ?? null,
+    fat: f.fat ?? null,
+  }))
+
+  const moodRaw = settingsMap.get(SYNC_SETTING_KEYS.mood)
+
+  result.initialized = true
+  result.state = {
+    demoMode: settingsMap.get(SYNC_SETTING_KEYS.demoMode) !== 'false',
+    habits: habitWires,
+    completions,
+    notes: noteWires,
+    txs: txWires,
+    goals: goals.map((g) => ({
+      id: g.id,
+      name: g.name,
+      target: g.target,
+      saved: g.saved,
+    })),
+    wallets: wallets.map((w) => ({ id: w.id, name: w.name, initial: w.initial })),
+    budgets: Object.fromEntries(budgets.map((b) => [b.cat, b.amount])),
+    workouts: workoutWires,
+    foodEntries: foodWires,
+    calorieTarget: Number(settingsMap.get(SYNC_SETTING_KEYS.calorieTarget) ?? 2000),
+    bodyLogs: bodyLogMap,
+    dailyGoal: Number(settingsMap.get(SYNC_SETTING_KEYS.dailyGoal) ?? 4),
+    mood: moodRaw && moodRaw.length > 0 ? moodRaw : null,
+    bonusClaimed: settingsMap.get(SYNC_SETTING_KEYS.bonusClaimed) === 'true',
+    quoteSaved: settingsMap.get(SYNC_SETTING_KEYS.quoteSaved) === 'true',
+  }
+  return result
+}
+
+/* ===== Tulis snapshot penuh (transaksi tunggal) ===== */
+
+export interface WriteCounts {
+  habits: number
+  habitLogs: number
+  notes: number
+  wallets: number
+  transactions: number
+  budgets: number
+  goals: number
+  workouts: number
+  foodEntries: number
+  bodyLogs: number
+}
+
+export async function writeFullState(state: SyncState): Promise<WriteCounts> {
+  /* Log hanya untuk kebiasaan yang masih ada (jaga FK habitId → habit.id). */
+  const habitIds = new Set(state.habits.map((h) => h.id))
+  const logRows: { habitId: string; date: string }[] = []
+  for (const [date, day] of Object.entries(state.completions)) {
+    for (const [habitId, done] of Object.entries(day)) {
+      if (done && habitIds.has(habitId)) logRows.push({ habitId, date })
+    }
+  }
+
+  const bodyLogRows = Object.entries(state.bodyLogs).map(([date, b]) => ({
+    date,
+    water: b.water,
+    weight: b.weight ?? null,
+    sleepH: b.sleepH ?? null,
+    energy: b.energy ?? null,
+  }))
+
+  const budgetRows = Object.entries(state.budgets).map(([cat, amount]) => ({
+    cat,
+    amount,
+  }))
+
+  const now = new Date().toISOString()
+  const settingRows = [
+    { key: SYNC_SETTING_KEYS.demoMode, value: String(state.demoMode) },
+    { key: SYNC_SETTING_KEYS.calorieTarget, value: String(state.calorieTarget) },
+    { key: SYNC_SETTING_KEYS.dailyGoal, value: String(state.dailyGoal) },
+    { key: SYNC_SETTING_KEYS.mood, value: state.mood ?? '' },
+    { key: SYNC_SETTING_KEYS.bonusClaimed, value: String(state.bonusClaimed) },
+    { key: SYNC_SETTING_KEYS.quoteSaved, value: String(state.quoteSaved) },
+    { key: SYNC_SETTING_KEYS.initialized, value: 'true' },
+    { key: SYNC_SETTING_KEYS.lastPushAt, value: now },
+  ]
+
+  /* Transaksi array: semua operasi dalam satu batch atomik — urutan
+     deleteMany (log dulu, karena FK ke habit) → createMany → upsert. */
+  await db.$transaction([
+    db.habitLog.deleteMany(),
+    db.habit.deleteMany(),
+    db.journalNote.deleteMany(),
+    db.wallet.deleteMany(),
+    db.transaction.deleteMany(),
+    db.budget.deleteMany(),
+    db.goal.deleteMany(),
+    db.workoutSession.deleteMany(),
+    db.foodEntry.deleteMany(),
+    db.bodyLog.deleteMany(),
+    ...(state.habits.length
+      ? [
+          db.habit.createMany({
+            data: state.habits.map((h) => ({
+              id: h.id,
+              title: h.title,
+              desc: h.desc,
+              cat: h.cat,
+              schedule: JSON.stringify(h.schedule),
+              weeklyTarget: h.weeklyTarget,
+              reminder: h.reminder,
+              archived: h.archived,
+              createdAt: h.createdAt,
+            })),
+          }),
+        ]
+      : []),
+    ...(logRows.length ? [db.habitLog.createMany({ data: logRows })] : []),
+    ...(state.notes.length
+      ? [
+          db.journalNote.createMany({
+            data: state.notes.map((n) => ({
+              id: n.id,
+              title: n.title,
+              body: n.body,
+              date: n.date,
+              pinned: n.pinned,
+              tone: n.tone,
+              folder: n.folder,
+            })),
+          }),
+        ]
+      : []),
+    ...(state.wallets.length
+      ? [
+          db.wallet.createMany({
+            data: state.wallets.map((w) => ({
+              id: w.id,
+              name: w.name,
+              initial: w.initial,
+            })),
+          }),
+        ]
+      : []),
+    ...(state.txs.length
+      ? [
+          db.transaction.createMany({
+            data: state.txs.map((t) => ({
+              id: t.id,
+              type: t.type,
+              cat: t.cat,
+              amount: t.amount,
+              note: t.note,
+              ts: t.ts,
+              walletId: t.walletId ?? null,
+              toWalletId: t.toWalletId ?? null,
+              recurrence: t.recurrence ?? null,
+              recurOf: t.recurOf ?? null,
+            })),
+          }),
+        ]
+      : []),
+    ...(budgetRows.length ? [db.budget.createMany({ data: budgetRows })] : []),
+    ...(state.goals.length
+      ? [
+          db.goal.createMany({
+            data: state.goals.map((g) => ({
+              id: g.id,
+              name: g.name,
+              target: g.target,
+              saved: g.saved,
+            })),
+          }),
+        ]
+      : []),
+    ...(state.workouts.length
+      ? [
+          db.workoutSession.createMany({
+            data: state.workouts.map((w) => ({
+              id: w.id,
+              kind: w.kind,
+              date: w.date,
+              duration: w.duration,
+              note: w.note,
+              sets: JSON.stringify(w.sets),
+              distance: w.distance ?? null,
+            })),
+          }),
+        ]
+      : []),
+    ...(state.foodEntries.length
+      ? [
+          db.foodEntry.createMany({
+            data: state.foodEntries.map((f) => ({
+              id: f.id,
+              date: f.date,
+              name: f.name,
+              cat: f.cat,
+              unit: f.unit,
+              portion: f.portion,
+              meal: f.meal,
+              kcal: f.kcal,
+              protein: f.protein ?? null,
+              carb: f.carb ?? null,
+              fat: f.fat ?? null,
+            })),
+          }),
+        ]
+      : []),
+    ...(bodyLogRows.length ? [db.bodyLog.createMany({ data: bodyLogRows })] : []),
+    ...settingRows.map((s) =>
+      db.appSetting.upsert({
+        where: { key: s.key },
+        create: s,
+        update: { value: s.value },
+      }),
+    ),
+  ])
+
+  return {
+    habits: state.habits.length,
+    habitLogs: logRows.length,
+    notes: state.notes.length,
+    wallets: state.wallets.length,
+    transactions: state.txs.length,
+    budgets: budgetRows.length,
+    goals: state.goals.length,
+    workouts: state.workouts.length,
+    foodEntries: state.foodEntries.length,
+    bodyLogs: bodyLogRows.length,
+  }
+}
+
+/** Kosongkan seluruh tabel rutina_* (termasuk penanda initialized) —
+ *  dipakai skrip reset, bukan endpoint publik. */
+export async function resetAllData(): Promise<void> {
+  await db.$transaction([
+    db.habitLog.deleteMany(),
+    db.habit.deleteMany(),
+    db.journalNote.deleteMany(),
+    db.wallet.deleteMany(),
+    db.transaction.deleteMany(),
+    db.budget.deleteMany(),
+    db.goal.deleteMany(),
+    db.workoutSession.deleteMany(),
+    db.foodEntry.deleteMany(),
+    db.bodyLog.deleteMany(),
+    db.appSetting.deleteMany(),
+  ])
+}

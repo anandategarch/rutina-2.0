@@ -27,6 +27,7 @@ import { TransferSheet } from './finance/transfer-sheet'
 import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
 import { DesignBoard } from './design-board'
+import { useSyncEngine } from './sync-engine'
 import { WorkoutSheet } from './fitness/workout-sheet'
 import { FoodSheet } from './fitness/food-sheet'
 import { CONTENT_W } from './layout-widths'
@@ -88,15 +89,12 @@ export function RutinaApp() {
   const closeBoard = useRutina((s) => s.closeBoard)
   const [phase, setPhase] = useState<'splash' | 'app'>('splash')
 
-  /* Pulihkan state domain (persist) setelah mount — pola skipHydration
-     Next.js: render pertama memakai seed (identik dengan SSR), lalu
-     histori lokal pengguna mengambil alih tanpa hydration mismatch.
-     Setelah rehydrate: catat transaksi berulang yang jadwalnya tiba. */
-  useEffect(() => {
-    void Promise.resolve(useRutina.persist.rehydrate()).then(() => {
-      useRutina.getState().materializeRecurring()
-    })
-  }, [])
+  /* Mesin sinkronisasi cloud (Turso): pulihkan state persist paska-mount
+     (pola skipHydration — render pertama memakai seed, lalu histori lokal
+     mengambil alih tanpa hydration mismatch), tarik/unggah snapshot
+     server, lalu kirim setiap perubahan domain secara ter-debounce.
+     materializeRecurring dijalankan engine setelah sinkronisasi awal. */
+  useSyncEngine()
 
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
      kanan, mundur (-1) bila ke kiri. */

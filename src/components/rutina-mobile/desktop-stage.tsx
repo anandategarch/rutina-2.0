@@ -205,7 +205,7 @@ function BrandPanel() {
             Tanpa akun · tanpa iklan
           </p>
           <p className="mt-0.5 text-[12.5px] font-medium text-content-muted">
-            Data demo tersimpan lokal di perangkatmu.
+            Tersinkron otomatis ke cloud pribadimu.
           </p>
         </m.div>
 
@@ -333,15 +333,18 @@ export function DesktopStage() {
         <BrandPanel />
         <WidgetRail />
 
-        {/* Area aplikasi — meja lembut dengan cahaya ambien */}
-        <main className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden p-4 xl:p-8">
+        {/* Area aplikasi — meja lembut dengan cahaya ambien.
+            Padding bantal HANYA untuk bingkai ponsel desktop (lg+);
+            di ponsel nyata aplikasi harus full-bleed 100% — tanpa tepian
+            krem di sekelilingnya (bug "tidak full screen" di mobile). */}
+        <main className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden lg:p-4 xl:p-8">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
             <div className="absolute left-1/4 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-secondary/70 blur-3xl" />
             <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] translate-x-1/4 translate-y-1/4 rounded-full bg-surface-secondary blur-3xl" />
           </div>
 
           {/* Bingkai ponsel: full-bleed di bawah lg, bercasing di atas */}
-          <div className="relative h-dvh w-full overflow-hidden lg:h-[min(860px,94%)] lg:w-auto lg:aspect-[9/19] lg:rounded-[46px] lg:border-[10px] lg:border-espresso lg:bg-espresso lg:shadow-ink-deep">
+          <div className="relative h-full w-full overflow-hidden lg:h-[min(860px,94%)] lg:w-auto lg:aspect-[9/19] lg:rounded-[46px] lg:border-[10px] lg:border-espresso lg:bg-espresso lg:shadow-ink-deep">
             {/* Lubang kamera depan */}
             <div
               aria-hidden="true"

@@ -5,6 +5,7 @@ import * as m from 'motion/react-m'
 import {
   ArrowLeft,
   ChevronRight,
+  Cloud,
   Globe,
   HardDrive,
   Info,
@@ -62,6 +63,7 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import { motionTokens } from '@/lib/motion/tokens'
+import { syncStatus } from '../sync-engine'
 import {
   activeSinceISO,
   bestStreak,
@@ -86,7 +88,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Apakah data saya tersimpan otomatis?',
-    a: 'Ya. Rutina menyimpan catatan dan progres secara lokal di perangkatmu — tanpa perlu akun, tanpa internet.',
+    a: 'Ya. Setiap perubahan tersinkron otomatis ke cloud pribadimu (Turso) dan tetap tersimpan di perangkat sebagai cadangan offline — tanpa perlu akun, lanjut bekerja bahkan tanpa internet.',
   },
 ]
 
@@ -113,6 +115,16 @@ export default function ProfileScreen() {
   const openBoard = useRutina((s) => s.openBoard)
   const setScreen = useRutina((s) => s.setScreen)
   const [lang, setLang] = useState('id')
+
+  /* Status sinkronisasi cloud — dibaca dari meta engine (bukan state
+     React) lalu disegarkan berkala agar stempel waktu tetap hangat. */
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
+  useEffect(() => {
+    const refresh = () => setLastSyncedAt(syncStatus().lastSyncedAt)
+    refresh()
+    const timer = setInterval(refresh, 15_000)
+    return () => clearInterval(timer)
+  }, [])
 
   /* Easter egg developer: teks versi di footer diketuk 5× (rentang antar
      ketukan ≤ 2 detik) → buka papan sistem desain. Terlihat sebagai teks
@@ -225,7 +237,7 @@ export default function ProfileScreen() {
           Ananda
         </h2>
         <p className="mt-0.5 text-xs font-medium text-content-muted">
-          Profil lokal · data tersimpan di perangkat
+          Profil pribadi · tersinkron cloud
         </p>
         <div className="mt-3 flex items-center gap-2">
           <Badge
@@ -439,14 +451,32 @@ export default function ProfileScreen() {
               </p>
               <p className="text-[11px] font-medium text-content-muted">
                 {habits.length} kebiasaan · {notes.length} catatan ·{' '}
-                {txs.length} transaksi — tersimpan lokal di perangkat ini
+                {txs.length} transaksi — tersinkron otomatis ke cloud
               </p>
             </div>
+            <span
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-secondary px-2.5 py-1 text-[10.5px] font-bold text-success"
+              title={
+                lastSyncedAt
+                  ? `Terakhir tersinkron ${new Date(lastSyncedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Menunggu sinkronisasi pertama'
+              }
+            >
+              <Cloud className="h-3 w-3" />
+              {lastSyncedAt
+                ? new Date(lastSyncedAt).toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'Sinkron'}
+            </span>
           </div>
           <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[11.5px] leading-relaxed text-content-secondary">
-            Rutina bekerja tanpa akun dan tanpa server — seluruh catatanmu
-            hidup di penyimpanan perangkat ini dan tetap ada meski aplikasi
-            ditutup. Mulai dari awal akan menghapus semuanya secara permanen.
+            Rutina bekerja tanpa akun: setiap perubahan tersinkron otomatis
+            ke cloud pribadimu (Turso) dan tetap tersimpan di perangkat
+            sebagai cadangan offline — aplikasi tetap hidup tanpa internet.
+            Mulai dari awal akan menghapus semuanya secara permanen, di
+            perangkat maupun cloud.
           </p>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -465,8 +495,8 @@ export default function ProfileScreen() {
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-[12.5px] leading-relaxed text-content-muted">
                   Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
-                  tabungan akan dihapus permanen dari perangkat ini. Tindakan
-                  ini tidak bisa dibatalkan.
+                  tabungan akan dihapus permanen — dari perangkat ini dan
+                  penyimpanan cloud. Tindakan ini tidak bisa dibatalkan.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-row gap-2">
