@@ -25,6 +25,7 @@ import {
   type Workout,
 } from '../store'
 import { BlurFade } from '../motion-kit'
+import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import {
   bestE1rmIn,
   cardioSummary,
@@ -68,22 +69,22 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
         delay: Math.min(0.08 + index * 0.06, 0.3),
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-soft"
+      className="rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full cursor-pointer items-center gap-3.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        className="flex w-full cursor-pointer items-center gap-3.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E4EFE0] text-[#658A4C]">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-success">
           <Dumbbell className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold tracking-tight text-[#231F1E]">
+          <span className="block text-[15px] font-bold tracking-tight text-content-primary">
             {prog.name}
           </span>
-          <span className="mt-0.5 block truncate text-[11.5px] font-medium text-[#4A3B32]/70">
+          <span className="mt-0.5 block truncate text-[11.5px] font-medium text-content-muted">
             {prog.level} · {prog.freq} · ±{prog.dur} mnt
           </span>
         </span>
@@ -91,7 +92,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A3B32]/50"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-content-muted"
         >
           <ChevronDown className="h-4.5 w-4.5" />
         </m.span>
@@ -107,24 +108,24 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="mt-3 text-[12.5px] leading-relaxed text-[#4A3B32]/80">
+            <p className="mt-3 text-[12.5px] leading-relaxed text-content-muted">
               {prog.desc}
             </p>
-            <p className="mt-2 rounded-xl bg-[#F5F3EE] px-3.5 py-2.5 text-[11.5px] leading-relaxed text-[#4A3B32]/75">
-              <span className="font-bold text-[#658A4C]">Progresi: </span>
+            <p className="mt-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[11.5px] leading-relaxed text-content-muted">
+              <span className="font-bold text-success">Progresi: </span>
               {prog.prog}
             </p>
             <div className="mt-3 space-y-2.5">
               {prog.days.map((day) => (
                 <div
                   key={day.label}
-                  className="rounded-2xl border border-[#4A3B321F] bg-[#F5F3EE] p-3.5"
+                  className="rounded-2xl border border-border bg-surface-sunken p-3.5"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[13px] font-bold text-[#231F1E]">
+                    <p className="text-[13px] font-bold text-content-primary">
                       {day.label}
                     </p>
-                    <span className="flex items-center gap-1 text-[11px] font-semibold text-[#4A3B32]/65">
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-content-muted">
                       <Timer className="h-3 w-3" />
                       istirahat {day.rest}
                     </span>
@@ -135,10 +136,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                         key={e.name}
                         className="flex items-center justify-between gap-2 text-[12.5px]"
                       >
-                        <span className="min-w-0 flex-1 truncate font-medium text-[#4A3B32]/90">
+                        <span className="min-w-0 flex-1 truncate font-medium text-content-secondary/90">
                           {e.name}
                         </span>
-                        <span className="shrink-0 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[#658A4C]">
+                        <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-success">
                           {e.sets}×{e.reps}
                         </span>
                       </li>
@@ -155,7 +156,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                         })),
                       )
                     }
-                    className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#749B58] text-[12.5px] font-bold text-white transition-all hover:bg-[#658A4C] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-[12.5px] font-bold text-primary-foreground transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Mulai sesi {day.label}
@@ -195,17 +196,17 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
         delay: Math.min(index * 0.04, 0.2),
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="rounded-[18px] border border-[#4A3B3214] bg-white p-4 shadow-soft"
+      className="rounded-[18px] border border-border bg-surface-primary p-4 shadow-soft"
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        className="flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-            isStrength ? 'bg-[#E4EFE0] text-[#658A4C]' : 'bg-[#F3E8DC] text-[#B25E3F]'
+            isStrength ? 'bg-secondary text-success' : 'bg-destructive/10 text-content-danger'
           }`}
         >
           {isStrength ? (
@@ -215,16 +216,16 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-bold text-[#231F1E]">
+          <span className="block text-[13.5px] font-bold text-content-primary">
             {isStrength
               ? `Beban · ${w.sets.length} set`
               : `${w.kind === 'jalan' ? 'Jalan' : 'Lari'} · ${w.distance?.toFixed(1).replace('.', ',')} km`}
-            <span className="font-medium text-[#4A3B32]/55">
+            <span className="font-medium text-content-muted">
               {' '}
               — {shortDateLabel(w.date)}
             </span>
           </span>
-          <span className="mt-0.5 block text-[11.5px] font-medium tabular-nums text-[#4A3B32]/70">
+          <span className="mt-0.5 block text-[11.5px] font-medium tabular-nums text-content-muted">
             {isStrength
               ? `${Math.round(tonase).toLocaleString('id-ID')} kg tonase · e1RM ≈ ${best.toFixed(1).replace('.', ',')} kg`
               : `${w.duration} mnt${pace ? ` · pace ${pace}/km` : ''}`}
@@ -234,7 +235,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center text-[#4A3B32]/45"
+          className="flex h-7 w-7 shrink-0 items-center justify-center text-content-muted"
         >
           <ChevronDown className="h-4 w-4" />
         </m.span>
@@ -250,7 +251,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-3 rounded-xl bg-[#F5F3EE] p-3">
+            <div className="mt-3 rounded-xl bg-surface-sunken p-3">
               {isStrength ? (
                 <ul className="space-y-1.5">
                   {[...w.sets]
@@ -276,23 +277,23 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                         key={i}
                         className="flex items-center justify-between gap-2 text-[12.5px]"
                       >
-                        <span className="min-w-0 flex-1 truncate font-semibold text-[#4A3B32]">
+                        <span className="min-w-0 flex-1 truncate font-semibold text-content-secondary">
                           {g.exercise}
                         </span>
-                        <span className="shrink-0 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-[#658A4C]">
+                        <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-success">
                           {g.weight.toString().replace('.', ',')} kg × {g.reps} ({g.count} set)
                         </span>
                       </li>
                     ))}
                 </ul>
               ) : (
-                <p className="text-[12.5px] font-medium text-[#4A3B32]/85">
+                <p className="text-[12.5px] font-medium text-content-muted">
                   {w.kind === 'jalan' ? 'Jalan santai' : 'Lari'}{' '}
                   {w.distance?.toFixed(1).replace('.', ',')} km selama {w.duration} menit.
                 </p>
               )}
               {w.note && (
-                <p className="mt-2 border-t border-[#4A3B32]/10 pt-2 text-[12px] italic text-[#4A3B32]/70">
+                <p className="mt-2 border-t border-border pt-2 text-[12px] italic text-content-muted">
                   “{w.note}”
                 </p>
               )}
@@ -303,7 +304,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                 deleteWorkout(w.id)
                 toast('Sesi dihapus dari riwayat.')
               }}
-              className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[#B25E3F]/35 text-[12px] font-bold text-[#B25E3F] transition-colors hover:bg-[#B25E3F]/8 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F]"
+              className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-[12px] font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Hapus sesi
@@ -326,19 +327,19 @@ function ExerciseCard({ name }: { name: string }) {
   return (
     <m.div
       layout="position"
-      className="rounded-[18px] border border-[#4A3B3214] bg-white p-4 shadow-soft"
+      className="rounded-[18px] border border-border bg-surface-primary p-4 shadow-soft"
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        className="flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-bold text-[#231F1E]">
+          <span className="block text-[13.5px] font-bold text-content-primary">
             {ex.name}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] font-medium text-[#4A3B32]/65">
+          <span className="mt-0.5 block truncate text-[11px] font-medium text-content-muted">
             {ex.muscle} · {EX_LEVELS[ex.level]} · {ex.equipment}
           </span>
         </span>
@@ -346,7 +347,7 @@ function ExerciseCard({ name }: { name: string }) {
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center text-[#4A3B32]/45"
+          className="flex h-7 w-7 shrink-0 items-center justify-center text-content-muted"
         >
           <ChevronDown className="h-4 w-4" />
         </m.span>
@@ -363,17 +364,17 @@ function ExerciseCard({ name }: { name: string }) {
             className="overflow-hidden"
           >
             <div className="mt-3 space-y-3">
-              <p className="text-[12.5px] leading-relaxed text-[#4A3B32]/85">
+              <p className="text-[12.5px] leading-relaxed text-content-muted">
                 {ex.desc}
               </p>
               <div>
-                <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#658A4C]">
+                <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-success">
                   Langkah
                 </p>
                 <ol className="mt-1.5 space-y-1.5">
                   {ex.steps.map((s, i) => (
-                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-[#4A3B32]/85">
-                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C]">
+                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-content-muted">
+                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-success">
                         {i + 1}
                       </span>
                       {s}
@@ -381,15 +382,15 @@ function ExerciseCard({ name }: { name: string }) {
                   ))}
                 </ol>
               </div>
-              <div className="rounded-xl bg-[#E4EFE0]/60 p-3">
-                <p className="text-[11.5px] leading-relaxed text-[#4A3B32]">
-                  <span className="font-bold text-[#658A4C]">Tip: </span>
+              <div className="rounded-xl bg-secondary/60 p-3">
+                <p className="text-[11.5px] leading-relaxed text-content-secondary">
+                  <span className="font-bold text-success">Tip: </span>
                   {ex.tip}
                 </p>
               </div>
-              <div className="rounded-xl bg-[#F3E8DC]/60 p-3">
-                <p className="text-[11.5px] leading-relaxed text-[#4A3B32]">
-                  <span className="font-bold text-[#B25E3F]">Hindari: </span>
+              <div className="rounded-xl bg-destructive/10 p-3">
+                <p className="text-[11.5px] leading-relaxed text-content-secondary">
+                  <span className="font-bold text-content-danger">Hindari: </span>
                   {ex.mistakes}
                 </p>
               </div>
@@ -398,7 +399,7 @@ function ExerciseCard({ name }: { name: string }) {
                 onClick={() =>
                   openWorkoutSheet([{ name: ex.name, count: 3, reps: 8 }])
                 }
-                className="flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#231F1E] text-[12.5px] font-bold text-[#FAF9F6] transition-all hover:bg-[#3A2E24] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                className="flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-[12.5px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Catat gerakan ini
@@ -452,19 +453,19 @@ export default function BugarScreen() {
   }, [libQuery, libMuscle])
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
+    <div className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
       {/* Header editorial */}
       <header>
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#658A4C]">
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-success">
           <Dumbbell className="h-3.5 w-3.5" />
           Gerak &amp; kekuatan
         </p>
         <h1
           className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight`}
         >
-          Bugar<span className="text-[#749B58]">.</span>
+          Bugar<span className="text-primary">.</span>
         </h1>
-        <p className="mt-2 text-xs font-medium text-[#4A3B32]/75">
+        <p className="mt-2 text-xs font-medium text-content-muted">
           {tab === 'latihan'
             ? week.sessions > 0
               ? `${week.sessions} sesi pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
@@ -475,37 +476,16 @@ export default function BugarScreen() {
         </p>
       </header>
 
-      {/* Subtab — pil satu pemilik animasi (layoutId) */}
-      <div
-        role="group"
-        aria-label="Bagian Bugar"
-        className="relative mt-4 flex rounded-full bg-[#EAE5D9] p-1"
-      >
-        {BUGAR_TABS.map((t) => {
-          const on = tab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              aria-pressed={on}
-              className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
-                on ? 'text-[#658A4C]' : 'text-[#4A3B32]/55'
-              }`}
-            >
-              {on && (
-                <m.span
-                  aria-hidden="true"
-                  layoutId="bugar-tab-pill"
-                  className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
-                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                />
-              )}
+      {/* Subtab — Radix Tabs: pil aktif via data-state=active + dukungan keyboard */}
+      <RutinaTabs value={tab} onValueChange={(v) => setTab(v as BugarTab)}>
+        <RutinaTabsList aria-label="Bagian Bugar" className="mt-4 w-full">
+          {BUGAR_TABS.map((t) => (
+            <RutinaTabsTrigger key={t.id} value={t.id} className="flex-1">
               {t.label}
-            </button>
-          )
-        })}
-      </div>
+            </RutinaTabsTrigger>
+          ))}
+        </RutinaTabsList>
+      </RutinaTabs>
 
       {tab === 'latihan' && (
         <>
@@ -515,10 +495,10 @@ export default function BugarScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             aria-label="Ringkasan latihan pekan ini"
-            className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 text-[#FAF9F6] shadow-leaf"
+            className="relative mt-4 overflow-hidden rounded-[24px] bg-primary p-6 text-primary-foreground shadow-leaf"
           >
         <div className="relative z-10">
-          <p className="text-[13px] font-medium text-[#FAF9F6]/80">
+          <p className="text-[13px] font-medium text-primary-foreground/80">
             Pekan ini
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3">
@@ -528,7 +508,7 @@ export default function BugarScreen() {
                   {week.sessions}
                 </span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-[#FAF9F6]/75">
+              <p className="mt-1 text-[11px] font-medium text-primary-foreground/75">
                 sesi latihan
               </p>
             </div>
@@ -537,9 +517,9 @@ export default function BugarScreen() {
                 <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums">
                   {week.minutes}
                 </span>
-                <span className="ml-0.5 text-sm font-medium text-[#FAF9F6]/80">mnt</span>
+                <span className="ml-0.5 text-sm font-medium text-primary-foreground/80">mnt</span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-[#FAF9F6]/75">
+              <p className="mt-1 text-[11px] font-medium text-primary-foreground/75">
                 total durasi
               </p>
             </div>
@@ -550,9 +530,9 @@ export default function BugarScreen() {
                     ? `${(week.tonase / 1000).toFixed(1).replace('.', ',')}t`
                     : Math.round(week.tonase).toLocaleString('id-ID')}
                 </span>
-                <span className="ml-0.5 text-sm font-medium text-[#FAF9F6]/80">kg</span>
+                <span className="ml-0.5 text-sm font-medium text-primary-foreground/80">kg</span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-[#FAF9F6]/75">
+              <p className="mt-1 text-[11px] font-medium text-primary-foreground/75">
                 tonase beban
               </p>
             </div>
@@ -564,14 +544,14 @@ export default function BugarScreen() {
               <p className="min-w-0 flex-1 truncate text-[12px] font-semibold">
                 Rekor e1RM: {topPr.name} ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
               </p>
-              <span className="shrink-0 text-[11px] font-bold tabular-nums text-[#FAF9F6]/75">
+              <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary-foreground/75">
                 {prs.length} gerakan
               </span>
             </div>
           )}
 
           {weekKcal > 0 && (
-            <p className="mt-2 text-[11px] font-medium text-[#FAF9F6]/70">
+            <p className="mt-2 text-[11px] font-medium text-primary-foreground/70">
               ≈ {weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini
               {weight == null && ' (asumsi 60 kg — timbang dirimu di tab Tubuh)'}
             </p>
@@ -587,7 +567,7 @@ export default function BugarScreen() {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#231F1E] text-[15px] font-bold text-[#FAF9F6] shadow-soft transition-colors hover:bg-[#3A2E24] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-[15px] font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
         Catat Sesi Latihan
@@ -596,11 +576,11 @@ export default function BugarScreen() {
       {/* ===== Program latihan ===== */}
       <section className="mt-7" aria-label="Program latihan">
         <div className="flex items-center gap-2 px-0.5">
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Program Latihan
           </h2>
         </div>
-        <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-[#4A3B32]/70">
+        <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-content-muted">
           Rencana siap pakai — cukup barbel + rak + bangku. Pilih hari untuk
           memulai sesi terisi otomatis.
         </p>
@@ -615,14 +595,14 @@ export default function BugarScreen() {
       <section className="mt-8" aria-label="Riwayat latihan">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
               Riwayat
             </h2>
-            <span className="rounded-full bg-[#E4EFE0] px-2 py-0.5 text-[11px] font-bold text-[#658A4C]">
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-success">
               {workouts.length}
             </span>
           </div>
-          <span className="text-[11px] font-medium text-[#4A3B32]/60">
+          <span className="text-[11px] font-medium text-content-muted">
             {cardio.km > 0
               ? `${cardio.km.toFixed(1).replace('.', ',')} km kardio`
               : `${strengthCount} sesi beban`}
@@ -641,13 +621,13 @@ export default function BugarScreen() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-[20px] border-2 border-dashed border-[#749B58]/30 px-6 py-9 text-center"
+                className="rounded-[20px] border-2 border-dashed border-primary/30 px-6 py-9 text-center"
               >
-                <Dumbbell className="mx-auto h-6 w-6 text-[#4A3B32]/60" />
-                <p className="mt-2 text-[13px] font-semibold text-[#4A3B32]/75">
+                <Dumbbell className="mx-auto h-6 w-6 text-content-muted" />
+                <p className="mt-2 text-[13px] font-semibold text-content-muted">
                   Belum ada sesi tercatat
                 </p>
-                <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
+                <p className="mt-0.5 text-[11.5px] text-content-muted">
                   Mulai dari program di atas atau catat manual.
                 </p>
               </m.div>
@@ -659,23 +639,23 @@ export default function BugarScreen() {
       {/* ===== Papan rekor e1RM ===== */}
       <section className="mt-8" aria-label="Papan rekor">
         <div className="flex items-center gap-2 px-0.5">
-          <Trophy className="h-4 w-4 text-[#A98650]" />
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+          <Trophy className="h-4 w-4 text-warning" />
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Papan Rekor e1RM
           </h2>
         </div>
-        <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-[#4A3B32]/70">
+        <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-content-muted">
           Estimasi kekuatan Epley (beban × (1 + reps/30)) dari set yang kamu
           catat — terpantau otomatis.
         </p>
 
         {prs.length === 0 ? (
-          <div className="mt-3 rounded-[20px] border-2 border-dashed border-[#4A3B32]/20 px-6 py-8 text-center">
-            <Zap className="mx-auto h-5 w-5 text-[#4A3B32]/50" />
-            <p className="mt-2 text-[12.5px] font-semibold text-[#4A3B32]/75">
+          <div className="mt-3 rounded-[20px] border-2 border-dashed border-border px-6 py-8 text-center">
+            <Zap className="mx-auto h-5 w-5 text-content-muted" />
+            <p className="mt-2 text-[12.5px] font-semibold text-content-muted">
               Rekor lahir setelah set beban pertama dicatat
             </p>
-            <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
+            <p className="mt-0.5 text-[11.5px] text-content-muted">
               e1RM tiap gerakan dipantau otomatis di sini.
             </p>
           </div>
@@ -693,30 +673,30 @@ export default function BugarScreen() {
                 }}
                 className={`flex items-center gap-3 rounded-[16px] border p-3.5 ${
                   i === 0
-                    ? 'border-[#A98650]/40 bg-[#F5EFDF] shadow-soft'
-                    : 'border-[#4A3B3214] bg-white shadow-soft'
+                    ? 'border-warning/40 bg-gold/25 shadow-soft'
+                    : 'border-border bg-surface-primary shadow-soft'
                 }`}
               >
                 <span
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold tabular-nums ${
-                    i === 0 ? 'bg-[#A98650] text-white' : 'bg-[#F5F3EE] text-[#4A3B32]/70'
+                    i === 0 ? 'bg-warning text-content-inverse' : 'bg-surface-sunken text-content-muted'
                   }`}
                 >
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13.5px] font-bold text-[#231F1E]">
+                  <p className="truncate text-[13.5px] font-bold text-content-primary">
                     {r.name}
                   </p>
-                  <p className="text-[11px] font-medium text-[#4A3B32]/65">
+                  <p className="text-[11px] font-medium text-content-muted">
                     {r.sessions} sesi tercatat
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[16px] font-bold leading-none tabular-nums text-[#231F1E]">
+                  <p className="text-[16px] font-bold leading-none tabular-nums text-content-primary">
                     {r.best.toFixed(1).replace('.', ',')}
                   </p>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-content-muted">
                     kg · e1RM
                   </p>
                 </div>
@@ -729,22 +709,22 @@ export default function BugarScreen() {
       {/* ===== Pustaka gerakan ===== */}
       <section className="mt-8" aria-label="Pustaka gerakan">
         <div className="flex items-center gap-2 px-0.5">
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Pustaka Gerakan
           </h2>
-          <span className="rounded-full bg-[#E4EFE0] px-2 py-0.5 text-[11px] font-bold text-[#658A4C]">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-success">
             {EX_LIB.length}
           </span>
         </div>
 
         <BlurFade delay={0.05} className="mt-3">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A3B32]/50" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
             <Input
               value={libQuery}
               onChange={(e) => setLibQuery(e.target.value)}
               placeholder="Cari gerakan atau otot…"
-              className="h-11 rounded-xl border-[#4A3B321F] bg-white pl-10 text-sm text-[#231F1E] shadow-soft placeholder:text-[#4A3B32]/50 focus-visible:border-[#749B58]/50 focus-visible:ring-[#749B58]/20"
+              className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-sm text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
             />
           </div>
         </BlurFade>
@@ -760,10 +740,10 @@ export default function BugarScreen() {
                   aria-pressed={active}
                   onClick={() => setLibMuscle(g)}
                   className={
-                    'h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+                    'h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                     (active
-                      ? 'bg-[#231F1E] text-[#FAF9F6] shadow-soft'
-                      : 'border border-[#4A3B321F] bg-white text-[#4A3B32] hover:bg-[#E4EFE0]')
+                      ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
                   }
                 >
                   {g}
@@ -778,12 +758,12 @@ export default function BugarScreen() {
             <ExerciseCard key={e.name} name={e.name} />
           ))}
           {filteredLib.length === 0 && (
-            <div className="rounded-[20px] border-2 border-dashed border-[#4A3B32]/20 px-6 py-8 text-center">
-              <Search className="mx-auto h-5 w-5 text-[#4A3B32]/50" />
-              <p className="mt-2 text-[12.5px] font-semibold text-[#4A3B32]/75">
+            <div className="rounded-[20px] border-2 border-dashed border-border px-6 py-8 text-center">
+              <Search className="mx-auto h-5 w-5 text-content-muted" />
+              <p className="mt-2 text-[12.5px] font-semibold text-content-muted">
                 Tidak ada gerakan cocok
               </p>
-              <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
+              <p className="mt-0.5 text-[11.5px] text-content-muted">
                 Coba kata kunci lain atau ganti filter otot.
               </p>
             </div>

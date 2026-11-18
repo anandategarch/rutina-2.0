@@ -87,7 +87,7 @@ export function ContributeGoalSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeGoalSheet}
-            className="absolute inset-0 z-40 bg-[#231F1E]/45"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -112,34 +112,34 @@ export function ContributeGoalSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Isi Tabungan
                 </h2>
-                <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
+                <p className="mt-0.5 text-[13px] text-content-muted">
                   {goal.name} · target {formatIDRShort(goal.target)}
                 </p>
               </div>
               {complete ? (
-                <Badge className="border-transparent bg-[#A3C489]/30 text-[#658A4C] hover:bg-[#A3C489]/30">
+                <Badge className="border-transparent bg-pistachio/30 text-success hover:bg-pistachio/30">
                   <CheckCircle2 className="mr-1 h-3 w-3" /> Tercapai
                 </Badge>
               ) : null}
             </div>
 
             {complete ? (
-              <p className="mt-6 rounded-2xl bg-[#E4EFE0] px-4 py-5 text-center text-[13px] font-medium text-[#658A4C]">
+              <p className="mt-6 rounded-2xl bg-secondary px-4 py-5 text-center text-[13px] font-medium text-success">
                 Target sudah tercapai — {formatIDR(goal.saved)} terkumpul.
                 Waktunya menetapkan tujuan berikutnya.
               </p>
@@ -147,10 +147,10 @@ export function ContributeGoalSheet() {
               <>
                 {/* Nilai terpilih */}
                 <div className="mt-4 text-center">
-                  <span className="text-[34px] font-bold leading-none tabular-nums text-[#658A4C]">
+                  <span className="text-[34px] font-bold leading-none tabular-nums text-success">
                     {formatIDR(amount)}
                   </span>
-                  <p className="mt-1 text-[11px] text-[#4A3B32]/55">
+                  <p className="mt-1 text-[11px] text-content-muted">
                     geser atau pilih nominal cepat
                   </p>
                 </div>
@@ -163,7 +163,7 @@ export function ContributeGoalSheet() {
                   max={2_000_000}
                   step={10_000}
                   aria-label="Nominal tabungan"
-                  className="mt-4 [&_[data-slot=slider-range]]:bg-[#749B58] [&_[data-slot=slider-thumb]]:border-[#658A4C] [&_[data-slot=slider-thumb]]:bg-[#E4EFE0]"
+                  className="mt-4 [&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:border-action-hover [&_[data-slot=slider-thumb]]:bg-secondary"
                 />
 
                 {/* Tombol cepat */}
@@ -176,10 +176,10 @@ export function ContributeGoalSheet() {
                         type="button"
                         onClick={() => setAmount(q)}
                         aria-pressed={on}
-                        className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                        className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
-                            ? 'bg-[#749B58] text-white'
-                            : 'border border-[#4A3B32]/15 bg-[#F5F3EE] text-[#4A3B32] hover:bg-[#E4EFE0]'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border border-border bg-surface-sunken text-content-secondary hover:bg-secondary'
                         }`}
                       >
                         {quickLabel(q)}
@@ -189,22 +189,22 @@ export function ContributeGoalSheet() {
                 </div>
 
                 {/* Pratinjau setelah menabung */}
-                <div className="mt-4 rounded-2xl bg-[#F5F3EE] px-4 py-3.5 text-left">
-                  <div className="flex items-baseline justify-between text-[12px] text-[#4A3B32]/75">
+                <div className="mt-4 rounded-2xl bg-surface-sunken px-4 py-3.5 text-left">
+                  <div className="flex items-baseline justify-between text-[12px] text-content-muted">
                     <span>Perkiraan tabungan</span>
-                    <span className="font-bold tabular-nums text-[#231F1E]">
+                    <span className="font-bold tabular-nums text-content-primary">
                       {formatIDRShort(after)} · {afterPct}%
                     </span>
                   </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#4A3B32]/10">
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-border">
                     <m.div
-                      className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C489]"
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
                       initial={false}
                       animate={{ width: `${afterPct}%` }}
                       transition={{ type: 'spring', stiffness: 160, damping: 22 }}
                     />
                   </div>
-                  <p className="mt-1.5 text-[10.5px] text-[#4A3B32]/55">
+                  <p className="mt-1.5 text-[10.5px] text-content-muted">
                     dari {beforePct}% sekarang — naik {afterPct - beforePct} poin
                   </p>
                 </div>
@@ -216,7 +216,7 @@ export function ContributeGoalSheet() {
                 type="button"
                 variant="ghost"
                 onClick={closeGoalSheet}
-                className="h-11 flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
               >
                 Batal
               </Button>
@@ -224,7 +224,7 @@ export function ContributeGoalSheet() {
                 <Button
                   type="button"
                   onClick={submit}
-                  className="h-11 flex-1 rounded-full bg-[#749B58] font-semibold text-white hover:bg-[#658A4C]"
+                  className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover"
                 >
                   Tabung {formatIDRShort(amount)}
                 </Button>
@@ -289,20 +289,20 @@ export function NewGoalDialog() {
         if (!o) closeGoalDialog()
       }}
     >
-      <DialogContent className="max-w-[400px] rounded-[28px] border-[#4A3B32]/10 bg-[#FAF9F6] p-6 text-[#231F1E]">
+      <DialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6 text-content-primary">
         <DialogHeader className="text-left">
           <DialogTitle className="flex items-center gap-2 text-lg tracking-tight">
-            <Sparkles className="h-5 w-5 text-[#658A4C]" />
+            <Sparkles className="h-5 w-5 text-success" />
             Tujuan Tabungan Baru
           </DialogTitle>
-          <DialogDescription className="text-[13px] text-[#4A3B32]/70">
+          <DialogDescription className="text-[13px] text-content-muted">
             Tetapkan nama dan target — cincin progresnya muncul di tab Keuangan.
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-2 space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="goal-name" className="text-[13px] font-semibold text-[#4A3B32]">
+            <Label htmlFor="goal-name" className="text-[13px] font-semibold text-content-secondary">
               Nama tujuan
             </Label>
             <Input
@@ -311,15 +311,15 @@ export function NewGoalDialog() {
               onChange={(e) => setName(e.target.value)}
               placeholder="mis. DP rumah"
               maxLength={24}
-              className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+              className="h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="goal-target" className="text-[13px] font-semibold text-[#4A3B32]">
-              Target <span className="font-normal text-[#4A3B32]/50">(min. Rp100 rb)</span>
+            <Label htmlFor="goal-target" className="text-[13px] font-semibold text-content-secondary">
+              Target <span className="font-normal text-content-muted">(min. Rp100 rb)</span>
             </Label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-[#4A3B32]/50">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-content-muted">
                 Rp
               </span>
               <Input
@@ -328,7 +328,7 @@ export function NewGoalDialog() {
                 value={targetDigits ? Number(targetDigits).toLocaleString('id-ID') : ''}
                 onChange={(e) => setTarget(e.target.value)}
                 placeholder="5.000.000"
-                className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] pl-10 text-right tabular-nums text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                className="h-11 rounded-xl border-input bg-surface-sunken pl-10 text-right tabular-nums text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />
             </div>
           </div>
@@ -339,14 +339,14 @@ export function NewGoalDialog() {
             type="button"
             variant="ghost"
             onClick={closeGoalDialog}
-            className="h-11 flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+            className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
           >
             Batal
           </Button>
           <Button
             type="button"
             onClick={submit}
-            className="h-11 flex-1 rounded-full bg-[#749B58] font-semibold text-white hover:bg-[#658A4C]"
+            className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover"
           >
             Buat Tujuan
           </Button>

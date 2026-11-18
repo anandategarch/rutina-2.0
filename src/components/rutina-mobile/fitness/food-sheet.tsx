@@ -121,7 +121,7 @@ export function FoodSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeFoodSheet}
-            className="absolute inset-0 z-40 bg-[#231F1E]/45"
+            className="absolute inset-0 z-40 bg-espresso/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -146,7 +146,7 @@ export function FoodSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -154,21 +154,21 @@ export function FoodSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
             <div className="text-left">
-              <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+              <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                 Tambah Asupan
               </h2>
-              <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
+              <p className="mt-0.5 text-[13px] text-content-muted">
                 Cari di 179 makanan &amp; minuman Indonesia.
               </p>
             </div>
 
             {/* Pencarian */}
             <div className="relative mt-3">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A3B32]/50" />
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <Input
                 value={query}
                 onChange={(e) => {
@@ -176,7 +176,7 @@ export function FoodSheet() {
                   setPicked(null)
                 }}
                 placeholder="mis. nasi goreng, ayam geprek, es kopi…"
-                className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] pl-10 text-sm text-[#231F1E] placeholder:text-[#4A3B32]/45 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-sm text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />
             </div>
 
@@ -199,35 +199,35 @@ export function FoodSheet() {
                         setPicked(f)
                         setPortion(1)
                       }}
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-[#4A3B321F] bg-white p-3.5 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E4EFE0] text-[#658A4C]">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
                         <Utensils className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13.5px] font-bold text-[#231F1E]">
+                        <span className="block truncate text-[13.5px] font-bold text-content-primary">
                           {f.name}
                         </span>
-                        <span className="block truncate text-[11px] font-medium text-[#4A3B32]/65">
+                        <span className="block truncate text-[11px] font-medium text-content-muted">
                           {f.cat} · {f.unit}
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className="block text-[14px] font-bold tabular-nums text-[#231F1E]">
+                        <span className="block text-[14px] font-bold tabular-nums text-content-primary">
                           {fmt(f.kcal)}
                         </span>
-                        <span className="block text-[10px] font-bold uppercase text-[#4A3B32]/55">
+                        <span className="block text-[10px] font-bold uppercase text-content-muted">
                           kkal
                         </span>
                       </span>
                     </button>
                   ))}
                   {results.length === 0 && (
-                    <div className="rounded-2xl border-2 border-dashed border-[#4A3B32]/20 px-5 py-6 text-center">
-                      <p className="text-[12.5px] font-semibold text-[#4A3B32]/70">
+                    <div className="rounded-2xl border-2 border-dashed border-border px-5 py-6 text-center">
+                      <p className="text-[12.5px] font-semibold text-content-muted">
                         Tidak ada “{query.trim()}” di master
                       </p>
-                      <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
+                      <p className="mt-0.5 text-[11.5px] text-content-muted">
                         Coba nama lain — mis. “nasi”, “ayam”, “kopi”.
                       </p>
                     </div>
@@ -243,21 +243,21 @@ export function FoodSheet() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.22 }}
-                  className="mt-3 rounded-2xl border border-[#749B58]/35 bg-white p-4 shadow-soft"
+                  className="mt-3 rounded-2xl border border-primary/35 bg-surface-primary p-4 shadow-soft"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-bold text-[#231F1E]">
+                      <p className="truncate text-[15px] font-bold text-content-primary">
                         {picked.name}
                       </p>
-                      <p className="text-[11.5px] font-medium text-[#4A3B32]/65">
+                      <p className="text-[11.5px] font-medium text-content-muted">
                         {picked.cat} · {picked.unit}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setPicked(null)}
-                      className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[11.5px] font-bold text-[#4A3B32]/70 transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                      className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[11.5px] font-bold text-content-muted transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Ganti
                     </button>
@@ -265,7 +265,7 @@ export function FoodSheet() {
 
                   {/* Stepper porsi */}
                   <div className="mt-3.5">
-                    <p className="text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
                       Porsi
                     </p>
                     <div className="mt-1.5 flex gap-2">
@@ -277,10 +277,10 @@ export function FoodSheet() {
                             type="button"
                             onClick={() => setPortion(p)}
                             aria-pressed={on}
-                            className={`h-10 flex-1 cursor-pointer rounded-xl text-[14px] font-bold tabular-nums transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                            className={`h-10 flex-1 cursor-pointer rounded-xl text-[14px] font-bold tabular-nums transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                               on
-                                ? 'bg-[#749B58] text-white shadow-soft'
-                                : 'border border-[#4A3B3233] bg-[#F5F3EE] text-[#4A3B32]'
+                                ? 'bg-primary text-primary-foreground shadow-soft'
+                                : 'border border-border bg-surface-sunken text-content-secondary'
                             }`}
                           >
                             {portionLabel(p)}
@@ -288,54 +288,54 @@ export function FoodSheet() {
                         )
                       })}
                     </div>
-                    <p className="mt-1.5 text-[11.5px] font-medium text-[#4A3B32]/65">
+                    <p className="mt-1.5 text-[11.5px] font-medium text-content-muted">
                       = {portion === 1 ? picked.unit : `${portionLabel(portion)} ${picked.unit}`}
                     </p>
                   </div>
 
                   {/* Estimasi nutrisi untuk porsi terpilih */}
-                  <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl bg-[#F5F3EE] p-3 text-center">
+                  <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl bg-surface-sunken p-3 text-center">
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-[#231F1E]">
+                      <p className="text-[16px] font-bold leading-none tabular-nums text-content-primary">
                         {fmt(picked.kcal * portion)}
                       </p>
-                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-[#4A3B32]/60">
+                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-content-muted">
                         kkal
                       </p>
                     </div>
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-[#658A4C]">
+                      <p className="text-[16px] font-bold leading-none tabular-nums text-success">
                         {picked.protein == null ? '–' : fmt(picked.protein * portion)}
                       </p>
-                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-[#4A3B32]/60">
+                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-content-muted">
                         protein
                       </p>
                     </div>
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-[#A98650]">
+                      <p className="text-[16px] font-bold leading-none tabular-nums text-warning">
                         {picked.carb == null ? '–' : fmt(picked.carb * portion)}
                       </p>
-                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-[#4A3B32]/60">
+                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-content-muted">
                         karbo
                       </p>
                     </div>
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-[#B25E3F]">
+                      <p className="text-[16px] font-bold leading-none tabular-nums text-content-danger">
                         {picked.fat == null ? '–' : fmt(picked.fat * portion)}
                       </p>
-                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-[#4A3B32]/60">
+                      <p className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-content-muted">
                         lemak
                       </p>
                     </div>
                   </div>
-                  <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-[#4A3B32]/55">
+                  <p className="mt-2 flex items-center gap-1.5 text-[10.5px] text-content-muted">
                     <Minus className="h-3 w-3" />
                     Tanda “–” = data makro belum tersedia; kalori tetap valid.
                   </p>
 
                   {/* Waktu makan */}
                   <div className="mt-3">
-                    <p className="text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
                       Waktu makan
                     </p>
                     <div className="mt-1.5 flex flex-wrap gap-2">
@@ -347,10 +347,10 @@ export function FoodSheet() {
                             type="button"
                             onClick={() => setMeal(s.key)}
                             aria-pressed={on}
-                            className={`h-9 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                            className={`h-9 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                               on
-                                ? 'bg-[#231F1E] text-[#FAF9F6] shadow-soft'
-                                : 'border border-[#4A3B3233] bg-[#F5F3EE] text-[#4A3B32]'
+                                ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                                : 'border border-border bg-surface-sunken text-content-secondary'
                             }`}
                           >
                             {s.label}
@@ -369,7 +369,7 @@ export function FoodSheet() {
               onClick={submit}
               whileTap={{ scale: 0.98 }}
               disabled={!picked}
-              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-[#749B58] text-[15px] font-bold text-white shadow-soft transition-all hover:bg-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus className="mr-1.5 inline h-4.5 w-4.5" />
               Tambah ke Jurnal Makan

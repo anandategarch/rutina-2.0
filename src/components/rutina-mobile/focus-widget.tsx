@@ -48,16 +48,16 @@ export function FocusWidget() {
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       aria-label={`Misi selesai pekan ini, total ${total} misi`}
-      className="flex flex-col rounded-[16px] border border-[#4A3B321F] bg-white p-4 shadow-soft"
+      className="flex flex-col rounded-[16px] border border-border bg-surface-primary p-4 shadow-soft"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
         Misi Pekan Ini
       </p>
       <p className="mt-1.5 flex items-baseline gap-1">
-        <span className="text-[30px] font-semibold leading-none tracking-tight text-[#231F1E]">
+        <span className="text-[30px] font-semibold leading-none tracking-tight text-content-primary">
           <Counter to={total} />
         </span>
-        <span className="text-[11px] font-medium text-[#4A3B32]/70">misi</span>
+        <span className="text-[11px] font-medium text-content-muted">misi</span>
       </p>
 
       <div
@@ -77,7 +77,7 @@ export function FocusWidget() {
               <div
                 data-mini-bar
                 className={`w-full origin-bottom rounded-full ${
-                  isToday ? 'bg-[#749B58]' : 'bg-[#E4EFE0]'
+                  isToday ? 'bg-primary' : 'bg-secondary'
                 }`}
                 style={{
                   height: `${Math.max(4, Math.round((d.count / max) * 36))}px`,
@@ -85,7 +85,7 @@ export function FocusWidget() {
               />
               <span
                 className={`text-[10px] font-bold ${
-                  isToday ? 'text-[#749B58]' : 'text-[#4A3B32]/60'
+                  isToday ? 'text-success' : 'text-content-muted'
                 }`}
               >
                 {d.label}

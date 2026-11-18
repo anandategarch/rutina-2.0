@@ -60,7 +60,7 @@ export function ReadingSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeReading}
-            className="absolute inset-0 z-40 bg-[#231F1E]/40"
+            className="absolute inset-0 z-40 bg-espresso/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -85,7 +85,7 @@ export function ReadingSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -93,34 +93,34 @@ export function ReadingSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
             <div className="text-left">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]">
+                <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-content-secondary">
                   {FOLDER_SHORT[note.folder]}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/60">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-muted">
                   {note.date}
                 </span>
                 {note.pinned ? (
                   <Pin
-                    className="h-3.5 w-3.5 text-[#4A3B32]"
+                    className="h-3.5 w-3.5 text-content-secondary"
                     fill="currentColor"
                   />
                 ) : null}
               </div>
               <h2
-                className={`${playfair.className} mt-2 text-[22px] font-semibold leading-snug tracking-tight text-[#231F1E]`}
+                className={`${playfair.className} mt-2 text-[22px] font-semibold leading-snug tracking-tight text-content-primary`}
               >
                 {note.title}
               </h2>
             </div>
 
-            <Separator className="mt-4 bg-[#4A3B32]/12" />
+            <Separator className="mt-4 bg-border" />
 
-            <p className="mt-4 text-left text-[14px] leading-relaxed text-[#231F1E]/75">
+            <p className="mt-4 text-left text-[14px] leading-relaxed text-content-secondary">
               {note.body}
             </p>
 
@@ -134,7 +134,7 @@ export function ReadingSheet() {
                     note.pinned ? 'Sematan dilepas' : 'Catatan disematkan',
                   )
                 }}
-                className="h-11 flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
               >
                 <Pin
                   className="h-4 w-4"
@@ -148,27 +148,27 @@ export function ReadingSheet() {
                 <AlertDialogTrigger asChild>
                   <Button
                     type="button"
-                    className="h-11 flex-1 rounded-full bg-[#4A3B32] font-semibold text-[#FAF9F6] hover:bg-[#3A2E27]"
+                    className="h-11 flex-1 rounded-full bg-surface-inverse font-semibold text-content-inverse hover:bg-espresso-soft"
                   >
                     <Trash2 className="h-4 w-4" />
                     Hapus
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214] p-6 sm:max-w-[320px]">
+                <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border p-6 sm:max-w-[320px]">
                   <AlertDialogHeader>
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F6E3DA]">
-                      <Trash2 className="h-5 w-5 text-[#B25E3F]" />
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                      <Trash2 className="h-5 w-5 text-content-danger" />
                     </div>
-                    <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-[#231F1E]">
+                    <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
                       Hapus catatan ini?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-center text-[12.5px] leading-relaxed text-[#4A3B32]/70">
+                    <AlertDialogDescription className="text-center text-[12.5px] leading-relaxed text-content-muted">
                       Catatan “{note.title}” akan dihapus permanen dan tidak
                       bisa dikembalikan.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
-                    <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-[#4A3B321F] text-[13px] font-semibold text-[#4A3B32] hover:bg-[#F5F3EE] hover:text-[#231F1E]">
+                    <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border text-[13px] font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary">
                       Batal
                     </AlertDialogCancel>
                     <AlertDialogAction
@@ -176,7 +176,7 @@ export function ReadingSheet() {
                         deleteNote(note.id)
                         toast('Catatan dihapus')
                       }}
-                      className="h-10 flex-1 rounded-full bg-[#B25E3F] text-[13px] font-bold text-white hover:bg-[#9E4E33]"
+                      className="h-10 flex-1 rounded-full bg-destructive text-[13px] font-bold text-white hover:bg-destructive/90"
                     >
                       Ya, Hapus
                     </AlertDialogAction>

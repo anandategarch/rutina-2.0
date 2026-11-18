@@ -105,7 +105,7 @@ interface ShineBorderProps {
 export function ShineBorder({
   borderWidth = 1,
   duration = 8,
-  shineColor = '#D9B98C',
+  shineColor = 'var(--chart-3)',
   className,
   style,
 }: ShineBorderProps) {

@@ -97,7 +97,7 @@ function FloatWidget({
           ease: 'easeInOut',
           delay,
         }}
-        className="flex w-full items-center gap-3 rounded-[18px] border border-[#4A3B32]/10 bg-white p-3.5 shadow-lift"
+        className="flex w-full items-center gap-3 rounded-[18px] border border-border bg-surface-primary p-3.5 shadow-lift"
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClass}`}
@@ -105,10 +105,10 @@ function FloatWidget({
           <Icon className="h-[18px] w-[18px]" strokeWidth={2.1} />
         </span>
         <span className="min-w-0">
-          <span className="block text-[15px] font-bold leading-tight tabular-nums text-[#231F1E]">
+          <span className="block text-[15px] font-bold leading-tight tabular-nums text-content-primary">
             {value}
           </span>
-          <span className="block text-[11px] font-semibold text-[#4A3B32]/70">
+          <span className="block text-[11px] font-semibold text-content-muted">
             {label}
           </span>
         </span>
@@ -132,12 +132,12 @@ function FeatureRow({
       initial={{ opacity: 0, x: -14 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay, duration: 0.5, ease: EASE }}
-      className="flex items-center gap-2.5 text-[13.5px] font-medium text-[#4A3B32]"
+      className="flex items-center gap-2.5 text-[13.5px] font-medium text-content-secondary"
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#749B58]/15 text-[#658A4C]">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-success">
         <Check className="h-3.5 w-3.5" strokeWidth={3} />
       </span>
-      <Icon className="h-4 w-4 shrink-0 text-[#4A3B32]/45" strokeWidth={2} />
+      <Icon className="h-4 w-4 shrink-0 text-content-muted" strokeWidth={2} />
       {children}
     </m.li>
   )
@@ -147,12 +147,12 @@ function FeatureRow({
 
 function BrandPanel() {
   return (
-    <aside className="relative hidden w-[38%] max-w-[560px] shrink-0 flex-col justify-between overflow-hidden bg-[#FAF9F6] p-10 lg:flex xl:p-14">
+    <aside className="relative hidden w-[38%] max-w-[560px] shrink-0 flex-col justify-between overflow-hidden bg-surface-primary p-10 lg:flex xl:p-14">
       {/* Cahaya ambien earth-tone */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-[#E4EFE0] blur-3xl" />
-        <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-[#EAE5D9]/80 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-72 w-72 translate-x-1/2 rounded-full bg-[#E4EFE0]/60 blur-3xl" />
+        <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-secondary blur-3xl" />
+        <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-surface-secondary/80 blur-3xl" />
+        <div className="absolute right-0 top-1/3 h-72 w-72 translate-x-1/2 rounded-full bg-secondary/60 blur-3xl" />
       </div>
 
       {/* Kepala panel */}
@@ -162,10 +162,10 @@ function BrandPanel() {
         transition={{ duration: 0.6, ease: EASE }}
         className="relative flex items-center justify-between"
       >
-        <p className="text-[21px] font-bold tracking-tight text-[#231F1E]">
-          rutina<span className="text-[#749B58]">.</span>
+        <p className="text-[21px] font-bold tracking-tight text-content-primary">
+          rutina<span className="text-primary">.</span>
         </p>
-        <span className="flex items-center gap-1.5 rounded-full border border-[#749B58]/30 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#658A4C] shadow-soft">
+        <span className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-surface-primary px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-success shadow-soft">
           <Leaf className="h-3 w-3" />
           Earth Tone Edition
         </span>
@@ -174,10 +174,10 @@ function BrandPanel() {
       {/* Cerita utama */}
       <div className="relative">
         <h1
-          className={`${playfair.className} text-[clamp(2.1rem,3vw,3.3rem)] font-semibold leading-[1.08] tracking-tight text-[#231F1E]`}
+          className={`${playfair.className} text-[clamp(2.1rem,3vw,3.3rem)] font-semibold leading-[1.08] tracking-tight text-content-primary`}
         >
           <Word delay={0.1}>Kebiasaan kecil,</Word>
-          <Word delay={0.22} className="text-[#5E8347]">
+          <Word delay={0.22} className="text-matcha-deep">
             perubahan besar.
           </Word>
         </h1>
@@ -186,7 +186,7 @@ function BrandPanel() {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6, ease: EASE }}
-          className="mt-5 max-w-[400px] text-[14.5px] leading-relaxed text-[#4A3B32]/80"
+          className="mt-5 max-w-[400px] text-[14.5px] leading-relaxed text-content-secondary"
         >
           Rutina menyatukan misi harian, jurnal refleksi, keuangan, dan
           analitik dalam satu petualangan XP — dirancang tenang dengan
@@ -200,10 +200,10 @@ function BrandPanel() {
           transition={{ delay: 0.52, duration: 0.6, ease: EASE }}
           className="mt-7"
         >
-          <p className="text-[13px] font-bold text-[#231F1E]">
+          <p className="text-[13px] font-bold text-content-primary">
             Tanpa akun · tanpa iklan
           </p>
-          <p className="mt-0.5 text-[12.5px] font-medium text-[#4A3B32]/75">
+          <p className="mt-0.5 text-[12.5px] font-medium text-content-muted">
             Data demo tersimpan lokal di perangkatmu.
           </p>
         </m.div>
@@ -229,7 +229,7 @@ function BrandPanel() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.05, duration: 0.6 }}
-          className="mt-9 flex items-center gap-2 text-[13px] font-bold text-[#5E8347]"
+          className="mt-9 flex items-center gap-2 text-[13px] font-bold text-success"
         >
           Coba langsung di sebelah
           <m.span
@@ -249,14 +249,21 @@ function BrandPanel() {
         transition={{ delay: 1.2, duration: 0.8 }}
         className="relative flex items-center justify-between"
       >
-        <p className="text-[11px] font-medium text-[#4A3B32]/60">
+        <p className="text-[11px] font-medium text-content-muted">
           © 2025 rutina.app — dibuat dengan sunyi &amp; kopi.
         </p>
+        {/* Swatch palet dekoratif — token primitive via CSS variables */}
         <div className="flex items-center gap-1.5" aria-hidden="true">
-          {['#749B58', '#B25E3F', '#3A2E24', '#231F1E', '#C7A17A'].map((c) => (
+          {[
+            'var(--primary)',
+            'var(--destructive)',
+            'var(--palette-espresso-soft)',
+            'var(--surface-inverse)',
+            'var(--palette-gold)',
+          ].map((c) => (
             <span
               key={c}
-              className="h-3 w-3 rounded-full ring-1 ring-[#4A3B32]/10"
+              className="h-3 w-3 rounded-full ring-1 ring-border"
               style={{ backgroundColor: c }}
             />
           ))}
@@ -294,7 +301,7 @@ function WidgetRail() {
         label="Streak menyala"
         delay={0.55}
         tilt={-3}
-        iconClass="bg-[#B25E3F]/12 text-[#B25E3F]"
+        iconClass="bg-destructive/10 text-content-danger"
       />
       <FloatWidget
         icon={Timer}
@@ -302,7 +309,7 @@ function WidgetRail() {
         label="Misi pekan ini"
         delay={0.75}
         tilt={2.5}
-        iconClass="bg-[#4A3B32]/10 text-[#4A3B32]"
+        iconClass="bg-cocoa/10 text-content-secondary"
       />
       <FloatWidget
         icon={Wallet}
@@ -310,7 +317,7 @@ function WidgetRail() {
         label="Saldo sehat"
         delay={0.95}
         tilt={-2}
-        iconClass="bg-[#C7A17A]/25 text-[#8A6433]"
+        iconClass="bg-gold/25 text-warning"
       />
     </div>
   )
@@ -320,7 +327,7 @@ function WidgetRail() {
 
 export function DesktopStage() {
   return (
-    <div className="h-dvh w-full overflow-hidden bg-[#EFEDE6]">
+    <div className="h-dvh w-full overflow-hidden bg-background">
       <div className="mx-auto flex h-full max-w-[1720px]">
         <BrandPanel />
         <WidgetRail />
@@ -328,16 +335,16 @@ export function DesktopStage() {
         {/* Area aplikasi — meja lembut dengan cahaya ambien */}
         <main className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden p-4 xl:p-8">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <div className="absolute left-1/4 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-[#E4EFE0]/70 blur-3xl" />
-            <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] translate-x-1/4 translate-y-1/4 rounded-full bg-[#EAE5D9] blur-3xl" />
+            <div className="absolute left-1/4 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-secondary/70 blur-3xl" />
+            <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] translate-x-1/4 translate-y-1/4 rounded-full bg-surface-secondary blur-3xl" />
           </div>
 
           {/* Bingkai ponsel: full-bleed di bawah lg, bercasing di atas */}
-          <div className="relative h-dvh w-full overflow-hidden lg:h-[min(860px,94%)] lg:w-auto lg:aspect-[9/19] lg:rounded-[46px] lg:border-[10px] lg:border-[#1B1715] lg:bg-[#1B1715] lg:shadow-ink-deep">
+          <div className="relative h-dvh w-full overflow-hidden lg:h-[min(860px,94%)] lg:w-auto lg:aspect-[9/19] lg:rounded-[46px] lg:border-[10px] lg:border-espresso lg:bg-espresso lg:shadow-ink-deep">
             {/* Lubang kamera depan */}
             <div
               aria-hidden="true"
-              className="absolute left-1/2 top-[14px] z-[80] hidden h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-[#0E0C0B] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)] lg:block"
+              className="absolute left-1/2 top-[14px] z-[80] hidden h-[11px] w-[11px] -translate-x-1/2 rounded-full bg-black shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)] lg:block"
             />
             <RutinaApp />
           </div>

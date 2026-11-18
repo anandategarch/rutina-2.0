@@ -755,12 +755,12 @@ const SEED_GOALS: Goal[] = [
    identitas warna tiap tab hidup pada ikon, pil, dan kartu konten. */
 
 export const SCREEN_THEME: Record<Screen, { bg: string }> = {
-  beranda: { bg: '#FAF9F6' },
-  bugar: { bg: '#FAF9F6' },
-  jurnal: { bg: '#FAF9F6' },
-  keuangan: { bg: '#FAF9F6' },
-  statistik: { bg: '#FAF9F6' },
-  profil: { bg: '#FAF9F6' },
+  beranda: { bg: '#F5F3EE' },
+  bugar: { bg: '#F5F3EE' },
+  jurnal: { bg: '#F5F3EE' },
+  keuangan: { bg: '#F5F3EE' },
+  statistik: { bg: '#F5F3EE' },
+  profil: { bg: '#F5F3EE' },
 }
 
 /* ===== Store ===== */

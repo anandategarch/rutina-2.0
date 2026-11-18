@@ -46,6 +46,7 @@ export const BUDGETABLE_CATS: FinCat[] = [
   'kesehatan',
 ]
 
-/** Warna semantik arus uang (dipakai di seluruh tab Keuangan). */
-export const INCOME = '#A3C489'
-export const EXPENSE = '#E08A6D'
+/** Warna semantik arus uang (dipakai di seluruh tab Keuangan).
+ *  Nilai var() mengikuti token semantic agar siap mode gelap. */
+export const INCOME = 'var(--success)'
+export const EXPENSE = 'var(--destructive)'

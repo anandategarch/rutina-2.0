@@ -173,7 +173,7 @@ export function HabitSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeHabitSheet}
-            className="absolute inset-0 z-40 bg-[#231F1E]/40"
+            className="absolute inset-0 z-40 bg-espresso/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -201,7 +201,7 @@ export function HabitSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[88%] w-full overflow-y-auto rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[88%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -209,20 +209,20 @@ export function HabitSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/15" />
             </div>
 
             <div className="text-left">
-              <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+              <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                 {mode === 'edit' ? 'Sunting Kebiasaan' : 'Kebiasaan Baru'}
               </h2>
-              <p className="mt-0.5 text-[13px] text-[#4A3B32]/75">
+              <p className="mt-0.5 text-[13px] text-content-muted">
                 {mode === 'edit'
                   ? 'Ubah detail, jadwal, atau kelola kebiasaan ini.'
                   : 'Tentukan nama, jadwal berulang, dan targetnya.'}
               </p>
               {editing?.archived && (
-                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#EAE5D9] px-3 py-1 text-[11px] font-bold text-[#4A3B32]">
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-[11px] font-bold text-content-secondary">
                   <Archive className="h-3 w-3" />
                   Kebiasaan ini sedang terarsip
                 </p>
@@ -234,7 +234,7 @@ export function HabitSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="habit-title"
-                  className="text-[13px] font-semibold text-[#4A3B32]"
+                  className="text-[13px] font-semibold text-content-secondary"
                 >
                   Nama kebiasaan
                 </Label>
@@ -245,7 +245,7 @@ export function HabitSheet() {
                     setDraft((p) => ({ ...p, title: e.target.value }))
                   }
                   placeholder="mis. Minum air putih 8 gelas"
-                  className="h-11 rounded-xl border-[#4A3B3233] bg-white text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="h-11 rounded-xl border-border bg-surface-primary text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
 
@@ -253,7 +253,7 @@ export function HabitSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="habit-desc"
-                  className="text-[13px] font-semibold text-[#4A3B32]"
+                  className="text-[13px] font-semibold text-content-secondary"
                 >
                   Deskripsi
                 </Label>
@@ -264,13 +264,13 @@ export function HabitSheet() {
                     setDraft((p) => ({ ...p, desc: e.target.value }))
                   }
                   placeholder="Catatan singkat cara menjalankannya…"
-                  className="min-h-[70px] resize-none rounded-xl border-[#4A3B3233] bg-white text-[#231F1E] [field-sizing:content] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="min-h-[70px] resize-none rounded-xl border-border bg-surface-primary text-content-primary [field-sizing:content] placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
 
               {/* Kategori */}
               <div className="space-y-1.5">
-                <span className="text-[13px] font-semibold text-[#4A3B32]">
+                <span className="text-[13px] font-semibold text-content-secondary">
                   Kategori
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -280,10 +280,10 @@ export function HabitSheet() {
                       type="button"
                       onClick={() => setDraft((p) => ({ ...p, cat: c }))}
                       aria-pressed={draft.cat === c}
-                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         draft.cat === c
-                          ? 'bg-[#749B58] text-white'
-                          : 'border border-[#4A3B321F] bg-white text-[#4A3B32] hover:bg-[#E4EFE0]'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'
                       }`}
                     >
                       {c}
@@ -294,8 +294,8 @@ export function HabitSheet() {
 
               {/* Jadwal berulang */}
               <div className="space-y-1.5">
-                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[#4A3B32]">
-                  <CalendarDays className="h-3.5 w-3.5 text-[#749B58]" />
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                  <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                   Jadwal berulang
                 </span>
                 <div className="flex gap-2">
@@ -308,10 +308,10 @@ export function HabitSheet() {
                         onClick={() => toggleDay(d)}
                         aria-pressed={on}
                         aria-label={`Hari ${WEEKDAY_MIN[d]}`}
-                        className={`h-10 flex-1 cursor-pointer rounded-xl text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                        className={`h-10 flex-1 cursor-pointer rounded-xl text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
-                            ? 'bg-[#749B58] text-white'
-                            : 'border border-[#4A3B321F] bg-white text-[#4A3B32]/60 hover:bg-[#E4EFE0]'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border border-border bg-surface-primary text-content-muted hover:bg-secondary'
                         }`}
                       >
                         {WEEKDAY_MIN[d]}
@@ -329,7 +329,7 @@ export function HabitSheet() {
                       key={p.label}
                       type="button"
                       onClick={() => setPreset(p.days)}
-                      className="h-8 cursor-pointer rounded-full border border-[#749B58]/35 bg-[#E4EFE0]/60 px-3 text-[11px] font-bold text-[#658A4C] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                      className="h-8 cursor-pointer rounded-full border border-primary/35 bg-secondary/60 px-3 text-[11px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {p.label}
                     </button>
@@ -339,7 +339,7 @@ export function HabitSheet() {
 
               {/* Target pekanan */}
               <div className="space-y-1.5">
-                <span className="text-[13px] font-semibold text-[#4A3B32]">
+                <span className="text-[13px] font-semibold text-content-secondary">
                   Target per pekan
                 </span>
                 <div className="flex items-center gap-3">
@@ -354,15 +354,15 @@ export function HabitSheet() {
                         weeklyTarget: Math.max(1, p.weeklyTarget - 1),
                       }))
                     }
-                    className="h-10 w-10 shrink-0 rounded-full border-[#4A3B3233] p-0 text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                    className="h-10 w-10 shrink-0 rounded-full border-border p-0 text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
                   <p className="flex flex-1 items-baseline justify-center gap-1">
-                    <span className="text-[22px] font-bold tabular-nums text-[#231F1E]">
+                    <span className="text-[22px] font-bold tabular-nums text-content-primary">
                       {draft.weeklyTarget}
                     </span>
-                    <span className="text-[12px] font-semibold text-[#4A3B32]/70">
+                    <span className="text-[12px] font-semibold text-content-muted">
                       × / pekan
                     </span>
                   </p>
@@ -377,7 +377,7 @@ export function HabitSheet() {
                         weeklyTarget: Math.min(maxTarget, p.weeklyTarget + 1),
                       }))
                     }
-                    className="h-10 w-10 shrink-0 rounded-full border-[#4A3B3233] p-0 text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                    className="h-10 w-10 shrink-0 rounded-full border-border p-0 text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -387,15 +387,15 @@ export function HabitSheet() {
               {/* Pengingat */}
               <div className="space-y-1.5">
                 <span className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[#4A3B32]">
-                    <Bell className="h-3.5 w-3.5 text-[#749B58]" />
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                    <Bell aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                     Pengingat harian
                   </span>
                   <Switch
                     checked={reminderOn}
                     onCheckedChange={setReminderOn}
                     aria-label="Aktifkan pengingat harian"
-                    className="data-[state=checked]:bg-[#749B58]"
+                    className="data-[state=checked]:bg-primary"
                   />
                 </span>
                 {reminderOn && (
@@ -403,7 +403,7 @@ export function HabitSheet() {
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-3 rounded-xl border border-[#4A3B321F] bg-white px-3.5 py-2.5"
+                    className="flex items-center gap-3 rounded-xl border border-border bg-surface-primary px-3.5 py-2.5"
                   >
                     <Input
                       type="time"
@@ -412,9 +412,9 @@ export function HabitSheet() {
                         setDraft((p) => ({ ...p, reminder: e.target.value }))
                       }
                       aria-label="Jam pengingat"
-                      className="h-9 w-32 rounded-lg border-transparent bg-[#F5F3EE] text-[14px] font-semibold tabular-nums text-[#231F1E] focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                      className="h-9 w-32 rounded-lg border-transparent bg-surface-sunken text-[14px] font-semibold tabular-nums text-content-primary focus-visible:border-primary focus-visible:ring-primary/25"
                     />
-                    <p className="text-[11px] font-medium text-[#4A3B32]/70">
+                    <p className="text-[11px] font-medium text-content-muted">
                       Pengingat dicatat pada jadwal kebiasaan — tanpa notifikasi
                       sistem di mode demo.
                     </p>
@@ -429,14 +429,14 @@ export function HabitSheet() {
                 type="button"
                 variant="ghost"
                 onClick={closeHabitSheet}
-                className="h-11 flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
               >
                 Batal
               </Button>
               <Button
                 type="button"
                 onClick={submit}
-                className="h-11 flex-1 rounded-full bg-[#749B58] font-semibold text-white hover:bg-[#658A4C]"
+                className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover"
               >
                 {mode === 'edit' ? (
                   <>
@@ -454,7 +454,7 @@ export function HabitSheet() {
 
             {/* Zona kelola — hanya saat menyunting */}
             {mode === 'edit' && editing && (
-              <div className="mt-4 space-y-2 border-t border-[#4A3B3214] pt-4">
+              <div className="mt-4 space-y-2 border-t border-border pt-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -466,7 +466,7 @@ export function HabitSheet() {
                     )
                     closeHabitSheet()
                   }}
-                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#4A3B32]/25 bg-white text-[13px] font-semibold text-[#4A3B32] transition-colors hover:bg-[#EAE5D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-surface-primary text-[13px] font-semibold text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   {editing.archived ? (
                     <>
@@ -484,25 +484,25 @@ export function HabitSheet() {
                   <AlertDialogTrigger asChild>
                     <button
                       type="button"
-                      className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#B25E3F]/30 bg-white text-[13px] font-semibold text-[#B25E3F] transition-colors hover:bg-[#B25E3F]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F]"
+                      className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-destructive/30 bg-surface-primary text-[13px] font-semibold text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                       Hapus Permanen
                     </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="max-w-[400px] rounded-[28px] border-[#4A3B32]/10 bg-[#FAF9F6] p-6">
+                  <AlertDialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6">
                     <AlertDialogHeader className="text-left">
-                      <AlertDialogTitle className="text-lg tracking-tight text-[#231F1E]">
+                      <AlertDialogTitle className="text-lg tracking-tight text-content-primary">
                         Hapus kebiasaan ini?
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-[13px] text-[#4A3B32]/75">
+                      <AlertDialogDescription className="text-[13px] text-content-muted">
                         &ldquo;{editing.title}&rdquo; beserta seluruh riwayat
                         penyelesaiannya akan dihapus. Tindakan ini tidak bisa
                         dibatalkan.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-3 flex flex-row gap-2">
-                      <AlertDialogCancel className="h-10 flex-1 rounded-full border-[#4A3B32]/20 text-[13px] font-semibold text-[#4A3B32] hover:bg-[#EAE5D9]">
+                      <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary">
                         Batal
                       </AlertDialogCancel>
                       <AlertDialogAction
@@ -511,7 +511,7 @@ export function HabitSheet() {
                           toast.info('Kebiasaan dihapus')
                           closeHabitSheet()
                         }}
-                        className="h-10 flex-1 rounded-full bg-[#B25E3F] text-[13px] font-semibold text-white hover:bg-[#9E4E33]"
+                        className="h-10 flex-1 rounded-full bg-destructive text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90"
                       >
                         Hapus
                       </AlertDialogAction>

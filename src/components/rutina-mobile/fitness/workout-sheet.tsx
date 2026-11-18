@@ -184,7 +184,7 @@ export function WorkoutSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeWorkoutSheet}
-            className="absolute inset-0 z-40 bg-[#231F1E]/45"
+            className="absolute inset-0 z-40 bg-espresso/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -210,7 +210,7 @@ export function WorkoutSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -218,15 +218,15 @@ export function WorkoutSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Catat Sesi
                 </h2>
-                <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
+                <p className="mt-0.5 text-[13px] text-content-muted">
                   Sesi baru — {shortDateLabel(date || todayISO())}.
                 </p>
               </div>
@@ -236,7 +236,7 @@ export function WorkoutSheet() {
             <div
               role="group"
               aria-label="Jenis sesi"
-              className="relative mt-3 flex rounded-full bg-[#EAE5D9] p-1"
+              className="relative mt-3 flex rounded-full bg-surface-secondary p-1"
             >
               {(['beban', 'kardio'] as const).map((t) => {
                 const on = mode === t
@@ -246,15 +246,15 @@ export function WorkoutSheet() {
                     type="button"
                     onClick={() => setMode(t)}
                     aria-pressed={on}
-                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
-                      on ? 'text-[#658A4C]' : 'text-[#4A3B32]/55'
+                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      on ? 'text-success' : 'text-content-muted'
                     }`}
                   >
                     {on && (
                       <m.span
                         aria-hidden="true"
                         layoutId="wo-mode-pill"
-                        className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
+                        className="absolute inset-0 z-[-1] rounded-full bg-surface-primary shadow-soft"
                         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       />
                     )}
@@ -267,7 +267,7 @@ export function WorkoutSheet() {
             {/* Tanggal & durasi */}
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <div className="space-y-1.5">
-                <Label htmlFor="wo-date" className="text-[13px] font-semibold text-[#4A3B32]">
+                <Label htmlFor="wo-date" className="text-[13px] font-semibold text-content-secondary">
                   Tanggal
                 </Label>
                 <Input
@@ -276,11 +276,11 @@ export function WorkoutSheet() {
                   value={date}
                   max={todayISO()}
                   onChange={(e) => setDate(e.target.value)}
-                  className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="h-11 rounded-xl border-border bg-surface-sunken text-content-primary focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="wo-dur" className="text-[13px] font-semibold text-[#4A3B32]">
+                <Label htmlFor="wo-dur" className="text-[13px] font-semibold text-content-secondary">
                   Durasi (menit)
                 </Label>
                 <Input
@@ -289,7 +289,7 @@ export function WorkoutSheet() {
                   value={duration}
                   onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))}
                   placeholder="45"
-                  className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="h-11 rounded-xl border-border bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
             </div>
@@ -305,10 +305,10 @@ export function WorkoutSheet() {
                   className="mt-4"
                 >
                   <div className="flex items-center justify-between px-0.5">
-                    <Label className="text-[13px] font-semibold text-[#4A3B32]">
+                    <Label className="text-[13px] font-semibold text-content-secondary">
                       Gerakan &amp; Set
                     </Label>
-                    <span className="text-[11px] font-medium text-[#4A3B32]/60">
+                    <span className="text-[11px] font-medium text-content-muted">
                       {blocks.length} blok
                     </span>
                   </div>
@@ -321,15 +321,15 @@ export function WorkoutSheet() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.97 }}
                         transition={{ duration: 0.22 }}
-                        className="rounded-2xl border border-[#4A3B321F] bg-white p-3.5"
+                        className="rounded-2xl border border-border bg-surface-primary p-3.5"
                       >
                         <div className="flex items-center gap-2">
                           <select
                             aria-label={`Gerakan blok ${i + 1}`}
                             value={b.exercise}
                             onChange={(e) => patchBlock(i, { exercise: e.target.value })}
-                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-[#F5F3EE] px-2.5 text-[13.5px] font-semibold text-[#231F1E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58] ${
-                              b.exercise ? 'border-[#749B58]' : 'border-[#4A3B3233] text-[#4A3B32]/55'
+                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-surface-sunken px-2.5 text-[13.5px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+                              b.exercise ? 'border-primary' : 'border-border text-content-muted'
                             }`}
                           >
                             <option value="">Pilih gerakan…</option>
@@ -352,7 +352,7 @@ export function WorkoutSheet() {
                               )
                             }
                             disabled={blocks.length <= 1}
-                            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[#B25E3F] transition-colors hover:bg-[#B25E3F]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F] disabled:cursor-not-allowed disabled:opacity-30"
+                            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive disabled:cursor-not-allowed disabled:opacity-30"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -360,7 +360,7 @@ export function WorkoutSheet() {
 
                         <div className="mt-2.5 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                           <div>
-                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
                               Beban (kg)
                             </p>
                             <Input
@@ -373,11 +373,11 @@ export function WorkoutSheet() {
                                 })
                               }
                               placeholder="40"
-                              className="h-10 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] tabular-nums focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                              className="h-10 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
                             />
                           </div>
                           <div>
-                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
                               Repetisi
                             </p>
                             <Input
@@ -390,25 +390,25 @@ export function WorkoutSheet() {
                                 })
                               }
                               placeholder="5"
-                              className="h-10 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] tabular-nums focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                              className="h-10 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
                             />
                           </div>
                           <div>
-                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
                               Set
                             </p>
-                            <div className="flex h-10 items-center rounded-xl border border-[#4A3B3233] bg-[#F5F3EE]">
+                            <div className="flex h-10 items-center rounded-xl border border-border bg-surface-sunken">
                               <button
                                 type="button"
                                 aria-label="Kurangi set"
                                 onClick={() =>
                                   patchBlock(i, { count: Math.max(1, b.count - 1) })
                                 }
-                                className="flex h-full w-8 cursor-pointer items-center justify-center text-[#4A3B32] transition-colors hover:text-[#B25E3F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-[#749B58]"
+                                className="flex h-full w-8 cursor-pointer items-center justify-center text-content-secondary transition-colors hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-primary"
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
-                              <span className="w-6 text-center text-[14px] font-bold tabular-nums text-[#231F1E]">
+                              <span className="w-6 text-center text-[14px] font-bold tabular-nums text-content-primary">
                                 {b.count}
                               </span>
                               <button
@@ -417,7 +417,7 @@ export function WorkoutSheet() {
                                 onClick={() =>
                                   patchBlock(i, { count: Math.min(12, b.count + 1) })
                                 }
-                                className="flex h-full w-8 cursor-pointer items-center justify-center text-[#4A3B32] transition-colors hover:text-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-[#749B58]"
+                                className="flex h-full w-8 cursor-pointer items-center justify-center text-content-secondary transition-colors hover:text-success focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-primary"
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -431,7 +431,7 @@ export function WorkoutSheet() {
                   <button
                     type="button"
                     onClick={() => setBlocks((bs) => [...bs, emptyBlock()])}
-                    className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-[#749B58]/40 text-[13px] font-bold text-[#658A4C] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary/40 text-[13px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Plus className="h-4 w-4" />
                     Tambah gerakan
@@ -449,7 +449,7 @@ export function WorkoutSheet() {
                   <div
                     role="group"
                     aria-label="Jenis kardio"
-                    className="flex rounded-full bg-[#EAE5D9] p-1"
+                    className="flex rounded-full bg-surface-secondary p-1"
                   >
                     {(['jalan', 'lari'] as const).map((k) => (
                       <button
@@ -457,10 +457,10 @@ export function WorkoutSheet() {
                         type="button"
                         onClick={() => setCardioKind(k)}
                         aria-pressed={cardioKind === k}
-                        className={`h-9 flex-1 cursor-pointer rounded-full text-[13px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                        className={`h-9 flex-1 cursor-pointer rounded-full text-[13px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           cardioKind === k
-                            ? 'bg-white text-[#658A4C] shadow-[0_2px_10px_rgba(74,59,50,0.16)]'
-                            : 'text-[#4A3B32]/55'
+                            ? 'bg-surface-primary text-success shadow-soft'
+                            : 'text-content-muted'
                         }`}
                       >
                         {k === 'jalan' ? 'Jalan' : 'Lari'}
@@ -469,7 +469,7 @@ export function WorkoutSheet() {
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2.5">
                     <div className="space-y-1.5">
-                      <Label htmlFor="wo-km" className="text-[13px] font-semibold text-[#4A3B32]">
+                      <Label htmlFor="wo-km" className="text-[13px] font-semibold text-content-secondary">
                         Jarak (km)
                       </Label>
                       <Input
@@ -480,13 +480,13 @@ export function WorkoutSheet() {
                           setDistance(e.target.value.replace(/[^\d.,]/g, '').slice(0, 5))
                         }
                         placeholder="5,2"
-                        className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] tabular-nums focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                        className="h-11 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
                       />
                     </div>
                     <div className="flex items-end">
                       <div
                         className={`flex h-11 w-full items-center justify-center rounded-xl text-[14px] font-bold tabular-nums ${
-                          pace ? 'bg-[#E4EFE0] text-[#658A4C]' : 'bg-[#F5F3EE] text-[#4A3B32]/40'
+                          pace ? 'bg-secondary text-success' : 'bg-surface-sunken text-content-muted'
                         }`}
                         aria-live="polite"
                       >
@@ -500,8 +500,8 @@ export function WorkoutSheet() {
 
             {/* Catatan */}
             <div className="mt-4 space-y-1.5">
-              <Label htmlFor="wo-note" className="text-[13px] font-semibold text-[#4A3B32]">
-                Catatan <span className="font-normal text-[#4A3B32]/50">(opsional)</span>
+              <Label htmlFor="wo-note" className="text-[13px] font-semibold text-content-secondary">
+                Catatan <span className="font-normal text-content-muted">(opsional)</span>
               </Label>
               <Input
                 id="wo-note"
@@ -509,7 +509,7 @@ export function WorkoutSheet() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="mis. naik 2,5 kg dari minggu lalu"
                 maxLength={60}
-                className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                className="h-11 rounded-xl border-border bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />
             </div>
 
@@ -518,7 +518,7 @@ export function WorkoutSheet() {
               type="button"
               onClick={submit}
               whileTap={{ scale: 0.98 }}
-              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-[#749B58] text-[15px] font-bold text-white shadow-soft transition-colors hover:bg-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Simpan Sesi
             </m.button>

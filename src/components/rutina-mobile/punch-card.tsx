@@ -66,24 +66,24 @@ export function PunchCard() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
       aria-label="Kartu stempel pekan"
-      className="relative mt-3 overflow-hidden rounded-[20px] border-2 border-dashed border-[#749B58]/35 bg-white p-5 shadow-card"
+      className="relative mt-3 overflow-hidden rounded-[20px] border-2 border-dashed border-primary/35 bg-surface-primary p-5 shadow-card"
     >
       {/* Kepingan polos khas kartu loyalti: lingkaran lembut di sudut */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-[#E4EFE0]/70"
+        className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-secondary/70"
       />
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4A3B32]/70">
-            <BadgeCheck className="h-3.5 w-3.5 text-[#749B58]" />
+          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-content-muted">
+            <BadgeCheck aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
             Kartu Stempel Pekan
           </p>
-          <p className="mt-1 text-[15px] font-bold text-[#231F1E]">
+          <p className="mt-1 text-[15px] font-bold text-content-primary">
             {stampedCount} dari 7 hari tuntas
           </p>
-          <p className="mt-0.5 text-[12px] font-medium text-[#4A3B32]/75">
+          <p className="mt-0.5 text-[12px] font-medium text-content-muted">
             {perfect
               ? 'Pekan sempurna — pertahankan!'
               : 'Selesaikan target misi untuk stempel baru'}
@@ -94,7 +94,7 @@ export function PunchCard() {
             initial={{ scale: 0.5, rotate: -8, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58] px-2.5 py-1 text-[11px] font-bold text-white shadow-leaf"
+            className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-leaf"
           >
             <Sparkles className="h-3 w-3" />
             Sempurna
@@ -131,24 +131,24 @@ export function PunchCard() {
               className={
                 'flex h-11 w-full items-center justify-center rounded-full ' +
                 (d.stamped
-                  ? 'bg-[#749B58] text-[#FAF9F6] shadow-[inset_0_-2px_4px_rgba(35,31,30,0.18),0_4px_10px_rgba(116,155,88,0.35)]'
-                  : 'border-2 border-dashed border-[#4A3B32]/25 text-transparent')
+                  ? 'bg-primary text-primary-foreground shadow-leaf'
+                  : 'border-2 border-dashed border-border-strong text-transparent')
               }
             >
               {d.stamped ? (
                 <Leaf className="h-4 w-4" strokeWidth={2.2} />
               ) : (
-                <Leaf className="h-4 w-4 text-[#4A3B32]/15" strokeWidth={2} />
+                <Leaf className="h-4 w-4 text-content-muted/15" strokeWidth={2} />
               )}
             </m.div>
             <span
               className={
                 'text-[10px] font-bold uppercase leading-tight tracking-tight ' +
                 (d.isToday
-                  ? 'whitespace-nowrap text-[#658A4C]'
+                  ? 'whitespace-nowrap text-success'
                   : d.stamped
-                    ? 'text-[#4A3B32]/75'
-                    : 'text-[#4A3B32]/40')
+                    ? 'text-content-secondary'
+                    : 'text-content-muted')
               }
             >
               {d.label}

@@ -77,7 +77,7 @@ export function ComposeSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeCompose}
-            className="absolute inset-0 z-40 bg-[#231F1E]/40"
+            className="absolute inset-0 z-40 bg-espresso/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -102,7 +102,7 @@ export function ComposeSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -110,14 +110,14 @@ export function ComposeSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
             <div className="text-left">
-              <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+              <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                 Catatan Baru
               </h2>
-              <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
+              <p className="mt-0.5 text-[13px] text-content-muted">
                 Simpan pikiran atau ide hari ini ke jurnal.
               </p>
             </div>
@@ -126,7 +126,7 @@ export function ComposeSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="sheet-title"
-                  className="text-[13px] font-semibold text-[#4A3B32]"
+                  className="text-[13px] font-semibold text-content-secondary"
                 >
                   Judul
                 </Label>
@@ -135,13 +135,13 @@ export function ComposeSheet() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="mis. Ide pagi ini"
-                  className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="h-11 rounded-xl border-border bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
               <div className="space-y-1.5">
                 <Label
                   htmlFor="sheet-body"
-                  className="text-[13px] font-semibold text-[#4A3B32]"
+                  className="text-[13px] font-semibold text-content-secondary"
                 >
                   Isi catatan
                 </Label>
@@ -150,11 +150,11 @@ export function ComposeSheet() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Tulis apa pun yang ada di kepalamu..."
-                  className="min-h-[84px] resize-none rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] [field-sizing:content] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                  className="min-h-[84px] resize-none rounded-xl border-border bg-surface-sunken text-content-primary [field-sizing:content] placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
               <div className="space-y-1.5">
-                <span className="text-[13px] font-semibold text-[#4A3B32]">
+                <span className="text-[13px] font-semibold text-content-secondary">
                   Kategori
                 </span>
                 <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -166,8 +166,8 @@ export function ComposeSheet() {
                       aria-pressed={folder === f.key}
                       className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors ${
                         folder === f.key
-                          ? 'bg-[#749B58] text-white'
-                          : 'border border-[#4A3B321F] bg-white text-[#4A3B32] hover:bg-[#E4EFE0]'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'
                       }`}
                     >
                       {FOLDER_SHORT[f.key]}
@@ -182,14 +182,14 @@ export function ComposeSheet() {
                 type="button"
                 variant="ghost"
                 onClick={closeCompose}
-                className="h-11 flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
               >
                 Batal
               </Button>
               <Button
                 type="button"
                 onClick={submit}
-                className="h-11 flex-1 rounded-full bg-[#749B58] font-semibold text-white hover:bg-[#658A4C]"
+                className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover"
               >
                 <PenLine className="h-4 w-4" />
                 Simpan

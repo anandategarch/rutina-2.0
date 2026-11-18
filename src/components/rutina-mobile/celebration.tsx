@@ -12,7 +12,14 @@ import { CONTENT_W } from './layout-widths'
  * Partikel deterministik (berbasis indeks, tanpa Math.random) sehingga
  * aman untuk SSR dan konsisten di setiap render.
  */
-const PALETTE = ['#749B58', '#4A3B32', '#A3C489', '#E4EFE0', '#C9DEBE']
+/* Warna partikel — rujukan token (grafik & semantic), bukan hex lepas. */
+const PALETTE = [
+  'var(--chart-1)', // matcha
+  'var(--content-secondary)', // cocoa
+  'var(--chart-4)', // pistachio
+  'var(--secondary)', // mist
+  'color-mix(in oklab, var(--chart-4) 45%, var(--secondary))', // sage muda
+]
 
 const PIECES = Array.from({ length: 28 }, (_, i) => ({
   x: 6 + ((i * 61) % 348),
@@ -72,12 +79,12 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.1 }}
-            className="flex flex-col items-center gap-3 rounded-[28px] bg-[#F5F3EE]/90 px-7 py-6 shadow-[0_20px_50px_rgba(35,31,30,0.20)] backdrop-blur-[2px]"
+            className="flex flex-col items-center gap-3 rounded-[28px] bg-surface-sunken/90 px-7 py-6 shadow-ink-deep backdrop-blur-[2px]"
           >
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-[#749B58] shadow-[0_16px_40px_rgba(35,31,30,0.25)]">
-              <Check className="h-9 w-9 text-white" strokeWidth={3} />
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-ink">
+              <Check className="h-9 w-9 text-primary-foreground" strokeWidth={3} />
             </span>
-            <p className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.18em] text-[#4A3B32]">
+            <p className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.18em] text-content-secondary">
               Hari yang sempurna
             </p>
           </m.div>

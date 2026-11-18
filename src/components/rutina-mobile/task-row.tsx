@@ -74,34 +74,34 @@ export function TaskRow({
       layout
       className={
         'relative overflow-hidden rounded-[16px] border transition-colors duration-300 ' +
-        (done ? 'border-[#749B5833]' : 'border-[#4A3B321F]') +
-        ' bg-white shadow-soft'
+        (done ? 'border-primary/20' : 'border-border') +
+        ' bg-surface-primary shadow-soft'
       }
     >
       {/* Lapisan isi (absolut, di belakang konten) */}
       <m.div
         aria-hidden="true"
         style={{ scaleX: fillR }}
-        className="absolute inset-0 origin-left bg-[#E4EFE0]"
+        className="absolute inset-0 origin-left bg-secondary"
       />
       <m.div
         aria-hidden="true"
         style={{ scaleX: fillL }}
-        className="absolute inset-0 origin-right bg-[#EAE5D9]"
+        className="absolute inset-0 origin-right bg-surface-secondary"
       />
 
       {/* Ikon petunjuk (di belakang konten, muncul di tepi saat menggeser) */}
       <m.span
         aria-hidden="true"
         style={{ opacity: hintR }}
-        className="absolute left-3.5 top-1/2 z-0 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#749B58] text-white"
+        className="absolute left-3.5 top-1/2 z-0 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-primary-foreground"
       >
         <Check className="h-4 w-4" strokeWidth={3} />
       </m.span>
       <m.span
         aria-hidden="true"
         style={{ opacity: hintL }}
-        className="absolute right-3.5 top-1/2 z-0 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#4A3B32]/15 text-[#4A3B32]"
+        className="absolute right-3.5 top-1/2 z-0 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-content-secondary/15 text-content-secondary"
       >
         <Undo2 className="h-4 w-4" />
       </m.span>
@@ -143,7 +143,7 @@ export function TaskRow({
         whileTap={{ scale: 0.985 }}
         className={
           'relative z-10 flex cursor-pointer items-center gap-2 p-3.5 transition-colors duration-300 ' +
-          (done ? 'bg-[#E4EFE0]' : 'bg-white')
+          (done ? 'bg-secondary' : 'bg-surface-primary')
         }
       >
         {/* Tombol lingkaran centang — area kontrol terpisah, target sentuh 32px */}
@@ -160,12 +160,12 @@ export function TaskRow({
           aria-disabled={readOnly}
           aria-label={`Tandai selesai: ${habit.title}`}
           className={
-            'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] disabled:cursor-not-allowed ' +
+            'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ' +
             (done
-              ? 'border-[#749B58] bg-[#749B58] text-white'
+              ? 'border-primary bg-primary text-primary-foreground'
               : readOnly
-                ? 'border-[#4A3B32]/20 text-transparent'
-                : 'border-[#4A3B3240] text-transparent hover:border-[#749B58]/60')
+                ? 'border-border text-transparent'
+                : 'border-border-strong text-transparent hover:border-primary/60')
           }
         >
           <m.span
@@ -185,8 +185,8 @@ export function TaskRow({
           className={
             'min-w-0 flex-1 truncate text-left text-[15px] font-medium transition-colors duration-300 ' +
             (done
-              ? 'text-[#231F1E]/45 line-through decoration-[#231F1E]/30'
-              : 'text-[#231F1E]')
+              ? 'text-content-muted line-through'
+              : 'text-content-primary')
           }
         >
           {habit.title}
@@ -194,12 +194,12 @@ export function TaskRow({
 
         {/* Pil meta: streak nyata atau kategori */}
         {streak > 0 ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#EAE5D9] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-[11px] font-bold text-content-secondary">
             <Flame className="h-3.5 w-3.5" />
             {streak} hari
           </span>
         ) : habit.cat !== 'Kebiasaan' ? (
-          <span className="shrink-0 rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
+          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-content-secondary">
             {habit.cat}
           </span>
         ) : null}
@@ -210,8 +210,8 @@ export function TaskRow({
             className={
               'flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold tabular-nums transition-colors duration-300 ' +
               (done
-                ? 'bg-[#4A3B32]/10 text-[#4A3B32]/45'
-                : 'bg-[#749B58]/15 text-[#658A4C]')
+                ? 'bg-content-secondary/10 text-content-muted'
+                : 'bg-primary/15 text-success')
             }
           >
             <Zap className="h-3 w-3" strokeWidth={2.4} />+{xp}
@@ -222,7 +222,7 @@ export function TaskRow({
         <m.span
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
-          className="shrink-0 text-[#4A3B32]/40"
+          className="shrink-0 text-content-muted"
         >
           <ChevronDown className="h-4 w-4" />
         </m.span>
@@ -237,7 +237,7 @@ export function TaskRow({
               animate={{ opacity: [0, 1, 1, 0], y: -30 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.9, times: [0, 0.2, 0.75, 1] }}
-              className="pointer-events-none absolute right-12 top-1/2 text-[11px] font-bold text-[#658A4C]"
+              className="pointer-events-none absolute right-12 top-1/2 text-[11px] font-bold text-success"
             >
               +{xp} XP
             </m.span>
@@ -253,17 +253,17 @@ export function TaskRow({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 overflow-hidden bg-white"
+            className="relative z-10 overflow-hidden bg-surface-primary"
           >
-            <div className="border-t border-[#4A3B3214] px-3.5 pb-4 pt-3 text-left">
-              <p className="text-[13px] leading-relaxed text-[#231F1E]/75">
+            <div className="border-t border-border px-3.5 pb-4 pt-3 text-left">
+              <p className="text-[13px] leading-relaxed text-content-secondary">
                 {habit.desc || 'Belum ada deskripsi untuk kebiasaan ini.'}
               </p>
 
               {/* Meta jadwal, pengingat, target pekanan */}
               <dl className="mt-3 grid grid-cols-1 gap-1.5">
-                <div className="flex items-center gap-2 text-[11px] font-medium text-[#4A3B32]/80">
-                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#749B58]" />
+                <div className="flex items-center gap-2 text-[11px] font-medium text-content-muted">
+                  <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
                   <span>
                     {habit.schedule.length === 0
                       ? 'Terjadwal setiap hari'
@@ -274,15 +274,15 @@ export function TaskRow({
                           .join(', ')}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] font-medium text-[#4A3B32]/80">
-                  <Repeat className="h-3.5 w-3.5 shrink-0 text-[#749B58]" />
+                <div className="flex items-center gap-2 text-[11px] font-medium text-content-muted">
+                  <Repeat aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
                   <span>
                     {weekDone}/{habit.weeklyTarget} target pekan ini
                   </span>
                 </div>
                 {habit.reminder && (
-                  <div className="flex items-center gap-2 text-[11px] font-medium text-[#4A3B32]/80">
-                    <Bell className="h-3.5 w-3.5 shrink-0 text-[#749B58]" />
+                  <div className="flex items-center gap-2 text-[11px] font-medium text-content-muted">
+                    <Bell aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
                     <span>Pengingat {habit.reminder} WIB</span>
                   </div>
                 )}
@@ -290,7 +290,7 @@ export function TaskRow({
 
               {/* Riwayat 14 hari nyata */}
               <div className="mt-3 flex items-center gap-2">
-                <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
+                <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
                   14 hari
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -300,7 +300,7 @@ export function TaskRow({
                       aria-hidden="true"
                       className={
                         'h-2.5 w-2.5 rounded-full ' +
-                        (h ? 'bg-[#749B58]' : 'bg-[#EAE5D9]')
+                        (h ? 'bg-primary' : 'bg-surface-secondary')
                       }
                     />
                   ))}
@@ -313,7 +313,7 @@ export function TaskRow({
                   type="button"
                   variant="ghost"
                   onClick={onExpand}
-                  className="h-9 flex-1 rounded-full text-[13px] font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                  className="h-9 flex-1 rounded-full text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
                 >
                   Sembunyikan
                 </Button>
@@ -321,13 +321,13 @@ export function TaskRow({
                   type="button"
                   variant="outline"
                   onClick={onEdit}
-                  className="h-9 flex-1 rounded-full border-[#749B58]/40 text-[13px] font-semibold text-[#658A4C] hover:bg-[#E4EFE0] hover:text-[#658A4C]"
+                  className="h-9 flex-1 rounded-full border-primary/40 text-[13px] font-semibold text-success hover:bg-secondary hover:text-success"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Edit
                 </Button>
                 {readOnly ? (
-                  <span className="flex h-9 flex-1 items-center justify-center rounded-full bg-[#EAE5D9] text-[12px] font-semibold text-[#4A3B32]/60">
+                  <span className="flex h-9 flex-1 items-center justify-center rounded-full bg-surface-secondary text-[12px] font-semibold text-content-muted">
                     Belum terjadi
                   </span>
                 ) : done ? (
@@ -335,7 +335,7 @@ export function TaskRow({
                     type="button"
                     variant="ghost"
                     onClick={onToggle}
-                    className="h-9 flex-1 rounded-full text-[13px] font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                    className="h-9 flex-1 rounded-full text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
                   >
                     Batalkan
                   </Button>
@@ -343,7 +343,7 @@ export function TaskRow({
                   <Button
                     type="button"
                     onClick={onToggle}
-                    className="h-9 flex-1 rounded-full bg-[#749B58] text-[13px] font-semibold text-white hover:bg-[#658A4C]"
+                    className="h-9 flex-1 rounded-full bg-primary text-[13px] font-semibold text-primary-foreground hover:bg-action-hover"
                   >
                     Tandai Selesai
                   </Button>

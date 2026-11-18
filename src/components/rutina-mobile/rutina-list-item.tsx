@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils'
  * Satu baris satu makna: leading (ikon/emoji), konten (judul + subjudul),
  * trailing (nilai/aksi). Tinggi minimum 56px agar nyaman disentuh.
  */
-export interface RutinaListItemProps extends HTMLAttributes<HTMLDivElement> {
+export interface RutinaListItemProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   /** Slot kiri — ikon, avatar, atau emoji dalam pil. */
   leading?: ReactNode
   title: ReactNode

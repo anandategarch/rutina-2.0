@@ -126,7 +126,7 @@ export function AddTxSheet() {
   }
 
   const amountColor =
-    type === 'keluar' ? 'text-[#B25E3F]' : 'text-[#658A4C]'
+    type === 'keluar' ? 'text-content-danger' : 'text-success'
   const gridDir = type === 'masuk' ? 1 : -1
 
   return (
@@ -137,7 +137,7 @@ export function AddTxSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeTxSheet}
-            className="absolute inset-0 z-40 bg-[#231F1E]/45"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -162,7 +162,7 @@ export function AddTxSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -170,15 +170,15 @@ export function AddTxSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Transaksi Baru
                 </h2>
-                <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
+                <p className="mt-0.5 text-[13px] text-content-muted">
                   Catat arus uang — {shortDateLabel(todayISO())}.
                 </p>
               </div>
@@ -188,7 +188,7 @@ export function AddTxSheet() {
             <div
               role="group"
               aria-label="Jenis transaksi"
-              className="relative mt-3 flex rounded-full bg-[#EAE5D9] p-1"
+              className="relative mt-3 flex rounded-full bg-surface-secondary p-1"
             >
               {(['keluar', 'masuk'] as TxType[]).map((t) => {
                 const on = type === t
@@ -198,19 +198,19 @@ export function AddTxSheet() {
                     type="button"
                     onClick={() => switchType(t)}
                     aria-pressed={on}
-                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       on
                         ? t === 'keluar'
-                          ? 'text-[#B25E3F]'
-                          : 'text-[#658A4C]'
-                        : 'text-[#4A3B32]/55'
+                          ? 'text-content-danger'
+                          : 'text-success'
+                        : 'text-content-muted'
                     }`}
                   >
                     {on && (
                       <m.span
                         aria-hidden="true"
                         layoutId="tx-type-pill"
-                        className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
+                        className="absolute inset-0 z-[-1] rounded-full bg-surface-primary shadow-soft"
                         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       />
                     )}
@@ -229,14 +229,14 @@ export function AddTxSheet() {
               >
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
-              <p className="mt-1 text-[11px] text-[#4A3B32]/55">
+              <p className="mt-1 text-[11px] text-content-muted">
                 {CAT_META[cat].label} · {shortDateLabel(todayISO())}
               </p>
             </div>
 
             {/* Pemilih kategori — himpunan berganti mengikuti tipe */}
             <div className="mt-4">
-              <span className="text-[13px] font-semibold text-[#4A3B32]">
+              <span className="text-[13px] font-semibold text-content-secondary">
                 Kategori
               </span>
               <AnimatePresence mode="wait" custom={gridDir} initial={false}>
@@ -258,19 +258,19 @@ export function AddTxSheet() {
                         type="button"
                         onClick={() => setCat(c)}
                         aria-pressed={on}
-                        className={`flex h-[64px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all duration-200 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                        className={`flex h-[64px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all duration-200 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
-                            ? 'border-[#749B58] bg-[#E4EFE0] shadow-[0_4px_14px_rgba(116,155,88,0.22)]'
-                            : 'border-[#4A3B32]/10 bg-[#F5F3EE] hover:border-[#749B58]/40'
+                            ? 'border-primary bg-secondary shadow-leaf'
+                            : 'border-border bg-surface-sunken hover:border-primary/40'
                         }`}
                       >
                         <Icon
-                          className={`h-5 w-5 ${on ? 'text-[#658A4C]' : 'text-[#4A3B32]/70'}`}
+                          className={`h-5 w-5 ${on ? 'text-success' : 'text-content-muted'}`}
                           strokeWidth={on ? 2.4 : 2}
                         />
                         <span
                           className={`px-1 text-center text-[10.5px] font-semibold leading-tight ${
-                            on ? 'text-[#658A4C]' : 'text-[#4A3B32]/65'
+                            on ? 'text-success' : 'text-content-muted'
                           }`}
                         >
                           {CAT_META[c].label}
@@ -286,9 +286,9 @@ export function AddTxSheet() {
             <div className="mt-4 space-y-1.5">
               <Label
                 htmlFor="tx-note"
-                className="text-[13px] font-semibold text-[#4A3B32]"
+                className="text-[13px] font-semibold text-content-secondary"
               >
-                Catatan <span className="font-normal text-[#4A3B32]/50">(opsional)</span>
+                Catatan <span className="font-normal text-content-muted">(opsional)</span>
               </Label>
               <Input
                 id="tx-note"
@@ -296,14 +296,14 @@ export function AddTxSheet() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="mis. Ngopi sama tim proyek"
                 maxLength={40}
-                className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                className="h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />
             </div>
 
             {/* Dompet sumber — hanya bila pengguna punya dompet */}
             {wallets.length > 0 && (
               <div className="mt-4 space-y-1.5">
-                <span className="text-[13px] font-semibold text-[#4A3B32]">
+                <span className="text-[13px] font-semibold text-content-secondary">
                   Dompet
                 </span>
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -315,10 +315,10 @@ export function AddTxSheet() {
                         type="button"
                         onClick={() => setWalletId(w.id)}
                         aria-pressed={on}
-                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
-                            ? 'bg-[#231F1E] text-[#FAF9F6] shadow-soft'
-                            : 'border border-[#4A3B3233] bg-[#F5F3EE] text-[#4A3B32]'
+                            ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                            : 'border border-border bg-surface-sunken text-content-secondary'
                         }`}
                       >
                         {w.name}
@@ -331,9 +331,9 @@ export function AddTxSheet() {
 
             {/* Transaksi berulang */}
             <div className="mt-4 space-y-1.5">
-              <span className="text-[13px] font-semibold text-[#4A3B32]">
+              <span className="text-[13px] font-semibold text-content-secondary">
                 Berulang{' '}
-                <span className="font-normal text-[#4A3B32]/50">
+                <span className="font-normal text-content-muted">
                   (tercatat otomatis tiap jadwal)
                 </span>
               </span>
@@ -346,10 +346,10 @@ export function AddTxSheet() {
                       type="button"
                       onClick={() => setRecurrence(r as Recurrence | null)}
                       aria-pressed={on}
-                      className={`h-10 flex-1 cursor-pointer rounded-xl text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                      className={`h-10 flex-1 cursor-pointer rounded-xl text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         on
-                          ? 'bg-[#749B58] text-white shadow-soft'
-                          : 'border border-[#4A3B3233] bg-[#F5F3EE] text-[#4A3B32]'
+                          ? 'bg-primary text-primary-foreground shadow-soft'
+                          : 'border border-border bg-surface-sunken text-content-secondary'
                       }`}
                     >
                       {r === null ? 'Sekali' : r === 'mingguan' ? 'Mingguan' : 'Bulanan'}
@@ -369,7 +369,7 @@ export function AddTxSheet() {
                     onClick={() => press(k)}
                     whileTap={{ scale: 0.92 }}
                     aria-label="Hapus satu digit"
-                    className="flex h-11 cursor-pointer items-center justify-center rounded-2xl bg-[#EAE5D9] text-[#4A3B32] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    className="flex h-11 cursor-pointer items-center justify-center rounded-2xl bg-surface-secondary text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Delete className="h-5 w-5" />
                   </m.button>
@@ -379,10 +379,10 @@ export function AddTxSheet() {
                     type="button"
                     onClick={() => press(k)}
                     whileTap={{ scale: 0.92 }}
-                    className={`h-11 cursor-pointer rounded-2xl text-[17px] font-bold tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                    className={`h-11 cursor-pointer rounded-2xl text-[17px] font-bold tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       k === '000'
-                        ? 'bg-[#E4EFE0] text-[#658A4C] hover:bg-[#D8E8CF]'
-                        : 'bg-[#F5F3EE] text-[#231F1E] hover:bg-[#EAE5D9]'
+                        ? 'bg-secondary text-success hover:bg-secondary/80'
+                        : 'bg-surface-sunken text-content-primary hover:bg-surface-secondary'
                     }`}
                   >
                     {k}
@@ -397,7 +397,7 @@ export function AddTxSheet() {
                 type="button"
                 variant="ghost"
                 onClick={closeTxSheet}
-                className="h-11 flex-1 rounded-full font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
               >
                 Batal
               </Button>
@@ -405,7 +405,7 @@ export function AddTxSheet() {
                 type="button"
                 onClick={submit}
                 disabled={!amount}
-                className="h-11 flex-1 rounded-full bg-[#749B58] font-semibold text-white hover:bg-[#658A4C] disabled:opacity-45"
+                className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover disabled:opacity-45"
               >
                 Simpan Transaksi
               </Button>

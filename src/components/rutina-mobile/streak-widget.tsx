@@ -29,29 +29,29 @@ export function StreakWidget() {
         ease: [0.22, 1, 0.36, 1],
       }}
       aria-label={`Streak terpanjang aktif, ${streak} hari`}
-      className="flex flex-col rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-4 text-[#F5F3EE] shadow-soft"
+      className="flex flex-col rounded-[16px] border border-border bg-surface-inverse p-4 text-content-inverse shadow-soft"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
         Streak Terpanjang
       </p>
 
       <div className="mt-auto flex items-end justify-between gap-3 pt-4">
         <div className="min-w-0">
           <p className="flex items-baseline gap-1">
-            <span className="text-[30px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
+            <span className="text-[30px] font-semibold leading-none tracking-tight text-content-inverse">
               <Counter to={streak} />
             </span>
-            <span className="text-[11px] font-medium text-[#F5F3EE]/70">
+            <span className="text-[11px] font-medium text-content-inverse/70">
               hari
             </span>
           </p>
-          <p className="mt-1.5 line-clamp-2 pr-1 text-[11px] font-medium leading-snug text-[#F5F3EE]/75">
+          <p className="mt-1.5 line-clamp-2 pr-1 text-[11px] font-medium leading-snug text-content-inverse/75">
             {best.habit?.title ?? 'Mulai kebiasaan pertamamu'}
           </p>
         </div>
         <span
           aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#749B58] text-white shadow-[0_6px_16px_rgba(35,31,30,0.35)]"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-ink"
         >
           <Flame className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </span>

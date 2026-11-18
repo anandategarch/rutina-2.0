@@ -112,23 +112,23 @@ export default function TrendLine() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
       transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
+      className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
     >
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
             Tren Aktivitas
           </p>
           <p className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="text-[40px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
+            <span className="text-[40px] font-semibold leading-none tracking-tight text-content-inverse">
               {fmt1(avg)}
             </span>
-            <span className="text-sm font-medium text-[#F5F3EE]/70">
+            <span className="text-sm font-medium text-content-inverse/70">
               misi / hari rata-rata
             </span>
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58]/20 px-2.5 py-1 text-[11px] font-bold text-[#A3C489]">
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/20 px-2.5 py-1 text-[11px] font-bold text-pistachio">
           <DeltaIcon className="h-3.5 w-3.5" />
           {deltaLabel}
         </span>
@@ -143,8 +143,8 @@ export default function TrendLine() {
       >
         <defs>
           <linearGradient id="activityGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#A3C489" stopOpacity="0.30" />
-            <stop offset="100%" stopColor="#A3C489" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--chart-4)" stopOpacity="0.30" />
+            <stop offset="100%" stopColor="var(--chart-4)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <m.path
@@ -159,7 +159,7 @@ export default function TrendLine() {
           ref={lineRef}
           d={LINE_PATH}
           fill="none"
-          stroke="#A3C489"
+          stroke="var(--chart-4)"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -169,8 +169,8 @@ export default function TrendLine() {
             cx={p.x}
             cy={p.y}
             r={i === POINTS.length - 1 ? 5 : 3.5}
-            fill={i === POINTS.length - 1 ? '#A3C489' : '#231F1E'}
-            stroke="#A3C489"
+            fill={i === POINTS.length - 1 ? 'var(--chart-4)' : 'var(--surface-inverse)'}
+            stroke="var(--chart-4)"
             strokeWidth="2"
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
@@ -190,14 +190,14 @@ export default function TrendLine() {
         {week.map((d) => (
           <span
             key={d.date}
-            className="text-[11px] font-bold text-[#F5F3EE]/70"
+            className="text-[11px] font-bold text-content-inverse/70"
           >
             {d.label}
           </span>
         ))}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/70">
+      <p className="mt-3 text-[11px] font-medium text-content-inverse/70">
         Rata-rata {fmt1(avg)} misi/hari pekan ini — {compareLabel}.
       </p>
     </m.div>

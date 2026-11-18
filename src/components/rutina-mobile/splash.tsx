@@ -101,7 +101,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
       onClick={finish}
       role="button"
       aria-label="Lewati layar pembuka"
-      className="absolute inset-0 z-[70] flex cursor-pointer select-none flex-col items-center justify-center bg-[#749B58] text-[#FAF9F6]"
+      className="absolute inset-0 z-[70] flex cursor-pointer select-none flex-col items-center justify-center bg-primary text-primary-foreground"
     >
       <svg
         ref={svgRef}
@@ -109,7 +109,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
         viewBox="0 0 140 140"
         className="h-28 w-28"
         fill="none"
-        stroke="#FAF9F6"
+        stroke="currentColor"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -144,12 +144,12 @@ export function Splash({ onDone }: { onDone: () => void }) {
       <p
         ref={tagRef}
         style={{ opacity: 0 }}
-        className="mt-2 text-[13px] font-medium text-[#FAF9F6]/80"
+        className="mt-2 text-[13px] font-medium text-primary-foreground/80"
       >
         Kebiasaan kecil, perubahan besar.
       </p>
 
-      <p className="absolute bottom-8 text-[9px] font-bold uppercase tracking-[0.28em] text-[#FAF9F6]/50">
+      <p className="absolute bottom-8 text-[9px] font-bold uppercase tracking-[0.28em] text-primary-foreground/50">
         Earth Tone Edition
       </p>
     </m.div>

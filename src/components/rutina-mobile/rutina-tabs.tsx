@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils'
  *     <TabsPrimitive.Content value="a">…</TabsPrimitive.Content>
  *   </RutinaTabs>
  */
-const RutinaTabs = TabsPrimitive.Root
+export const RutinaTabs = TabsPrimitive.Root
 
 const listVariants = cva('gap-1', {
   variants: {

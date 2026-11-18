@@ -41,7 +41,7 @@ export function FinChart({
         <span
           key={f}
           aria-hidden="true"
-          className="absolute inset-x-0 border-t border-[#FAF9F6]/10"
+          className="absolute inset-x-0 border-t border-border"
           style={{ bottom: LABEL_H + f * (TRACK_H - 14) }}
         />
       ))}
@@ -56,7 +56,7 @@ export function FinChart({
               onClick={() => onPick(i)}
               aria-pressed={isOn}
               aria-label={`${p.label}: masuk ${p.masuk.toLocaleString('id-ID')}, keluar ${p.keluar.toLocaleString('id-ID')}`}
-              className="relative flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              className="relative flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
             >
               {/* Sepasang batang */}
               <div
@@ -98,7 +98,7 @@ export function FinChart({
               {/* Label + garis bawah aktif */}
               <span
                 className={`relative flex h-[24px] w-full items-center justify-center text-[10.5px] font-bold tracking-wide transition-colors duration-300 ${
-                  isOn ? 'text-[#FAF9F6]' : 'text-[#FAF9F6]/50'
+                  isOn ? 'text-content-secondary' : 'text-content-muted'
                 }`}
               >
                 {p.label}
@@ -106,7 +106,7 @@ export function FinChart({
                   <m.span
                     aria-hidden="true"
                     layoutId="fin-underline"
-                    className="absolute bottom-0 h-[3px] w-5 rounded-full bg-[#D9B98C]"
+                    className="absolute bottom-0 h-[3px] w-5 rounded-full bg-gold"
                     transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                   />
                 )}
@@ -119,7 +119,7 @@ export function FinChart({
       {/* Garis dasar */}
       <span
         aria-hidden="true"
-        className="absolute inset-x-0 border-t border-[#FAF9F6]/20"
+        className="absolute inset-x-0 border-t border-border-strong"
         style={{ bottom: LABEL_H - 2, transition: `all .3s ${EASE.join(',')}` }}
       />
     </div>

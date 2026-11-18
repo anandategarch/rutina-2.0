@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
   ArrowLeft,
@@ -9,7 +9,6 @@ import {
   HardDrive,
   Info,
   Leaf,
-  Palette,
   RotateCcw,
   Sparkles,
   Target,
@@ -59,6 +58,7 @@ import { Slider } from '@/components/ui/slider'
 
 import { Counter } from '../counter'
 import { BlurFade, SplitText } from '../motion-kit'
+import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import {
@@ -113,6 +113,33 @@ export default function ProfileScreen() {
   const setScreen = useRutina((s) => s.setScreen)
   const [lang, setLang] = useState('id')
 
+  /* Easter egg developer: teks versi di footer diketuk 5× (rentang antar
+     ketukan ≤ 2 detik) → buka papan sistem desain. Terlihat sebagai teks
+     versi biasa; penghitung hidup di useRef agar tidak memicu render. */
+  const versionTapsRef = useRef(0)
+  const versionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleVersionTap = () => {
+    versionTapsRef.current += 1
+    if (versionTimerRef.current) clearTimeout(versionTimerRef.current)
+    if (versionTapsRef.current >= 5) {
+      versionTapsRef.current = 0
+      versionTimerRef.current = null
+      openBoard()
+      toast('Papan sistem desain diaktifkan')
+      return
+    }
+    versionTimerRef.current = setTimeout(() => {
+      versionTapsRef.current = 0
+    }, 2000)
+  }
+  // Bersihkan timer saat unmount.
+  useEffect(
+    () => () => {
+      if (versionTimerRef.current) clearTimeout(versionTimerRef.current)
+    },
+    [],
+  )
+
   /* Semua angka dihitung dari histori nyata — bukan demo statis. */
   const today = todayISO()
   const doneCount = doneCountOn(completions, today)
@@ -146,7 +173,7 @@ export default function ProfileScreen() {
   ]
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
+    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
       <m.button
         type="button"
@@ -156,54 +183,60 @@ export default function ProfileScreen() {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="-ml-1 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#4A3B321F] bg-white text-[#4A3B32] shadow-soft transition-colors hover:bg-[#EAE5D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+        className="-ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-[13px] font-semibold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <ArrowLeft className="h-4.5 w-4.5" />
+        Kembali
       </m.button>
 
       {/* Header editorial */}
       <header className="mt-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B25E3F]">
-          <Leaf className="h-3.5 w-3.5 text-[#B25E3F]" />
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-content-danger">
+          <Leaf className="h-3.5 w-3.5 text-content-danger" />
           Akun & preferensi
         </p>
         <h1
-          className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-[#231F1E]`}
+          className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-content-primary`}
         >
           <SplitText text="Profil" inView />
-          <span className="text-[#B25E3F]">.</span>
+          <span className="text-content-danger">.</span>
         </h1>
       </header>
+
+      {/* Judul seksi: identitas pengguna */}
+      <BlurFade delay={0.04} className="mt-5">
+        <RutinaSectionHeader title="Profil" />
+      </BlurFade>
 
       {/* Kartu profil + progres level (shadcn Progress & Badge) */}
       <m.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-4 flex flex-col items-center rounded-[20px] border border-[#4A3B3214] bg-white p-5 text-center shadow-card"
+        className="mt-3 flex flex-col items-center rounded-[20px] border border-border bg-surface-primary p-5 text-center shadow-card"
       >
-        <Avatar className="h-16 w-16 border-4 border-white shadow-[0_6px_18px_rgba(74,59,50,0.18)]">
+        <Avatar className="h-16 w-16 border-4 border-surface-primary shadow-card">
           <AvatarFallback className="bg-cocoa text-lg font-bold text-parchment">
             AN
           </AvatarFallback>
         </Avatar>
-        <h2 className="mt-3 text-lg font-bold tracking-tight text-[#231F1E]">
+        <h2 className="mt-3 text-lg font-bold tracking-tight text-content-primary">
           Ananda
         </h2>
-        <p className="mt-0.5 text-xs font-medium text-[#4A3B32]/70">
+        <p className="mt-0.5 text-xs font-medium text-content-muted">
           Profil lokal · data tersimpan di perangkat
         </p>
         <div className="mt-3 flex items-center gap-2">
           <Badge
             variant="outline"
-            className="gap-1.5 rounded-full border-[#749B58]/40 bg-[#E4EFE0] px-3 py-1 text-[11px] font-bold text-[#658A4C]"
+            className="gap-1.5 rounded-full border-primary/40 bg-secondary px-3 py-1 text-[11px] font-bold text-success"
           >
             <Sparkles className="h-3 w-3" />
             Level {level}
           </Badge>
           <Badge
             variant="outline"
-            className="rounded-full border-[#4A3B32]/20 bg-[#F5F3EE] px-3 py-1 text-[11px] font-bold text-[#4A3B32]"
+            className="rounded-full border-border bg-surface-sunken px-3 py-1 text-[11px] font-bold text-content-secondary"
           >
             {memberBadge}
           </Badge>
@@ -212,19 +245,19 @@ export default function ProfileScreen() {
         {/* Progres XP menuju level berikutnya */}
         <div className="mt-5 w-full">
           <div className="flex items-baseline justify-between px-0.5">
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
               Progres Level
             </span>
-            <span className="text-[11px] font-bold tabular-nums text-[#658A4C]">
+            <span className="text-[11px] font-bold tabular-nums text-success">
               <Counter to={xp} /> / {XP_TARGET} XP
             </span>
           </div>
           <Progress
             value={xpPct}
-            className="mt-2 h-2.5 rounded-full bg-[#E4EFE0]"
+            className="mt-2 h-2.5 rounded-full bg-secondary"
             aria-label="Progres XP menuju level berikutnya"
           />
-          <p className="mt-2 text-[11px] font-medium text-[#4A3B32]/70">
+          <p className="mt-2 text-[11px] font-medium text-content-muted">
             {level >= 8
               ? 'Level maksimal tercapai — petualang sejati!'
               : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
@@ -244,17 +277,17 @@ export default function ProfileScreen() {
               delay: 0.06 + i * 0.06,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="flex flex-col items-center rounded-[16px] border border-[#4A3B3214] bg-white p-3.5 shadow-soft"
+            className="flex flex-col items-center rounded-[16px] border border-border bg-surface-primary p-3.5 shadow-soft"
           >
             <p className="flex items-baseline">
-              <span className="text-[22px] font-semibold leading-none tracking-tight text-[#231F1E]">
+              <span className="text-[22px] font-semibold leading-none tracking-tight text-content-primary">
                 <Counter to={s.value} />
               </span>
               {s.percent ? (
-                <span className="text-sm font-semibold text-[#231F1E]">%</span>
+                <span className="text-sm font-semibold text-content-primary">%</span>
               ) : null}
             </p>
-            <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/70">
+            <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
               {s.label}
             </p>
           </m.div>
@@ -267,9 +300,9 @@ export default function ProfileScreen() {
           {FOCUS_WORDS.map((w) => (
             <span
               key={w}
-              className="flex items-center gap-1.5 rounded-full border border-[#4A3B32]/15 bg-white px-3.5 py-1.5 text-[11px] font-bold text-[#4A3B32]/80"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 py-1.5 text-[11px] font-bold text-content-secondary"
             >
-              <Leaf className="h-3 w-3 text-[#B25E3F]" aria-hidden="true" />
+              <Leaf className="h-3 w-3 text-content-danger" aria-hidden="true" />
               {w}
             </span>
           ))}
@@ -277,7 +310,7 @@ export default function ProfileScreen() {
       </BlurFade>
 
       {/* Pemisah halus di atas kanvas Warm Sand (shadcn Separator) */}
-      <Separator className="mt-5 bg-[#4A3B32]/15" />
+      <Separator className="mt-5 bg-border" />
 
       {/* Pengaturan — koreografi stagger Motion (satu pemilik animasi) */}
       <m.div
@@ -286,25 +319,30 @@ export default function ProfileScreen() {
         animate="show"
         className="mt-5 space-y-3"
       >
+        {/* Judul seksi: preferensi aplikasi */}
+        <m.div variants={slideInRow} className="pt-2.5">
+          <RutinaSectionHeader title="Preferensi" />
+        </m.div>
+
         {/* Target harian (shadcn Slider) */}
         <m.section
           variants={slideInRow}
-          className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-soft"
+          className="rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
           aria-label="Target misi harian"
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
               <Target className="h-4 w-4" />
             </span>
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-[#231F1E]">
+              <p className="text-[14px] font-semibold text-content-primary">
                 Target Misi Harian
               </p>
-              <p className="text-[11px] font-medium text-[#4A3B32]/70">
+              <p className="text-[11px] font-medium text-content-muted">
                 Berapa misi yang ingin kamu selesaikan tiap hari?
               </p>
             </div>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#749B58] text-[13px] font-bold tabular-nums text-white">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-bold tabular-nums text-primary-foreground">
               {dailyGoal}
             </span>
           </div>
@@ -315,9 +353,9 @@ export default function ProfileScreen() {
             max={12}
             step={1}
             aria-label="Target misi harian"
-            className="mt-4 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[#749B58] [&_[data-slot=slider-thumb]]:border-[#749B58] [&_[data-slot=slider-thumb]]:bg-white"
+            className="mt-4 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:border-primary [&_[data-slot=slider-thumb]]:bg-surface-primary"
           />
-          <div className="mt-2 flex justify-between text-[11px] font-bold text-[#4A3B32]/70">
+          <div className="mt-2 flex justify-between text-[11px] font-bold text-content-muted">
             <span>Santai (1)</span>
             <span>Seimbang (6)</span>
             <span>Produktif (12)</span>
@@ -328,31 +366,31 @@ export default function ProfileScreen() {
             disematkan "segera" — jujur soal ketersediaan. */}
         <m.div
           variants={slideInRow}
-          className="overflow-hidden rounded-[20px] border border-[#4A3B3214] bg-white shadow-soft"
+          className="overflow-hidden rounded-[20px] border border-border bg-surface-primary shadow-soft"
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 aria-label="Pilih bahasa aplikasi"
-                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
                   <Globe className="h-4 w-4" />
                 </span>
-                <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                <span className="flex-1 text-[14px] font-medium text-content-primary">
                   Bahasa
                 </span>
-                <span className="text-[13px] font-semibold text-[#4A3B32]/70">
+                <span className="text-[13px] font-semibold text-content-muted">
                   {lang === 'id' ? 'Indonesia' : 'English'}
                 </span>
-                <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+                <ChevronRight className="h-4 w-4 text-content-muted" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
               side="top"
-              className="mr-2 min-w-[190px] rounded-2xl border-[#4A3B321F]"
+              className="mr-2 min-w-[190px] rounded-2xl border-border"
             >
               <DropdownMenuRadioGroup
                 value={lang}
@@ -370,7 +408,7 @@ export default function ProfileScreen() {
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="en" disabled className="rounded-lg">
                   English
-                  <span className="ml-auto text-[11px] font-semibold uppercase tracking-wide text-[#4A3B32]/70">
+                  <span className="ml-auto text-[11px] font-semibold uppercase tracking-wide text-content-muted">
                     segera
                   </span>
                 </DropdownMenuRadioItem>
@@ -379,27 +417,32 @@ export default function ProfileScreen() {
           </DropdownMenu>
         </m.div>
 
+        {/* Judul seksi: data & penyimpanan */}
+        <m.div variants={slideInRow} className="pt-2.5">
+          <RutinaSectionHeader title="Data & Penyimpanan" />
+        </m.div>
+
         {/* Data & penyimpanan — status jujur + mulai dari awal */}
         <m.section
           variants={slideInRow}
-          className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-soft"
+          className="rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
           aria-label="Data dan penyimpanan"
         >
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
               <HardDrive className="h-4 w-4" />
             </span>
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-[#231F1E]">
+              <p className="text-[14px] font-semibold text-content-primary">
                 Data &amp; Penyimpanan
               </p>
-              <p className="text-[11px] font-medium text-[#4A3B32]/70">
+              <p className="text-[11px] font-medium text-content-muted">
                 {habits.length} kebiasaan · {notes.length} catatan ·{' '}
                 {txs.length} transaksi — tersimpan lokal di perangkat ini
               </p>
             </div>
           </div>
-          <p className="mt-3 rounded-xl bg-[#F5F3EE] px-3.5 py-2.5 text-[11.5px] leading-relaxed text-[#4A3B32]/80">
+          <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[11.5px] leading-relaxed text-content-secondary">
             Rutina bekerja tanpa akun dan tanpa server — seluruh catatanmu
             hidup di penyimpanan perangkat ini dan tetap ada meski aplikasi
             ditutup. Mulai dari awal akan menghapus semuanya secara permanen.
@@ -408,25 +451,25 @@ export default function ProfileScreen() {
             <AlertDialogTrigger asChild>
               <button
                 type="button"
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#B25E3F]/40 bg-white text-[13px] font-bold text-[#B25E3F] transition-all hover:bg-[#B25E3F]/8 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F]"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-[13px] font-bold text-content-danger transition-all hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 <RotateCcw className="h-4 w-4" />
                 Mulai dari awal
               </button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214]">
+            <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-[#231F1E]">
+                <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-content-primary">
                   Hapus semua data?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-[12.5px] leading-relaxed text-[#4A3B32]/75">
+                <AlertDialogDescription className="text-[12.5px] leading-relaxed text-content-muted">
                   Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
                   tabungan akan dihapus permanen dari perangkat ini. Tindakan
                   ini tidak bisa dibatalkan.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-row gap-2">
-                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-[#4A3B32]/25 text-[12.5px] font-bold text-[#4A3B32]">
+                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[12.5px] font-bold text-content-secondary">
                   Batal
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -434,7 +477,7 @@ export default function ProfileScreen() {
                     useRutina.getState().startFresh()
                     toast.success('Aplikasi direset — mulailah dari nol.')
                   }}
-                  className="h-10 flex-1 rounded-full border-none bg-[#B25E3F] text-[12.5px] font-bold text-white hover:bg-[#9E4E33]"
+                  className="h-10 flex-1 rounded-full border-none bg-destructive text-[12.5px] font-bold text-white hover:bg-destructive/90"
                 >
                   Ya, hapus
                 </AlertDialogAction>
@@ -443,10 +486,15 @@ export default function ProfileScreen() {
           </AlertDialog>
         </m.section>
 
+        {/* Judul seksi: bantuan & FAQ */}
+        <m.div variants={slideInRow} className="pt-2.5">
+          <RutinaSectionHeader title="Bantuan & FAQ" />
+        </m.div>
+
         {/* Pertanyaan umum (shadcn Accordion) */}
         <m.section
           variants={slideInRow}
-          className="rounded-[20px] border border-[#4A3B3214] bg-white px-4 shadow-soft"
+          className="rounded-[20px] border border-border bg-surface-primary px-4 shadow-soft"
           aria-label="Pertanyaan umum"
         >
           <Accordion type="single" collapsible className="w-full">
@@ -454,12 +502,12 @@ export default function ProfileScreen() {
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="border-[#4A3B3214]"
+                className="border-border"
               >
-                <AccordionTrigger className="py-4 text-left text-[13.5px] font-semibold text-[#231F1E] hover:no-underline [&>svg]:text-[#749B58]">
+                <AccordionTrigger className="py-4 text-left text-[13.5px] font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="pb-4 text-[12.5px] leading-relaxed text-[#4A3B32]/75">
+                <AccordionContent className="pb-4 text-[12.5px] leading-relaxed text-content-muted">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
@@ -467,65 +515,45 @@ export default function ProfileScreen() {
           </Accordion>
         </m.section>
 
-        {/* Papan sistem desain — spesifikasi visual Rutina 2.0 */}
-        <m.div variants={slideInRow}>
-          <button
-            type="button"
-            onClick={() => openBoard()}
-            className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#749B58]/30 bg-[#E4EFE0] px-4 text-left shadow-soft transition-colors hover:bg-[#d9e8d2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#5E8347]">
-              <Palette className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-              Papan Sistem Desain
-            </span>
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#658A4C]">
-              tokens
-            </span>
-            <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-          </button>
-        </m.div>
-
         {/* Tentang (shadcn Dialog) */}
         <m.div variants={slideInRow}>
           <Dialog>
             <DialogTrigger asChild>
               <button
                 type="button"
-                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary px-4 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
                   <Info className="h-4 w-4" />
                 </span>
-                <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                <span className="flex-1 text-[14px] font-medium text-content-primary">
                   Tentang Rutina
                 </span>
-                <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+                <ChevronRight className="h-4 w-4 text-content-muted" />
               </button>
             </DialogTrigger>
-            <DialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214] bg-white p-6 sm:max-w-[320px]">
+            <DialogContent className="max-w-[320px] rounded-[24px] border-border bg-surface-primary p-6 sm:max-w-[320px]">
               <DialogHeader>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#E4EFE0]">
-                  <Leaf className="h-6 w-6 text-[#749B58]" />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+                  <Leaf className="h-6 w-6 text-primary" />
                 </div>
-                <DialogTitle className="text-center text-lg font-bold tracking-tight text-[#231F1E]">
+                <DialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
                   Rutina 2.0
                 </DialogTitle>
-                <DialogDescription className="text-center text-[12.5px] leading-relaxed text-[#4A3B32]/70">
+                <DialogDescription className="text-center text-[12.5px] leading-relaxed text-content-muted">
                   Aplikasi kebiasaan &amp; jurnal dengan palet earth tone.
                   Dibangun dengan Next.js, Tailwind CSS 4, shadcn/ui, Motion,
                   dan anime.js.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center gap-2">
-                <Badge className="rounded-full bg-[#E4EFE0] text-[11px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="rounded-full bg-secondary text-[11px] font-bold text-success hover:bg-secondary">
                   Earth Tone
                 </Badge>
-                <Badge className="rounded-full bg-[#E4EFE0] text-[11px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="rounded-full bg-secondary text-[11px] font-bold text-success hover:bg-secondary">
                   Gamified
                 </Badge>
-                <Badge className="rounded-full bg-[#E4EFE0] text-[11px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="rounded-full bg-secondary text-[11px] font-bold text-success hover:bg-secondary">
                   Editorial
                 </Badge>
               </div>
@@ -533,7 +561,7 @@ export default function ProfileScreen() {
                 <DialogClose asChild>
                   <Button
                     type="button"
-                    className="h-9 rounded-full bg-[#749B58] px-6 text-[13px] font-bold text-white hover:bg-[#658A4C]"
+                    className="h-9 rounded-full bg-primary px-6 text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
                     onClick={() => toast('Terima kasih sudah memakai Rutina!')}
                   >
                     Mengerti
@@ -546,9 +574,16 @@ export default function ProfileScreen() {
 
       </m.div>
 
-      <p className="mt-6 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/60">
-        Earth Tone Edition — 2025
-      </p>
+      {/* Penutup — teks versi, sekaligus pemicu easter egg developer
+          (ketuk 5× dalam 2 detik untuk membuka papan sistem desain). */}
+      <button
+        type="button"
+        onClick={handleVersionTap}
+        aria-label="Rutina 2.0 Kebun Kebiasaan"
+        className="mt-6 block w-full cursor-pointer text-center text-[11px] font-medium uppercase tracking-[0.18em] text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        Rutina 2.0 · Kebun Kebiasaan
+      </button>
     </div>
   )
 }

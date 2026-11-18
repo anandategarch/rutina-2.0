@@ -84,16 +84,16 @@ function DemoBanner() {
           className="overflow-hidden"
           aria-label="Mode data contoh"
         >
-          <div className="rounded-2xl border border-dashed border-[#B25E3F]/45 bg-[#F5F3EE] px-4 py-3.5">
+          <div className="rounded-2xl border border-dashed border-destructive/45 bg-surface-sunken px-4 py-3.5">
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#B25E3F]/12 text-[#B25E3F]">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/12 text-content-danger">
                 <FlaskConical className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-[#231F1E]">
+                <p className="text-[13px] font-bold text-content-primary">
                   Data contoh
                 </p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-[#4A3B32]/80">
+                <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
                   Kebiasaan, catatan, dan transaksi yang tampil masih contoh —
                   bukan datamu. Pilih cara memulai:
                 </p>
@@ -106,7 +106,7 @@ function DemoBanner() {
                         'Data contoh dibersihkan — mulailah dari nol.',
                       )
                     }}
-                    className="h-9 cursor-pointer rounded-full bg-[#B25E3F] px-4 text-[12px] font-bold text-[#FAF9F6] shadow-soft transition-all hover:bg-[#9E4E33] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F]"
+                    className="h-9 cursor-pointer rounded-full bg-destructive px-4 text-[12px] font-bold text-destructive-foreground shadow-soft transition-all hover:bg-destructive/90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                   >
                     Mulai bersih
                   </button>
@@ -116,7 +116,7 @@ function DemoBanner() {
                       keepSample()
                       toast('Data contoh dipertahankan sebagai milikmu.')
                     }}
-                    className="h-9 cursor-pointer rounded-full border border-[#4A3B32]/25 bg-white px-4 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    className="h-9 cursor-pointer rounded-full border border-border bg-surface-primary px-4 text-[12px] font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     Pakai contoh ini
                   </button>
@@ -142,11 +142,11 @@ function SectionTitle({
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-baseline gap-2.5">
-        <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+        <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
           {title}
         </h2>
         {hint ? (
-          <span className="truncate text-[12px] font-medium text-[#4A3B32]/75">
+          <span className="truncate text-[12px] font-medium text-content-muted">
             {hint}
           </span>
         ) : null}
@@ -269,7 +269,7 @@ function DateStrip() {
   const selected = days.find((d) => d.iso === selectedDate) ?? null
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-[#4A3B32]/5 bg-[#FAF9F6]/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
+    <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-surface-primary/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
       <div
         ref={stripRef}
         role="group"
@@ -292,14 +292,14 @@ function DateStrip() {
               aria-label={`${longDateLabel(d.iso)} — ${caption}`}
               onClick={() => setSelectedDate(d.iso)}
               className={
-                'relative flex h-[54px] w-11 shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+                'relative flex h-[54px] w-11 shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                 (d.isToday
-                  ? 'bg-[#749B58] text-[#FAF9F6] shadow-[0_6px_16px_rgba(116,155,88,0.35)]'
+                  ? 'bg-primary text-primary-foreground shadow-leaf'
                   : isSelected
-                    ? 'bg-white text-[#231F1E] ring-2 ring-[#749B58] shadow-soft'
+                    ? 'bg-surface-primary text-content-primary ring-2 ring-primary shadow-soft'
                     : d.isFuture
-                      ? 'bg-white/40 text-[#4A3B32]/35'
-                      : 'bg-white/80 text-[#4A3B32] hover:bg-white')
+                      ? 'bg-surface-primary/40 text-content-muted'
+                      : 'bg-surface-primary/80 text-content-secondary hover:bg-surface-primary')
               }
             >
               <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">
@@ -315,9 +315,9 @@ function DateStrip() {
                     'absolute bottom-1 h-1 w-1 rounded-full ' +
                     (done >= goal
                       ? d.isToday
-                        ? 'bg-[#FAF9F6]'
-                        : 'bg-[#749B58]'
-                      : 'bg-[#749B58]/30')
+                        ? 'bg-primary-foreground'
+                        : 'bg-primary'
+                      : 'bg-primary/30')
                   }
                 />
               )}
@@ -325,7 +325,7 @@ function DateStrip() {
           )
         })}
       </div>
-      <p className="mt-2 px-0.5 text-[12px] font-medium text-[#4A3B32]/75">
+      <p className="mt-2 px-0.5 text-[12px] font-medium text-content-muted">
         {selected
           ? selected.isToday
             ? `Hari ini — ${Math.min(selected.done, goal)}/${goal} misi target tercapai`
@@ -356,7 +356,7 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
           cy="48"
           r="40"
           fill="none"
-          stroke="#FAF9F6"
+          stroke="var(--primary-foreground)"
           strokeOpacity="0.25"
           strokeWidth="8"
         />
@@ -365,7 +365,7 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
           cy="48"
           r="40"
           fill="none"
-          stroke="#FAF9F6"
+          stroke="var(--primary-foreground)"
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={GOAL_RING_CIRC}
@@ -493,11 +493,11 @@ export default function HomeScreen() {
     >
       {/* Header aplikasi — wordmark + level + avatar */}
       <header className="mb-4 flex items-center justify-between pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <p className="text-[19px] font-bold tracking-tight text-[#231F1E]">
-          rutina<span className="text-[#749B58]">.</span>
+        <p className="text-[19px] font-bold tracking-tight text-content-primary">
+          rutina<span className="text-primary">.</span>
         </p>
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 items-center gap-1.5 rounded-full border border-[#749B5833] bg-white px-3 text-[11px] font-bold text-[#658A4C] shadow-sm">
+          <span className="flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-surface-primary px-3 text-[11px] font-bold text-success shadow-sm">
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
@@ -506,9 +506,9 @@ export default function HomeScreen() {
             onClick={() => setScreen('profil')}
             aria-label="Buka profil dan pengaturan"
             whileTap={{ scale: 0.92 }}
-            className="cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            className="cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+            <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
               <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
                 AN
               </AvatarFallback>
@@ -530,11 +530,11 @@ export default function HomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Ringkasan harian"
-        className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 pb-7 text-[#FAF9F6] shadow-leaf"
+        className="relative mt-4 overflow-hidden rounded-[24px] bg-primary p-6 pb-7 text-primary-foreground shadow-leaf"
       >
         <HeroDoodle />
         <div className="relative z-10 sm:mx-auto sm:max-w-[600px]">
-          <p className="text-[13px] font-medium text-[#FAF9F6]/80">
+          <p className="text-[13px] font-medium text-primary-foreground/80">
             {dateLabel}
           </p>
           <h1
@@ -545,16 +545,16 @@ export default function HomeScreen() {
 
           <div className="mt-5 flex items-center gap-5">
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium text-[#FAF9F6]/80">
+              <p className="text-[12px] font-medium text-primary-foreground/80">
                 Misi selesai hari ini
               </p>
               <p className="mt-0.5 flex items-baseline gap-1.5">
                 <span className="text-[56px] font-semibold leading-none tracking-tight">
                   <Counter to={pct} />
                 </span>
-                <span className="text-lg font-medium text-[#FAF9F6]/85">%</span>
+                <span className="text-lg font-medium text-primary-foreground/85">%</span>
               </p>
-              <p className="mt-1.5 text-xs font-medium text-[#FAF9F6]/75">
+              <p className="mt-1.5 text-xs font-medium text-primary-foreground/75">
                 {doneToday} dari {todayHabits.length} misi •{' '}
                 {Math.max(todayHabits.length - doneToday, 0)} tersisa
               </p>
@@ -562,30 +562,30 @@ export default function HomeScreen() {
             <GoalRing done={doneToday} goal={dailyGoal} />
           </div>
 
-          <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#FAF9F6]/25">
+          <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-primary-foreground/25">
             <m.div
               initial={false}
-              className="h-full rounded-full bg-[#FAF9F6]"
+              className="h-full rounded-full bg-primary-foreground"
               animate={{ width: `${pct}%` }}
               transition={{ type: 'spring', stiffness: 130, damping: 22 }}
             />
           </div>
 
           {/* Strip XP gamified di dalam hero — angka polos tanpa shimmer */}
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-surface-inverse/35 px-3.5 py-2.5 backdrop-blur-sm">
             <span className="flex items-center gap-1.5 text-[12px] font-bold tabular-nums">
               <Zap className="h-3.5 w-3.5 text-pistachio" strokeWidth={2.4} />
               <Counter to={xp} /> XP
             </span>
-            <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#FAF9F6]/20">
+            <span className="h-1 flex-1 overflow-hidden rounded-full bg-primary-foreground/20">
               <m.span
                 initial={false}
-                className="block h-full rounded-full bg-gradient-to-r from-[#A3C489] to-[#FAF9F6]"
+                className="block h-full rounded-full bg-gradient-to-r from-pistachio to-primary-foreground"
                 animate={{ width: `${xpProgress * 100}%` }}
                 transition={{ type: 'spring', stiffness: 110, damping: 20 }}
               />
             </span>
-            <span className="text-[11px] font-semibold tabular-nums text-[#FAF9F6]/75">
+            <span className="text-[11px] font-semibold tabular-nums text-primary-foreground/75">
               {remaining > 0 ? `${remaining} XP lagi` : 'MAX'}
             </span>
           </div>
@@ -593,7 +593,7 @@ export default function HomeScreen() {
           <Button
             type="button"
             onClick={() => openCompose()}
-            className="mt-4 h-11 w-full rounded-full bg-[#FAF9F6] text-[15px] font-semibold text-[#231F1E] shadow-[0_8px_20px_rgba(35,31,30,0.16)] hover:bg-white hover:shadow-[0_10px_26px_rgba(35,31,30,0.22)]"
+            className="mt-4 h-11 w-full rounded-full bg-surface-primary text-[15px] font-semibold text-content-primary shadow-card hover:bg-primary-foreground hover:shadow-lift"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
             Catatan Baru
@@ -617,10 +617,10 @@ export default function HomeScreen() {
             toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
           }}
           className={
-            'flex w-full cursor-pointer items-center gap-3.5 rounded-[18px] border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+            'flex w-full cursor-pointer items-center gap-3.5 rounded-[18px] border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
             (bonusClaimed
-              ? 'border-[#749B5826] bg-[#E4EFE0]/60'
-              : 'border-dashed border-[#749B58]/45 bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(116,155,88,0.18)]')
+              ? 'border-primary/15 bg-secondary/60'
+              : 'border-dashed border-primary/45 bg-surface-primary hover:-translate-y-0.5 hover:shadow-leaf')
           }
         >
           <m.span
@@ -628,8 +628,8 @@ export default function HomeScreen() {
             className={
               'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ' +
               (bonusClaimed
-                ? 'bg-matcha/20 text-[#658A4C]'
-                : 'bg-matcha text-white')
+                ? 'bg-primary/20 text-success'
+                : 'bg-primary text-primary-foreground')
             }
             animate={bonusClaimed ? { scale: 1 } : { scale: [1, 1.07, 1] }}
             transition={
@@ -649,17 +649,17 @@ export default function HomeScreen() {
             </span>
           </m.span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-bold text-[#231F1E]">
+            <span className="block text-[14px] font-bold text-content-primary">
               {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
             </span>
-            <span className="mt-0.5 block text-[12px] font-medium text-[#4A3B32]/75">
+            <span className="mt-0.5 block text-[12px] font-medium text-content-muted">
               {bonusClaimed
                 ? `+${XP_BONUS} XP sudah masuk ke saldo kamu`
                 : `Hadiah konsistensi: +${XP_BONUS} XP gratis setiap hari`}
             </span>
           </span>
           {!bonusClaimed && (
-            <span className="shrink-0 rounded-full bg-[#749B58]/15 px-2.5 py-1 text-[11px] font-bold text-[#658A4C]">
+            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-success">
               +{XP_BONUS} XP
             </span>
           )}
@@ -683,7 +683,7 @@ export default function HomeScreen() {
               type="button"
               onClick={openHabitCreate}
               aria-label="Tambah kebiasaan baru"
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#749B58] text-white shadow-soft transition-all hover:bg-[#658A4C] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-4 w-4" strokeWidth={2.6} />
             </button>
@@ -692,9 +692,9 @@ export default function HomeScreen() {
 
         {/* Pita konteks tanggal lampau / masa depan */}
         {!viewingToday && (
-          <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-[#D9B98C]/40 bg-[#F5F3EE] px-3.5 py-2.5">
-            <CalendarDays className="h-4 w-4 shrink-0 text-[#A98650]" />
-            <p className="min-w-0 flex-1 text-[12px] font-medium text-[#4A3B32]/85">
+          <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
+            <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
+            <p className="min-w-0 flex-1 text-[12px] font-medium text-content-muted">
               {viewingPast
                 ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
                 : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
@@ -702,7 +702,7 @@ export default function HomeScreen() {
             <button
               type="button"
               onClick={() => setSelectedDate(today)}
-              className="shrink-0 cursor-pointer rounded-full bg-[#749B58] px-3 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+              className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Hari ini
             </button>
@@ -739,20 +739,20 @@ export default function HomeScreen() {
         </div>
 
         {dayHabits.length === 0 && (
-          <div className="flex flex-col items-center rounded-[20px] border-2 border-dashed border-[#749B58]/30 bg-white/60 px-6 py-8 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E4EFE0] text-[#658A4C]">
+          <div className="flex flex-col items-center rounded-[20px] border-2 border-dashed border-primary/30 bg-surface-primary/60 px-6 py-8 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-success">
               <CalendarDays className="h-5 w-5" />
             </span>
-            <p className="mt-3 text-[14px] font-bold text-[#231F1E]">
+            <p className="mt-3 text-[14px] font-bold text-content-primary">
               Tidak ada misi terjadwal
             </p>
-            <p className="mt-1 text-[12px] font-medium text-[#4A3B32]/75">
+            <p className="mt-1 text-[12px] font-medium text-content-muted">
               {shortDateLabel(selectedDate)} bebas — atau tambah kebiasaan baru.
             </p>
             <Button
               type="button"
               onClick={openHabitCreate}
-              className="mt-4 h-10 rounded-full bg-[#749B58] px-5 text-[13px] font-bold text-white hover:bg-[#658A4C]"
+              className="mt-4 h-10 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
             >
               <Plus className="h-4 w-4" />
               Kebiasaan Baru
@@ -767,9 +767,9 @@ export default function HomeScreen() {
               type="button"
               onClick={() => setShowArchive((v) => !v)}
               aria-expanded={showArchive}
-              className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+              className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              <span className="flex items-center gap-2 text-[12px] font-bold text-[#4A3B32]">
+              <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
                 <Archive className="h-3.5 w-3.5" />
                 Arsip · {archivedHabits.length} kebiasaan
               </span>
@@ -777,7 +777,7 @@ export default function HomeScreen() {
                 aria-hidden="true"
                 animate={{ rotate: showArchive ? 180 : 0 }}
                 transition={{ duration: 0.25 }}
-                className="text-[#4A3B32]/50"
+                className="text-content-muted"
               >
                 <ChevronDown className="h-4 w-4" />
               </m.span>
@@ -792,16 +792,16 @@ export default function HomeScreen() {
                 {archivedHabits.map((h) => (
                   <div
                     key={h.id}
-                    className="flex items-center gap-3 rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-2.5 shadow-soft"
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EAE5D9] text-[#4A3B32]/60">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted">
                       <Archive className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold text-[#231F1E]/70">
+                      <span className="block truncate text-[13px] font-semibold text-content-secondary">
                         {h.title}
                       </span>
-                      <span className="block text-[11px] font-medium text-[#4A3B32]/70">
+                      <span className="block text-[11px] font-medium text-content-muted">
                         {h.cat} · diarsipkan
                       </span>
                     </span>
@@ -812,7 +812,7 @@ export default function HomeScreen() {
                         toast.success('Kebiasaan dipulihkan dari arsip')
                       }}
                       aria-label={`Pulihkan ${h.title} dari arsip`}
-                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#749B58]/40 text-[#658A4C] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-primary/40 text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <ArchiveRestore className="h-4 w-4" />
                     </button>
@@ -820,7 +820,7 @@ export default function HomeScreen() {
                       type="button"
                       onClick={() => openHabitEdit(h.id)}
                       aria-label={`Sunting ${h.title}`}
-                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#4A3B32]/25 text-[#4A3B32] transition-colors hover:bg-[#EAE5D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Undo2 className="h-4 w-4" />
                     </button>
@@ -862,9 +862,6 @@ export default function HomeScreen() {
             return (
               <m.div
                 key={key}
-                role="button"
-                tabIndex={0}
-                aria-label={`Buka folder ${label}, ${count} catatan`}
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-20px' }}
@@ -874,18 +871,20 @@ export default function HomeScreen() {
                   ease: [0.22, 1, 0.36, 1],
                 }}
                 whileHover={{ y: -3 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => openFolder(key)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    openFolder(key)
-                  }
-                }}
-                className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-pop focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                /* Tanpa whileTap: Motion menyuntikkan tabindex pada div
+                   non-interaktif — umpan balik ketuk kini di tombol buka. */
+                className="relative flex aspect-square flex-col justify-between rounded-[20px] bg-surface-primary p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-pop"
               >
-                <div className="flex items-start justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                {/* Satu tombol buka folder selebar kartu (z-0) — kontrol
+                    interaktif tidak lagi bersarang di dalam kontrol lain. */}
+                <button
+                  type="button"
+                  aria-label={`Buka folder ${label}, ${count} catatan`}
+                  onClick={() => openFolder(key)}
+                  className="absolute inset-0 z-0 cursor-pointer rounded-[20px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                />
+                <div className="pointer-events-none relative z-10 flex items-start justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-content-secondary">
                     <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
                   </span>
                   <button
@@ -895,16 +894,16 @@ export default function HomeScreen() {
                       e.stopPropagation()
                       openCompose(key)
                     }}
-                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#E4EFE0]/70 text-[#4A3B32] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    className="pointer-events-auto relative z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-secondary/70 text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Plus className="h-4 w-4" strokeWidth={2.5} />
                   </button>
                 </div>
-                <span>
-                  <span className="block text-[15px] font-semibold leading-tight text-[#231F1E]">
+                <span className="pointer-events-none relative z-10">
+                  <span className="block text-[15px] font-semibold leading-tight text-content-primary">
                     {label}
                   </span>
-                  <span className="mt-0.5 block text-xs font-medium text-[#4A3B32]/75">
+                  <span className="mt-0.5 block text-xs font-medium text-content-muted">
                     {count} Catatan
                   </span>
                 </span>
@@ -921,21 +920,21 @@ export default function HomeScreen() {
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Refleksi hari ini"
-        className="mt-8 rounded-[20px] bg-[#4A3B32] p-6 text-[#F5F3EE] shadow-ink"
+        className="mt-8 rounded-[20px] bg-surface-inverse p-6 text-content-inverse shadow-ink"
       >
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">
-            <Quote className="h-6 w-6 shrink-0 text-[#F5F3EE]/45" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/70">
+            <Quote aria-hidden="true" className="h-6 w-6 shrink-0 text-content-inverse/45" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-content-inverse/70">
               Refleksi Hari Ini
             </span>
           </div>
           <p
-            className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-[#F5F3EE]`}
+            className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-content-inverse`}
           >
             &ldquo;{QUOTE_TEXT}&rdquo;
           </p>
-          <p className="mt-3 text-xs font-medium text-[#F5F3EE]/75">
+          <p className="mt-3 text-xs font-medium text-content-inverse/75">
             — {QUOTE_AUTHOR}
           </p>
           <Button
@@ -948,7 +947,7 @@ export default function HomeScreen() {
                 toast.success('Kutipan disimpan ke jurnal')
               }
             }}
-            className="mt-5 h-9 rounded-full border border-[#F5F3EE]/35 px-4 text-[13px] font-semibold text-[#F5F3EE] hover:bg-[#F5F3EE]/10 hover:text-[#F5F3EE] disabled:opacity-60"
+            className="mt-5 h-9 rounded-full border border-content-inverse/35 px-4 text-[13px] font-semibold text-content-inverse hover:bg-content-inverse/10 hover:text-content-inverse disabled:opacity-60"
           >
             {quoteSaved ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
             {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}

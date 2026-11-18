@@ -92,7 +92,7 @@ export function RutinaApp() {
      histori lokal pengguna mengambil alih tanpa hydration mismatch.
      Setelah rehydrate: catat transaksi berulang yang jadwalnya tiba. */
   useEffect(() => {
-    void useRutina.persist.rehydrate().then(() => {
+    void Promise.resolve(useRutina.persist.rehydrate()).then(() => {
       useRutina.getState().materializeRecurring()
     })
   }, [])
@@ -124,7 +124,7 @@ export function RutinaApp() {
   return (
     /* MotionConfig reducedMotion="user" kini disediakan AppMotionProvider
        (LazyMotion domMax) di app-frame — tidak perlu duplikat di sini. */
-    <div className="@container relative flex h-full w-full flex-col overflow-hidden text-[#231F1E]">
+    <div className="@container relative flex h-full w-full flex-col overflow-hidden text-content-primary">
         <AnimatePresence>
           {phase === 'splash' && (
             <Splash key="splash" onDone={() => setPhase('app')} />
@@ -187,7 +187,9 @@ export function RutinaApp() {
               </AnimatePresence>
             </div>
 
-            <BottomNav />
+            {/* Navigasi bawah disembunyikan di layar Profil (bukan tab) —
+                orientasi dijaga tombol "Kembali" pada layar Profil. */}
+            {screen !== 'profil' && <BottomNav />}
             <ComposeSheet />
             <ReadingSheet />
             <AddTxSheet />

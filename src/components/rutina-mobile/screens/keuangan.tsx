@@ -41,6 +41,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { BlurFade, ShineBorder, Spotlight } from '../motion-kit'
+import { RutinaDialog } from '../rutina-dialog'
+import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import {
   useRutina,
   type FinCat,
@@ -88,7 +90,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: EASE, delay: index * 0.07 }}
-        className="h-full rounded-[22px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink"
+        className="h-full rounded-[22px] bg-surface-primary p-4 text-content-primary shadow-ink"
       >
       <div className="flex items-center gap-3.5">
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
@@ -98,8 +100,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
               cy="28"
               r={R}
               fill="none"
-              stroke="#4A3B32"
-              strokeOpacity="0.14"
+              stroke="var(--border-default)"
               strokeWidth="5"
             />
             <m.circle
@@ -107,7 +108,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
               cy="28"
               r={R}
               fill="none"
-              stroke={complete ? '#A3C489' : '#C7A17A'}
+              stroke={complete ? 'var(--success)' : 'var(--warning)'}
               strokeWidth="5"
               strokeLinecap="round"
               strokeDasharray={C}
@@ -118,34 +119,34 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
               transition={{ type: 'spring', stiffness: 90, damping: 20 }}
             />
           </svg>
-          <Icon className="relative h-5 w-5 text-[#4A3B32]/85" />
+          <Icon className="relative h-5 w-5 text-content-secondary" />
         </div>
         <div>
           <p className="text-[22px] font-bold leading-none tabular-nums">
             {pct}
             <span className="text-[13px]">%</span>
           </p>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#4A3B32]/70">
+          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-content-muted">
             terkumpul
           </p>
         </div>
       </div>
 
       <p className="mt-3 truncate text-[14px] font-bold">{goal.name}</p>
-      <p className="mt-0.5 text-[12px] tabular-nums text-[#4A3B32]/70">
+      <p className="mt-0.5 text-[12px] tabular-nums text-content-muted">
         {formatIDRShort(goal.saved)}{' '}
-        <span className="text-[#4A3B32]/70">dari {formatIDRShort(goal.target)}</span>
+        <span className="text-content-muted">dari {formatIDRShort(goal.target)}</span>
       </p>
 
       {complete ? (
-        <Badge className="mt-3 w-full justify-center border-transparent bg-[#A3C489]/30 text-[#658A4C] hover:bg-[#A3C489]/30">
+        <Badge className="mt-3 w-full justify-center border-transparent bg-pistachio/30 text-success hover:bg-pistachio/30">
           <CheckCircle2 className="mr-1 h-3 w-3" /> Tercapai
         </Badge>
       ) : (
         <button
           type="button"
           onClick={() => openGoalSheet(goal.id)}
-          className="mt-3 h-9 w-full cursor-pointer rounded-full bg-[#E4EFE0] text-[13px] font-bold text-[#658A4C] transition-all hover:bg-[#D8E8CF] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+          className="mt-3 h-9 w-full cursor-pointer rounded-full bg-secondary text-[13px] font-bold text-success transition-all hover:bg-secondary/80 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Tambah
         </button>
@@ -175,7 +176,7 @@ function TxRow({ tx }: { tx: Tx }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -32, scale: 0.97, transition: { duration: 0.2 } }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-      className="overflow-hidden rounded-[16px] bg-[#FAF9F6] text-[#231F1E] shadow-ink"
+      className="overflow-hidden rounded-[16px] bg-surface-primary text-content-primary shadow-ink"
     >
       <m.button
         type="button"
@@ -183,15 +184,15 @@ function TxRow({ tx }: { tx: Tx }) {
         onClick={() => toggleExpandedTx(tx.id)}
         aria-expanded={expanded}
         aria-label={`${tx.note || CAT_META[tx.cat].label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
-        className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+        className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
             isTransfer
-              ? 'bg-[#D9B98C]/30 text-[#A98650]'
+              ? 'bg-gold/30 text-warning'
               : income
-                ? 'bg-[#A3C489]/30 text-[#658A4C]'
-                : 'bg-[#E08A6D]/25 text-[#C25F3D]'
+                ? 'bg-pistachio/30 text-success'
+                : 'bg-clay/25 text-content-danger'
           }`}
         >
           <Icon className="h-5 w-5" strokeWidth={2.1} />
@@ -204,13 +205,13 @@ function TxRow({ tx }: { tx: Tx }) {
             {tx.recurrence && !tx.recurOf && (
               <span
                 title={`Berulang ${tx.recurrence}`}
-                className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#749B58]/15 text-[#658A4C]"
+                className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-success"
               >
                 <Repeat className="h-2.5 w-2.5" strokeWidth={2.5} />
               </span>
             )}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-[#4A3B32]/70">
+          <span className="mt-0.5 block truncate text-[11px] text-content-muted">
             {isTransfer
               ? `${fromW?.name ?? 'Dompet'} → ${toW?.name ?? 'Dompet'} · ${fmtDate(tx.ts)}`
               : `${CAT_META[tx.cat].label}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
@@ -219,10 +220,10 @@ function TxRow({ tx }: { tx: Tx }) {
         <span
           className={`shrink-0 text-[14px] font-bold tabular-nums ${
             isTransfer
-              ? 'text-[#A98650]'
+              ? 'text-content-muted'
               : income
-                ? 'text-[#658A4C]'
-                : 'text-[#C25F3D]'
+                ? 'text-success'
+                : 'text-content-danger'
           }`}
         >
           {isTransfer ? '' : income ? '+' : '−'}
@@ -232,7 +233,7 @@ function TxRow({ tx }: { tx: Tx }) {
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
-          className="shrink-0 text-[#4A3B32]/40"
+          className="shrink-0 text-content-muted"
         >
           <ChevronDown className="h-4 w-4" />
         </m.span>
@@ -247,33 +248,33 @@ function TxRow({ tx }: { tx: Tx }) {
             transition={{ duration: 0.32, ease: EASE }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#4A3B32]/10 px-3.5 pb-3.5 pt-3">
+            <div className="border-t border-border px-3.5 pb-3.5 pt-3">
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl bg-[#F5F3EE] px-2 py-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
+                <div className="rounded-xl bg-surface-sunken px-2 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
                     Kategori
                   </p>
                   <p className="mt-0.5 truncate text-[12px] font-bold">
                     {CAT_META[tx.cat].label}
                   </p>
                 </div>
-                <div className="rounded-xl bg-[#F5F3EE] px-2 py-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
+                <div className="rounded-xl bg-surface-sunken px-2 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
                     Tanggal
                   </p>
                   <p className="mt-0.5 text-[12px] font-bold">{fmtDate(tx.ts)}</p>
                 </div>
-                <div className="rounded-xl bg-[#F5F3EE] px-2 py-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
+                <div className="rounded-xl bg-surface-sunken px-2 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
                     Arus
                   </p>
                   <p
                     className={`mt-0.5 text-[12px] font-bold ${
                       isTransfer
-                        ? 'text-[#A98650]'
+                        ? 'text-content-muted'
                         : income
-                          ? 'text-[#658A4C]'
-                          : 'text-[#C25F3D]'
+                          ? 'text-success'
+                          : 'text-content-danger'
                     }`}
                   >
                     {isTransfer ? 'Transfer' : income ? 'Masuk' : 'Keluar'}
@@ -286,24 +287,24 @@ function TxRow({ tx }: { tx: Tx }) {
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-9 flex-1 rounded-full border-[#B25E3F]/30 text-[13px] font-semibold text-[#B25E3F] hover:bg-[#B25E3F]/10 hover:text-[#B25E3F]"
+                      className="h-9 flex-1 rounded-full border-destructive/30 text-[13px] font-semibold text-content-danger hover:bg-destructive/10 hover:text-content-danger"
                     >
                       Hapus
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="max-w-[400px] rounded-[28px] border-[#4A3B32]/10 bg-[#FAF9F6] p-6">
+                  <AlertDialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6">
                     <AlertDialogHeader className="text-left">
-                      <AlertDialogTitle className="text-lg tracking-tight text-[#231F1E]">
+                      <AlertDialogTitle className="text-lg tracking-tight text-content-primary">
                         Hapus transaksi?
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-[13px] text-[#4A3B32]/70">
+                      <AlertDialogDescription className="text-[13px] text-content-muted">
                         {tx.note || CAT_META[tx.cat].label} sebesar{' '}
                         {formatIDR(tx.amount)} akan dihapus dari daftar. Tindakan
                         ini tidak bisa dibatalkan.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-3 flex flex-row gap-2">
-                      <AlertDialogCancel className="h-10 flex-1 rounded-full border-[#4A3B32]/20 text-[13px] font-semibold text-[#4A3B32] hover:bg-[#EAE5D9]">
+                      <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary">
                         Batal
                       </AlertDialogCancel>
                       <AlertDialogAction
@@ -311,7 +312,7 @@ function TxRow({ tx }: { tx: Tx }) {
                           deleteTx(tx.id)
                           toast.info('Transaksi dihapus')
                         }}
-                        className="h-10 flex-1 rounded-full bg-[#B25E3F] text-[13px] font-semibold text-white hover:bg-[#9E4E33]"
+                        className="h-10 flex-1 rounded-full bg-destructive text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90"
                       >
                         Hapus
                       </AlertDialogAction>
@@ -322,7 +323,7 @@ function TxRow({ tx }: { tx: Tx }) {
                   type="button"
                   variant="ghost"
                   onClick={() => toggleExpandedTx(tx.id)}
-                  className="h-9 flex-1 rounded-full text-[13px] font-semibold text-[#4A3B32] hover:bg-[#EAE5D9] hover:text-[#231F1E]"
+                  className="h-9 flex-1 rounded-full text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
                 >
                   Tutup
                 </Button>
@@ -385,32 +386,32 @@ function SaldoCard({
       onPointerLeave={onLeave}
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
-      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#31281F_0%,#423425_46%,#282019_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,var(--surface-inverse)_0%,var(--espresso-soft)_46%,var(--surface-inverse)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
-      <ShineBorder borderWidth={1.5} duration={12} shineColor={['#D9B98C', '#A3C489']} />
+      <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
 
       {/* Cahaya emas lembut dari sudut kiri atas */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-[#D9B98C]/12 blur-3xl"
+        className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-gold/12 blur-3xl"
       />
 
       {/* Baris merek */}
-      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-[#D9B98C]">
+      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-gold">
         <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
         Rutina Vault
       </p>
 
       {/* Saldo */}
       <div className="relative z-10 mt-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#FAF9F6]/65">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-content-inverse/65">
           Saldo Tersedia
         </p>
         <div className="mt-0.5 flex items-baseline gap-1">
-          <span className="text-[19px] font-bold text-[#D9B98C]">Rp</span>
+          <span className="text-[19px] font-bold text-gold">Rp</span>
           <span
             ref={saldoRef}
-            className="text-[31px] font-bold leading-none tabular-nums text-[#FAF9F6]"
+            className="text-[31px] font-bold leading-none tabular-nums text-content-inverse"
           >
             <Counter to={saldo} />
           </span>
@@ -420,18 +421,18 @@ function SaldoCard({
       {/* Transaksi bulan ini + pemegang */}
       <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/65">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-content-inverse/65">
             Transaksi bulan ini
           </p>
-          <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#E9D5B8]">
+          <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-gold">
             {txCount}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/65">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-content-inverse/65">
             Pemegang
           </p>
-          <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-[#E9D5B8]">
+          <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-gold">
             ANANDA
           </p>
         </div>
@@ -467,7 +468,7 @@ function BudgetRow({
 
   return (
     <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4A3B32]/8 text-[#4A3B32]/85">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-sunken text-content-secondary">
         <Icon className="h-5 w-5" strokeWidth={2} />
       </span>
       <div className="min-w-0 flex-1">
@@ -475,12 +476,12 @@ function BudgetRow({
           <span className="truncate text-[13.5px] font-semibold">
             {CAT_META[cat].label}
           </span>
-          <span className="shrink-0 text-[12px] tabular-nums text-[#4A3B32]/80">
+          <span className="shrink-0 text-[12px] tabular-nums text-content-secondary">
             {formatIDRShort(used)}{' '}
-            <span className="text-[#4A3B32]/70">/ {formatIDRShort(limit)}</span>
+            <span className="text-content-muted">/ {formatIDRShort(limit)}</span>
           </span>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border">
           <m.div
             initial={{ width: '0%' }}
             animate={{ width: `${Math.min(100, pct)}%` }}
@@ -491,7 +492,7 @@ function BudgetRow({
         </div>
         <p
           className={`mt-1 text-[11px] ${
-            over ? 'font-bold text-[#B25E3F]' : 'text-[#4A3B32]/70'
+            over ? 'font-bold text-content-danger' : 'text-content-muted'
           }`}
         >
           {over
@@ -507,17 +508,17 @@ function BudgetRow({
           <button
             type="button"
             aria-label={`Sunting anggaran ${CAT_META[cat].label}`}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#4A3B32]/50 transition-colors hover:bg-[#4A3B32]/8 hover:text-[#4A3B32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
           >
             <Pencil className="h-4 w-4" />
           </button>
         </AlertDialogTrigger>
-        <AlertDialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214]">
+        <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-[#231F1E]">
+            <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-content-primary">
               Batas {CAT_META[cat].label}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-[12.5px] leading-relaxed text-[#4A3B32]/75">
+            <AlertDialogDescription className="text-[12.5px] leading-relaxed text-content-muted">
               Terpakai {formatIDR(used)} bulan ini. Tentukan batas bulanan
               baru (Rp).
             </AlertDialogDescription>
@@ -530,7 +531,7 @@ function BudgetRow({
               setDraft(e.target.value.replace(/\D/g, '').slice(0, 9))
             }
             placeholder={String(limit)}
-            className="h-11 w-full rounded-xl border border-[#4A3B3233] bg-[#F5F3EE] px-3.5 text-[15px] font-bold tabular-nums text-[#231F1E] placeholder:font-medium placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58]/30"
+            className="h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-[15px] font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
           />
           <AlertDialogFooter className="flex-row gap-2">
             <button
@@ -539,11 +540,11 @@ function BudgetRow({
                 removeBudget(cat)
                 toast(`${CAT_META[cat].label} dihapus dari anggaran.`)
               }}
-              className="h-10 flex-1 cursor-pointer rounded-full border border-[#B25E3F]/35 text-[12.5px] font-bold text-[#B25E3F] transition-colors hover:bg-[#B25E3F]/8"
+              className="h-10 flex-1 cursor-pointer rounded-full border border-destructive/35 text-[12.5px] font-bold text-content-danger transition-colors hover:bg-destructive/10"
             >
               Hapus
             </button>
-            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-[#4A3B32]/25 text-[12.5px] font-bold text-[#4A3B32]">
+            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[12.5px] font-bold text-content-secondary">
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
@@ -556,7 +557,7 @@ function BudgetRow({
                   )
                 }
               }}
-              className="h-10 flex-1 rounded-full border-none bg-[#749B58] text-[12.5px] font-bold text-white hover:bg-[#658A4C]"
+              className="h-10 flex-1 rounded-full border-none bg-primary text-[12.5px] font-bold text-primary-foreground hover:bg-action-hover"
             >
               Simpan
             </AlertDialogAction>
@@ -576,32 +577,22 @@ function WalletDialog() {
   const [name, setName] = useState('')
   const [initial, setInitial] = useState('')
 
-  if (!open) return null
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Tambah dompet"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#231F1E]/45 px-6"
-      onClick={close}
+    <RutinaDialog
+      open={open}
+      onClose={close}
+      label="Tambah dompet"
+      className="max-w-[320px] rounded-[24px] shadow-ink-deep"
     >
-      <m.div
-        initial={{ opacity: 0, scale: 0.94, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-[320px] rounded-[24px] bg-[#FAF9F6] p-5 shadow-ink-deep"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-[16px] font-bold tracking-tight text-[#231F1E]">
+        <h2 className="text-[16px] font-bold tracking-tight text-content-primary">
           Dompet Baru
         </h2>
-        <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#4A3B32]/70">
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-content-muted">
           Sumber dana terpisah — tunai, bank, atau e-wallet.
         </p>
         <div className="mt-4 space-y-3">
           <div className="space-y-1.5">
-            <label htmlFor="w-name" className="text-[13px] font-semibold text-[#4A3B32]">
+            <label htmlFor="w-name" className="text-[13px] font-semibold text-content-secondary">
               Nama dompet
             </label>
             <input
@@ -609,11 +600,11 @@ function WalletDialog() {
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, 20))}
               placeholder="mis. E-Wallet"
-              className="h-11 w-full rounded-xl border border-[#4A3B3233] bg-[#F5F3EE] px-3.5 text-[14px] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58]/30"
+              className="h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-[14px] text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="w-init" className="text-[13px] font-semibold text-[#4A3B32]">
+            <label htmlFor="w-init" className="text-[13px] font-semibold text-content-secondary">
               Saldo awal (Rp)
             </label>
             <input
@@ -624,7 +615,7 @@ function WalletDialog() {
                 setInitial(e.target.value.replace(/\D/g, '').slice(0, 10))
               }
               placeholder="mis. 250000"
-              className="h-11 w-full rounded-xl border border-[#4A3B3233] bg-[#F5F3EE] px-3.5 text-[14px] font-bold tabular-nums text-[#231F1E] placeholder:font-medium placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58]/30"
+              className="h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-[14px] font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
             />
           </div>
         </div>
@@ -632,7 +623,7 @@ function WalletDialog() {
           <button
             type="button"
             onClick={close}
-            className="h-11 flex-1 cursor-pointer rounded-full border border-[#4A3B32]/25 text-[13px] font-bold text-[#4A3B32] transition-colors hover:bg-[#EAE5D9]"
+            className="h-11 flex-1 cursor-pointer rounded-full border border-border-strong text-[13px] font-bold text-content-secondary transition-colors hover:bg-surface-secondary"
           >
             Batal
           </button>
@@ -648,13 +639,12 @@ function WalletDialog() {
               setName('')
               setInitial('')
             }}
-            className="h-11 flex-1 cursor-pointer rounded-full bg-[#749B58] text-[13px] font-bold text-white shadow-soft transition-all hover:bg-[#658A4C] active:scale-[0.98]"
+            className="h-11 flex-1 cursor-pointer rounded-full bg-primary text-[13px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98]"
           >
             Buat Dompet
           </button>
         </div>
-      </m.div>
-    </div>
+    </RutinaDialog>
   )
 }
 
@@ -763,38 +753,21 @@ export default function KeuanganScreen() {
   const pt = series[Math.min(active, series.length - 1)] ?? series[0]
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
-      {/* Subtab Keuangan — pil satu pemilik animasi (layoutId) */}
-      <div
-        role="group"
-        aria-label="Bagian Keuangan"
-        className="relative flex rounded-full bg-[#EAE5D9] p-1"
-      >
-        {FIN_TABS.map((t) => {
-          const on = finTab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setFinTab(t.id)}
-              aria-pressed={on}
-              className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[12.5px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C] ${
-                on ? 'text-[#231F1E]' : 'text-[#4A3B32]/55'
-              }`}
-            >
-              {on && (
-                <m.span
-                  aria-hidden="true"
-                  layoutId="fin-tab-pill"
-                  className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
-                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                />
-              )}
+    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
+      {/* Subtab Keuangan — Radix Tabs: state aktif terkelola penuh,
+          dukungan papan tombol otomatis (pengganti pil aria-pressed). */}
+      <RutinaTabs value={finTab} onValueChange={(v) => setFinTab(v as FinTab)}>
+        <RutinaTabsList
+          variant="segment"
+          aria-label="Bagian Keuangan"
+          className="w-full border-transparent p-1"
+        >
+          {FIN_TABS.map((t) => (
+            <RutinaTabsTrigger key={t.id} value={t.id} className="flex-1 px-2">
               {t.label}
-            </button>
-          )
-        })}
-      </div>
+            </RutinaTabsTrigger>
+          ))}
+        </RutinaTabsList>
 
       {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
           masuk viewport — pengganti staggervariants statis. */}
@@ -809,7 +782,7 @@ export default function KeuanganScreen() {
               onClick={openTxSheet}
               whileTap={{ scale: 0.88 }}
               aria-label="Tambah transaksi baru"
-              className="absolute -top-3 right-4 z-20 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-[#D9B98C] text-[#4A3B32] shadow-gold transition-colors hover:bg-[#E9D5B8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              className="absolute -top-3 right-4 z-20 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-gold text-content-secondary shadow-gold transition-colors hover:bg-gold/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
             >
               <Plus className="h-5 w-5" strokeWidth={2.6} />
             </m.button>
@@ -824,21 +797,21 @@ export default function KeuanganScreen() {
 
         {/* ===== Chip totals per periode ===== */}
         <BlurFade delay={0.06} className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-3 shadow-soft">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
-              <ArrowUpRight className="h-3.5 w-3.5 text-[#A3C489]" />
+          <div className="rounded-2xl border border-border bg-surface-primary px-3.5 py-3 shadow-soft">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-content-muted">
+              <ArrowUpRight className="h-3.5 w-3.5 text-pistachio" />
               Masuk · periode ini
             </p>
-            <p className="mt-1 text-[17px] font-bold tabular-nums text-[#658A4C]">
+            <p className="mt-1 text-[17px] font-bold tabular-nums text-success">
               +{formatIDRShort(totals.masuk)}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-3 shadow-soft">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
-              <ArrowDownRight className="h-3.5 w-3.5 text-[#E08A6D]" />
+          <div className="rounded-2xl border border-border bg-surface-primary px-3.5 py-3 shadow-soft">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-content-muted">
+              <ArrowDownRight className="h-3.5 w-3.5 text-clay" />
               Keluar · periode ini
             </p>
-            <p className="mt-1 text-[17px] font-bold tabular-nums text-[#C25F3D]">
+            <p className="mt-1 text-[17px] font-bold tabular-nums text-content-danger">
               −{formatIDRShort(totals.keluar)}
             </p>
           </div>
@@ -847,13 +820,13 @@ export default function KeuanganScreen() {
         {/* ===== Arus kas: kontrol periode + grafik ===== */}
         <BlurFade
           delay={0.1}
-          className="rounded-[24px] border border-[#4A3B3214] bg-white p-4 shadow-soft"
+          className="rounded-[24px] border border-border bg-surface-primary p-4 shadow-soft"
         >
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
               Arus Kas
             </h2>
-            <span className="text-[11px] font-medium tabular-nums text-[#4A3B32]/70">
+            <span className="text-[11px] font-medium tabular-nums text-content-muted">
               {periodScope(finPeriod, txs)}
             </span>
           </div>
@@ -862,7 +835,7 @@ export default function KeuanganScreen() {
           <div
             role="group"
             aria-label="Pilih periode"
-            className="mt-3 flex rounded-full bg-[#F5F3EE] p-1"
+            className="mt-3 flex rounded-full bg-surface-sunken p-1"
           >
             {PERIODS.map((p) => {
               const on = finPeriod === p.id
@@ -872,15 +845,15 @@ export default function KeuanganScreen() {
                   type="button"
                   onClick={() => setFinPeriod(p.id)}
                   aria-pressed={on}
-                  className={`relative z-10 h-8 flex-1 cursor-pointer rounded-full text-[12px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C] ${
-                    on ? 'text-[#FAF9F6]' : 'text-[#4A3B32]/70'
+                  className={`relative z-10 h-8 flex-1 cursor-pointer rounded-full text-[12px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                    on ? 'text-content-inverse' : 'text-content-muted'
                   }`}
                 >
                   {on && (
                     <m.span
                       aria-hidden="true"
                       layoutId="fin-period"
-                      className="absolute inset-0 z-[-1] rounded-full bg-[#231F1E]"
+                      className="absolute inset-0 z-[-1] rounded-full bg-surface-inverse"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     />
                   )}
@@ -893,7 +866,7 @@ export default function KeuanganScreen() {
           {/* Legenda + nilai titik aktif */}
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-content-muted">
                 <span
                   aria-hidden="true"
                   className="h-2 w-2 rounded-full"
@@ -908,14 +881,14 @@ export default function KeuanganScreen() {
                       animate={{ y: 0, opacity: 1 }}
                       exit={{ y: -10, opacity: 0 }}
                       transition={{ duration: 0.18 }}
-                      className="font-bold tabular-nums text-[#658A4C]"
+                      className="font-bold tabular-nums text-success"
                     >
                       +{formatIDRShort(pt.masuk)}
                     </m.span>
                   </AnimatePresence>
                 </span>
               </span>
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-content-muted">
                 <span
                   aria-hidden="true"
                   className="h-2 w-2 rounded-full"
@@ -930,7 +903,7 @@ export default function KeuanganScreen() {
                       animate={{ y: 0, opacity: 1 }}
                       exit={{ y: -10, opacity: 0 }}
                       transition={{ duration: 0.18 }}
-                      className="font-bold tabular-nums text-[#C25F3D]"
+                      className="font-bold tabular-nums text-content-danger"
                     >
                       −{formatIDRShort(pt.keluar)}
                     </m.span>
@@ -938,7 +911,7 @@ export default function KeuanganScreen() {
                 </span>
               </span>
             </div>
-            <span className="text-[11px] text-[#4A3B32]/60">ketuk titik</span>
+            <span className="text-[11px] text-content-muted">ketuk titik</span>
           </div>
 
           <div className="mx-auto mt-2 w-full max-w-[560px]">
@@ -949,13 +922,13 @@ export default function KeuanganScreen() {
         {/* ===== Tujuan tabungan (akhir Ringkasan) ===== */}
         <BlurFade delay={0.06}>
           <div className="flex items-center justify-between gap-3 px-0.5">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
               Tujuan Tabungan
             </h2>
             <button
               type="button"
               onClick={openGoalDialog}
-              className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              className="h-8 cursor-pointer rounded-full border border-border-strong px-3.5 text-[12px] font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
             >
               + Tujuan
             </button>
@@ -971,9 +944,9 @@ export default function KeuanganScreen() {
               <button
                 type="button"
                 onClick={openGoalDialog}
-                className="flex min-h-[178px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-[#4A3B32]/25 px-3 py-4 text-[#4A3B32]/70 transition-all hover:border-[#D9B98C] hover:text-[#4A3B32] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                className="flex min-h-[178px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-border-strong px-3 py-4 text-content-muted transition-all hover:border-gold hover:text-content-primary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F5F3EE]">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-sunken">
                   <Plus className="h-5 w-5" />
                 </span>
                 <span className="text-[12.5px] font-bold">Tujuan Baru</span>
@@ -985,7 +958,7 @@ export default function KeuanganScreen() {
             {/* Petunjuk geser — memudar di tepi kanan carousel */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[22px] bg-gradient-to-l from-[#FAF9F6] to-transparent"
+              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[22px] bg-gradient-to-l from-surface-primary to-transparent"
             />
           </div>
         </BlurFade>
@@ -997,29 +970,29 @@ export default function KeuanganScreen() {
           <BlurFade delay={0.04}>
             <div className="flex items-center justify-between gap-3 px-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
                   Mutasi
                 </h2>
-                <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
                   {txs.length}
                 </Badge>
               </div>
               <button
                 type="button"
                 onClick={openTxSheet}
-                className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                className="h-8 cursor-pointer rounded-full border border-border-strong px-3.5 text-[12px] font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
               >
                 + Tambah
               </button>
             </div>
 
             {dayGroups.length === 0 ? (
-              <div className="mt-3 rounded-[20px] border-2 border-dashed border-[#4A3B32]/25 px-6 py-9 text-center">
-                <Wallet className="mx-auto h-6 w-6 text-[#4A3B32]/60" />
-                <p className="mt-2 text-[13px] font-semibold text-[#4A3B32]/75">
+              <div className="mt-3 rounded-[20px] border-2 border-dashed border-border-strong px-6 py-9 text-center">
+                <Wallet className="mx-auto h-6 w-6 text-content-muted" />
+                <p className="mt-2 text-[13px] font-semibold text-content-muted">
                   Belum ada transaksi
                 </p>
-                <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
+                <p className="mt-0.5 text-[11.5px] text-content-muted">
                   Catat pemasukan/pengeluaran pertamamu.
                 </p>
               </div>
@@ -1028,17 +1001,17 @@ export default function KeuanganScreen() {
                 {dayGroups.map((g) => (
                   <div key={g.date}>
                     <div className="mb-2 flex items-center justify-between px-0.5">
-                      <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/70">
+                      <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
                         {fmtDate(g.date)}
                       </p>
-                      <p className="text-[11px] font-semibold tabular-nums text-[#4A3B32]/60">
+                      <p className="text-[11px] font-semibold tabular-nums text-content-muted">
                         {g.masuk > 0 && (
-                          <span className="text-[#658A4C]">
+                          <span className="text-success">
                             +{formatIDRShort(g.masuk)}{' '}
                           </span>
                         )}
                         {g.keluar > 0 && (
-                          <span className="text-[#C25F3D]">
+                          <span className="text-content-danger">
                             −{formatIDRShort(g.keluar)}
                           </span>
                         )}
@@ -1059,28 +1032,28 @@ export default function KeuanganScreen() {
         {/* ===== ANGGARAN: batas per kategori, dapat diubah ===== */}
         {finTab === 'anggaran' && (
           <BlurFade delay={0.04}>
-            <div className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink-deep">
-              <ShineBorder borderWidth={1.5} duration={12} shineColor={['#D9B98C', '#A3C489']} />
+            <div className="relative rounded-[24px] bg-surface-primary p-4 text-content-primary shadow-ink-deep">
+              <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
                   Anggaran {currentMonthLabel()}
                 </h2>
-                <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
                   Terpakai {totalPct}%
                 </Badge>
               </div>
 
               {/* Batang total */}
               <div className="mt-3">
-                <div className="h-2.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
+                <div className="h-2.5 overflow-hidden rounded-full bg-border">
                   <m.div
                     initial={{ width: '0%' }}
                     animate={{ width: `${totalPct}%` }}
                     transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C489]"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
                   />
                 </div>
-                <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-[#4A3B32]/70">
+                <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-content-muted">
                   <span>{formatIDRShort(spentTotal)} terpakai</span>
                   <span>sisa {formatIDRShort(Math.max(0, totalLimit - spentTotal))}</span>
                 </div>
@@ -1094,7 +1067,7 @@ export default function KeuanganScreen() {
                   const over = used > b.limit
                   const warn = !over && pct >= 85
                   const Icon = CAT_META[b.cat].icon
-                  const barColor = over ? '#B25E3F' : warn ? '#C7A17A' : '#749B58'
+                  const barColor = over ? 'var(--destructive)' : warn ? 'var(--warning)' : 'var(--primary)'
                   return (
                     <BudgetRow
                       key={b.cat}
@@ -1121,7 +1094,7 @@ export default function KeuanganScreen() {
                           setBudget(c, 300_000)
                           toast(`${CAT_META[c].label} ditambahkan — ubah batasnya sesukamu.`)
                         }}
-                        className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-[#4A3B32]/30 px-3.5 text-[12px] font-bold text-[#4A3B32]/75 transition-all hover:bg-[#F5F3EE] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                        className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 text-[12px] font-bold text-content-muted transition-all hover:bg-surface-sunken active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         {CAT_META[c].label}
@@ -1139,7 +1112,7 @@ export default function KeuanganScreen() {
           <>
             <BlurFade delay={0.04}>
               <div className="flex items-center justify-between gap-3 px-0.5">
-                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
                   Dompet &amp; Rekening
                 </h2>
                 <div className="flex gap-2">
@@ -1147,7 +1120,7 @@ export default function KeuanganScreen() {
                     type="button"
                     onClick={openTransferSheet}
                     disabled={wallets.length < 2}
-                    className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#231F1E] px-3.5 text-[12px] font-bold text-[#FAF9F6] transition-all hover:bg-[#3A2E24] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-surface-inverse px-3.5 text-[12px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5" />
                     Transfer
@@ -1155,7 +1128,7 @@ export default function KeuanganScreen() {
                   <button
                     type="button"
                     onClick={openWalletDialog}
-                    className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                    className="h-8 cursor-pointer rounded-full border border-border-strong px-3.5 text-[12px] font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                   >
                     + Dompet
                   </button>
@@ -1163,12 +1136,12 @@ export default function KeuanganScreen() {
               </div>
 
               {wallets.length === 0 ? (
-                <div className="mt-3 rounded-[20px] border-2 border-dashed border-[#4A3B32]/25 px-6 py-9 text-center">
-                  <Wallet className="mx-auto h-6 w-6 text-[#4A3B32]/60" />
-                  <p className="mt-2 text-[13px] font-semibold text-[#4A3B32]/75">
+                <div className="mt-3 rounded-[20px] border-2 border-dashed border-border-strong px-6 py-9 text-center">
+                  <Wallet className="mx-auto h-6 w-6 text-content-muted" />
+                  <p className="mt-2 text-[13px] font-semibold text-content-muted">
                     Belum ada dompet
                   </p>
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-[#4A3B32]/60">
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-content-muted">
                     Pisahkan uang tunai, rekening bank, atau e-wallet — saldo
                     dihitung per sumber dana.
                   </p>
@@ -1181,27 +1154,27 @@ export default function KeuanganScreen() {
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: i * 0.06, ease: EASE }}
-                      className="rounded-[20px] border border-[#4A3B3214] bg-white p-4 shadow-soft"
+                      className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F5EFDF] text-[#A98650]">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gold/20 text-warning">
                           <Wallet className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[14.5px] font-bold text-[#231F1E]">
+                          <p className="truncate text-[14.5px] font-bold text-content-primary">
                             {w.name}
                           </p>
-                          <p className="text-[11px] font-medium text-[#4A3B32]/65">
+                          <p className="text-[11px] font-medium text-content-muted">
                             Saldo awal {formatIDRShort(w.initial)}
                           </p>
                         </div>
-                        <p className="shrink-0 text-[17px] font-bold tabular-nums text-[#231F1E]">
+                        <p className="shrink-0 text-[17px] font-bold tabular-nums text-content-primary">
                           {formatIDRShort(walletBalance(txs, w))}
                         </p>
                       </div>
                     </m.div>
                   ))}
-                  <p className="px-0.5 text-[11px] leading-relaxed text-[#4A3B32]/60">
+                  <p className="px-0.5 text-[11px] leading-relaxed text-content-muted">
                     Transfer antar-dompet tidak dihitung sebagai pemasukan atau
                     pengeluaran — hanya memindahkan saldo.
                   </p>
@@ -1212,7 +1185,7 @@ export default function KeuanganScreen() {
             {/* Riwayat transfer */}
             {transfers.length > 0 && (
               <BlurFade delay={0.08}>
-                <h3 className="px-0.5 text-[12px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/75">
+                <h3 className="px-0.5 text-[12px] font-bold uppercase tracking-[0.14em] text-content-muted">
                   Riwayat Transfer
                 </h3>
                 <div className="mt-2 space-y-2">
@@ -1222,17 +1195,17 @@ export default function KeuanganScreen() {
                     return (
                       <div
                         key={t.id}
-                        className="flex items-center gap-3 rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-2.5 shadow-soft"
+                        className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
                       >
-                        <ArrowLeftRight className="h-4 w-4 shrink-0 text-[#A98650]" />
-                        <p className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[#231F1E]">
+                        <ArrowLeftRight className="h-4 w-4 shrink-0 text-warning" />
+                        <p className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-content-primary">
                           {fromW?.name ?? 'Dompet'} → {toW?.name ?? 'Dompet'}
-                          <span className="font-medium text-[#4A3B32]/60">
+                          <span className="font-medium text-content-muted">
                             {' '}
                             · {fmtDate(t.ts)}
                           </span>
                         </p>
-                        <p className="shrink-0 text-[12.5px] font-bold tabular-nums text-[#A98650]">
+                        <p className="shrink-0 text-[12.5px] font-bold tabular-nums text-content-muted">
                           {formatIDRShort(t.amount)}
                         </p>
                       </div>
@@ -1244,6 +1217,7 @@ export default function KeuanganScreen() {
           </>
         )}
       </div>
+      </RutinaTabs>
 
       {/* Dialog tambah dompet */}
       <WalletDialog />

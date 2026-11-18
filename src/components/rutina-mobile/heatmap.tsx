@@ -5,13 +5,25 @@ import { useInView } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
-import { dayCounts, todayISO, useRutina } from './store'
+import { dayCounts, fromISO, todayISO, useRutina } from './store'
 
 /* ===== Konsistensi 12 pekan — dari histori penyelesaian nyata ===== */
 
 const WEEKS = 12
-/** Palet level gelap: dari espresso redup ke matcha terang. */
-const LEVEL_COLORS = ['#2E2824', '#3E4A34', '#51633F', '#65894C', '#A3C489']
+/** Skala intensitas 5 level — color-mix token --primary di atas permukaan
+    tinta (level 0–3); level penuh memakai token grafik pistachio
+    (var(--chart-4), satu sumber warna seluruh grafik). */
+const LEVEL_COLORS = [
+  'color-mix(in oklab, var(--primary) 15%, var(--surface-inverse))',
+  'color-mix(in oklab, var(--primary) 35%, var(--surface-inverse))',
+  'color-mix(in oklab, var(--primary) 60%, var(--surface-inverse))',
+  'color-mix(in oklab, var(--primary) 85%, var(--surface-inverse))',
+  'var(--chart-4)',
+]
+
+/** Tanggal singkat Indonesia ("5 Jan") dari ISO — untuk label aksesibel sel. */
+const fmtDate = (iso: string) =>
+  fromISO(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
 
 /** Level 0-4 dari jumlah kebiasaan selesai: 0 / 1 / 2 / 3-4 / 5+. */
 function levelOf(count: number): number {
@@ -50,7 +62,15 @@ export default function Heatmap() {
   }, [gridInView])
 
   const selEntry = sel ? days[sel.d * WEEKS + sel.w] : null
-  const selCount = selEntry?.count ?? 0
+
+  /** Teks aksesibel sel: tanggal + jumlah — intensitas tidak disampaikan
+      lewat warna saja. */
+  const cellText = (entry: { label: string; date: string; count: number }) =>
+    `${entry.label}, ${fmtDate(entry.date)} — ${
+      entry.count === 0
+        ? 'tidak ada aktivitas'
+        : `${entry.count} kebiasaan selesai`
+    }`
 
   return (
     <m.div
@@ -58,12 +78,12 @@ export default function Heatmap() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
+      className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
         Konsistensi
       </p>
-      <p className="mt-1 text-[11px] font-medium text-[#F5F3EE]/70">
+      <p className="mt-1 text-[11px] font-medium text-content-inverse/70">
         12 pekan terakhir
       </p>
 
@@ -83,16 +103,13 @@ export default function Heatmap() {
               <button
                 key={`${d}-${w}`}
                 type="button"
-                aria-label={`Pekan ${WEEKS - w}, ${cell.label} — ${
-                  cell.count === 0
-                    ? 'tidak ada aktivitas'
-                    : `${cell.count} kebiasaan selesai`
-                }`}
+                aria-label={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
+                title={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
                 onClick={() => setSel({ w, d })}
                 className={
-                  'h-5 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#A3C489] ' +
+                  'h-5 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
-                    ? 'ring-2 ring-[#A3C489] ring-offset-1 ring-offset-[#4A3B32]'
+                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-cocoa'
                     : '')
                 }
                 style={{ backgroundColor: LEVEL_COLORS[level] }}
@@ -102,18 +119,14 @@ export default function Heatmap() {
         )}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/70">
+      <p className="mt-3 text-[11px] font-medium text-content-inverse/70">
         {sel && selEntry
-          ? `Pekan ${WEEKS - sel.w}, ${selEntry.label} — ${
-              selCount === 0
-                ? 'tidak ada aktivitas'
-                : `${selCount} kebiasaan selesai`
-            }`
+          ? `Pekan ${WEEKS - sel.w}, ${cellText(selEntry)}`
           : 'Ketuk sel untuk melihat detail hari.'}
       </p>
 
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#F5F3EE]/70">
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-content-inverse/70">
           Sedikit
         </span>
         {LEVEL_COLORS.map((c) => (
@@ -123,7 +136,7 @@ export default function Heatmap() {
             style={{ backgroundColor: c }}
           />
         ))}
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#F5F3EE]/70">
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-content-inverse/70">
           Banyak
         </span>
       </div>

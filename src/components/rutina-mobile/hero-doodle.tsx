@@ -10,7 +10,7 @@ export function HeroDoodle() {
       aria-hidden="true"
       animate={{ y: [0, -6, 0] }}
       transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-      className="pointer-events-none absolute right-0 top-0 h-20 w-20 text-[#FAF9F6]/40"
+      className="pointer-events-none absolute right-0 top-0 h-20 w-20 text-primary-foreground/40"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"

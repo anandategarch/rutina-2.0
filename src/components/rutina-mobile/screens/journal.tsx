@@ -14,9 +14,9 @@ import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from '../store'
 /** Variasi latar kartu jurnal: putih, pistachio muda, warm sand —
     semuanya kartu terang di atas kanvas Warm Sand yang seragam. */
 const NOTE_TONES = [
-  'border border-[#4A3B321F] bg-white',
-  'bg-[#E4EFE0]',
-  'bg-[#EAE5D9]',
+  'border border-border bg-surface-primary',
+  'bg-secondary',
+  'bg-surface-secondary',
 ]
 
 const FILTERS: { key: FolderKey | 'semua'; label: string }[] = [
@@ -64,22 +64,22 @@ export default function JournalScreen() {
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]"
+      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Header editorial — serif besar, gaya Clean Typography */}
       <m.header style={{ y: titleY, opacity: titleOpacity }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#749B58]">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-success">
               <Feather className="h-3.5 w-3.5" />
               Catatan &amp; refleksi
             </p>
             <h1
               className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight`}
             >
-              Jurnal<span className="text-[#749B58]">.</span>
+              Jurnal<span className="text-primary">.</span>
             </h1>
-            <p className="mt-2 text-xs font-medium text-[#4A3B32]/75">
+            <p className="mt-2 text-xs font-medium text-content-muted">
               {notes.length} catatan • {pinnedCount} disematkan
             </p>
           </div>
@@ -88,7 +88,7 @@ export default function JournalScreen() {
             aria-label="Buat catatan baru"
             onClick={() => openCompose()}
             whileTap={{ scale: 0.9 }}
-            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#231F1E] text-[#FAF9F6] shadow-soft transition-colors hover:bg-[#3A2E24] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-inverse text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <Plus className="h-5 w-5" strokeWidth={2.5} />
           </m.button>
@@ -102,12 +102,12 @@ export default function JournalScreen() {
         transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         className="relative mt-5"
       >
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A3B32]/50" />
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari judul atau isi catatan…"
-          className="h-11 rounded-xl border-[#4A3B321F] bg-white pl-10 text-sm text-[#231F1E] shadow-soft placeholder:text-[#4A3B32]/50 focus-visible:border-[#749B58]/50 focus-visible:ring-[#749B58]/20"
+          className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-sm text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
         />
       </m.div>
 
@@ -128,10 +128,10 @@ export default function JournalScreen() {
                 aria-pressed={active}
                 onClick={() => setJournalFilter(f.key)}
                 className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                   (active
-                    ? 'bg-[#231F1E] text-[#FAF9F6] shadow-soft'
-                    : 'border border-[#4A3B321F] bg-white text-[#4A3B32] hover:bg-[#E4EFE0]')
+                    ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                    : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
                 }
               >
                 {f.label}
@@ -141,7 +141,7 @@ export default function JournalScreen() {
         </div>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#FAF9F6] to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
         />
       </m.div>
 
@@ -149,13 +149,13 @@ export default function JournalScreen() {
       <section className="mt-5" aria-label="Daftar catatan jurnal">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E4EFE0]">
-              <BookOpen className="h-6 w-6 text-[#658A4C]" />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+              <BookOpen className="h-6 w-6 text-success" />
             </span>
-            <p className="mt-4 text-[15px] font-semibold text-[#231F1E]">
+            <p className="mt-4 text-[15px] font-semibold text-content-primary">
               Tidak ada catatan
             </p>
-            <p className="mt-1 text-xs text-[#4A3B32]/70">
+            <p className="mt-1 text-xs text-content-muted">
               Coba kata kunci lain atau buat catatan baru.
             </p>
           </div>
@@ -170,53 +170,58 @@ export default function JournalScreen() {
               <m.article
                 key={n.id}
                 variants={journalCard}
-                role="button"
-                tabIndex={0}
-                aria-label={`Baca catatan: ${n.title}`}
-                onClick={() => openReading(n.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    openReading(n.id)
-                  }
-                }}
-                whileTap={{ scale: 0.97 }}
-                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 shadow-ink transition-shadow duration-300 hover:shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
+                /* Tanpa whileTap: Motion menyuntikkan tabindex pada article
+                   non-interaktif — umpan balik ketuk kini di tombol buka. */
+                className={`relative mb-3 break-inside-avoid rounded-[14px] p-4 shadow-ink transition-shadow duration-300 hover:shadow-ink-deep [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <h3
-                    className={`${playfair.className} flex-1 text-[15px] font-semibold leading-snug text-[#231F1E]`}
-                  >
-                    {n.title}
-                  </h3>
-                  <button
-                    type="button"
-                    aria-label={n.pinned ? 'Lepas sematan catatan' : 'Sematkan catatan'}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      togglePin(n.id)
-                    }}
-                    className={
-                      '-mr-1 -mt-1 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-[#4A3B32]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
-                      (n.pinned ? 'text-[#4A3B32]' : 'text-[#4A3B32]/40')
-                    }
-                  >
-                    <Pin
-                      className="h-3.5 w-3.5"
-                      fill={n.pinned ? 'currentColor' : 'none'}
-                    />
-                  </button>
-                </div>
-                <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-[#231F1E]/75">
-                  {n.body}
-                </p>
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/75">
-                    {n.date}
+                {/* A11Y: tombol "buka catatan" absolut inset-0 (z-0) di bawah
+                    konten; tombol pin relative z-10 di atasnya — dua kontrol
+                    bersaudara, tidak ada tombol dalam tombol. Konten kartu
+                    pointer-events-none agar sentuhan jatuh ke tombol buka. */}
+                <button
+                  type="button"
+                  aria-label={`Buka catatan ${n.title}`}
+                  onClick={() => openReading(n.id)}
+                  className="absolute inset-0 z-0 cursor-pointer rounded-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                />
+                <div className="pointer-events-none relative z-10">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3
+                      className={`${playfair.className} flex-1 text-[15px] font-semibold leading-snug text-content-primary`}
+                    >
+                      {n.title}
+                    </h3>
+                    <button
+                      type="button"
+                      aria-label={
+                        n.pinned ? 'Lepas sematan catatan' : 'Sematkan catatan'
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        togglePin(n.id)
+                      }}
+                      className={
+                        'pointer-events-auto relative z-10 -mr-1 -mt-1 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-cocoa/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        (n.pinned ? 'text-content-secondary' : 'text-content-muted')
+                      }
+                    >
+                      <Pin
+                        className="h-3.5 w-3.5"
+                        fill={n.pinned ? 'currentColor' : 'none'}
+                      />
+                    </button>
+                  </div>
+                  <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-content-secondary">
+                    {n.body}
                   </p>
-                  <span className="text-[11px] font-bold text-[#4A3B32]/70">
-                    {FOLDER_SHORT[n.folder]}
-                  </span>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                      {n.date}
+                    </p>
+                    <span className="text-[11px] font-bold text-content-muted">
+                      {FOLDER_SHORT[n.folder]}
+                    </span>
+                  </div>
                 </div>
               </m.article>
             ))}
