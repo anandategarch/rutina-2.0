@@ -1,0 +1,530 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import {
+  AnimatePresence,
+  useDragControls,
+} from 'motion/react'
+import * as m from 'motion/react-m'
+import { Minus, Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { CONTENT_W } from '../layout-widths'
+import {
+  exStatOf,
+  paceOf,
+} from './fit-utils'
+import { EX_LIB, MUSCLE_GROUPS } from './data'
+import {
+  shortDateLabel,
+  todayISO,
+  useRutina,
+  type WorkoutKind,
+  type WorkoutSeed,
+  type WorkoutSet,
+} from '../store'
+import { useFocusTrap } from '../use-focus-trap'
+
+/**
+ * Lembar catat sesi latihan — dua mode: Beban (blok gerakan dengan
+ * jumlah set) dan Kardio (jalan/lari dengan pace otomatis).
+ * Terbuka dari tombol "Catat Sesi", kartu program, atau pustaka gerakan.
+ */
+
+/* Blok input: satu gerakan × beban × repetisi × jumlah set.
+   Saat disimpan, blok diekspansi menjadi set individual agar
+   histori & PR e1RM konsisten dengan domain Workout. */
+interface SetBlock {
+  exercise: string
+  weight: string
+  reps: string
+  count: number
+}
+
+/* Peta seed → blok: target set/reps dari program dihormati; beban
+   diisi dari histori terakhir pengguna (coach pintar) atau default. */
+function seedToBlocks(seed: WorkoutSeed[], lastOf: (name: string) => { weight: number; reps: number }): SetBlock[] {
+  return seed.map((s) => {
+    const last = lastOf(s.name)
+    return {
+      exercise: s.name,
+      weight: String(last.weight || 20),
+      reps: String(s.reps || last.reps || 5),
+      count: Math.min(12, Math.max(1, s.count)),
+    }
+  })
+}
+
+const emptyBlock = (): SetBlock => ({
+  exercise: '',
+  weight: '',
+  reps: '',
+  count: 3,
+})
+
+/** Gerakan dikelompokkan per otot untuk pemilih native yang ringkas. */
+const EX_OPTIONS = MUSCLE_GROUPS.map((g) => ({
+  group: g,
+  items: EX_LIB.filter((e) => e.muscle === g).map((e) => e.name),
+}))
+
+export function WorkoutSheet() {
+  const open = useRutina((s) => s.workoutSheetOpen)
+  const seed = useRutina((s) => s.workoutSheetSeed)
+  const workouts = useRutina((s) => s.workouts)
+  const closeWorkoutSheet = useRutina((s) => s.closeWorkoutSheet)
+  const addWorkout = useRutina((s) => s.addWorkout)
+
+  const [mode, setMode] = useState<'beban' | 'kardio'>('beban')
+  const [cardioKind, setCardioKind] = useState<WorkoutKind>('jalan')
+  const [date, setDate] = useState(todayISO())
+  const [duration, setDuration] = useState('')
+  const [distance, setDistance] = useState('')
+  const [note, setNote] = useState('')
+  const [blocks, setBlocks] = useState<SetBlock[]>([emptyBlock()])
+  const [prevOpen, setPrevOpen] = useState(false)
+  const dragControls = useDragControls()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(open, panelRef)
+
+  /* Draf di-reset setiap kali lembar dibuka — termasuk praisi
+     dari program/pustaka (seed) memakai beban terakhir pengguna. */
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      setMode('beban')
+      setDate(todayISO())
+      setDuration('')
+      setDistance('')
+      setNote('')
+      setBlocks(
+        seed && seed.length > 0
+          ? seedToBlocks(seed, (name) => {
+              const stat = exStatOf(workouts, name)
+              return { weight: stat.lastWeight, reps: stat.lastReps }
+            })
+          : [emptyBlock()],
+      )
+    }
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeWorkoutSheet()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, closeWorkoutSheet])
+
+  const patchBlock = (i: number, patch: Partial<SetBlock>) =>
+    setBlocks((bs) => bs.map((b, j) => (j === i ? { ...b, ...patch } : b)))
+
+  const submit = () => {
+    const dur = Number(duration || '0')
+    if (!date) {
+      toast.warning('Pilih tanggal sesi')
+      return
+    }
+    if (mode === 'kardio') {
+      const km = Number(distance.replace(',', '.'))
+      if (km <= 0 || dur <= 0) {
+        toast.warning('Isi jarak dan durasi dulu')
+        return
+      }
+      addWorkout({
+        kind: cardioKind,
+        date,
+        duration: dur,
+        note,
+        sets: [],
+        distance: km,
+      })
+      toast.success(
+        `${cardioKind === 'jalan' ? 'Jalan' : 'Lari'} ${km} km tercatat — pace ${paceOf(dur, km)}/km`,
+      )
+      return
+    }
+    const valid: WorkoutSet[] = []
+    for (const b of blocks) {
+      const w = Number(b.weight.replace(',', '.'))
+      const r = Number(b.reps)
+      if (!b.exercise || w <= 0 || r <= 0 || b.count < 1) continue
+      for (let i = 0; i < b.count; i++) {
+        valid.push({ exercise: b.exercise, weight: w, reps: r })
+      }
+    }
+    if (valid.length === 0) {
+      toast.warning('Tambahkan minimal satu set yang lengkap')
+      return
+    }
+    addWorkout({
+      kind: 'beban',
+      date,
+      duration: dur,
+      note,
+      sets: valid,
+    })
+    const names = [...new Set(valid.map((s) => s.exercise))]
+    toast.success(
+      `Sesi beban tersimpan — ${names.length} gerakan, ${valid.length} set`,
+    )
+  }
+
+  const pace = paceOf(Number(duration || '0'), Number(distance.replace(',', '.') || '0'))
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <m.div
+            key="backdrop"
+            aria-hidden="true"
+            onClick={closeWorkoutSheet}
+            className="absolute inset-0 z-40 bg-[#231F1E]/45"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+          <m.div
+            key="panel"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            aria-label="Catat sesi latihan"
+            drag="y"
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.55 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 90 || info.velocity.y > 600)
+                closeWorkoutSheet()
+            }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-[#FAF9F6] px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+          >
+            {/* Pegangan seret */}
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+              aria-hidden="true"
+            >
+              <span className="h-1.5 w-10 rounded-full bg-[#4A3B32]/15" />
+            </div>
+
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-left">
+                <h2 className="text-lg font-semibold tracking-tight text-[#231F1E]">
+                  Catat Sesi
+                </h2>
+                <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
+                  Sesi baru — {shortDateLabel(date || todayISO())}.
+                </p>
+              </div>
+            </div>
+
+            {/* Saklar mode: Beban | Kardio */}
+            <div
+              role="group"
+              aria-label="Jenis sesi"
+              className="relative mt-3 flex rounded-full bg-[#EAE5D9] p-1"
+            >
+              {(['beban', 'kardio'] as const).map((t) => {
+                const on = mode === t
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setMode(t)}
+                    aria-pressed={on}
+                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                      on ? 'text-[#658A4C]' : 'text-[#4A3B32]/55'
+                    }`}
+                  >
+                    {on && (
+                      <m.span
+                        aria-hidden="true"
+                        layoutId="wo-mode-pill"
+                        className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
+                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                      />
+                    )}
+                    {t === 'beban' ? 'Angkat Beban' : 'Jalan / Lari'}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Tanggal & durasi */}
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="wo-date" className="text-[13px] font-semibold text-[#4A3B32]">
+                  Tanggal
+                </Label>
+                <Input
+                  id="wo-date"
+                  type="date"
+                  value={date}
+                  max={todayISO()}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="wo-dur" className="text-[13px] font-semibold text-[#4A3B32]">
+                  Durasi (menit)
+                </Label>
+                <Input
+                  id="wo-dur"
+                  inputMode="numeric"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  placeholder="45"
+                  className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                />
+              </div>
+            </div>
+
+            <AnimatePresence mode="wait" initial={false}>
+              {mode === 'beban' ? (
+                <m.div
+                  key="beban"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-4"
+                >
+                  <div className="flex items-center justify-between px-0.5">
+                    <Label className="text-[13px] font-semibold text-[#4A3B32]">
+                      Gerakan &amp; Set
+                    </Label>
+                    <span className="text-[11px] font-medium text-[#4A3B32]/60">
+                      {blocks.length} blok
+                    </span>
+                  </div>
+
+                  <div className="mt-2 space-y-2.5">
+                    {blocks.map((b, i) => (
+                      <m.div
+                        key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.97 }}
+                        transition={{ duration: 0.22 }}
+                        className="rounded-2xl border border-[#4A3B321F] bg-white p-3.5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <select
+                            aria-label={`Gerakan blok ${i + 1}`}
+                            value={b.exercise}
+                            onChange={(e) => patchBlock(i, { exercise: e.target.value })}
+                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-[#F5F3EE] px-2.5 text-[13.5px] font-semibold text-[#231F1E] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58] ${
+                              b.exercise ? 'border-[#749B58]' : 'border-[#4A3B3233] text-[#4A3B32]/55'
+                            }`}
+                          >
+                            <option value="">Pilih gerakan…</option>
+                            {EX_OPTIONS.map((g) => (
+                              <optgroup key={g.group} label={g.group}>
+                                {g.items.map((n) => (
+                                  <option key={n} value={n}>
+                                    {n}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            aria-label={`Hapus blok ${i + 1}`}
+                            onClick={() =>
+                              setBlocks((bs) =>
+                                bs.length > 1 ? bs.filter((_, j) => j !== i) : bs,
+                              )
+                            }
+                            disabled={blocks.length <= 1}
+                            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[#B25E3F] transition-colors hover:bg-[#B25E3F]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F] disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="mt-2.5 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                          <div>
+                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                              Beban (kg)
+                            </p>
+                            <Input
+                              aria-label={`Beban blok ${i + 1}`}
+                              inputMode="decimal"
+                              value={b.weight}
+                              onChange={(e) =>
+                                patchBlock(i, {
+                                  weight: e.target.value.replace(/[^\d.,]/g, '').slice(0, 4),
+                                })
+                              }
+                              placeholder="40"
+                              className="h-10 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] tabular-nums focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                            />
+                          </div>
+                          <div>
+                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                              Repetisi
+                            </p>
+                            <Input
+                              aria-label={`Repetisi blok ${i + 1}`}
+                              inputMode="numeric"
+                              value={b.reps}
+                              onChange={(e) =>
+                                patchBlock(i, {
+                                  reps: e.target.value.replace(/\D/g, '').slice(0, 3),
+                                })
+                              }
+                              placeholder="5"
+                              className="h-10 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] tabular-nums focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                            />
+                          </div>
+                          <div>
+                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-[#4A3B32]/55">
+                              Set
+                            </p>
+                            <div className="flex h-10 items-center rounded-xl border border-[#4A3B3233] bg-[#F5F3EE]">
+                              <button
+                                type="button"
+                                aria-label="Kurangi set"
+                                onClick={() =>
+                                  patchBlock(i, { count: Math.max(1, b.count - 1) })
+                                }
+                                className="flex h-full w-8 cursor-pointer items-center justify-center text-[#4A3B32] transition-colors hover:text-[#B25E3F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-[#749B58]"
+                              >
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <span className="w-6 text-center text-[14px] font-bold tabular-nums text-[#231F1E]">
+                                {b.count}
+                              </span>
+                              <button
+                                type="button"
+                                aria-label="Tambah set"
+                                onClick={() =>
+                                  patchBlock(i, { count: Math.min(12, b.count + 1) })
+                                }
+                                className="flex h-full w-8 cursor-pointer items-center justify-center text-[#4A3B32] transition-colors hover:text-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-[#749B58]"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </m.div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setBlocks((bs) => [...bs, emptyBlock()])}
+                    className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-[#749B58]/40 text-[13px] font-bold text-[#658A4C] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tambah gerakan
+                  </button>
+                </m.div>
+              ) : (
+                <m.div
+                  key="kardio"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-4"
+                >
+                  <div
+                    role="group"
+                    aria-label="Jenis kardio"
+                    className="flex rounded-full bg-[#EAE5D9] p-1"
+                  >
+                    {(['jalan', 'lari'] as const).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setCardioKind(k)}
+                        aria-pressed={cardioKind === k}
+                        className={`h-9 flex-1 cursor-pointer rounded-full text-[13px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                          cardioKind === k
+                            ? 'bg-white text-[#658A4C] shadow-[0_2px_10px_rgba(74,59,50,0.16)]'
+                            : 'text-[#4A3B32]/55'
+                        }`}
+                      >
+                        {k === 'jalan' ? 'Jalan' : 'Lari'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="wo-km" className="text-[13px] font-semibold text-[#4A3B32]">
+                        Jarak (km)
+                      </Label>
+                      <Input
+                        id="wo-km"
+                        inputMode="decimal"
+                        value={distance}
+                        onChange={(e) =>
+                          setDistance(e.target.value.replace(/[^\d.,]/g, '').slice(0, 5))
+                        }
+                        placeholder="5,2"
+                        className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] tabular-nums focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <div
+                        className={`flex h-11 w-full items-center justify-center rounded-xl text-[14px] font-bold tabular-nums ${
+                          pace ? 'bg-[#E4EFE0] text-[#658A4C]' : 'bg-[#F5F3EE] text-[#4A3B32]/40'
+                        }`}
+                        aria-live="polite"
+                      >
+                        {pace ? `${pace} /km` : 'pace otomatis'}
+                      </div>
+                    </div>
+                  </div>
+                </m.div>
+              )}
+            </AnimatePresence>
+
+            {/* Catatan */}
+            <div className="mt-4 space-y-1.5">
+              <Label htmlFor="wo-note" className="text-[13px] font-semibold text-[#4A3B32]">
+                Catatan <span className="font-normal text-[#4A3B32]/50">(opsional)</span>
+              </Label>
+              <Input
+                id="wo-note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="mis. naik 2,5 kg dari minggu lalu"
+                maxLength={60}
+                className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
+              />
+            </div>
+
+            {/* Simpan */}
+            <m.button
+              type="button"
+              onClick={submit}
+              whileTap={{ scale: 0.98 }}
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-[#749B58] text-[15px] font-bold text-white shadow-soft transition-colors hover:bg-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            >
+              Simpan Sesi
+            </m.button>
+          </m.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}

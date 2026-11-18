@@ -409,6 +409,7 @@ export default function HomeScreen() {
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const claimBonus = useRutina((s) => s.claimBonus)
   const dailyGoal = useRutina((s) => s.dailyGoal)
+  const setScreen = useRutina((s) => s.setScreen)
 
   const [showArchive, setShowArchive] = useState(false)
 
@@ -500,11 +501,19 @@ export default function HomeScreen() {
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
-          <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
-            <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
-              AN
-            </AvatarFallback>
-          </Avatar>
+          <m.button
+            type="button"
+            onClick={() => setScreen('profil')}
+            aria-label="Buka profil dan pengaturan"
+            whileTap={{ scale: 0.92 }}
+            className="cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+          >
+            <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+              <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
+                AN
+              </AvatarFallback>
+            </Avatar>
+          </m.button>
         </div>
       </header>
 

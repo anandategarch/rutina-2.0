@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 export type Screen =
   | 'beranda'
+  | 'bugar'
   | 'jurnal'
   | 'keuangan'
   | 'statistik'
@@ -548,6 +549,49 @@ export interface Goal {
   saved: number
 }
 
+/* ===== Domain Bugar — latihan beban & kardio (dari Rutina v3) ===== */
+
+export type WorkoutKind = 'beban' | 'jalan' | 'lari'
+
+export interface WorkoutSet {
+  /** Nama gerakan — merujuk EX_LIB di fitness/data.ts. */
+  exercise: string
+  /** Beban dalam kg. */
+  weight: number
+  reps: number
+}
+
+export interface Workout {
+  id: string
+  kind: WorkoutKind
+  /** Tanggal sesi (ISO yyyy-mm-dd). */
+  date: string
+  /** Durasi dalam menit. */
+  duration: number
+  note: string
+  /** Rincian set — khusus kind 'beban'. */
+  sets: WorkoutSet[]
+  /** Jarak dalam km — khusus kardio (jalan/lari). */
+  distance?: number
+}
+
+export interface WorkoutInput {
+  kind: WorkoutKind
+  date: string
+  duration: number
+  note: string
+  sets: WorkoutSet[]
+  distance?: number
+}
+
+/** Praisai lembar sesi: gerakan + target set & repetisi (dari program
+ *  atau pustaka) — beban tetap diisi pengguna / diambil dari histori. */
+export interface WorkoutSeed {
+  name: string
+  count: number
+  reps: number
+}
+
 /** "Hari ini" finansial — SELALU tanggal nyata saat transaksi dibuat.
  *  (Sebelumnya konstanta demo 2025-06-20 yang membuat data baru berjarak
  *  berbulan-bulan dari hari aktual; lihat finance/utils.ts untuk jendela
@@ -610,6 +654,7 @@ const SEED_GOALS: Goal[] = [
 
 export const SCREEN_THEME: Record<Screen, { bg: string }> = {
   beranda: { bg: '#FAF9F6' },
+  bugar: { bg: '#FAF9F6' },
   jurnal: { bg: '#FAF9F6' },
   keuangan: { bg: '#FAF9F6' },
   statistik: { bg: '#FAF9F6' },
@@ -652,6 +697,11 @@ interface RutinaState {
   goalSheetId: string | null
   goalDialogOpen: boolean
   expandedTxId: string | null
+  /* Bugar */
+  workouts: Workout[]
+  workoutSheetOpen: boolean
+  /** Praisai lembar sesi saat dibuka dari program/pustaka. */
+  workoutSheetSeed: WorkoutSeed[] | null
   /* Papan sistem desain — overlay spesifikasi visual (UI state, tak dipersist) */
   boardOpen: boolean
   openBoard: () => void
@@ -669,6 +719,11 @@ interface RutinaState {
   openGoalDialog: () => void
   closeGoalDialog: () => void
   addGoal: (name: string, target: number) => void
+  /* Aksi bugar */
+  openWorkoutSheet: (seed?: WorkoutSeed[]) => void
+  closeWorkoutSheet: () => void
+  addWorkout: (input: WorkoutInput) => void
+  deleteWorkout: (id: string) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
@@ -730,6 +785,10 @@ export const useRutina = create<RutinaState>()(
   goalSheetId: null,
   goalDialogOpen: false,
   expandedTxId: null,
+  /* Bugar */
+  workouts: [],
+  workoutSheetOpen: false,
+  workoutSheetSeed: null,
   boardOpen: false,
 
   openBoard: () => set({ boardOpen: true }),
@@ -792,6 +851,37 @@ export const useRutina = create<RutinaState>()(
         ...s.goals,
         { id: `goal-${Date.now()}`, name: name.trim(), target, saved: 0 },
       ],
+    })),
+
+  /* --- Aksi bugar --- */
+
+  openWorkoutSheet: (seed) =>
+    set({ workoutSheetOpen: true, workoutSheetSeed: seed ?? null }),
+
+  closeWorkoutSheet: () =>
+    set({ workoutSheetOpen: false, workoutSheetSeed: null }),
+
+  addWorkout: ({ kind, date, duration, note, sets, distance }) =>
+    set((s) => ({
+      workouts: [
+        {
+          id: `wo-${Date.now()}`,
+          kind,
+          date,
+          duration,
+          note: note.trim(),
+          sets: sets.map((x) => ({ ...x })),
+          distance,
+        },
+        ...s.workouts,
+      ],
+      workoutSheetOpen: false,
+      workoutSheetSeed: null,
+    })),
+
+  deleteWorkout: (id) =>
+    set((s) => ({
+      workouts: s.workouts.filter((w) => w.id !== id),
     })),
 
   setJournalFilter: (journalFilter) => set({ journalFilter }),
@@ -996,6 +1086,7 @@ export const useRutina = create<RutinaState>()(
         notes: s.notes,
         txs: s.txs,
         goals: s.goals,
+        workouts: s.workouts,
         dailyGoal: s.dailyGoal,
         mood: s.mood,
         bonusClaimed: s.bonusClaimed,

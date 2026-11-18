@@ -1,16 +1,24 @@
 'use client'
 
 import * as m from 'motion/react-m'
-import { BarChart3, BookOpen, Home, User, Wallet } from 'lucide-react'
+import {
+  BarChart3,
+  BookOpen,
+  Dumbbell,
+  Home,
+  Wallet,
+} from 'lucide-react'
 import { useRutina, type Screen } from './store'
 import { CONTENT_W } from './layout-widths'
 
+/* Navigasi bawah 5 item — Profil dibuka dari avatar header Beranda,
+   bukan tab (menghindari 6 tab yang terlalu padat di 390px). */
 const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
-  { id: 'jurnal', label: 'Jurnal', icon: BookOpen },
+  { id: 'bugar', label: 'Bugar', icon: Dumbbell },
   { id: 'keuangan', label: 'Keuangan', icon: Wallet },
+  { id: 'jurnal', label: 'Jurnal', icon: BookOpen },
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
-  { id: 'profil', label: 'Profil', icon: User },
 ]
 
 /**
@@ -21,6 +29,10 @@ const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
 export function BottomNav() {
   const screen = useRutina((s) => s.screen)
   const setScreen = useRutina((s) => s.setScreen)
+
+  /* Saat berada di Profil (bukan tab), tidak ada tab aktif — pil
+     navigasi disembunyikan agar orientasi tetap jujur. */
+  const activeTab = TABS.some((t) => t.id === screen)
 
   return (
     <nav
@@ -38,7 +50,7 @@ export function BottomNav() {
               aria-current={active ? 'page' : undefined}
               className="relative flex h-[58px] cursor-pointer flex-col items-center justify-center gap-0.5 transition-transform duration-150 active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
             >
-              {active && (
+              {active && activeTab && (
                 <m.span
                   layoutId="nav-pill"
                   aria-hidden="true"

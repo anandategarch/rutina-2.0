@@ -26,15 +26,26 @@ import { AddTxSheet } from './finance/add-tx-sheet'
 import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
 import { DesignBoard } from './design-board'
+import { WorkoutSheet } from './fitness/workout-sheet'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
 import KeuanganScreen from './screens/keuangan'
 import StatsScreen from './screens/stats'
 import ProfileScreen from './screens/profile'
+import BugarScreen from './screens/bugar'
 
-/* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan). */
-const ORDER: Screen[] = ['beranda', 'jurnal', 'keuangan', 'statistik', 'profil']
+/* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan).
+   Profil berada terakhir untuk arah transisi, tetapi TIDAK ada di
+   navigasi bawah — dibuka dari avatar header Beranda. */
+const ORDER: Screen[] = [
+  'beranda',
+  'bugar',
+  'keuangan',
+  'jurnal',
+  'statistik',
+  'profil',
+]
 
 /** Cahaya ambien lembut — SATU set netral (sand + matcha tipis) untuk semua
    layar. Kanvas utama seragam Warm Sand; perpindahan tab tidak lagi
@@ -162,6 +173,7 @@ export function RutinaApp() {
                   className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}
                 >
                   {screen === 'beranda' && <HomeScreen />}
+                  {screen === 'bugar' && <BugarScreen />}
                   {screen === 'jurnal' && <JournalScreen />}
                   {screen === 'keuangan' && <KeuanganScreen />}
                   {screen === 'statistik' && <StatsScreen />}
@@ -177,6 +189,7 @@ export function RutinaApp() {
             <ContributeGoalSheet />
             <NewGoalDialog />
             <HabitSheet />
+            <WorkoutSheet />
             <DesignBoard open={boardOpen} onClose={closeBoard} />
             <CelebrationOverlay active={celebrating} />
           </>

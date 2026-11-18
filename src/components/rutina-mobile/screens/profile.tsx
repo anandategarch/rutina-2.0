@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import * as m from 'motion/react-m'
 import {
+  ArrowLeft,
   ChevronRight,
   Globe,
   HardDrive,
@@ -109,6 +110,7 @@ export default function ProfileScreen() {
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const setDailyGoal = useRutina((s) => s.setDailyGoal)
   const openBoard = useRutina((s) => s.openBoard)
+  const setScreen = useRutina((s) => s.setScreen)
   const [lang, setLang] = useState('id')
 
   /* Semua angka dihitung dari histori nyata — bukan demo statis. */
@@ -145,8 +147,22 @@ export default function ProfileScreen() {
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
+      {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
+      <m.button
+        type="button"
+        onClick={() => setScreen('beranda')}
+        aria-label="Kembali ke Beranda"
+        whileTap={{ scale: 0.92 }}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="-ml-1 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#4A3B321F] bg-white text-[#4A3B32] shadow-soft transition-colors hover:bg-[#EAE5D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+      >
+        <ArrowLeft className="h-4.5 w-4.5" />
+      </m.button>
+
       {/* Header editorial */}
-      <header>
+      <header className="mt-2">
         <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B25E3F]">
           <Leaf className="h-3.5 w-3.5 text-[#B25E3F]" />
           Akun & preferensi
