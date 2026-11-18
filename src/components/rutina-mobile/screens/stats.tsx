@@ -9,12 +9,12 @@ import {
   Laugh,
   Medal,
   Meh,
+  Minus,
   Smile,
   Sparkles,
-  Star,
+  TrendingDown,
   TrendingUp,
   Trophy,
-  Zap,
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -31,15 +31,22 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Counter } from '../counter'
 import Heatmap from '../heatmap'
 import {
-  computeLevel,
-  computeXp,
-  DAYS,
-  FOCUS,
-  FOCUS_MONTH,
+  HABIT_CAT_COLORS,
   MOODS,
-  useRutina,
   XP_PER_TASK,
   XP_TARGET,
+  bestStreak,
+  computeLevel,
+  computeXp,
+  dayCounts,
+  habitsOn,
+  isDoneOn,
+  rateSeries,
+  todayISO,
+  useRutina,
+  weekCounts,
+  type Habit,
+  type HabitCat,
 } from '../store'
 import TrendLine from '../trend-line'
 
@@ -60,39 +67,6 @@ const R = 78
 const CIRC = 2 * Math.PI * R
 const EASE = [0.22, 1, 0.36, 1] as const
 
-/** Lencana pencapaian — dengan Tooltip shadcn. */
-const BADGES: {
-  icon: LucideIcon
-  name: string
-  desc: string
-  unlocked: boolean
-}[] = [
-  {
-    icon: Trophy,
-    name: 'Pagi Sempurna',
-    desc: 'Selesaikan semua misi sebelum jam 9 pagi.',
-    unlocked: true,
-  },
-  {
-    icon: Zap,
-    name: 'Speed Run',
-    desc: 'Tuntaskan tiga misi dalam satu jam.',
-    unlocked: true,
-  },
-  {
-    icon: Flame,
-    name: 'Api 30 Hari',
-    desc: 'Jaga streak 30 hari tanpa putus.',
-    unlocked: false,
-  },
-  {
-    icon: Medal,
-    name: 'Kolektor',
-    desc: 'Kumpulkan 100 catatan di jurnal.',
-    unlocked: false,
-  },
-]
-
 /** Ikon suasana hati — padanan MOODS di store. */
 const MOOD_ICONS: Record<string, typeof Laugh> = {
   Ceria: Laugh,
@@ -101,67 +75,129 @@ const MOOD_ICONS: Record<string, typeof Laugh> = {
   Lelah: BatteryLow,
 }
 
-/* ===== Data analitik (deterministik, aman SSR) ===== */
-
-/** Distribusi kategori misi — dihitung dari daftar tugas. */
-function categoryData(tasks: { cat?: string }[]) {
-  const counts = new Map<string, number>()
-  for (const t of tasks) {
-    const key = t.cat ?? 'Kebiasaan'
-    counts.set(key, (counts.get(key) ?? 0) + 1)
-  }
-  const colors: Record<string, string> = {
-    Kebiasaan: '#A3C489',
-    Kerja: '#749B58',
-    Kesehatan: '#D98E6B',
-    Pribadi: '#8C7B6B',
+/** Distribusi kategori kebiasaan aktif — dihitung dari data nyata. */
+function categoryData(habits: Habit[]) {
+  const counts = new Map<HabitCat, number>()
+  for (const h of habits) {
+    if (h.archived) continue
+    counts.set(h.cat, (counts.get(h.cat) ?? 0) + 1)
   }
   return Array.from(counts.entries()).map(([name, value]) => ({
     name,
     value,
-    color: colors[name] ?? '#A3C489',
+    color: HABIT_CAT_COLORS[name],
   }))
 }
-
-/** Tren penyelesaian 30 hari — deterministik. */
-const TREND_30D = Array.from({ length: 30 }, (_, i) => ({
-  d: i + 1,
-  v: 40 + ((i * 13) % 5) * 15,
-}))
-const TREND_AVG = Math.round(
-  TREND_30D.reduce((a, b) => a + b.v, 0) / TREND_30D.length,
-)
 
 function SectionTitle({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#F5F3EE]/85">
+      <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
         {title}
       </h2>
       {hint ? (
-        <span className="text-xs font-medium text-[#F5F3EE]/55">{hint}</span>
+        <span className="text-xs font-medium text-[#4A3B32]/70">{hint}</span>
       ) : null}
     </div>
   )
 }
 
 export default function StatsScreen() {
-  const tasks = useRutina((s) => s.tasks)
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
+  const notes = useRutina((s) => s.notes)
   const mood = useRutina((s) => s.mood)
   const setMood = useRutina((s) => s.setMood)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
+
+  const today = todayISO()
 
   const [period, setPeriod] = useState<'pekan' | 'bulan'>('pekan')
 
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInView = useInView(chartRef, { once: true, margin: '-40px' })
 
-  const doneCount = tasks.filter((t) => t.done).length
+  /* Misi hari ini — dari jadwal & histori penyelesaian nyata. */
+  const todayHabits = habitsOn(habits, today)
+  const doneCount = todayHabits.filter((h) =>
+    isDoneOn(completions, today, h.id),
+  ).length
+  const totalToday = todayHabits.length
+
   const xp = computeXp(doneCount, bonusClaimed)
   const level = computeLevel(xp)
   const progress = Math.min(xp / XP_TARGET, 1)
   const remaining = Math.max(XP_TARGET - xp, 0)
-  const pct = Math.round((doneCount / tasks.length) * 100)
+  const pct = totalToday === 0 ? 0 : Math.round((doneCount / totalToday) * 100)
+
+  /* Streak terbaik & rekor dari seluruh kebiasaan aktif. */
+  const best = bestStreak(habits, completions, today)
+  const activeHabits = habits.filter((h) => !h.archived)
+
+  /* Grafik misi selesai: 7 hari terakhir atau 4 pekan (P4 = berjalan). */
+  const weekData = dayCounts(completions, today, 7)
+  const monthData = weekCounts(completions, today)
+  const chartData =
+    period === 'pekan'
+      ? weekData.map((d) => ({ label: d.label, value: d.count }))
+      : monthData.map((w) => ({ label: w.label, value: w.value }))
+  /* Guard pembagian nol: pastikan maksimum minimal 1. */
+  const chartMax = Math.max(...chartData.map((d) => d.value), 1)
+  const chartTotal = chartData.reduce((a, b) => a + b.value, 0)
+  const peak = chartData.reduce(
+    (a, b) => (b.value > a.value ? b : a),
+    chartData[0],
+  )
+  const p3 = monthData[2]?.value ?? 0
+  const p4 = monthData[3]?.value ?? 0
+
+  /* Tren penyelesaian 30 hari — persen selesai per hari. */
+  const trend = rateSeries(habits, completions, today, 30)
+  const trendAvg = trend.reduce((a, b) => a + b.v, 0) / (trend.length || 1)
+  const avgLast15 = trend.slice(15).reduce((a, b) => a + b.v, 0) / 15
+  const avgPrev15 = trend.slice(0, 15).reduce((a, b) => a + b.v, 0) / 15
+  const trendDelta = avgLast15 - avgPrev15
+  const trendBadge =
+    trendDelta >= 1 ? 'naik' : trendDelta <= -1 ? 'turun' : 'stabil'
+  const TrendIcon =
+    trendDelta >= 1 ? TrendingUp : trendDelta <= -1 ? TrendingDown : Minus
+  const above70 = trend.filter((p) => p.v > 70).length
+
+  const catData = categoryData(habits)
+
+  /* Lencana jujur — seluruh syarat dihitung dari data nyata. */
+  const badges: {
+    icon: LucideIcon
+    name: string
+    desc: string
+    unlocked: boolean
+  }[] = [
+    {
+      icon: Sparkles,
+      name: 'Langkah Pertama',
+      desc: 'Punya setidaknya satu kebiasaan aktif.',
+      unlocked: activeHabits.length >= 1,
+    },
+    {
+      icon: Flame,
+      name: 'Momentum 7',
+      desc: 'Jaga streak aktif hingga tujuh hari.',
+      unlocked: best.streak >= 7,
+    },
+    {
+      icon: Trophy,
+      name: 'Api 30 Hari',
+      desc: 'Capai rekor streak 30 hari tanpa putus.',
+      unlocked: best.record >= 30,
+    },
+    {
+      icon: Medal,
+      name: 'Kolektor Catatan',
+      desc: `Kumpulkan 100 catatan (sekarang ${notes.length}).`,
+      unlocked: notes.length >= 100,
+    },
+  ]
+  const unlockedCount = badges.filter((b) => b.unlocked).length
 
   /* anime.js — batang grafik tumbuh saat terlihat & saat periode berganti */
   useEffect(() => {
@@ -177,16 +213,9 @@ export default function StatsScreen() {
     }
   }, [chartInView, period])
 
-  const chartData =
-    period === 'pekan'
-      ? FOCUS.map((f, i) => ({ label: DAYS[i], value: f }))
-      : FOCUS_MONTH.map((w) => ({ label: w.label, value: w.value }))
-  const chartMax = Math.max(...chartData.map((d) => d.value))
-  const chartTotal = chartData.reduce((a, b) => a + b.value, 0)
-
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#F5F3EE]">
+      <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
         {/* Header pemain */}
         <header className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-matcha/40">
@@ -198,11 +227,11 @@ export default function StatsScreen() {
             <p className="truncate text-[15px] font-bold tracking-tight">
               Ananda
             </p>
-            <p className="text-[11px] font-medium text-[#F5F3EE]/55">
+            <p className="text-[11px] font-medium text-[#4A3B32]/75">
               Petualang Konsisten
             </p>
           </div>
-          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#F5F3EE]/15 bg-[#4A3B32] px-3 text-[11px] font-bold text-[#A3C489]">
+          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#4A3B32] px-3 text-[11px] font-bold text-[#A3C489] shadow-soft">
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
@@ -231,7 +260,7 @@ export default function StatsScreen() {
                 cy="100"
                 r={R}
                 fill="none"
-                stroke="#F5F3EE"
+                stroke="#4A3B32"
                 strokeOpacity="0.12"
                 strokeWidth="13"
               />
@@ -263,72 +292,46 @@ export default function StatsScreen() {
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#F5F3EE]/55">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#4A3B32]/70">
                 Level
               </p>
-              <p className="text-[44px] font-semibold leading-none tabular-nums">
+              <p className="text-[44px] font-semibold leading-none tabular-nums text-[#231F1E]">
                 {level}
               </p>
               <span className="mt-2.5 rounded-full bg-[#4A3B32] px-2.5 py-1 text-[11px] font-bold text-[#A3C489]">
                 <Counter to={xp} /> XP
               </span>
             </div>
-
-            {/* Kilau dekoratif di sekitar ring */}
-            <motion.span
-              aria-hidden="true"
-              className="absolute -right-1 top-4 text-[#A3C489]"
-              animate={{ scale: [1, 1.28, 1], opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <Sparkles className="h-4 w-4" />
-            </motion.span>
-            <motion.span
-              aria-hidden="true"
-              className="absolute -left-1.5 bottom-7 text-[#A3C489]/80"
-              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.9, 0.5] }}
-              transition={{
-                duration: 2.9,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: 0.5,
-              }}
-            >
-              <Star className="h-3.5 w-3.5" />
-            </motion.span>
           </motion.div>
 
-          <p className="mt-3 text-center text-[11px] font-medium text-[#F5F3EE]/60">
+          <p className="mt-3 text-center text-[11px] font-medium text-[#4A3B32]/75">
             {level >= 8
               ? 'Level baru terbuka — lanjutkan petualanganmu'
               : `${remaining} XP lagi menuju Level ${level + 1}`}
           </p>
         </section>
 
-        {/* Grafik fokus dengan pemilih periode (shadcn Tabs) */}
+        {/* Grafik misi selesai dengan pemilih periode (shadcn Tabs) */}
         <motion.section
           ref={chartRef}
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-24px' }}
           transition={{ duration: 0.5, ease: EASE }}
-          className="mt-6 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink"
-          aria-label="Grafik waktu fokus"
+          className="mt-6 rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-card"
+          aria-label="Grafik misi selesai"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
-                Waktu Fokus
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+                Misi Selesai
               </p>
               <p className="mt-1.5 flex items-baseline gap-1.5">
                 <span className="text-[38px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
-                  <Counter
-                    to={Number(chartTotal.toFixed(1))}
-                    decimals={1}
-                  />
+                  <Counter to={chartTotal} />
                 </span>
-                <span className="text-sm font-medium text-[#F5F3EE]/55">
-                  jam{period === 'pekan' ? ' / pekan' : ' / bulan'}
+                <span className="text-sm font-medium text-[#F5F3EE]/70">
+                  misi{period === 'pekan' ? ' / pekan' : ' / bulan'}
                 </span>
               </p>
             </div>
@@ -356,10 +359,10 @@ export default function StatsScreen() {
           <div
             className="mt-5 flex items-end justify-between gap-2"
             role="img"
-            aria-label={`Grafik batang waktu fokus ${period === 'pekan' ? 'tujuh hari terakhir' : 'empat pekan terakhir'}`}
+            aria-label={`Grafik batang misi selesai ${period === 'pekan' ? 'tujuh hari terakhir' : 'empat pekan terakhir'}`}
           >
-            {chartData.map((d, i) => {
-              const isPeak = d.value === chartMax
+            {chartData.map((d) => {
+              const isPeak = d.value === chartMax && d.value > 0
               return (
                 <div
                   key={d.label}
@@ -368,15 +371,21 @@ export default function StatsScreen() {
                   <div
                     data-bar
                     className={`w-full origin-bottom rounded-full ${
-                      isPeak ? 'bg-gradient-to-t from-[#749B58] to-[#A3C489]' : 'bg-[#F5F3EE]/15'
+                      isPeak
+                        ? 'bg-gradient-to-t from-[#749B58] to-[#A3C489]'
+                        : 'bg-[#F5F3EE]/15'
                     }`}
                     style={{
-                      height: `${Math.round((d.value / chartMax) * 84)}px`,
+                      height: `${
+                        d.value === 0
+                          ? 3
+                          : Math.max(Math.round((d.value / chartMax) * 84), 6)
+                      }px`,
                     }}
                   />
                   <span
                     className={`text-[10px] font-bold ${
-                      isPeak ? 'text-[#A3C489]' : 'text-[#F5F3EE]/50'
+                      isPeak ? 'text-[#A3C489]' : 'text-[#F5F3EE]/70'
                     }`}
                   >
                     {d.label}
@@ -385,10 +394,16 @@ export default function StatsScreen() {
               )
             })}
           </div>
-          <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/60">
+          <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/70">
             {period === 'pekan'
-              ? `Puncak fokus ${chartMax.toLocaleString('id-ID')} jam ada di hari ${chartData.find((d) => d.value === chartMax)?.label}.`
-              : 'Tren fokus naik empat pekan berturut-turut.'}
+              ? peak.value === 0
+                ? 'Belum ada misi selesai pada tujuh hari terakhir.'
+                : `Puncak ${peak.value} misi ada di hari ${peak.label}.`
+              : p4 > p3
+                ? `Pekan berjalan naik ${p4 - p3} misi dibanding pekan lalu.`
+                : p4 < p3
+                  ? `Pekan berjalan turun ${p3 - p4} misi dibanding pekan lalu.`
+                  : 'Pekan berjalan setara dengan pekan lalu.'}
           </p>
         </motion.section>
 
@@ -402,9 +417,9 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, ease: EASE }}
-              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4 shadow-ink"
+              className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-4 shadow-soft"
             >
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
                 Suasana Hati
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -433,7 +448,7 @@ export default function StatsScreen() {
                   )
                 })}
               </div>
-              <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/60">
+              <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/70">
                 {mood
                   ? `Kamu merasa ${mood.toLowerCase()} hari ini`
                   : 'Bagaimana perasaanmu?'}
@@ -446,34 +461,42 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
-              className="flex flex-col rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4 shadow-ink"
+              className="flex flex-col rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-4 shadow-soft"
             >
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
                 Streak Terpanjang
               </p>
               <div className="mt-2 flex items-start justify-between gap-2">
                 <div>
                   <p className="flex items-baseline gap-1">
                     <span className="text-[44px] font-semibold leading-none tracking-tight text-[#A3C489]">
-                      <Counter to={21} />
+                      <Counter to={best.streak} />
                     </span>
-                    <span className="text-sm font-medium text-[#F5F3EE]/55">hari</span>
+                    <span className="text-sm font-medium text-[#F5F3EE]/70">
+                      hari
+                    </span>
                   </p>
-                  <p className="mt-1.5 text-[11px] font-medium text-[#F5F3EE]/60">
-                    Belajar kosakata baru
+                  <p className="mt-1.5 text-[11px] font-medium text-[#F5F3EE]/70">
+                    {best.habit
+                      ? best.habit.title
+                      : 'Belum ada kebiasaan berjalan'}
                   </p>
                 </div>
                 <motion.span
                   aria-hidden="true"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#749B58]/20"
                   animate={{ scale: [1, 1.08, 1] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                  transition={{
+                    duration: 2.2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
                 >
                   <Flame className="h-5 w-5 text-[#A3C489]" />
                 </motion.span>
               </div>
-              <p className="mt-auto pt-3 text-[11px] font-medium text-[#F5F3EE]/60">
-                Rekor pribadi: 34 hari
+              <p className="mt-auto pt-3 text-[11px] font-medium text-[#F5F3EE]/70">
+                Rekor pribadi: {best.record} hari
               </p>
             </motion.div>
 
@@ -483,11 +506,22 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
-              className="col-span-2 flex items-center gap-5 rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink sm:col-span-1"
+              className="col-span-2 flex items-center gap-5 rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft sm:col-span-1"
             >
               <div className="relative h-24 w-24 shrink-0">
-                <svg viewBox="0 0 96 96" className="h-24 w-24 -rotate-90" aria-hidden="true">
-                  <circle cx="48" cy="48" r="42" fill="none" stroke="#231F1E" strokeWidth="9" />
+                <svg
+                  viewBox="0 0 96 96"
+                  className="h-24 w-24 -rotate-90"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="42"
+                    fill="none"
+                    stroke="#231F1E"
+                    strokeWidth="9"
+                  />
                   <motion.circle
                     cx="48"
                     cy="48"
@@ -509,19 +543,19 @@ export default function StatsScreen() {
                   <span className="text-xl font-semibold text-[#F5F3EE]">
                     <Counter to={pct} />%
                   </span>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#F5F3EE]/55">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5F3EE]/70">
                     misi
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
                   Misi Selesai
                 </p>
                 <p className="mt-1 text-[14px] font-medium text-[#F5F3EE]">
-                  {doneCount} dari {tasks.length} misi hari ini
+                  {doneCount} dari {totalToday} misi hari ini
                 </p>
-                <p className="mt-2 text-xs font-medium text-[#F5F3EE]/60">
+                <p className="mt-2 text-xs font-medium text-[#F5F3EE]/70">
                   Tiap misi bernilai {XP_PER_TASK} XP — terus jaga ritmenya.
                 </p>
               </div>
@@ -539,9 +573,9 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, ease: EASE }}
-              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink"
+              className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
             >
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
                 Distribusi Kategori
               </p>
               <div className="mt-3 flex items-center gap-4">
@@ -549,7 +583,7 @@ export default function StatsScreen() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={categoryData(tasks)}
+                        data={catData}
                         dataKey="value"
                         nameKey="name"
                         innerRadius={34}
@@ -558,7 +592,7 @@ export default function StatsScreen() {
                         stroke="none"
                         isAnimationActive
                       >
-                        {categoryData(tasks).map((c) => (
+                        {catData.map((c) => (
                           <Cell key={c.name} fill={c.color} />
                         ))}
                       </Pie>
@@ -566,15 +600,15 @@ export default function StatsScreen() {
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-[20px] font-semibold leading-none tabular-nums text-[#F5F3EE]">
-                      {tasks.length}
+                      {activeHabits.length}
                     </span>
-                    <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#F5F3EE]/55">
-                      misi
+                    <span className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#F5F3EE]/70">
+                      aktif
                     </span>
                   </div>
                 </div>
                 <ul className="min-w-0 flex-1 space-y-2">
-                  {categoryData(tasks).map((c) => (
+                  {catData.map((c) => (
                     <li
                       key={c.name}
                       className="flex items-center gap-2.5 text-[12px]"
@@ -602,31 +636,31 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
-              className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5 shadow-ink"
+              className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
             >
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
                     Tren Penyelesaian
                   </p>
                   <p className="mt-1.5 flex items-baseline gap-1.5">
                     <span className="text-[38px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
-                      <Counter to={TREND_AVG} />
+                      <Counter to={trendAvg} decimals={1} />
                     </span>
-                    <span className="text-sm font-medium text-[#F5F3EE]/55">
+                    <span className="text-sm font-medium text-[#F5F3EE]/70">
                       % rata-rata / hari
                     </span>
                   </p>
                 </div>
                 <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58]/20 px-2.5 py-1 text-[11px] font-bold text-[#A3C489]">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  stabil
+                  <TrendIcon className="h-3.5 w-3.5" />
+                  {trendBadge}
                 </span>
               </div>
               <div className="mt-4">
                 <ResponsiveContainer width="100%" height={130}>
                   <AreaChart
-                    data={TREND_30D}
+                    data={trend}
                     margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
                   >
                     <defs>
@@ -651,7 +685,7 @@ export default function StatsScreen() {
                     </defs>
                     <XAxis
                       dataKey="d"
-                      tick={{ fill: 'rgba(245,243,238,0.45)', fontSize: 10 }}
+                      tick={{ fill: 'rgba(245,243,238,0.55)', fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
                       interval={7}
@@ -681,14 +715,14 @@ export default function StatsScreen() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <p className="mt-2 text-[11px] font-medium text-[#F5F3EE]/55">
-                Konsistensi di atas 70% pada 22 dari 30 hari terakhir.
+              <p className="mt-2 text-[11px] font-medium text-[#F5F3EE]/70">
+                Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
               </p>
             </motion.div>
           </div>
         </section>
 
-        {/* Konsistensi & tren fokus (widget gelap) */}
+        {/* Konsistensi & tren aktivitas (widget gelap) */}
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Heatmap />
           <TrendLine />
@@ -703,9 +737,12 @@ export default function StatsScreen() {
           className="mt-3"
           aria-label="Piala dan lencana"
         >
-          <SectionTitle title="Piala & Lencana" hint="2/4 terbuka" />
-          <div className="grid grid-cols-4 gap-2.5">
-            {BADGES.map((b) => (
+          <SectionTitle
+            title="Piala & Lencana"
+            hint={`${unlockedCount}/4 terbuka`}
+          />
+          <div className="grid grid-cols-2 gap-2.5">
+            {badges.map((b) => (
               <Tooltip key={b.name}>
                 <TooltipTrigger asChild>
                   <button
@@ -722,10 +759,10 @@ export default function StatsScreen() {
                     aria-label={`Lencana ${b.name} — ${
                       b.unlocked ? 'terbuka' : 'terkunci'
                     }`}
-                    className="flex cursor-pointer flex-col items-center rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A3C489]"
+                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-[#4A3B3214] bg-[#4A3B32] p-3 text-left shadow-soft transition-transform duration-200 hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A3C489]"
                   >
                     <span
-                      className={`flex h-12 w-12 items-center justify-center rounded-full border transition-transform duration-200 hover:scale-105 ${
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
                         b.unlocked
                           ? 'border-[#749B58]/45 bg-[#749B58]/20 text-[#A3C489]'
                           : 'border-[#F5F3EE]/10 bg-[#231F1E] text-[#F5F3EE]/30'
@@ -733,12 +770,25 @@ export default function StatsScreen() {
                     >
                       <b.icon className="h-5 w-5" strokeWidth={1.9} />
                     </span>
-                    <span
-                      className={`mt-1.5 w-full truncate text-center text-[9px] font-bold ${
-                        b.unlocked ? 'text-[#F5F3EE]/80' : 'text-[#F5F3EE]/40'
-                      }`}
-                    >
-                      {b.name}
+                    <span className="min-w-0">
+                      <span
+                        className={`block truncate text-[12px] font-bold ${
+                          b.unlocked
+                            ? 'text-[#F5F3EE]'
+                            : 'text-[#F5F3EE]/50'
+                        }`}
+                      >
+                        {b.name}
+                      </span>
+                      <span
+                        className={`mt-0.5 block text-[11px] font-medium leading-snug ${
+                          b.unlocked
+                            ? 'text-[#F5F3EE]/70'
+                            : 'text-[#F5F3EE]/45'
+                        }`}
+                      >
+                        {b.desc}
+                      </span>
                     </span>
                   </button>
                 </TooltipTrigger>
@@ -763,34 +813,38 @@ export default function StatsScreen() {
           className="mt-3"
           aria-label="Streak berjalan"
         >
-          <div className="flex items-center gap-4 rounded-[20px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-4 shadow-ink">
+          <div className="flex items-center gap-4 rounded-[20px] border border-[#4A3B3214] bg-[#4A3B32] p-4 shadow-soft">
             <motion.span
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#749B58]/20"
               animate={{ scale: [1, 1.08, 1] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
             >
               <Flame className="h-6 w-6 text-[#A3C489]" />
             </motion.span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/50">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/70">
                 Streak Berjalan
               </p>
               <p className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="text-[26px] font-semibold leading-none tabular-nums">
-                  21
+                <span className="text-[26px] font-semibold leading-none tabular-nums text-[#F5F3EE]">
+                  <Counter to={best.streak} />
                 </span>
-                <span className="text-xs font-medium text-[#F5F3EE]/60">
+                <span className="text-xs font-medium text-[#F5F3EE]/70">
                   hari berturut-turut
                 </span>
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/45">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
                 Rekor
               </p>
               <p className="flex items-center gap-1 text-sm font-bold text-[#A3C489]">
                 <TrendingUp className="h-3.5 w-3.5" />
-                30 hari
+                {best.record} hari
               </p>
             </div>
           </div>

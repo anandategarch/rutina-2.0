@@ -3,22 +3,17 @@
 import { useEffect, useRef } from 'react'
 import { motion, useInView } from 'motion/react'
 import { animate } from 'animejs'
-import { TrendingUp } from 'lucide-react'
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
-import { DAYS, FOCUS } from './store'
+import { dayCounts, todayISO, useRutina } from './store'
 
-/* ===== Geometri grafik (deterministik) ===== */
+/* ===== Geometri grafik ===== */
 
 const W = 320
 const H = 110
 const PAD_X = 18
 const TOP = 18
 const BOTTOM = 96
-
-const POINTS = FOCUS.map((f, i) => ({
-  x: PAD_X + (i * (W - PAD_X * 2)) / (FOCUS.length - 1),
-  y: BOTTOM - (f / 2.6) * (BOTTOM - TOP),
-}))
 
 /** Path Catmull-Rom → Bezier yang melewati semua titik. */
 function smoothPath(pts: { x: number; y: number }[]): string {
@@ -38,10 +33,42 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d
 }
 
-const LINE_PATH = smoothPath(POINTS)
-const AREA_PATH = `${LINE_PATH} L ${POINTS[POINTS.length - 1].x},${BOTTOM} L ${POINTS[0].x},${BOTTOM} Z`
+/** Format angka satu desimal gaya Indonesia ("2,1"). */
+const fmt1 = (n: number) =>
+  n.toLocaleString('id-ID', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
 
 export default function TrendLine() {
+  const completions = useRutina((s) => s.completions)
+  const today = todayISO()
+
+  /* Tujuh hari terakhir (diakhiri hari ini) + tujuh hari sebelumnya
+     untuk perbandingan antar pekan. */
+  const week = dayCounts(completions, today, 7)
+  const fortnight = dayCounts(completions, today, 14)
+
+  const weekTotal = week.reduce((a, b) => a + b.count, 0)
+  const prevTotal = fortnight.slice(0, 7).reduce((a, b) => a + b.count, 0)
+  const avg = weekTotal / (week.length || 1)
+  const deltaPct =
+    prevTotal === 0
+      ? weekTotal > 0
+        ? 100
+        : 0
+      : Math.round(((weekTotal - prevTotal) / prevTotal) * 100)
+
+  /* Skala maks dinamis — guard pembagian nol bila semua nilai 0. */
+  const maxValue = Math.max(...week.map((d) => d.count), 1)
+  const POINTS = week.map((d, i) => ({
+    x: PAD_X + (i * (W - PAD_X * 2)) / (week.length - 1),
+    y: BOTTOM - (d.count / maxValue) * (BOTTOM - TOP),
+  }))
+
+  const LINE_PATH = smoothPath(POINTS)
+  const AREA_PATH = `${LINE_PATH} L ${POINTS[POINTS.length - 1].x},${BOTTOM} L ${POINTS[0].x},${BOTTOM} Z`
+
   const svgRef = useRef<SVGSVGElement>(null)
   const lineRef = useRef<SVGPathElement>(null)
   const lineInView = useInView(svgRef, { once: true, margin: '-40px' })
@@ -63,31 +90,46 @@ export default function TrendLine() {
     }
   }, [lineInView])
 
+  const deltaLabel =
+    deltaPct > 0
+      ? `+${deltaPct}%`
+      : deltaPct < 0
+        ? `−${Math.abs(deltaPct)}%`
+        : 'stabil'
+  const DeltaIcon =
+    deltaPct > 0 ? TrendingUp : deltaPct < 0 ? TrendingDown : Minus
+  const compareLabel =
+    deltaPct > 0
+      ? `naik ${deltaPct}% dibanding pekan lalu`
+      : deltaPct < 0
+        ? `turun ${Math.abs(deltaPct)}% dibanding pekan lalu`
+        : 'stabil seperti pekan lalu'
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
       transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-[16px] border border-[#F5F3EE]/10 bg-[#4A3B32] p-5"
+      className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
     >
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
-            Tren Fokus
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+            Tren Aktivitas
           </p>
           <p className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-[40px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
-              2,1
+              {fmt1(avg)}
             </span>
-            <span className="text-sm font-medium text-[#F5F3EE]/55">
-              jam / hari rata-rata
+            <span className="text-sm font-medium text-[#F5F3EE]/70">
+              misi / hari rata-rata
             </span>
           </p>
         </div>
         <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58]/20 px-2.5 py-1 text-[11px] font-bold text-[#A3C489]">
-          <TrendingUp className="h-3.5 w-3.5" />
-          +12%
+          <DeltaIcon className="h-3.5 w-3.5" />
+          {deltaLabel}
         </span>
       </div>
 
@@ -96,17 +138,17 @@ export default function TrendLine() {
         viewBox={`0 0 ${W} ${H}`}
         className="mt-4 w-full"
         role="img"
-        aria-label="Grafik garis waktu fokus tujuh hari terakhir, tren naik"
+        aria-label="Grafik garis aktivitas tujuh hari terakhir, jumlah misi per hari"
       >
         <defs>
-          <linearGradient id="focusGradDark" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="activityGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#A3C489" stopOpacity="0.30" />
             <stop offset="100%" stopColor="#A3C489" stopOpacity="0" />
           </linearGradient>
         </defs>
         <motion.path
           d={AREA_PATH}
-          fill="url(#focusGradDark)"
+          fill="url(#activityGrad)"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true, margin: '-24px' }}
@@ -144,19 +186,18 @@ export default function TrendLine() {
       </svg>
 
       <div className="mt-1 flex justify-between px-1">
-        {DAYS.map((d) => (
+        {week.map((d) => (
           <span
-            key={d}
-            className="text-[10px] font-bold text-[#F5F3EE]/50"
+            key={d.date}
+            className="text-[11px] font-bold text-[#F5F3EE]/70"
           >
-            {d}
+            {d.label}
           </span>
         ))}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/55">
-        Pekan ini naik 12% — Rabu sedikit turun tapi Sabtu–Minggu konsisten
-        tinggi.
+      <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/70">
+        Rata-rata {fmt1(avg)} misi/hari pekan ini — {compareLabel}.
       </p>
     </motion.div>
   )
