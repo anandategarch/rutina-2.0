@@ -1,0 +1,1118 @@
+Saya akan membawa review Rutina 2.0 ke level **Staff Frontend Engineer / Design Systems Architect**. Fokusnya bukan lagi sekadar membuat komponen lebih cantik atau animasi lebih halus, melainkan membangun sistem UI yang sanggup berkembang menjadi produk besar tanpa menimbulkan technical debt.
+
+Saya cek ulang source terbaru di branch `main`. Ada beberapa perkembangan yang bagus dibanding pemeriksaan sebelumnya:
+
+- Sistem `Habit` dan `Completions` sudah dipisahkan.
+- Kalender Beranda sudah menggunakan tanggal terpilih.
+- Statistik aktivitas mulai diturunkan dari completion data.
+- Folder jurnal sudah mempunyai perhitungan jumlah catatan.
+- Custom bottom sheet sudah menggunakan `useFocusTrap`.
+- Background antar-tab sudah lebih konsisten.
+- Klaim pengguna fiktif pada panel desktop sudah diganti informasi yang lebih transparan.
+
+Namun, completion awal masih dibangun dari `buildSeedCompletions` sebagai data demonstrasi. Belum seluruhnya merepresentasikan histori pengguna yang nyata dan permanen.
+
+Sekarang kita masuk ke persoalan engineering yang lebih dalam.
+
+# **1. Masalah arsitektur terbesar: belum ada UI governance**
+
+Saat ini setiap halaman punya kebebasan mendefinisikan styling, motion, dan interaksi sendiri.
+
+Contohnya:
+
+- `home.tsx` mempunyai animasi sendiri.
+- `journal.tsx` mempunyai mekanisme animasi daftar sendiri.
+- `keuangan.tsx` mempunyai easing dan variasi transisi sendiri.
+- `stats.tsx` mempunyai animasi grafik sendiri.
+- `motion-kit.tsx` menyediakan animasi reusable.
+
+Ini masih bisa dikelola ketika halaman sedikit. Namun semakin banyak fitur, akan semakin sulit menjaga konsistensi.
+
+Saya merekomendasikan membuat tiga sistem terpusat:
+
+## **Rutina UI Governance**
+
+**01. Design System**
+
+Bagaimana tampilan aplikasi harus dibentuk.
+
+CSS tokens, typography, color roles, spacing, elevation, responsive rules.
+
+**02. Interaction System**
+
+Bagaimana pengguna berinteraksi.
+
+Gesture, navigation, dialog, sheet, keyboard, focus, feedback.
+
+**03. Motion System**
+
+Bagaimana seluruh elemen bergerak.
+
+Timing, easing, choreography, spring, transitions, reduced motion.
+
+**Rutina Product Screens**
+
+Home · Journal · Finance · Statistics · Profile
+
+Aturan pentingnya: developer tidak boleh menentukan sendiri semua warna, radius, dan motion setiap kali membuat komponen baru.
+
+# **2. CSS: implementasikan Design Token Architecture**
+
+Ini peningkatan yang akan saya prioritaskan.
+
+Sekarang `globals.css` memiliki warna brand di `@theme`, tetapi semantic variables shadcn seperti `--primary`, `--secondary`, dan `--accent` masih berisi warna netral bawaan.
+
+Artinya ada dua sistem tema yang belum benar-benar menyatu.
+
+File: [globals.css](https://github.com/anandategarch/rutina-2.0/blob/main/src/app/globals.css?utm_source=chatgpt.com)
+
+## **A. Gunakan tiga lapisan token**
+
+**Primitive tokens**
+
+Nilai dasar brand.
+
+**Semantic tokens**
+
+`--surface-primary`, `--surface-raised`, `--content-primary`, `--border-default`, `--action-primary`.
+
+**Component tokens**
+
+`--card-radius`, `--button-height`, `--sheet-shadow`, `--nav-height`.
+
+Contoh implementasi:
+
+```
+:root {
+  /* Primitive */
+  --palette-matcha: #749b58;
+  --palette-espresso: #231f1e;
+  --palette-parchment: #faf9f6;
+  --palette-sand: #f5f3ee;
+
+  /* Semantic */
+  --background: var(--palette-sand);
+  --foreground: var(--palette-espresso);
+
+  --surface-primary: var(--palette-parchment);
+  --surface-secondary: #eae5d9;
+
+  --content-primary: var(--palette-espresso);
+  --content-secondary: #4a3b32;
+  --content-muted: #766b62;
+
+  --border-default: rgb(74 59 50 / 14%);
+
+  /* shadcn mapping */
+  --primary: var(--palette-matcha);
+  --primary-foreground: #ffffff;
+
+  --secondary: #e4efe0;
+  --secondary-foreground: var(--palette-espresso);
+
+  --card: var(--surface-primary);
+  --card-foreground: var(--content-primary);
+
+  /* Component */
+  --radius: 1rem;
+  --app-nav-height: 4rem;
+}
+```
+
+Kemudian:
+
+```
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+
+  --color-content-primary: var(--content-primary);
+  --color-content-secondary: var(--content-secondary);
+
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border-default);
+}
+```
+
+Keuntungannya adalah komponen bisa menggunakan `bg-surface-primary`, `text-content-primary`, dan `bg-primary` tanpa mengingat nilai warna.
+
+Ini juga sejalan dengan sistem theming shadcn berbasis CSS variables.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub+1
+
+
+
+## **B. Implementasikan layout tokens**
+
+Jangan hanya melakukan standardisasi warna dan radius.
+
+Saya menyarankan juga membuat spacing scale:
+
+| Token   | Ukuran | Kegunaan         |
+| ------- | ------ | ---------------- |
+| space-1 | 4px    | Icon gap         |
+| space-2 | 8px    | Element gap      |
+| space-3 | 12px   | Compact spacing  |
+| space-4 | 16px   | Standard spacing |
+| space-5 | 20px   | Card spacing     |
+| space-6 | 24px   | Section spacing  |
+| space-8 | 32px   | Major section    |
+
+Untuk radius:
+
+| Token        | Ukuran |
+| ------------ | ------ |
+| radius-sm    | 8px    |
+| radius-md    | 12px   |
+| radius-lg    | 16px   |
+| radius-xl    | 20px   |
+| radius-2xl   | 24px   |
+| radius-sheet | 28px   |
+
+Ini membuat seluruh halaman punya ritme visual yang konsisten.
+
+## **C. Advanced responsive: Container Query + Fluid Typography**
+
+Saya ingin Rutina tidak lagi bergantung sepenuhnya pada breakpoint viewport.
+
+Contoh:
+
+```
+<div className="@container">
+  <div className="
+    grid grid-cols-1
+    @md:grid-cols-2
+    @xl:grid-cols-3
+    gap-4
+  ">
+    {/* Cards */}
+  </div>
+</div>
+```
+
+Untuk heading:
+
+```
+.page-heading {
+  font-size: clamp(1.75rem, 4cqi, 2.5rem);
+  line-height: 1.08;
+}
+```
+
+Ini sangat berguna ketika komponen tampil di mobile, tablet, maupun di dalam panel desktop.
+
+Tailwind 4 sudah mendukung pendekatan container query dan CSS-driven theme configuration.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://tailwindcss.com\&sz=32)
+
+Tailwind CSS+1
+
+
+
+## **D. Advanced CSS performance**
+
+Ada tiga hal yang saya ingin evaluasi secara serius.
+
+**1.&#x20;**`BlurFade`
+
+Di `motion-kit.tsx` terdapat animasi:
+
+```
+filter: `blur(${blur})`
+```
+
+Blur termasuk operasi yang bisa meningkatkan pekerjaan paint. Jangan gunakan pada setiap kartu dan teks. Simpan untuk elemen tertentu yang memang pantas mendapat efek tersebut.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://web.dev\&sz=32)
+
+web.dev+1
+
+
+
+**2.&#x20;**`ShineBorder`
+
+Saat ini menggunakan animasi `background-position` berulang dan `will-change`.
+
+Saya menyarankan membatasi penggunaannya dan menguji paint flashing di Chrome DevTools. Jangan menganggap `will-change` otomatis membuat semua animasi lebih cepat.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://web.dev\&sz=32)
+
+web.dev+1
+
+
+
+**3.&#x20;**`Spotlight`
+
+Pada `motion-kit.tsx`, `getBoundingClientRect()` dipanggil setiap pointer movement.
+
+Pindahkan pengukuran bounds ke `pointerenter`, simpan di `useRef`, lalu perbarui CSS variables ketika pointer bergerak. Batasi efek ini untuk perangkat yang mendukung hover dengan pointer presisi.
+
+# **3. Motion.dev: bangun Motion Engine sendiri**
+
+Target advanced
+
+Saya ingin Rutina punya bahasa animasi yang konsisten, bukan sekadar banyak `motion.div`.
+
+Dokumentasi: [Motion for React](https://motion.dev/docs/react?utm_source=chatgpt.com).
+
+## **A. Arsitektur motion engine**
+
+Buat struktur:
+
+```
+src/lib/motion/
+├── tokens.ts
+├── transitions.ts
+├── variants.ts
+├── gestures.ts
+├── choreography.ts
+├── providers.tsx
+└── hooks/
+    ├── use-page-transition.ts
+    ├── use-reduced-motion.ts
+    └── use-motion-preference.ts
+```
+
+Contoh motion token:
+
+```
+export const motionTokens = {
+  duration: {
+    instant: 0.1,
+    micro: 0.16,
+    fast: 0.22,
+    normal: 0.32,
+    enter: 0.42,
+    dramatic: 0.65,
+  },
+
+  easing: {
+    standard: [0.22, 1, 0.36, 1],
+    smooth: [0.4, 0, 0.2, 1],
+    entrance: [0.16, 1, 0.3, 1],
+  },
+
+  spring: {
+    snappy: {
+      type: "spring" as const,
+      stiffness: 420,
+      damping: 32,
+    },
+
+    smooth: {
+      type: "spring" as const,
+      stiffness: 150,
+      damping: 24,
+    },
+
+    playful: {
+      type: "spring" as const,
+      stiffness: 300,
+      damping: 18,
+    },
+  },
+};
+```
+
+Jangan sembarang menggunakan spring. Setiap jenis interaksi harus memiliki karakter gerak berbeda.
+
+| Interaksi         | Karakter        |
+| ----------------- | --------------- |
+| Button feedback   | Snappy          |
+| Bottom sheet      | Smooth          |
+| Badge celebration | Playful         |
+| Page transition   | Standard easing |
+| Progress          | Smooth spring   |
+
+## **B. Gunakan Shared Layout Animation secara sistematis**
+
+Saat ini kamu sudah menggunakan `layoutId` pada navigasi dan pilihan periode keuangan.
+
+Saya menyarankan memperluas penggunaannya.
+
+[Time Management App designs, themes, templates and downloadable graphic elements on Dribbble](https://images.openai.com/static-rsc-4/svR2bvQ98TvKhujKyEknG3Wv20GjsLnYToqmPZclETBvC1dFsQNw_fj6yxb2JKnGXU1DkDkXmZJa2OJ-dpvCbYKzAo8YUFaK5ifa2IYamQo7MKQo31TEURMxzBhATeLNQq4-Fmep1-REijNEbzYFisZALB_RIM7GnQcb-BfDpyE?purpose=inline)
+
+[dribbble.com](https://dribbble.com/tags/time-management-app?utm_source=chatgpt.com)
+
+Contoh perpindahan kartu goal menuju detail:
+
+```
+<AnimatePresence>
+  {selectedGoal && (
+    <motion.div
+      layoutId={`goal-${selectedGoal.id}`}
+      className="rounded-2xl bg-surface-primary"
+    >
+      <GoalDetails goal={selectedGoal} />
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+Pastikan ID unik dan gunakan `LayoutGroup` untuk mengelompokkan elemen yang mempunyai konteks animasi sama.
+
+Fitur ini cocok untuk:
+
+- Kartu habit menuju detail.
+- Goal tabungan menuju halaman detail.
+- Jurnal menuju reading view.
+- Badge menuju achievement detail.
+- Kartu statistik menuju grafik lengkap.
+
+Motion menggunakan teknik layout animation berbasis transform sehingga posisi dan ukuran elemen bisa berubah secara halus tanpa harus membuat animasi manual untuk setiap perubahan layout.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://motion.dev\&sz=32)
+
+Motion for React+1
+
+
+
+## **C. Migrasikan Counter ke MotionValue**
+
+Ini temuan yang sangat konkret.
+
+File: [counter.tsx](https://github.com/anandategarch/rutina-2.0/blob/main/src/components/rutina-mobile/counter.tsx?utm_source=chatgpt.com)
+
+Saat ini kamu menggunakan:
+
+```
+useMotionValueEvent(spring, "change", (v) => {
+  setText(formatValue(v));
+});
+```
+
+Artinya React state diperbarui berulang kali selama animasi angka.
+
+Untuk kasus seperti ini, gunakan MotionValue langsung.
+
+```
+"use client";
+
+import {
+  motion,
+  useInView,
+  useSpring,
+  useTransform,
+} from "motion/react";
+
+import { useEffect, useMemo, useRef } from "react";
+
+export function Counter({ to }: { to: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+
+  const spring = useSpring(0, {
+    stiffness: 55,
+    damping: 16,
+  });
+
+  const formatter = useMemo(
+    () => new Intl.NumberFormat("id-ID"),
+    []
+  );
+
+  const formatted = useTransform(
+    spring,
+    (value) => formatter.format(value)
+  );
+
+  useEffect(() => {
+    if (inView) {
+      spring.set(to);
+    }
+  }, [inView, to, spring]);
+
+  return (
+    <motion.span ref={ref}>
+      {formatted}
+    </motion.span>
+  );
+}
+```
+
+Keuntungannya: MotionValue dapat memperbarui nilai tampil tanpa harus membuat React render pada setiap frame animasi.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://motion.dev\&sz=32)
+
+Motion for React+1
+
+
+
+## **D. LazyMotion dan Code Splitting**
+
+Ini penting karena Rutina memakai banyak komponen animasi.
+
+Saat ini `RutinaApp` mengimpor kelima screen secara statis. Halaman Statistik juga menggunakan Recharts.
+
+Saya menyarankan:
+
+1. Gunakan LazyMotion untuk mengurangi fitur animasi yang dimuat di awal.
+2. Gunakan dynamic import untuk halaman Statistik dan Keuangan.
+3. Pisahkan animasi onboarding dan splash dari beban halaman utama.
+4. Ukur bundle sebelum dan setelah perubahan.
+
+Contoh:
+
+```
+import dynamic from "next/dynamic";
+
+const StatsScreen = dynamic(
+  () => import("./screens/stats"),
+  {
+    loading: () => <StatsSkeleton />,
+  }
+);
+```
+
+Untuk LazyMotion:
+
+```
+import {
+  LazyMotion,
+  domMax,
+  MotionConfig,
+} from "motion/react";
+
+import * as m from "motion/react-m";
+
+export function AppMotionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <LazyMotion features={domMax}>
+      <MotionConfig reducedMotion="user">
+        {children}
+      </MotionConfig>
+    </LazyMotion>
+  );
+}
+```
+
+Perlu diperhatikan: untuk mendapatkan manfaat pengurangan bundle, komponen animasi harus dimigrasikan dari `motion.div` menjadi `m.div` secara konsisten. Menambahkan `LazyMotion` saja belum cukup.
+
+Saya memilih `domMax` sebagai target karena Rutina membutuhkan drag, gesture, dan layout animation.
+
+Dokumentasi Motion menyebut LazyMotion dapat mengurangi initial feature bundle secara signifikan.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://motion.dev\&sz=32)
+
+Motion for React+1
+
+
+
+# **4. Anime.js: Advanced Choreography Architecture**
+
+Saya akan memperlakukan anime.js sebagai engine khusus untuk animasi kompleks.
+
+Bukan sebagai pengganti Motion.
+
+## **A. Ada konflik kepemilikan animasi di source sekarang**
+
+Ini temuan yang layak menjadi prioritas refactoring.
+
+Pada `journal.tsx`:
+
+- Motion mengatur scale artikel lewat `whileTap`.
+- Anime.js mengatur `translateY` dan `opacity` pada artikel yang sama.
+
+Pada `profile.tsx`:
+
+- Beberapa elemen sudah mempunyai animasi Motion.
+- Anime.js kembali mengatur `translateX` dan `opacity` melalui `[data-row]`.
+
+Potensi konflik muncul ketika dua engine mengontrol properti CSS yang sama pada node yang sama.
+
+Solusi paling aman:
+
+**Animation Ownership Rule**
+
+**Satu properti, satu animation owner.**
+
+- Motion mengatur transform kartu.
+- Motion atau Anime mengatur opacity, bukan keduanya.
+- CSS mengatur hover sederhana yang tidak perlu timeline.
+- Anime.js mengatur SVG dan choreography yang terisolasi.
+
+Bila harus menggunakan dua engine, gunakan nested wrapper:
+
+```
+<motion.article whileTap={{ scale: 0.97 }}>
+  <div className="animation-inner">
+    {/* Anime.js hanya mengatur elemen dalam */}
+  </div>
+</motion.article>
+```
+
+Namun lebih baik tetap memilih satu engine jika animasinya sederhana.
+
+## **B. Gunakan createScope Anime.js**
+
+Kamu menggunakan anime.js 4.5.0.
+
+Saya menyarankan memakai `createScope()` sebagai standar untuk komponen animasi.
+
+```
+import { useEffect, useRef } from "react";
+import { animate, createScope, stagger } from "animejs";
+
+export function AnimatedIllustration() {
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!root.current) return;
+
+    const scope = createScope({
+      root,
+      mediaQueries: {
+        reduceMotion: "(prefers-reduced-motion: reduce)",
+      },
+    }).add((self) => {
+      const reduceMotion = self.matches.reduceMotion;
+
+      animate(".illustration-path", {
+        strokeDashoffset: [100, 0],
+        delay: reduceMotion ? 0 : stagger(80),
+        duration: reduceMotion ? 0 : 900,
+        ease: "outExpo",
+      });
+    });
+
+    return () => {
+      scope.revert();
+    };
+  }, []);
+
+  return (
+    <div ref={root}>
+      <svg>
+        <path className="illustration-path" d="..." />
+      </svg>
+    </div>
+  );
+}
+```
+
+Manfaatnya:
+
+- Semua selector berada dalam scope komponen.
+- Instance animasi dapat dibersihkan bersama.
+- Bisa mengatur media query.
+- Bisa mengatur reduced motion secara langsung.
+
+Anime.js mendokumentasikan Scope untuk kebutuhan komponen, responsive animation, dan batch reversion.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://animejs.com\&sz=32)
+
+JavaScript Animation Engine+1
+
+
+
+## **C. Buat choreography yang memiliki event**
+
+Saya ingin animasi Rutina punya hubungan dengan peristiwa aplikasi.
+
+Contohnya:
+
+[A Pocket full of Seeds](https://images.openai.com/static-rsc-4/82046ZRi2qoip3ASTqgxOCoPURZFB2MSOmXzHAKLPP9vUxE6LYtXqToVRpcGP8EeIPYJqNEc9qlJEovfiSKLiMASTSEG2lQ9QWUar5DPwaHGlgj4XZO_F4Z4QrEfC97taumwYzKzzLBC5pbJ-WjNkxkmpaBBS4tXXhuPo5-FJIY?purpose=inline)
+
+**App initialization**
+
+Logo muncul, garis tanaman terbentuk, lalu konten utama masuk. Hanya dijalankan saat onboarding atau splash yang memang diperlukan.
+
+[Achievement badge set 2 by Ben Kókolas on Dribbble](https://images.openai.com/static-rsc-4/xDTqNfT5XKyZuKIQRHhPglk5GQyi9pFicQvraM2-EsY-f2DN_Ls_KjehfkYQyg0fC9ym8Or3EgCb0-ThaqTUtMTHBr4bJUJxo9FNVA176Kkqy049Ive15rTNdmaLlEH2itOCcX2uYwra9AEiZQfxlI1qazxdR0cHv2TRj6ffUF8?purpose=inline)
+
+**Achievement unlocked**
+
+Progress melengkapi lingkaran, badge muncul, lalu feedback singkat. Tidak perlu terus menerus berulang.
+
+[Registered Savings account | Wealthsimple](https://images.openai.com/static-rsc-4/1N9ZKvu6vhMpj46GVXtjzLUtTPxnxx1M-ICGIDA7lRFgKkvWB1QSI6yiDzFzPZOucoDyw4G4lzYzBqNqG3nUA9Q7s6wIRF8-hQyySRr9udqLrC1Mc1R3GNdatGnCir0hTsO_Uqy3HiqtgiDDIE1X83cs0nuuXRONEi1lmIIwHUE?purpose=inline)
+
+**Financial goal completed**
+
+Indikator progres mencapai 100%, dilanjutkan animasi status tercapai.
+
+Dengan demikian animasi mempunyai fungsi, bukan sekadar dekorasi.
+
+# **5. shadcn/ui: bangun platform komponen internal**
+
+Saya tidak menyarankan mengedit semua komponen shadcn secara langsung.
+
+shadcn memberikan source component yang dapat kamu miliki dan modifikasi. Arsitektur terbaiknya adalah membangun komponen khusus Rutina di atas primitives shadcn.
+
+Referensi: [shadcn theming](https://ui.shadcn.com/docs/theming?utm_source=chatgpt.com).
+
+## **A. Bedakan tiga kategori komponen**
+
+| Kategori          | Contoh                              |
+| ----------------- | ----------------------------------- |
+| Primitive         | Button, Dialog, Input, Tabs         |
+| Rutina UI         | RutinaCard, RutinaSheet, PageHeader |
+| Product component | HabitCard, JournalCard, GoalCard    |
+
+Hasilnya:
+
+```
+components/
+├── ui/
+│   ├── button.tsx
+│   ├── dialog.tsx
+│   ├── sheet.tsx
+│   ├── input.tsx
+│   └── ...
+│
+├── rutina/
+│   ├── card/
+│   ├── button/
+│   ├── sheet/
+│   ├── navigation/
+│   ├── form/
+│   └── feedback/
+│
+└── features/
+    ├── habit/
+    ├── journal/
+    ├── finance/
+    └── analytics/
+```
+
+Jangan biarkan halaman Home mempunyai implementasi Card yang berbeda karakter dengan halaman Finance hanya karena ditulis oleh developer berbeda.
+
+## **B. Gunakan CVA secara konsisten**
+
+CVA sudah digunakan pada `button.tsx`.
+
+Saya ingin pendekatan tersebut juga diterapkan pada Card.
+
+```
+const cardVariants = cva(
+  "relative overflow-hidden rounded-xl",
+  {
+    variants: {
+      variant: {
+        default: "bg-surface-primary",
+        elevated: "bg-white shadow-card",
+        dark: "bg-espresso text-white",
+        brand: "bg-matcha text-white",
+      },
+
+      density: {
+        compact: "p-3",
+        comfortable: "p-4",
+        spacious: "p-6",
+      },
+    },
+
+    defaultVariants: {
+      variant: "default",
+      density: "comfortable",
+    },
+  }
+);
+```
+
+Penggunaan:
+
+```
+<RutinaCard
+  variant="elevated"
+  density="comfortable"
+>
+  ...
+</RutinaCard>
+```
+
+Dengan begitu perubahan desain dapat dilakukan secara sistematis.
+
+## **C. Satukan seluruh Bottom Sheet**
+
+Saat ini sudah ada ComposeSheet, ReadingSheet, AddTxSheet, dan HabitSheet.
+
+Kamu sudah memperbaiki focus handling dengan `useFocusTrap`, itu bagus.
+
+Namun saya ingin satu sistem yang konsisten untuk semuanya.
+
+[Silk - Native-like swipeable sheets on the web](https://images.openai.com/static-rsc-4/3Q8p-vzzTlFQSsEsy25qWV7mfYmkV-sgLAjV8bEcuryPK4a8DVuc8OxU-ASJSORQ3kD1GCX8FMaRU_RAjY3JlxlIx_YUFMXkba7b-QnFXk3hyxyPtXD1VcqgE-elw1Ey4rcEfHC8cFpzW8VSEGu2pXVFjt3LgLXMPJq3Ki-5i_0?purpose=inline)
+
+[silkhq.com](https://silkhq.com/?utm_source=chatgpt.com)
+
+Struktur:
+
+```
+rutina/sheet/
+├── sheet-root.tsx
+├── sheet-overlay.tsx
+├── sheet-handle.tsx
+├── sheet-header.tsx
+├── sheet-content.tsx
+├── sheet-footer.tsx
+└── index.ts
+```
+
+Fungsionalitasnya:
+
+- Drag to dismiss.
+- Snap points.
+- Keyboard navigation.
+- Focus restoration.
+- Scroll lock.
+- Responsive max height.
+- Safe area.
+- Reduced motion.
+- Nested dialog handling.
+
+Saya lebih memilih Radix Dialog sebagai primitive aksesibilitas dan Motion untuk gerakan panelnya. Jangan menjalankan dua focus trap sekaligus.
+
+## **D. Advanced Form Architecture**
+
+Di `package.json`, kamu sudah memiliki React Hook Form dan Zod.
+
+Manfaatkan keduanya.
+
+Jangan mempertahankan validasi manual yang berbeda-beda pada ComposeSheet, AddTxSheet, HabitSheet, dan NewGoalDialog.
+
+Contoh:
+
+```
+const habitSchema = z.object({
+  title: z.string().min(2).max(60),
+  desc: z.string().max(500),
+  weeklyTarget: z.number().min(1).max(7),
+  reminder: z.string().nullable(),
+});
+```
+
+Kemudian gunakan:
+
+```
+useForm({
+  resolver: zodResolver(habitSchema),
+  defaultValues,
+});
+```
+
+Setiap form harus mempunyai:
+
+- Inline validation.
+- Error message yang jelas.
+- Loading state.
+- Disabled submit state.
+- Success feedback.
+- Proteksi double submit.
+
+Ini membuat interaksi lebih profesional daripada sekadar menampilkan toast ketika input kosong.
+
+# **6. Advanced Rendering & Performance Architecture**
+
+Sekarang masuk ke bagian yang sering terlewat ketika membangun aplikasi dengan banyak animasi.
+
+**Tampilan yang mulus tidak selalu berarti aplikasi ringan.**
+
+Saya ingin kamu mengaudit tiga level performa.
+
+### **A. React rendering**
+
+Di Rutina, Zustand menjadi sumber state untuk banyak halaman.
+
+Pertahankan selector granular seperti:
+
+```
+const habits = useRutina((s) => s.habits);
+const completions = useRutina((s) => s.completions);
+```
+
+Hindari mengambil seluruh store:
+
+```
+const state = useRutina();
+```
+
+Untuk object hasil selector yang dibuat setiap render, gunakan `useShallow` atau selector yang stabil.
+
+Pisahkan juga:
+
+- Habit state.
+- Journal state.
+- Finance state.
+- Temporary UI state.
+
+Jangan menyimpan status modal, transaksi, dan histori kebiasaan dalam satu objek domain yang tidak terorganisasi.
+
+### **B. Animation rendering**
+
+Saya ingin semua animasi diklasifikasikan:
+
+| Properti            | Penggunaan                                    |
+| ------------------- | --------------------------------------------- |
+| Transform           | Posisi, scale, rotation                       |
+| Opacity             | Fade                                          |
+| Width/height        | Hanya jika perubahan layout memang diperlukan |
+| Filter              | Terbatas                                      |
+| Background position | Efek khusus                                   |
+| Box shadow          | Hindari animasi besar berulang                |
+
+Pada progress bar, utamakan transform daripada perubahan width yang memicu layout. Gunakan Chrome Performance dan Paint Flashing untuk membuktikan bahwa perubahan memang meningkatkan performa.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://web.dev\&sz=32)
+
+web.dev+1
+
+
+
+### **C. Bundle architecture**
+
+Satu hal yang saya lihat: `package.json` masih mencantumkan dua dependency:
+
+```
+{
+  "framer-motion": "^12.23.2",
+  "motion": "^14.14.0"
+}
+```
+
+Kode yang saya periksa menggunakan `motion/react`. Saya belum menemukan import langsung `framer-motion` di hasil pencarian source.
+
+Saya menyarankan pemeriksaan:
+
+```
+rg "framer-motion" src
+```
+
+Jika tidak ada penggunaan, hapus dependency lama setelah memastikan tidak dipakai di bagian repository lain.
+
+Selanjutnya jalankan:
+
+```
+bun run next experimental-analyze --output
+```
+
+Ini dapat membantu mengidentifikasi dependency berat, termasuk Recharts dan modul yang masuk ke client bundle. Next.js 16.1+ menyediakan analyzer untuk inspeksi ukuran dan rantai import.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://nextjs.org\&sz=32)
+
+Next.js+1
+
+
+
+# **7. Accessibility dan motion preferences tingkat lanjut**
+
+Saya ingin Rutina bukan hanya cantik di mouse dan touch screen, tetapi juga bagus ketika digunakan dengan keyboard atau perangkat bantu.
+
+Ada satu hal penting: `MotionConfig reducedMotion="user"` tidak otomatis mengatur seluruh animasi anime.js dan CSS custom.
+
+Gunakan:
+
+- `useReducedMotion()` untuk mengubah perilaku Motion.
+- `createScope` dengan media queries untuk anime.js.
+- `prefers-reduced-motion` untuk CSS.
+- Hindari animasi parallax dan floating kontinu ketika pengguna meminta gerakan minimal.
+
+Motion menyediakan hook khusus yang merespons pengaturan reduced motion perangkat.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://motion.dev\&sz=32)
+
+Motion for React+1
+
+
+
+Selain itu, standar audit sebaiknya mengacu pada WCAG 2.2, termasuk focus visibility, focus obscured, dan target size.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://www.w3.org\&sz=32)
+
+w3.org+1
+
+
+
+# **8. Temuan konkret yang saya prioritaskan pada repository sekarang**
+
+| File                | Temuan teknis                                                              | Tindakan                              |
+| ------------------- | -------------------------------------------------------------------------- | ------------------------------------- |
+| `globals.css`       | Semantic theme belum sinkron dengan brand                                  | Satukan tokens                        |
+| `motion-kit.tsx`    | Blur dan Spotlight berpotensi mahal                                        | Optimalkan paint dan pointer handling |
+| `journal.tsx`       | Anime mengubah transform pada artikel yang juga memakai Motion             | Pisahkan animation ownership          |
+| `profile.tsx`       | Anime mengubah opacity pada elemen yang sebagian sudah dianimasikan Motion | Konsolidasikan                        |
+| `focus-widget.tsx`  | Ada penggunaan `useInView` dan `whileInView` pada referensi yang sama      | Gunakan satu observer                 |
+| `counter.tsx`       | React state di-update sepanjang animasi                                    | Gunakan MotionValue                   |
+| `splash.tsx`        | Timeline memerlukan lifecycle cleanup                                      | Gunakan Anime Scope                   |
+| `rutina-app.tsx`    | Screen diimpor secara statis                                               | Evaluasi lazy loading                 |
+| `button.tsx`        | Variasi default masih bergantung pada primary netral                       | Brand variants                        |
+| `use-focus-trap.ts` | Focus trap masih dikelola manual                                           | Evaluasi Radix Dialog                 |
+| `store.ts`          | Persist belum terlihat dan tanggal finansial masih fixed                   | Persistence dan date handling         |
+
+Perhatian khusus: di `store.ts` nilai `TODAY_FIN` masih `2025-06-20`, dan transaksi baru memakai tanggal tersebut. Ini tetap harus diselesaikan sebelum sistem keuangan dianggap siap produksi.
+
+# **9. Target akhir: Advanced Rutina Architecture**
+
+Saya mengusulkan struktur final seperti berikut:
+
+```
+src/
+│
+├── app/
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+│
+├── components/
+│   │
+│   ├── ui/                 # shadcn primitives
+│   │
+│   ├── rutina/
+│   │   ├── primitives/
+│   │   ├── cards/
+│   │   ├── buttons/
+│   │   ├── sheets/
+│   │   ├── dialogs/
+│   │   ├── navigation/
+│   │   └── feedback/
+│   │
+│   └── features/
+│       ├── habit/
+│       │   ├── components/
+│       │   ├── hooks/
+│       │   ├── schemas/
+│       │   └── utils/
+│       ├── journal/
+│       ├── finance/
+│       └── analytics/
+│
+├── lib/
+│   ├── design-system/
+│   │   ├── tokens.ts
+│   │   └── variants.ts
+│   │
+│   ├── motion/
+│   │   ├── tokens.ts
+│   │   ├── variants.ts
+│   │   ├── transitions.ts
+│   │   ├── gestures.ts
+│   │   └── providers.tsx
+│   │
+│   ├── animations/
+│   │   ├── anime-scope.ts
+│   │   └── choreography.ts
+│   │
+│   └── utils/
+│
+├── store/
+│   ├── habit-store.ts
+│   ├── journal-store.ts
+│   ├── finance-store.ts
+│   └── ui-store.ts
+│
+└── hooks/
+    ├── use-breakpoint.ts
+    ├── use-focus-trap.ts
+    └── use-motion-preference.ts
+```
+
+Ini target struktur, bukan instruksi memindahkan semua file sekaligus. Pisahkan berdasarkan domain ketika refactoring dilakukan secara bertahap.
+
+# **10. Standar pengujian yang saya ingin terapkan**
+
+Sistem advanced harus bisa diukur, bukan hanya dirasakan.
+
+| Area               | Pengujian                             |
+| ------------------ | ------------------------------------- |
+| Visual consistency | Screenshot regression                 |
+| Responsive         | Mobile, tablet, desktop               |
+| Motion             | Interruption dan cleanup              |
+| Performance        | React Profiler dan Chrome Performance |
+| Bundle             | Next.js Bundle Analyzer               |
+| Accessibility      | axe dan keyboard navigation           |
+| CSS                | Contrast dan responsive layout        |
+| Interaction        | Playwright E2E                        |
+
+Ukuran layar awal yang saya sarankan untuk pengujian visual:
+
+- Mobile: 390 × 844.
+- Tablet: 768 × 1024.
+- Desktop: 1440 × 900.
+
+Skenario screenshot harus mencakup bukan hanya halaman normal, tetapi juga empty state, loading, dialog terbuka, error, dan konten panjang.
+
+# **11. Urutan pengerjaan yang paling masuk akal**
+
+Saya tidak akan mengerjakan semuanya sekaligus.
+
+**Phase 1 — Architecture**
+
+P0
+
+- CSS semantic token system.
+- Sinkronisasi shadcn theme.
+- Motion ownership rule.
+- Anime lifecycle management.
+- Perbaikan Counter.
+- Finance date handling.\
+
+  **Phase 2 — Component Engineering**
+- Compound component architecture.
+- Reusable bottom sheet.
+- Form system dengan RHF + Zod.
+- CVA variants.
+- Gesture system.\
+
+  **Phase 3 — Rendering Engineering**
+- LazyMotion.
+- Lazy-loaded screens.
+- Bundle analysis.
+- Paint profiling.
+- Zustand store separation.\
+
+  **Phase 4 — Premium Experience**
+- Shared element transition.
+- Achievement choreography.
+- Advanced chart interactions.
+- Responsive desktop dashboard.
+- Visual regression automation.
+
+## **Penilaian akhir saya**
+
+Saya ingin Rutina mempunyai karakter seperti ini:
+
+# **Rutina 2.0**
+
+# **Calm by design. Precise by engineering.**
+
+Design principles yang saya rekomendasikan:
+
+Intentional motion
+
+Semantic CSS
+
+Composable UI
+
+Accessible interaction
+
+Performance-first
+
+Consistent experience
+
+**Hal yang paling penting:** jangan menambah library lagi hanya agar teknologi terlihat lebih canggih. Stack yang ada sudah cukup kuat. Yang kurang adalah sistem pengendalian dan konsistensi cara library tersebut digunakan.
+
+### **Perubahan dan penghilangan yang saya rekomendasikan**
+
+Belum ada perubahan yang saya commit ke repository.
+
+Secara detail, saya ingin:
+
+1. Mengganti hardcoded color dan spacing dengan semantic tokens.
+2. Mengonsolidasikan animasi Motion dan anime.js yang berpotensi bertabrakan.
+3. Menghilangkan React state update per frame pada Counter.
+4. Mengurangi animasi blur, shine, dan floating yang tidak penting.
+5. Menghilangkan dependency `framer-motion` apabila terbukti tidak digunakan.
+6. Mengganti pola custom sheet yang berulang dengan satu sistem.
+7. Mengurangi impor statis modul grafik yang tidak diperlukan di initial screen.
+8. Mempertahankan desain earth tone, Playfair Display, Geist, ilustrasi tanaman, serta animasi yang mempunyai fungsi.
+
+**Langkah berikut yang paling menarik adalah membuat visual design-system board Rutina:** satu spesifikasi visual yang menunjukkan warna, typography, button variants, card variants, modal, bottom sheet, dan contoh motion states agar implementasi seluruh halaman mempunyai acuan yang sama.
+
+&#x20;Buatkan visual design-system board Rutina 2.0 yang advanced.
