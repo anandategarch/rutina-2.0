@@ -645,6 +645,133 @@
   animation: rutina-shine var(--shine-duration, 12s) linear infinite;
 }
 
+/* =====================================================================
+   v2.6 "Gerak & Permukaan" — lapisan motion CSS murni.
+   Semua animasi di bawah adalah dekoratif & berulang (bukan umpan
+   balik interaksi): gunakan awalan `motion-safe:` di lokasi pemakaian
+   agar pengguna reduce-motion mendapat versi diam.
+   ===================================================================== */
+
+/* Shimmer — sapuan cahaya diagonal untuk skeleton & aksen teks. */
+@keyframes rutina-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Breathe — ikon "hidup" (api streak) mengembang-kecil perlahan. */
+@keyframes rutina-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* Sway — tanaman emoji berayun lembut tertiup angin kebun. */
+@keyframes rutina-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+/* Rise — entrance naik + fade untuk item daftar berantai
+   (tunda per item lewat --rise-delay di inline style). */
+@keyframes rutina-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pan — gradien latar hero bergeser bolak-balik sangat lambat. */
+@keyframes rutina-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Spin slow — cincin dekoratif (garis putus) berputar sunyi. */
+@keyframes rutina-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Glow — halo di belakang FAB bernapas, menandai pintu aksi cepat. */
+@keyframes rutina-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.14);
+  }
+}
+
+@utility animate-shimmer {
+  animation: rutina-shimmer 2.4s linear infinite;
+}
+
+@utility animate-breathe {
+  animation: rutina-breathe 3.2s ease-in-out infinite;
+}
+
+@utility animate-sway {
+  animation: rutina-sway 5.5s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@utility animate-rise {
+  animation: rutina-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+@utility animate-pan {
+  background-size: 220% 220%;
+  animation: rutina-pan 16s ease-in-out infinite;
+}
+
+@utility animate-spin-slow {
+  animation: rutina-spin-slow 26s linear infinite;
+}
+
+@utility animate-glow {
+  animation: rutina-glow 2.8s ease-in-out infinite;
+}
+
+/* Skeleton Rutina — blok pengganti saat data cloud masih ditarik.
+   Memakai token permukaan (bukan warna bebas) agar ikut dark mode. */
+@utility rutina-skeleton {
+  background-image: linear-gradient(
+    100deg,
+    var(--surface-sunken) 30%,
+    var(--surface-secondary) 50%,
+    var(--surface-sunken) 70%
+  );
+  background-size: 200% 100%;
+  animation: rutina-shimmer 2.2s linear infinite;
+}
+
 /* Toast dipusatkan mengikuti kolom aplikasi (bukan jendela penuh) */
 @media (min-width: 640px) {
   ol[data-sonner-toaster] {

@@ -14,6 +14,13 @@ import {
 
 import { motionTokens } from '@/lib/motion/tokens'
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
 import { useRutina, type Screen } from './store'
 
 /* Navigasi desktop — keenam layar (termasuk Profil: di desktop tidak ada
@@ -65,51 +72,64 @@ export function DesktopSidebar() {
         </p>
       </div>
 
-      {/* Daftar navigasi */}
-      <ul className="mt-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4">
-        {NAV_ITEMS.map((item) => {
-          const active = screen === item.id
-          return (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => setScreen(item.id)}
-                aria-current={active ? 'page' : undefined}
-                className={`relative flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-offset-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
-                  active
-                    ? 'text-content-primary'
-                    : 'text-content-muted hover:bg-surface-secondary'
-                }`}
-              >
-                {active && (
-                  <m.span
-                    layoutId="nav-pill-desktop"
-                    aria-hidden="true"
-                    className="absolute inset-0 rounded-xl"
-                    style={{ backgroundColor: accent.pill }}
-                    transition={motionTokens.spring.snappy}
-                  />
-                )}
-                <item.icon
-                  aria-hidden="true"
-                  className="relative z-10 h-[18px] w-[18px] shrink-0 text-content-muted transition-colors"
-                  style={{ color: active ? accent.icon : undefined }}
-                  strokeWidth={active ? 2.4 : 2}
-                />
-                <span
-                  className={`relative z-10 text-[14px] transition-colors ${
-                    active
-                      ? 'font-bold text-content-primary'
-                      : 'font-medium text-content-muted'
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      {/* Daftar navigasi — tooltip nama layar + hint pintasan keyboard 1-6
+          (urutan NAV_ITEMS sejajar SHORTCUT_SCREENS di app-frame). */}
+      <TooltipProvider delayDuration={350}>
+        <ul className="mt-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4">
+          {NAV_ITEMS.map((item, i) => {
+            const active = screen === item.id
+            return (
+              <li key={item.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setScreen(item.id)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`relative flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-offset-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
+                        active
+                          ? 'text-content-primary'
+                          : 'text-content-muted hover:bg-surface-secondary'
+                      }`}
+                    >
+                      {active && (
+                        <m.span
+                          layoutId="nav-pill-desktop"
+                          aria-hidden="true"
+                          className="absolute inset-0 rounded-xl"
+                          style={{ backgroundColor: accent.pill }}
+                          transition={motionTokens.spring.snappy}
+                        />
+                      )}
+                      <item.icon
+                        aria-hidden="true"
+                        className="relative z-10 h-[18px] w-[18px] shrink-0 text-content-muted transition-colors"
+                        style={{ color: active ? accent.icon : undefined }}
+                        strokeWidth={active ? 2.4 : 2}
+                      />
+                      <span
+                        className={`relative z-10 text-[14px] transition-colors ${
+                          active
+                            ? 'font-bold text-content-primary'
+                            : 'font-medium text-content-muted'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    className="rounded-full border-border bg-surface-inverse text-[11.5px] font-bold text-content-inverse"
+                  >
+                    {item.label} · tekan {i + 1}
+                  </TooltipContent>
+                </Tooltip>
+              </li>
+            )
+          })}
+        </ul>
+      </TooltipProvider>
 
       {/* Kartu status sinkronisasi + versi */}
       <div className="px-3 pb-5">

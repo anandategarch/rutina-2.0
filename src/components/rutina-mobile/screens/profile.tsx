@@ -69,6 +69,11 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
@@ -393,11 +398,38 @@ export default function ProfileScreen() {
         transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
         className="mt-3 flex flex-col items-center rounded-[20px] border border-border bg-surface-primary p-5 text-center shadow-card"
       >
-        <Avatar className="h-16 w-16 border-4 border-surface-primary shadow-card">
-          <AvatarFallback className="bg-cocoa text-lg font-bold text-parchment">
-            AN
-          </AvatarFallback>
-        </Avatar>
+        {/* HoverCard avatar — alami desktop-only (butuh kursor); kartu kecil
+            identitas pengguna dengan aksen matcha. */}
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <Avatar className="h-16 w-16 border-4 border-surface-primary shadow-card">
+              <AvatarFallback className="bg-cocoa text-lg font-bold text-parchment">
+                AN
+              </AvatarFallback>
+            </Avatar>
+          </HoverCardTrigger>
+          <HoverCardContent
+            side="bottom"
+            className="w-56 rounded-[20px] border-border bg-surface-primary p-4"
+          >
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
+              >
+                <Leaf className="h-[18px] w-[18px]" strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold leading-tight text-content-primary">
+                  Ananda
+                </p>
+                <p className="mt-0.5 text-[11px] font-medium leading-snug text-content-muted">
+                  Pengguna Rutina
+                </p>
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
         <h2 className="mt-3 text-lg font-bold tracking-tight text-content-primary">
           Ananda
         </h2>

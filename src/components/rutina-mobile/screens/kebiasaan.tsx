@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
 
@@ -755,7 +756,7 @@ export default function KebiasaanScreen() {
                               key={h.id}
                               onClick={() => setSelectedId(h.id)}
                               className={
-                                'rounded-[16px] transition-shadow duration-300 xl:ring-2 ' +
+                                'rounded-[16px] transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 xl:ring-2 ' +
                                 (selectedHabit?.id === h.id
                                   ? 'xl:ring-primary/60'
                                   : 'xl:ring-transparent')
@@ -807,86 +808,73 @@ export default function KebiasaanScreen() {
               </div>
             )}
 
-            {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
+            {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan.
+                Buka/tutup kini memakai Radix Collapsible (shadcn/ui) —
+                state lokal showArchive tetap dipakai (mode terkontrol). */}
             {archivedHabits.length > 0 && (
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowArchive((v) => !v)}
-                  aria-expanded={showArchive}
-                  aria-controls="kebiasaan-archive-panel"
-                  className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
-                    <Archive className="h-3.5 w-3.5" />
-                    Arsip ({archivedHabits.length})
-                  </span>
-                  <m.span
-                    aria-hidden="true"
-                    animate={{ rotate: showArchive ? 180 : 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-content-muted"
+              <Collapsible
+                open={showArchive}
+                onOpenChange={setShowArchive}
+                className="mt-6"
+              >
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="group flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[state=open]:bg-surface-sunken"
                   >
-                    <ChevronDown className="h-4 w-4" />
-                  </m.span>
-                </button>
-                <AnimatePresence initial={false}>
-                  {showArchive && (
-                    <m.div
-                      id="kebiasaan-archive-panel"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{
-                        duration: motionTokens.duration.normal,
-                        ease: motionTokens.easing.standard,
-                      }}
-                      className="overflow-hidden"
-                    >
-                      <div className="space-y-2 pt-2.5">
-                        {archivedHabits.map((h) => (
-                          <div
-                            key={h.id}
-                            className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
-                          >
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted">
-                              <Archive className="h-4 w-4" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px] font-semibold text-content-secondary">
-                                {h.title}
-                              </span>
-                              <span className="block text-[11px] font-medium text-content-muted">
-                                {h.cat} · diarsipkan
-                              </span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setHabitArchived(h.id, false)
-                                toast.success('Kebiasaan dipulihkan dari arsip')
-                              }}
-                              aria-label={`Pulihkan ${h.title} dari arsip`}
-                              className="flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-primary/40 px-4 text-[12px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                            >
-                              <ArchiveRestore className="h-3.5 w-3.5" />
-                              Pulihkan
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openHabitEdit(h.id)}
-                              aria-label={`Sunting ${h.title}`}
-                              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
+                    <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
+                      <Archive className="h-3.5 w-3.5" />
+                      Arsip ({archivedHabits.length})
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="h-4 w-4 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2 pt-2.5">
+                    {archivedHabits.map((h) => (
+                      <div
+                        key={h.id}
+                        className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted">
+                          <Archive className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-semibold text-content-secondary">
+                            {h.title}
+                          </span>
+                          <span className="block text-[11px] font-medium text-content-muted">
+                            {h.cat} · diarsipkan
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHabitArchived(h.id, false)
+                            toast.success('Kebiasaan dipulihkan dari arsip')
+                          }}
+                          aria-label={`Pulihkan ${h.title} dari arsip`}
+                          className="flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-primary/40 px-4 text-[12px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                          Pulihkan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openHabitEdit(h.id)}
+                          aria-label={`Sunting ${h.title}`}
+                          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
                       </div>
-                    </m.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </section>
         </>

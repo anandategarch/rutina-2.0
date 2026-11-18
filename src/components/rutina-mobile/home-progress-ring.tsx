@@ -3,6 +3,7 @@
 import * as m from 'motion/react-m'
 
 import { Counter } from './counter'
+import { useAnimePop } from './anime-kit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 /* Geometri cincin: viewBox 110, radius 47, tebal goresan 9. */
@@ -16,9 +17,22 @@ const RING_CIRC = 2 * Math.PI * RING_R
  * stroke-dashoffset: setiap centang kebiasaan (nilai diturunkan langsung
  * dari state completions di pemanggil) membuat busur "tumbuh" secara
  * reaktif — tanpa state lokal yang bisa basi.
+ *
+ * v2.6 "Gerak & Permukaan":
+ * • cincin dekoratif bergaris putus berputar sangat lambat di balik
+ *   busur utama (animate-spin-slow) — hero terasa hidup tanpa ramai;
+ * • mencapai 100% memicu ledakan elastis anime.js pada seluruh cincin.
  */
 export function HomeProgressRing({ pct }: { pct: number }) {
   const clamped = Math.min(Math.max(pct, 0), 100)
+  const complete = clamped >= 100
+
+  /* Pop perayaan saat cincin BARU saja penuh (bukan saat tetap 100). */
+  const ringRef = useAnimePop<SVGSVGElement>(null, complete, {
+    scale: 1.12,
+    duration: 850,
+    back: 2.2,
+  })
 
   return (
     <div
@@ -26,7 +40,26 @@ export function HomeProgressRing({ pct }: { pct: number }) {
       role="img"
       aria-label={`Progres misi hari ini ${clamped} persen`}
     >
+      {/* Cincin dekoratif — garis putus tipis berputar sunyi di balik busur */}
       <svg
+        aria-hidden="true"
+        viewBox="0 0 110 110"
+        className="absolute inset-0 h-full w-full motion-safe:animate-spin-slow"
+      >
+        <circle
+          cx="55"
+          cy="55"
+          r={RING_R + 5}
+          fill="none"
+          stroke="var(--primary)"
+          strokeOpacity="0.22"
+          strokeWidth="1.5"
+          strokeDasharray="2 7"
+          strokeLinecap="round"
+        />
+      </svg>
+      <svg
+        ref={ringRef}
         viewBox="0 0 110 110"
         aria-hidden="true"
         className="h-full w-full -rotate-90"

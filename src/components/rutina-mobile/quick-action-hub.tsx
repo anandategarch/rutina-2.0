@@ -640,30 +640,43 @@ export function QuickActionFab() {
   return (
     <AnimatePresence>
       {screen !== 'profil' && (
-        <m.button
+        <m.div
           key="quick-fab"
-          type="button"
-          onClick={toggleHub}
-          aria-label="Aksi cepat"
-          aria-expanded={open}
-          aria-haspopup="dialog"
+          className="absolute bottom-[calc(84px+env(safe-area-inset-bottom))] right-4 z-30 lg:bottom-6 lg:right-6"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0, opacity: 0 }}
-          whileTap={{ scale: 0.92 }}
           transition={motionTokens.spring.snappy}
-          className="absolute bottom-[calc(84px+env(safe-area-inset-bottom))] right-4 z-30 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lift outline-none transition-colors duration-200 hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:bottom-6 lg:right-6"
         >
-          <m.span
+          {/* Halo bernapas — tanda "pintu" aksi cepat, di belakang tombol.
+              Menghilang saat hub terbuka agar tidak bersaing dengan panel. */}
+          <span
             aria-hidden="true"
-            initial={false}
-            animate={{ rotate: open ? 45 : 0 }}
+            className={`absolute -inset-2 rounded-full bg-primary/40 blur-md motion-safe:animate-glow ${
+              open ? 'opacity-0' : 'opacity-100'
+            } transition-opacity duration-300`}
+          />
+          <m.button
+            type="button"
+            onClick={toggleHub}
+            aria-label="Aksi cepat"
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            whileTap={{ scale: 0.92 }}
             transition={motionTokens.spring.snappy}
-            className="flex"
+            className="relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lift outline-none transition-colors duration-200 hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <Plus className="h-6 w-6" strokeWidth={2.4} />
-          </m.span>
-        </m.button>
+            <m.span
+              aria-hidden="true"
+              initial={false}
+              animate={{ rotate: open ? 45 : 0 }}
+              transition={motionTokens.spring.snappy}
+              className="flex"
+            >
+              <Plus className="h-6 w-6" strokeWidth={2.4} />
+            </m.span>
+          </m.button>
+        </m.div>
       )}
     </AnimatePresence>
   )

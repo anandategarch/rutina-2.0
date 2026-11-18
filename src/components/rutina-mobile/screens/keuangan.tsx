@@ -309,7 +309,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: EASE, delay: Math.min(index * 0.07, 0.28) }}
-        className="flex h-full min-h-[200px] flex-col rounded-[22px] bg-surface-primary p-4 text-content-primary shadow-ink"
+        className="flex h-full min-h-[200px] flex-col rounded-[22px] bg-surface-primary p-4 text-content-primary shadow-ink transition-transform duration-300 hover:-translate-y-0.5"
       >
         <div className="flex items-center gap-3.5">
           <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
@@ -434,7 +434,7 @@ function TxRow({ tx }: { tx: Tx }) {
         onClick={() => toggleExpandedTx(tx.id)}
         aria-expanded={expanded}
         aria-label={`${tx.note || CAT_META[tx.cat].label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
-        className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left transition-colors duration-200 hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
@@ -645,7 +645,7 @@ function SaldoCard({
       onPointerLeave={onLeave}
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
-      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] motion-safe:animate-pan p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
       <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
 

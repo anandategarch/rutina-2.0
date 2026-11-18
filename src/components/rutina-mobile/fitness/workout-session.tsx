@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { Progress } from '@/components/ui/progress'
 import { motionTokens } from '@/lib/motion/tokens'
 import { CONTENT_W } from '../layout-widths'
 import { playfair } from '../serif'
@@ -660,23 +661,15 @@ function SessionView({
       <div
         className={`mx-auto flex h-full w-full flex-col ${CONTENT_W}`}
       >
-        {/* Progres sesi — set selesai / total target set */}
-        <div
-          role="progressbar"
+        {/* Progres sesi — set selesai / total target set.
+           Radix Progress menyediakan role/aria-valuenow; warna isian
+           tetap pistachio lewat varian arbitrer [&>div]. */}
+        <Progress
+          value={progressPct}
           aria-label="Progres sesi"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progressPct}
           aria-valuetext={`${totalDone} dari ${totalTarget} set`}
-          className="h-[3px] shrink-0 bg-hero-content/10"
-        >
-          <m.div
-            className="h-full bg-pistachio"
-            initial={false}
-            animate={{ width: `${progressPct}%` }}
-            transition={{ duration: 0.4, ease: motionTokens.easing.smooth }}
-          />
-        </div>
+          className="h-[3px] shrink-0 rounded-none bg-hero-content/10 [&>div]:bg-pistachio"
+        />
 
         {/* Header sesi */}
         <header className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]">

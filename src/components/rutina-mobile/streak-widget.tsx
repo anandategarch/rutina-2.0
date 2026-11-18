@@ -5,12 +5,16 @@ import { Flame } from 'lucide-react'
 
 import { Counter } from './counter'
 import { bestStreak, todayISO, useRutina } from './store'
+import { useAnimePop } from './anime-kit'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /**
  * Kartu bento setengah kolom (espresso gelap): streak aktif terpanjang.
  * Angka dihitung NYATA dari histori penyelesaian (completions) —
  * konsisten dengan layar Statistik.
+ *
+ * v2.6: api streak "bernapas" pelan (animate-breathe) dan MELEDAK
+ * elastis (anime.js) setiap kali angka streak bertambah/berkurang.
  */
 export function StreakWidget() {
   const habits = useRutina((s) => s.habits)
@@ -18,6 +22,14 @@ export function StreakWidget() {
 
   const best = bestStreak(habits, completions, todayISO())
   const streak = best.streak
+
+  /* Pop elastis pada lencana api saat streak berubah. */
+  const flameRef = useAnimePop<HTMLSpanElement>(null, streak, {
+    scale: 1.45,
+    rotate: -10,
+    duration: 780,
+    back: 2.6,
+  })
 
   return (
     <m.div
@@ -51,10 +63,14 @@ export function StreakWidget() {
           </p>
         </div>
         <span
+          ref={flameRef}
           aria-hidden="true"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-ink"
         >
-          <Flame className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <Flame
+            className="h-[18px] w-[18px] motion-safe:animate-breathe"
+            strokeWidth={1.8}
+          />
         </span>
       </div>
     </m.div>
