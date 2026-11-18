@@ -592,6 +592,50 @@ export interface WorkoutSeed {
   reps: number
 }
 
+/* ===== Domain Bugar — asupan makan (master 179 item Indonesia) ===== */
+
+export type MealSlot = 'sarapan' | 'makan siang' | 'makan malam' | 'camilan'
+
+export const MEAL_SLOTS: { key: MealSlot; label: string }[] = [
+  { key: 'sarapan', label: 'Sarapan' },
+  { key: 'makan siang', label: 'Makan Siang' },
+  { key: 'makan malam', label: 'Makan Malam' },
+  { key: 'camilan', label: 'Camilan' },
+]
+
+export interface FoodEntry {
+  id: string
+  /** Tanggal konsumsi (ISO yyyy-mm-dd). */
+  date: string
+  name: string
+  /** Nama kategori master (tampilan). */
+  cat: string
+  /** Satuan porsi master, mis. "1 piring". */
+  unit: string
+  /** Pengali porsi dari satuan master (1 = persis satu satuan). */
+  portion: number
+  meal: MealSlot
+  /** Kalori untuk porsi terpilih (dihitung saat ditambahkan). */
+  kcal: number
+  /** Gram makro untuk porsi terpilih — null bila master tak punya data. */
+  protein: number | null
+  carb: number | null
+  fat: number | null
+}
+
+export interface FoodEntryInput {
+  date: string
+  name: string
+  cat: string
+  unit: string
+  portion: number
+  meal: MealSlot
+  kcal: number
+  protein: number | null
+  carb: number | null
+  fat: number | null
+}
+
 /** "Hari ini" finansial — SELALU tanggal nyata saat transaksi dibuat.
  *  (Sebelumnya konstanta demo 2025-06-20 yang membuat data baru berjarak
  *  berbulan-bulan dari hari aktual; lihat finance/utils.ts untuk jendela
@@ -702,6 +746,11 @@ interface RutinaState {
   workoutSheetOpen: boolean
   /** Praisai lembar sesi saat dibuka dari program/pustaka. */
   workoutSheetSeed: WorkoutSeed[] | null
+  /* Bugar — asupan */
+  foodEntries: FoodEntry[]
+  foodSheetOpen: boolean
+  /** Target energi harian (kkal) — dasar neraca kalori. */
+  calorieTarget: number
   /* Papan sistem desain — overlay spesifikasi visual (UI state, tak dipersist) */
   boardOpen: boolean
   openBoard: () => void
@@ -724,6 +773,12 @@ interface RutinaState {
   closeWorkoutSheet: () => void
   addWorkout: (input: WorkoutInput) => void
   deleteWorkout: (id: string) => void
+  /* Aksi asupan */
+  openFoodSheet: () => void
+  closeFoodSheet: () => void
+  addFoodEntry: (input: FoodEntryInput) => void
+  deleteFoodEntry: (id: string) => void
+  setCalorieTarget: (n: number) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
@@ -789,6 +844,9 @@ export const useRutina = create<RutinaState>()(
   workouts: [],
   workoutSheetOpen: false,
   workoutSheetSeed: null,
+  foodEntries: [],
+  foodSheetOpen: false,
+  calorieTarget: 2000,
   boardOpen: false,
 
   openBoard: () => set({ boardOpen: true }),
@@ -883,6 +941,28 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({
       workouts: s.workouts.filter((w) => w.id !== id),
     })),
+
+  /* --- Aksi asupan --- */
+
+  openFoodSheet: () => set({ foodSheetOpen: true }),
+
+  closeFoodSheet: () => set({ foodSheetOpen: false }),
+
+  addFoodEntry: (input) =>
+    set((s) => ({
+      foodEntries: [
+        { id: `fd-${Date.now()}-${Math.floor(Math.random() * 1e4)}`, ...input },
+        ...s.foodEntries,
+      ],
+      foodSheetOpen: false,
+    })),
+
+  deleteFoodEntry: (id) =>
+    set((s) => ({
+      foodEntries: s.foodEntries.filter((f) => f.id !== id),
+    })),
+
+  setCalorieTarget: (calorieTarget) => set({ calorieTarget }),
 
   setJournalFilter: (journalFilter) => set({ journalFilter }),
 
@@ -1087,6 +1167,8 @@ export const useRutina = create<RutinaState>()(
         txs: s.txs,
         goals: s.goals,
         workouts: s.workouts,
+        foodEntries: s.foodEntries,
+        calorieTarget: s.calorieTarget,
         dailyGoal: s.dailyGoal,
         mood: s.mood,
         bonusClaimed: s.bonusClaimed,

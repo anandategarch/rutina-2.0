@@ -28,7 +28,6 @@ import { BlurFade } from '../motion-kit'
 import {
   bestE1rmIn,
   cardioSummary,
-  e1rmOf,
   prBoard,
   tonaseOf,
   weekSummary,
@@ -40,12 +39,14 @@ import {
   PROG_DB,
   type Program,
 } from '../fitness/data'
+import { AsupanPanel } from '../fitness/asupan-panel'
 
-/* Subtab Bugar — Latihan aktif di tahap ini; Asupan & Tubuh
-   menyusul sebagai pengembangan berikutnya. */
-type BugarTab = 'latihan'
+/* Subtab Bugar — Latihan & Asupan; Tubuh menyusul sebagai
+   pengembangan berikutnya. */
+type BugarTab = 'latihan' | 'asupan'
 const BUGAR_TABS: { id: BugarTab; label: string }[] = [
   { id: 'latihan', label: 'Latihan' },
+  { id: 'asupan', label: 'Asupan' },
 ]
 
 /* ===== Kartu program ===== */
@@ -450,20 +451,56 @@ export default function BugarScreen() {
           Bugar<span className="text-[#749B58]">.</span>
         </h1>
         <p className="mt-2 text-xs font-medium text-[#4A3B32]/75">
-          {week.sessions > 0
-            ? `${week.sessions} sesi pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
-            : 'Latihan beban & kardio — catat sesi pertamamu'}
+          {tab === 'latihan'
+            ? week.sessions > 0
+              ? `${week.sessions} sesi pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
+              : 'Latihan beban & kardio — catat sesi pertamamu'
+            : 'Asupan & neraca kalori dari master 179 makanan Indonesia'}
         </p>
       </header>
 
-      {/* Hero ringkasan pekan — angka dari histori nyata */}
-      <m.section
-        initial={{ opacity: 0, y: 22 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        aria-label="Ringkasan latihan pekan ini"
-        className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 text-[#FAF9F6] shadow-leaf"
+      {/* Subtab — pil satu pemilik animasi (layoutId) */}
+      <div
+        role="group"
+        aria-label="Bagian Bugar"
+        className="relative mt-4 flex rounded-full bg-[#EAE5D9] p-1"
       >
+        {BUGAR_TABS.map((t) => {
+          const on = tab === t.id
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              aria-pressed={on}
+              className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                on ? 'text-[#658A4C]' : 'text-[#4A3B32]/55'
+              }`}
+            >
+              {on && (
+                <m.span
+                  aria-hidden="true"
+                  layoutId="bugar-tab-pill"
+                  className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                />
+              )}
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {tab === 'latihan' && (
+        <>
+          {/* Hero ringkasan pekan — angka dari histori nyata */}
+          <m.section
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            aria-label="Ringkasan latihan pekan ini"
+            className="relative mt-4 overflow-hidden rounded-[24px] bg-[#749B58] p-6 text-[#FAF9F6] shadow-leaf"
+          >
         <div className="relative z-10">
           <p className="text-[13px] font-medium text-[#FAF9F6]/80">
             Pekan ini
@@ -518,38 +555,6 @@ export default function BugarScreen() {
           )}
         </div>
       </m.section>
-
-      {/* Subtab — pil satu pemilik animasi (layoutId) */}
-      <div
-        role="group"
-        aria-label="Bagian Bugar"
-        className="relative mt-4 flex rounded-full bg-[#EAE5D9] p-1"
-      >
-        {BUGAR_TABS.map((t) => {
-          const on = tab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              aria-pressed={on}
-              className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
-                on ? 'text-[#658A4C]' : 'text-[#4A3B32]/55'
-              }`}
-            >
-              {on && (
-                <m.span
-                  aria-hidden="true"
-                  layoutId="bugar-tab-pill"
-                  className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
-                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                />
-              )}
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
 
       {/* Tombol catat sesi */}
       <m.button
@@ -762,6 +767,10 @@ export default function BugarScreen() {
           )}
         </div>
       </section>
+        </>
+      )}
+
+      {tab === 'asupan' && <AsupanPanel />}
     </div>
   )
 }

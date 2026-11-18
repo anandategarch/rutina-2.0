@@ -27,6 +27,7 @@ import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
 import { DesignBoard } from './design-board'
 import { WorkoutSheet } from './fitness/workout-sheet'
+import { FoodSheet } from './fitness/food-sheet'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
@@ -190,6 +191,7 @@ export function RutinaApp() {
             <NewGoalDialog />
             <HabitSheet />
             <WorkoutSheet />
+            <FoodSheet />
             <DesignBoard open={boardOpen} onClose={closeBoard} />
             <CelebrationOverlay active={celebrating} />
           </>
