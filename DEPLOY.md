@@ -64,9 +64,17 @@ Skrip yang sama bekerja dari mesin lokal maupun CI — hanya butuh
 4. Deploy. Setelah selesai, cek kesehatan database:
 
 ```bash
-curl https://<proyek-anda>.vercel.app/api/health
+curl https://rutina-2-0.vercel.app/api/health
 # {"status":"ok","database":{"connected":true,"backend":"turso",...}}
 ```
+
+> **URL produksi:** `https://rutina-2-0.vercel.app` (publik).
+> URL bervariasi seperti `rutina-2-0-anandategarch1.vercel.app` berada di
+> balik Vercel Authentication (perilaku normal Vercel) — gunakan selalu
+> domain proyek di atas.
+>
+> **Status 18 Nov 2026:** env vars `DATABASE_URL` + `DATABASE_AUTH_TOKEN`
+> sudah terpasang via API; health produksi → `connected: true, backend: turso`.
 
 ## 5. Perintah database
 
@@ -87,6 +95,11 @@ curl https://<proyek-anda>.vercel.app/api/health
   <token>` lalu `turso db tokens create habit-tracker-v2-anandategarch`
   dan pasang token baru di dashboard Vercel serta `.env` lokal. Commit
   lama bisa saja masih tersangga di cache GitHub selama beberapa waktu.
+- **Token saat ini berumur 1 hari** (dibuat 18 Nov 2026, kedaluwarsa
+  **19 Nov 2026 03:35 UTC**). Buat token tahan lama tanpa `--duration`
+  (`turso db tokens create habit-tracker-v2-anandategarch`) lalu perbarui
+  `DATABASE_AUTH_TOKEN` di Vercel — jika tidak, koneksi database produksi
+  akan gagal begitu token kedaluwarsa.
 - Semua kredensial produksi hanya hidup di dashboard Vercel.
 - `postinstall: prisma generate` sudah ada di `package.json` agar build
   Vercel selalu memiliki Prisma Client yang ter-generate.
