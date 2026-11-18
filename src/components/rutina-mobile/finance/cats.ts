@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Briefcase,
   Bus,
   Gamepad2,
@@ -25,13 +26,25 @@ export const CAT_META: Record<FinCat, { label: string; icon: LucideIcon }> = {
   gaji: { label: 'Gaji', icon: Briefcase },
   bonus: { label: 'Bonus', icon: Gift },
   proyek: { label: 'Proyek', icon: Palette },
+  transfer: { label: 'Transfer', icon: ArrowLeftRight },
 }
 
 /** Urutan kategori pada pemilih di lembar tambah transaksi. */
 export const CATS_BY_TYPE: Record<TxType, FinCat[]> = {
   keluar: ['makan', 'transport', 'belanja', 'hiburan', 'tagihan', 'kesehatan', 'lainnya'],
   masuk: ['gaji', 'bonus', 'proyek', 'lainnya'],
+  transfer: [],
 }
+
+/** Kategori pengeluaran yang bisa dianggarkan. */
+export const BUDGETABLE_CATS: FinCat[] = [
+  'makan',
+  'transport',
+  'belanja',
+  'hiburan',
+  'tagihan',
+  'kesehatan',
+]
 
 /** Warna semantik arus uang (dipakai di seluruh tab Keuangan). */
 export const INCOME = '#A3C489'

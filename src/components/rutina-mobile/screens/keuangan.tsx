@@ -10,13 +10,16 @@ import {
 import * as m from 'motion/react-m'
 import {
   ArrowDownRight,
+  ArrowLeftRight,
   ArrowUpRight,
   CheckCircle2,
   ChevronDown,
   Laptop,
+  Pencil,
   Plane,
   PiggyBank,
   Plus,
+  Repeat,
   ShieldCheck,
   Wallet,
   type LucideIcon,
@@ -39,37 +42,32 @@ import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { BlurFade, ShineBorder, Spotlight } from '../motion-kit'
 import {
-  BUDGETS,
   useRutina,
+  type FinCat,
   type FinPeriod,
   type Goal,
   type Tx,
 } from '../store'
 import { FinChart } from '../finance/fin-chart'
-import { CAT_META, EXPENSE, INCOME } from '../finance/cats'
+import { BUDGETABLE_CATS, CAT_META, EXPENSE, INCOME } from '../finance/cats'
 import {
   buildSeries,
+  currentMonthKey,
+  currentMonthLabel,
   defaultActive,
-  filterByPeriod,
   fmtDate,
   formatIDR,
   formatIDRShort,
+  groupByDay,
   periodScope,
   spentByCat,
+  totalSaldo,
+  walletBalance,
 } from '../finance/utils'
 
 /* ===== Konstanta gerak ===== */
 
 const EASE = [0.22, 1, 0.36, 1] as const
-
-const rowStagger: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-}
-const rowItem: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: EASE } },
-}
 
 /* Ikon tujuan tabungan — tiga pertama tetap, sisanya koin celengan. */
 const GOAL_ICONS: LucideIcon[] = [ShieldCheck, Laptop, Plane]
@@ -163,8 +161,12 @@ function TxRow({ tx }: { tx: Tx }) {
   const expanded = useRutina((s) => s.expandedTxId === tx.id)
   const toggleExpandedTx = useRutina((s) => s.toggleExpandedTx)
   const deleteTx = useRutina((s) => s.deleteTx)
+  const wallets = useRutina((s) => s.wallets)
   const income = tx.type === 'masuk'
+  const isTransfer = tx.type === 'transfer'
   const Icon = CAT_META[tx.cat].icon
+  const fromW = wallets.find((w) => w.id === tx.walletId)
+  const toW = wallets.find((w) => w.id === tx.toWalletId)
 
   return (
     <m.div
@@ -180,32 +182,50 @@ function TxRow({ tx }: { tx: Tx }) {
         whileTap={{ scale: 0.99 }}
         onClick={() => toggleExpandedTx(tx.id)}
         aria-expanded={expanded}
-        aria-label={`${tx.note || CAT_META[tx.cat].label}, ${income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
+        aria-label={`${tx.note || CAT_META[tx.cat].label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
         className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-            income
-              ? 'bg-[#A3C489]/30 text-[#658A4C]'
-              : 'bg-[#E08A6D]/25 text-[#C25F3D]'
+            isTransfer
+              ? 'bg-[#D9B98C]/30 text-[#A98650]'
+              : income
+                ? 'bg-[#A3C489]/30 text-[#658A4C]'
+                : 'bg-[#E08A6D]/25 text-[#C25F3D]'
           }`}
         >
           <Icon className="h-5 w-5" strokeWidth={2.1} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-semibold">
-            {tx.note || CAT_META[tx.cat].label}
+          <span className="flex items-center gap-1.5">
+            <span className="block truncate text-[14px] font-semibold">
+              {tx.note || CAT_META[tx.cat].label}
+            </span>
+            {tx.recurrence && !tx.recurOf && (
+              <span
+                title={`Berulang ${tx.recurrence}`}
+                className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#749B58]/15 text-[#658A4C]"
+              >
+                <Repeat className="h-2.5 w-2.5" strokeWidth={2.5} />
+              </span>
+            )}
           </span>
-          <span className="mt-0.5 block text-[11px] text-[#4A3B32]/70">
-            {CAT_META[tx.cat].label} · {fmtDate(tx.ts)}
+          <span className="mt-0.5 block truncate text-[11px] text-[#4A3B32]/70">
+            {isTransfer
+              ? `${fromW?.name ?? 'Dompet'} → ${toW?.name ?? 'Dompet'} · ${fmtDate(tx.ts)}`
+              : `${CAT_META[tx.cat].label}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
           </span>
         </span>
         <span
           className={`shrink-0 text-[14px] font-bold tabular-nums ${
-            income ? 'text-[#658A4C]' : 'text-[#C25F3D]'
+            isTransfer
+              ? 'text-[#A98650]'
+              : income
+                ? 'text-[#658A4C]'
+                : 'text-[#C25F3D]'
           }`}
         >
-          {income ? '+' : '−'}
+          {isTransfer ? '' : income ? '+' : '−'}
           {formatIDR(tx.amount)}
         </span>
         <m.span
@@ -249,10 +269,14 @@ function TxRow({ tx }: { tx: Tx }) {
                   </p>
                   <p
                     className={`mt-0.5 text-[12px] font-bold ${
-                      income ? 'text-[#658A4C]' : 'text-[#C25F3D]'
+                      isTransfer
+                        ? 'text-[#A98650]'
+                        : income
+                          ? 'text-[#658A4C]'
+                          : 'text-[#C25F3D]'
                     }`}
                   >
-                    {income ? 'Masuk' : 'Keluar'}
+                    {isTransfer ? 'Transfer' : income ? 'Masuk' : 'Keluar'}
                   </p>
                 </div>
               </div>
@@ -416,6 +440,224 @@ function SaldoCard({
   )
 }
 
+/* ===== Baris anggaran — batas dapat disunting pengguna ===== */
+
+function BudgetRow({
+  cat,
+  limit,
+  used,
+  pct,
+  over,
+  warn,
+  barColor,
+  Icon,
+}: {
+  cat: FinCat
+  limit: number
+  used: number
+  pct: number
+  over: boolean
+  warn: boolean
+  barColor: string
+  Icon: LucideIcon
+}) {
+  const setBudget = useRutina((s) => s.setBudget)
+  const removeBudget = useRutina((s) => s.removeBudget)
+  const [draft, setDraft] = useState('')
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4A3B32]/8 text-[#4A3B32]/85">
+        <Icon className="h-5 w-5" strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="truncate text-[13.5px] font-semibold">
+            {CAT_META[cat].label}
+          </span>
+          <span className="shrink-0 text-[12px] tabular-nums text-[#4A3B32]/80">
+            {formatIDRShort(used)}{' '}
+            <span className="text-[#4A3B32]/70">/ {formatIDRShort(limit)}</span>
+          </span>
+        </div>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
+          <m.div
+            initial={{ width: '0%' }}
+            animate={{ width: `${Math.min(100, pct)}%` }}
+            transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+            className="h-full rounded-full"
+            style={{ backgroundColor: barColor }}
+          />
+        </div>
+        <p
+          className={`mt-1 text-[11px] ${
+            over ? 'font-bold text-[#B25E3F]' : 'text-[#4A3B32]/70'
+          }`}
+        >
+          {over
+            ? `Lewat ${formatIDRShort(used - limit)} dari batas`
+            : `Sisa ${formatIDRShort(limit - used)} bulan ini`}
+          {warn && !over ? ' — hampir habis!' : ''}
+        </p>
+      </div>
+
+      {/* Sunting batas */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Sunting anggaran ${CAT_META[cat].label}`}
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#4A3B32]/50 transition-colors hover:bg-[#4A3B32]/8 hover:text-[#4A3B32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-[#231F1E]">
+              Batas {CAT_META[cat].label}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[12.5px] leading-relaxed text-[#4A3B32]/75">
+              Terpakai {formatIDR(used)} bulan ini. Tentukan batas bulanan
+              baru (Rp).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <input
+            aria-label="Batas bulanan baru"
+            inputMode="numeric"
+            value={draft}
+            onChange={(e) =>
+              setDraft(e.target.value.replace(/\D/g, '').slice(0, 9))
+            }
+            placeholder={String(limit)}
+            className="h-11 w-full rounded-xl border border-[#4A3B3233] bg-[#F5F3EE] px-3.5 text-[15px] font-bold tabular-nums text-[#231F1E] placeholder:font-medium placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58]/30"
+          />
+          <AlertDialogFooter className="flex-row gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                removeBudget(cat)
+                toast(`${CAT_META[cat].label} dihapus dari anggaran.`)
+              }}
+              className="h-10 flex-1 cursor-pointer rounded-full border border-[#B25E3F]/35 text-[12.5px] font-bold text-[#B25E3F] transition-colors hover:bg-[#B25E3F]/8"
+            >
+              Hapus
+            </button>
+            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-[#4A3B32]/25 text-[12.5px] font-bold text-[#4A3B32]">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const v = Number(draft)
+                if (v > 0) {
+                  setBudget(cat, v)
+                  toast.success(
+                    `Batas ${CAT_META[cat].label}: ${formatIDR(v)}/bulan`,
+                  )
+                }
+              }}
+              className="h-10 flex-1 rounded-full border-none bg-[#749B58] text-[12.5px] font-bold text-white hover:bg-[#658A4C]"
+            >
+              Simpan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
+
+/* ===== Dialog tambah dompet ===== */
+
+function WalletDialog() {
+  const open = useRutina((s) => s.walletDialogOpen)
+  const close = useRutina((s) => s.closeWalletDialog)
+  const addWallet = useRutina((s) => s.addWallet)
+  const [name, setName] = useState('')
+  const [initial, setInitial] = useState('')
+
+  if (!open) return null
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tambah dompet"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#231F1E]/45 px-6"
+      onClick={close}
+    >
+      <m.div
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-[320px] rounded-[24px] bg-[#FAF9F6] p-5 shadow-ink-deep"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[16px] font-bold tracking-tight text-[#231F1E]">
+          Dompet Baru
+        </h2>
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#4A3B32]/70">
+          Sumber dana terpisah — tunai, bank, atau e-wallet.
+        </p>
+        <div className="mt-4 space-y-3">
+          <div className="space-y-1.5">
+            <label htmlFor="w-name" className="text-[13px] font-semibold text-[#4A3B32]">
+              Nama dompet
+            </label>
+            <input
+              id="w-name"
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 20))}
+              placeholder="mis. E-Wallet"
+              className="h-11 w-full rounded-xl border border-[#4A3B3233] bg-[#F5F3EE] px-3.5 text-[14px] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58]/30"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="w-init" className="text-[13px] font-semibold text-[#4A3B32]">
+              Saldo awal (Rp)
+            </label>
+            <input
+              id="w-init"
+              inputMode="numeric"
+              value={initial}
+              onChange={(e) =>
+                setInitial(e.target.value.replace(/\D/g, '').slice(0, 10))
+              }
+              placeholder="mis. 250000"
+              className="h-11 w-full rounded-xl border border-[#4A3B3233] bg-[#F5F3EE] px-3.5 text-[14px] font-bold tabular-nums text-[#231F1E] placeholder:font-medium placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#749B58]/30"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={close}
+            className="h-11 flex-1 cursor-pointer rounded-full border border-[#4A3B32]/25 text-[13px] font-bold text-[#4A3B32] transition-colors hover:bg-[#EAE5D9]"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!name.trim()) {
+                toast.warning('Beri nama dompetmu dulu')
+                return
+              }
+              addWallet(name, Number(initial || '0'))
+              toast.success(`Dompet "${name.trim()}" dibuat`)
+              setName('')
+              setInitial('')
+            }}
+            className="h-11 flex-1 cursor-pointer rounded-full bg-[#749B58] text-[13px] font-bold text-white shadow-soft transition-all hover:bg-[#658A4C] active:scale-[0.98]"
+          >
+            Buat Dompet
+          </button>
+        </div>
+      </m.div>
+    </div>
+  )
+}
+
 /* ===== Layar utama ===== */
 
 const PERIODS: { id: FinPeriod; label: string }[] = [
@@ -424,14 +666,30 @@ const PERIODS: { id: FinPeriod; label: string }[] = [
   { id: 'tahun', label: 'Tahun' },
 ]
 
+/* Subtab Keuangan — arsitektur 4 bagian agar satu tab utama tetap
+   nyaman dijangkau satu tangan (rekomendasi audit produk). */
+type FinTab = 'ringkasan' | 'mutasi' | 'anggaran' | 'dompet'
+const FIN_TABS: { id: FinTab; label: string }[] = [
+  { id: 'ringkasan', label: 'Ringkasan' },
+  { id: 'mutasi', label: 'Mutasi' },
+  { id: 'anggaran', label: 'Anggaran' },
+  { id: 'dompet', label: 'Dompet' },
+]
+
 export default function KeuanganScreen() {
   const txs = useRutina((s) => s.txs)
   const goals = useRutina((s) => s.goals)
+  const wallets = useRutina((s) => s.wallets)
+  const budgets = useRutina((s) => s.budgets)
   const finPeriod = useRutina((s) => s.finPeriod)
   const setFinPeriod = useRutina((s) => s.setFinPeriod)
   const openTxSheet = useRutina((s) => s.openTxSheet)
   const openGoalDialog = useRutina((s) => s.openGoalDialog)
+  const openTransferSheet = useRutina((s) => s.openTransferSheet)
+  const openWalletDialog = useRutina((s) => s.openWalletDialog)
+  const setBudget = useRutina((s) => s.setBudget)
 
+  const [finTab, setFinTab] = useState<FinTab>('ringkasan')
   const [active, setActive] = useState(2)
   useEffect(() => {
     setActive(defaultActive(finPeriod, txs))
@@ -447,33 +705,41 @@ export default function KeuanganScreen() {
       ),
     [series],
   )
-  const filtered = useMemo(
-    () =>
-      filterByPeriod(txs, finPeriod)
-        .slice()
-        .sort((a, b) =>
-          a.ts === b.ts ? b.id.localeCompare(a.id) : b.ts.localeCompare(a.ts),
-        ),
-    [txs, finPeriod],
-  )
   const spent = useMemo(() => spentByCat(txs), [txs])
-  const saldo = useMemo(
-    () =>
-      txs.reduce((a, t) => a + (t.type === 'masuk' ? t.amount : -t.amount), 0),
+  /* Saldo keseluruhan: penjumlahan seluruh dompet (mode multi-dompet),
+     atau arus masuk-keluar bila belum ada dompet. Transfer tidak
+     menggelembungkan saldo karena keluar dari satu & masuk ke lainnya. */
+  const saldo = useMemo(() => totalSaldo(txs, wallets), [txs, wallets])
+  /* Jumlah transaksi bulan BERJALAN — kunci bulan dari hari nyata. */
+  const txCount = useMemo(
+    () => txs.filter((t) => t.ts.startsWith(currentMonthKey())).length,
     [txs],
   )
-  /* Jumlah transaksi bulan berjalan (demo: Juni 2025) — dihitung dari
-     data nyata untuk kartu saldo, bukan angka statis. */
-  const txCount = useMemo(
-    () => txs.filter((t) => t.ts.startsWith('2025-06')).length,
-    [txs],
+  const budgetRows = useMemo(
+    () =>
+      Object.entries(budgets)
+        .filter(([cat]) => BUDGETABLE_CATS.includes(cat as FinCat))
+        .map(([cat, limit]) => ({ cat: cat as FinCat, limit })),
+    [budgets],
   )
   const spentTotal = useMemo(
-    () => BUDGETS.reduce((a, b) => a + (spent[b.cat] ?? 0), 0),
-    [spent],
+    () => budgetRows.reduce((a, b) => a + (spent[b.cat] ?? 0), 0),
+    [budgetRows, spent],
   )
-  const totalLimit = useMemo(() => BUDGETS.reduce((a, b) => a + b.limit, 0), [])
-  const totalPct = Math.min(100, Math.round((spentTotal / totalLimit) * 100))
+  const totalLimit = useMemo(
+    () => budgetRows.reduce((a, b) => a + b.limit, 0),
+    [budgetRows],
+  )
+  const totalPct =
+    totalLimit > 0
+      ? Math.min(100, Math.round((spentTotal / totalLimit) * 100))
+      : 0
+  /* Mutasi dikelompokkan per hari — ringkasan arus kas harian. */
+  const dayGroups = useMemo(() => groupByDay(txs), [txs])
+  const transfers = useMemo(
+    () => txs.filter((t) => t.type === 'transfer'),
+    [txs],
+  )
 
   /* anime.js — denyut "ka-ching" pada angka saldo saat transaksi baru masuk. */
   const prevLen = useRef(txs.length)
@@ -498,9 +764,43 @@ export default function KeuanganScreen() {
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
+      {/* Subtab Keuangan — pil satu pemilik animasi (layoutId) */}
+      <div
+        role="group"
+        aria-label="Bagian Keuangan"
+        className="relative flex rounded-full bg-[#EAE5D9] p-1"
+      >
+        {FIN_TABS.map((t) => {
+          const on = finTab === t.id
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setFinTab(t.id)}
+              aria-pressed={on}
+              className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[12.5px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C] ${
+                on ? 'text-[#231F1E]' : 'text-[#4A3B32]/55'
+              }`}
+            >
+              {on && (
+                <m.span
+                  aria-hidden="true"
+                  layoutId="fin-tab-pill"
+                  className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                />
+              )}
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
           masuk viewport — pengganti staggervariants statis. */}
-      <div className="flex flex-col gap-5">
+      <div className="mt-4 flex flex-col gap-5">
+        {finTab === 'ringkasan' && (
+          <>
         {/* ===== Kepala: dompet saldo gelap + FAB tambah ===== */}
         <BlurFade>
           <div className="relative">
@@ -646,96 +946,7 @@ export default function KeuanganScreen() {
           </div>
         </BlurFade>
 
-        {/* ===== Anggaran — kartu premium dengan ShineBorder (magicui) ===== */}
-        <BlurFade
-          delay={0.06}
-          className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink-deep"
-        >
-          <ShineBorder borderWidth={1.5} duration={12} shineColor={['#D9B98C', '#A3C489']} />
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
-              Anggaran Juni
-            </h2>
-            <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
-              Terpakai {totalPct}%
-            </Badge>
-          </div>
-
-          {/* Batang total */}
-          <div className="mt-3">
-            <div className="h-2.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
-              <m.div
-                initial={{ width: '0%' }}
-                animate={{ width: `${totalPct}%` }}
-                transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C489]"
-              />
-            </div>
-            <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-[#4A3B32]/70">
-              <span>{formatIDRShort(spentTotal)} terpakai</span>
-              <span>sisa {formatIDRShort(Math.max(0, totalLimit - spentTotal))}</span>
-            </div>
-          </div>
-
-          {/* Baris per kategori — stagger mandiri (varian diorkestrasi lokal) */}
-          <m.div
-            variants={rowStagger}
-            initial="hidden"
-            animate="show"
-            className="mt-4 space-y-4"
-          >
-            {BUDGETS.map((b) => {
-              const used = spent[b.cat] ?? 0
-              const pct = Math.round((used / b.limit) * 100)
-              const over = used > b.limit
-              const warn = !over && pct >= 85
-              const Icon = CAT_META[b.cat].icon
-              const barColor = over ? '#B25E3F' : warn ? '#C7A17A' : '#749B58'
-              return (
-                <m.div key={b.cat} variants={rowItem} className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4A3B32]/8 text-[#4A3B32]/85">
-                    <Icon className="h-5 w-5" strokeWidth={2} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[13.5px] font-semibold">
-                        {CAT_META[b.cat].label}
-                      </span>
-                      <span className="shrink-0 text-[12px] tabular-nums text-[#4A3B32]/80">
-                        {formatIDRShort(used)}{' '}
-                        <span className="text-[#4A3B32]/70">
-                          / {formatIDRShort(b.limit)}
-                        </span>
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
-                      <m.div
-                        initial={{ width: '0%' }}
-                        animate={{ width: `${Math.min(100, pct)}%` }}
-                        transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: barColor }}
-                      />
-                    </div>
-                    <p
-                      className={`mt-1 text-[11px] ${
-                        over
-                          ? 'font-bold text-[#B25E3F]'
-                          : 'text-[#4A3B32]/70'
-                      }`}
-                    >
-                      {over
-                        ? `Lewat ${formatIDRShort(used - b.limit)} dari batas`
-                        : `Sisa ${formatIDRShort(b.limit - used)} bulan ini`}
-                    </p>
-                  </div>
-                </m.div>
-              )
-            })}
-          </m.div>
-        </BlurFade>
-
-        {/* ===== Tujuan tabungan ===== */}
+        {/* ===== Tujuan tabungan (akhir Ringkasan) ===== */}
         <BlurFade delay={0.06}>
           <div className="flex items-center justify-between gap-3 px-0.5">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
@@ -778,54 +989,264 @@ export default function KeuanganScreen() {
             />
           </div>
         </BlurFade>
+          </>
+        )}
 
-        {/* ===== Transaksi ===== */}
-        <BlurFade delay={0.06}>
-          <div className="flex items-center justify-between gap-3 px-0.5">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
-                Transaksi
-              </h2>
-              <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
-                {filtered.length}
-              </Badge>
+        {/* ===== MUTASI: arus kas harian + seluruh transaksi ===== */}
+        {finTab === 'mutasi' && (
+          <BlurFade delay={0.04}>
+            <div className="flex items-center justify-between gap-3 px-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+                  Mutasi
+                </h2>
+                <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
+                  {txs.length}
+                </Badge>
+              </div>
+              <button
+                type="button"
+                onClick={openTxSheet}
+                className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              >
+                + Tambah
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={openTxSheet}
-              className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
-            >
-              + Tambah
-            </button>
-          </div>
 
-          <div className="mt-3 max-h-[430px] space-y-2.5 overflow-y-auto no-scrollbar pr-1">
-            <AnimatePresence initial={false} mode="popLayout">
-              {filtered.map((tx) => (
-                <TxRow key={tx.id} tx={tx} />
-              ))}
-              {filtered.length === 0 && (
-                <m.div
-                  key="fin-empty"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, ease: EASE }}
-                  className="rounded-[20px] border-2 border-dashed border-[#4A3B32]/25 px-6 py-9 text-center"
-                >
+            {dayGroups.length === 0 ? (
+              <div className="mt-3 rounded-[20px] border-2 border-dashed border-[#4A3B32]/25 px-6 py-9 text-center">
+                <Wallet className="mx-auto h-6 w-6 text-[#4A3B32]/60" />
+                <p className="mt-2 text-[13px] font-semibold text-[#4A3B32]/75">
+                  Belum ada transaksi
+                </p>
+                <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
+                  Catat pemasukan/pengeluaran pertamamu.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-5">
+                {dayGroups.map((g) => (
+                  <div key={g.date}>
+                    <div className="mb-2 flex items-center justify-between px-0.5">
+                      <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/70">
+                        {fmtDate(g.date)}
+                      </p>
+                      <p className="text-[11px] font-semibold tabular-nums text-[#4A3B32]/60">
+                        {g.masuk > 0 && (
+                          <span className="text-[#658A4C]">
+                            +{formatIDRShort(g.masuk)}{' '}
+                          </span>
+                        )}
+                        {g.keluar > 0 && (
+                          <span className="text-[#C25F3D]">
+                            −{formatIDRShort(g.keluar)}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="space-y-2.5">
+                      {g.txs.map((tx) => (
+                        <TxRow key={tx.id} tx={tx} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </BlurFade>
+        )}
+
+        {/* ===== ANGGARAN: batas per kategori, dapat diubah ===== */}
+        {finTab === 'anggaran' && (
+          <BlurFade delay={0.04}>
+            <div className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink-deep">
+              <ShineBorder borderWidth={1.5} duration={12} shineColor={['#D9B98C', '#A3C489']} />
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+                  Anggaran {currentMonthLabel()}
+                </h2>
+                <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
+                  Terpakai {totalPct}%
+                </Badge>
+              </div>
+
+              {/* Batang total */}
+              <div className="mt-3">
+                <div className="h-2.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
+                  <m.div
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${totalPct}%` }}
+                    transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+                    className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C489]"
+                  />
+                </div>
+                <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-[#4A3B32]/70">
+                  <span>{formatIDRShort(spentTotal)} terpakai</span>
+                  <span>sisa {formatIDRShort(Math.max(0, totalLimit - spentTotal))}</span>
+                </div>
+              </div>
+
+              {/* Baris per kategori — batas dapat disunting */}
+              <div className="mt-4 space-y-4">
+                {budgetRows.map((b) => {
+                  const used = spent[b.cat] ?? 0
+                  const pct = b.limit > 0 ? Math.round((used / b.limit) * 100) : 0
+                  const over = used > b.limit
+                  const warn = !over && pct >= 85
+                  const Icon = CAT_META[b.cat].icon
+                  const barColor = over ? '#B25E3F' : warn ? '#C7A17A' : '#749B58'
+                  return (
+                    <BudgetRow
+                      key={b.cat}
+                      cat={b.cat}
+                      limit={b.limit}
+                      used={used}
+                      pct={pct}
+                      over={over}
+                      warn={warn}
+                      barColor={barColor}
+                      Icon={Icon}
+                    />
+                  )
+                })}
+
+                {/* Tambah kategori yang belum dianggarkan */}
+                {BUDGETABLE_CATS.filter((c) => !(c in budgets)).length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {BUDGETABLE_CATS.filter((c) => !(c in budgets)).map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setBudget(c, 300_000)
+                          toast(`${CAT_META[c].label} ditambahkan — ubah batasnya sesukamu.`)
+                        }}
+                        className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-[#4A3B32]/30 px-3.5 text-[12px] font-bold text-[#4A3B32]/75 transition-all hover:bg-[#F5F3EE] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        {CAT_META[c].label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </BlurFade>
+        )}
+
+        {/* ===== DOMPET: saldo per sumber dana + transfer ===== */}
+        {finTab === 'dompet' && (
+          <>
+            <BlurFade delay={0.04}>
+              <div className="flex items-center justify-between gap-3 px-0.5">
+                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+                  Dompet &amp; Rekening
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={openTransferSheet}
+                    disabled={wallets.length < 2}
+                    className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#231F1E] px-3.5 text-[12px] font-bold text-[#FAF9F6] transition-all hover:bg-[#3A2E24] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    Transfer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openWalletDialog}
+                    className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                  >
+                    + Dompet
+                  </button>
+                </div>
+              </div>
+
+              {wallets.length === 0 ? (
+                <div className="mt-3 rounded-[20px] border-2 border-dashed border-[#4A3B32]/25 px-6 py-9 text-center">
                   <Wallet className="mx-auto h-6 w-6 text-[#4A3B32]/60" />
                   <p className="mt-2 text-[13px] font-semibold text-[#4A3B32]/75">
-                    Belum ada transaksi
+                    Belum ada dompet
                   </p>
-                  <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
-                    pada periode {periodScope(finPeriod, txs).toLowerCase()}
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-[#4A3B32]/60">
+                    Pisahkan uang tunai, rekening bank, atau e-wallet — saldo
+                    dihitung per sumber dana.
                   </p>
-                </m.div>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {wallets.map((w, i) => (
+                    <m.div
+                      key={w.id}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: i * 0.06, ease: EASE }}
+                      className="rounded-[20px] border border-[#4A3B3214] bg-white p-4 shadow-soft"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F5EFDF] text-[#A98650]">
+                          <Wallet className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14.5px] font-bold text-[#231F1E]">
+                            {w.name}
+                          </p>
+                          <p className="text-[11px] font-medium text-[#4A3B32]/65">
+                            Saldo awal {formatIDRShort(w.initial)}
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-[17px] font-bold tabular-nums text-[#231F1E]">
+                          {formatIDRShort(walletBalance(txs, w))}
+                        </p>
+                      </div>
+                    </m.div>
+                  ))}
+                  <p className="px-0.5 text-[11px] leading-relaxed text-[#4A3B32]/60">
+                    Transfer antar-dompet tidak dihitung sebagai pemasukan atau
+                    pengeluaran — hanya memindahkan saldo.
+                  </p>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
-        </BlurFade>
+            </BlurFade>
+
+            {/* Riwayat transfer */}
+            {transfers.length > 0 && (
+              <BlurFade delay={0.08}>
+                <h3 className="px-0.5 text-[12px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/75">
+                  Riwayat Transfer
+                </h3>
+                <div className="mt-2 space-y-2">
+                  {transfers.slice(0, 5).map((t) => {
+                    const fromW = wallets.find((w) => w.id === t.walletId)
+                    const toW = wallets.find((w) => w.id === t.toWalletId)
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-3 rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-2.5 shadow-soft"
+                      >
+                        <ArrowLeftRight className="h-4 w-4 shrink-0 text-[#A98650]" />
+                        <p className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[#231F1E]">
+                          {fromW?.name ?? 'Dompet'} → {toW?.name ?? 'Dompet'}
+                          <span className="font-medium text-[#4A3B32]/60">
+                            {' '}
+                            · {fmtDate(t.ts)}
+                          </span>
+                        </p>
+                        <p className="shrink-0 text-[12.5px] font-bold tabular-nums text-[#A98650]">
+                          {formatIDRShort(t.amount)}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </BlurFade>
+            )}
+          </>
+        )}
       </div>
+
+      {/* Dialog tambah dompet */}
+      <WalletDialog />
     </div>
   )
 }

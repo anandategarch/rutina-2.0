@@ -23,6 +23,7 @@ import { ReadingSheet } from './reading-sheet'
 import { CelebrationOverlay } from './celebration'
 import { Splash } from './splash'
 import { AddTxSheet } from './finance/add-tx-sheet'
+import { TransferSheet } from './finance/transfer-sheet'
 import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
 import { DesignBoard } from './design-board'
@@ -88,9 +89,12 @@ export function RutinaApp() {
 
   /* Pulihkan state domain (persist) setelah mount — pola skipHydration
      Next.js: render pertama memakai seed (identik dengan SSR), lalu
-     histori lokal pengguna mengambil alih tanpa hydration mismatch. */
+     histori lokal pengguna mengambil alih tanpa hydration mismatch.
+     Setelah rehydrate: catat transaksi berulang yang jadwalnya tiba. */
   useEffect(() => {
-    void useRutina.persist.rehydrate()
+    void useRutina.persist.rehydrate().then(() => {
+      useRutina.getState().materializeRecurring()
+    })
   }, [])
 
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
@@ -187,6 +191,7 @@ export function RutinaApp() {
             <ComposeSheet />
             <ReadingSheet />
             <AddTxSheet />
+            <TransferSheet />
             <ContributeGoalSheet />
             <NewGoalDialog />
             <HabitSheet />

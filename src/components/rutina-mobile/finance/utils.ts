@@ -5,6 +5,7 @@ import {
   todayISO,
   type FinPeriod,
   type Tx,
+  type Wallet,
 } from '../store'
 
 /* ===== Format angka Rupiah ===== */
@@ -116,6 +117,8 @@ const zeros = (labels: string[]): PeriodPoint[] =>
   labels.map((label) => ({ label, masuk: 0, keluar: 0 }))
 
 const accumulate = (pts: PeriodPoint[], idx: number, t: Tx) => {
+  /* Transfer antar-dompet bukan arus kas — dilewati di grafik. */
+  if (t.type === 'transfer') return
   if (t.type === 'masuk') pts[idx].masuk += t.amount
   else pts[idx].keluar += t.amount
 }
@@ -153,7 +156,8 @@ export function buildSeries(txs: Tx[], period: FinPeriod): PeriodPoint[] {
   return pts
 }
 
-/** Transaksi yang tampil pada daftar, mengikuti periode terpilih. */
+/** Transaksi yang tampil pada daftar, mengikuti periode terpilih.
+    Transfer tetap tampil di daftar mutasi (uang memang berpindah). */
 export function filterByPeriod(txs: Tx[], period: FinPeriod): Tx[] {
   if (period === 'tahun') return txs
   return txs.filter((t) =>
@@ -161,7 +165,8 @@ export function filterByPeriod(txs: Tx[], period: FinPeriod): Tx[] {
   )
 }
 
-/** Total belanja bulan berjalan per kategori — pemakaian anggaran. */
+/** Total belanja bulan berjalan per kategori — pemakaian anggaran.
+    Transfer dikecualikan (bukan pengeluaran). */
 export function spentByCat(txs: Tx[]): Record<string, number> {
   const out: Record<string, number> = {}
   const m = currentMonth()
@@ -170,6 +175,85 @@ export function spentByCat(txs: Tx[]): Record<string, number> {
     out[t.cat] = (out[t.cat] ?? 0) + t.amount
   }
   return out
+}
+
+/* ===== Dompet & saldo ===== */
+
+/** Saldo satu dompet: saldo awal + seluruh mutasi terkait.
+    Transaksi tanpa dompet (data lama pra-multi-dompet) TIDAK dihitung
+    di sini — ditangani sekali di totalSaldo agar tidak terhitung ganda. */
+export function walletBalance(txs: Tx[], w: Wallet): number {
+  let bal = w.initial
+  for (const t of txs) {
+    if (t.type === 'transfer') {
+      if (t.walletId === w.id) bal -= t.amount
+      if (t.toWalletId === w.id) bal += t.amount
+      continue
+    }
+    if (t.walletId !== w.id) continue
+    if (t.type === 'masuk') bal += t.amount
+    else if (t.type === 'keluar') bal -= t.amount
+  }
+  return bal
+}
+
+/** Saldo keseluruhan: penjumlahan seluruh dompet + arus transaksi yang
+    belum ditautkan ke dompet mana pun (kompatibilitas data lama).
+    Bila belum ada dompet sama sekali, hitung langsung dari arus
+    masuk-keluar (mode tunggal). */
+export function totalSaldo(txs: Tx[], wallets: Wallet[]): number {
+  let total = wallets.reduce((a, w) => a + walletBalance(txs, w), 0)
+  /* Arus tanpa dompet dihitung sekali secara global. */
+  for (const t of txs) {
+    if (t.type === 'transfer') continue
+    if (t.walletId) continue
+    total += t.type === 'masuk' ? t.amount : -t.amount
+  }
+  return total
+}
+
+/* ===== Grup mutasi harian (tab Mutasi) ===== */
+
+export interface DayGroup {
+  date: string
+  txs: Tx[]
+  masuk: number
+  keluar: number
+}
+
+/** Kelompokkan transaksi per tanggal (terbaru dulu) + ringkasan harian. */
+export function groupByDay(txs: Tx[]): DayGroup[] {
+  const map = new Map<string, Tx[]>()
+  for (const t of txs) {
+    const list = map.get(t.ts) ?? []
+    list.push(t)
+    map.set(t.ts, list)
+  }
+  return [...map.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([date, list]) => ({
+      date,
+      txs: list.sort((a, b) => b.id.localeCompare(a.id)),
+      masuk: list.reduce(
+        (a, t) => a + (t.type === 'masuk' ? t.amount : 0),
+        0,
+      ),
+      keluar: list.reduce(
+        (a, t) => a + (t.type === 'keluar' ? t.amount : 0),
+        0,
+      ),
+    }))
+}
+
+/** Label bulan berjalan untuk judul anggaran — selalu tanggal nyata. */
+export function currentMonthLabel(): string {
+  const now = fromISO(todayISO())
+  return new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(now)
+}
+
+/** Kunci bulan berjalan "yyyy-mm" — untuk hitung transaksi bulan ini. */
+export function currentMonthKey(): string {
+  return todayISO().slice(0, 7)
 }
 
 /** Titik aktif bawaan per periode (titik "hari ini"). */

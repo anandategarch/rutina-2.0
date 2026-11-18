@@ -141,6 +141,14 @@ export function addDaysISO(iso: string, n: number): string {
   return isoOf(d)
 }
 
+/** Tambah N bulan kalender (tanggal di-clamp ke akhir bulan bila perlu). */
+export function addMonthsISO(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const base = new Date(y, m - 1 + n, 1)
+  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate()
+  return isoOf(new Date(base.getFullYear(), base.getMonth(), Math.min(d ?? 1, lastDay)))
+}
+
 /** Label panjang bahasa Indonesia: "Senin, 16 Juni 2025". */
 export function longDateLabel(iso: string): string {
   return new Intl.DateTimeFormat('id-ID', {
@@ -517,7 +525,9 @@ const SEED_NOTES: Note[] = [
 
 /* ===== Domain Keuangan ===== */
 
-export type TxType = 'masuk' | 'keluar'
+/** Transfer antar-dompet: uang berpindah, BUKAN pemasukan/pengeluaran —
+ *  dikecualikan dari seluruh statistik arus kas & anggaran. */
+export type TxType = 'masuk' | 'keluar' | 'transfer'
 export type FinCat =
   | 'makan'
   | 'transport'
@@ -529,8 +539,13 @@ export type FinCat =
   | 'gaji'
   | 'bonus'
   | 'proyek'
+  | 'transfer'
 
 export type FinPeriod = 'minggu' | 'bulan' | 'tahun'
+
+/** Jadwal transaksi berulang — salinan berikutnya tercatat otomatis
+ *  saat jadwalnya tiba (materializeRecurring). */
+export type Recurrence = 'mingguan' | 'bulanan'
 
 export interface Tx {
   id: string
@@ -540,6 +555,34 @@ export interface Tx {
   note: string
   /** Tanggal ISO (yyyy-mm-dd) — dasar pengelompokan grafik & filter. */
   ts: string
+  /** Dompet sumber (keluar/transfer) atau tujuan masuk. */
+  walletId?: string
+  /** Dompet tujuan — khusus transfer. */
+  toWalletId?: string
+  /** Jadwal berulang — khusus templat asli. */
+  recurrence?: Recurrence | null
+  /** ID templat asal — salinan otomatis transaksi berulang. */
+  recurOf?: string
+}
+
+/** Sumber dana / dompet — saldo dihitung dari saldo awal + mutasi. */
+export interface Wallet {
+  id: string
+  name: string
+  /** Saldo awal saat dompet dibuat (Rp). */
+  initial: number
+}
+
+/** Anggaran bulanan per kategori pengeluaran (Rp) — dapat diubah pengguna. */
+export type Budgets = Record<string, number>
+
+export const DEFAULT_BUDGETS: Budgets = {
+  makan: 750_000,
+  transport: 400_000,
+  belanja: 800_000,
+  hiburan: 300_000,
+  tagihan: 1_000_000,
+  kesehatan: 200_000,
 }
 
 export interface Goal {
@@ -662,14 +705,9 @@ export function todayFinISO(): string {
   return todayISO()
 }
 
-/** Anggaran bulanan per kategori — statis, hanya dibaca. */
-export const BUDGETS: { cat: FinCat; limit: number }[] = [
-  { cat: 'makan', limit: 750_000 },
-  { cat: 'transport', limit: 400_000 },
-  { cat: 'belanja', limit: 800_000 },
-  { cat: 'hiburan', limit: 300_000 },
-  { cat: 'tagihan', limit: 1_000_000 },
-  { cat: 'kesehatan', limit: 200_000 },
+const SEED_WALLETS: Wallet[] = [
+  { id: 'w-tunai', name: 'Tunai', initial: 350_000 },
+  { id: 'w-bank', name: 'Rekening Bank', initial: 2_000_000 },
 ]
 
 const SEED_TXS: Tx[] = (() => {
@@ -680,27 +718,29 @@ const SEED_TXS: Tx[] = (() => {
   const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(fromISO(t))
   return [
     // Pemasukan — gaji di awal bulan berjalan, sisanya relatif pekan ini
-    { id: 'f-in-1', type: 'masuk', cat: 'gaji', amount: 8_500_000, note: `Gaji bulan ${monthName}`, ts: t.slice(0, 8) + '01' },
-    { id: 'f-in-2', type: 'masuk', cat: 'proyek', amount: 1_250_000, note: 'Desain logo klien', ts: d(6) },
-    { id: 'f-in-3', type: 'masuk', cat: 'bonus', amount: 300_000, note: 'Referral proyek', ts: t },
+    { id: 'f-in-1', type: 'masuk', cat: 'gaji', amount: 8_500_000, note: `Gaji bulan ${monthName}`, ts: t.slice(0, 8) + '01', walletId: 'w-bank' },
+    { id: 'f-in-2', type: 'masuk', cat: 'proyek', amount: 1_250_000, note: 'Desain logo klien', ts: d(6), walletId: 'w-bank' },
+    { id: 'f-in-3', type: 'masuk', cat: 'bonus', amount: 300_000, note: 'Referral proyek', ts: t, walletId: 'w-tunai' },
+    // Transfer antar-dompet — bukan arus kas
+    { id: 'f-tr-1', type: 'transfer', cat: 'transfer', amount: 500_000, note: 'Tarik tunai ATM', ts: d(5), walletId: 'w-bank', toWalletId: 'w-tunai' },
     // Pengeluaran — pekan-pekan sebelumnya
-    { id: 'f-ex-1', type: 'keluar', cat: 'makan', amount: 45_000, note: 'Sarapan oatmeal & kopi', ts: d(18) },
-    { id: 'f-ex-2', type: 'keluar', cat: 'transport', amount: 25_000, note: 'Ojek ke kantor', ts: d(17) },
-    { id: 'f-ex-3', type: 'keluar', cat: 'hiburan', amount: 54_000, note: 'Langganan streaming', ts: d(16) },
-    { id: 'f-ex-4', type: 'keluar', cat: 'tagihan', amount: 350_000, note: 'Token listrik', ts: d(15) },
-    { id: 'f-ex-5', type: 'keluar', cat: 'belanja', amount: 425_000, note: 'Belanja mingguan', ts: d(14) },
-    { id: 'f-ex-6', type: 'keluar', cat: 'makan', amount: 128_000, note: 'Makan malam keluarga', ts: d(12) },
-    { id: 'f-ex-7', type: 'keluar', cat: 'kesehatan', amount: 75_000, note: 'Vitamin & suplemen', ts: d(11) },
-    { id: 'f-ex-8', type: 'keluar', cat: 'transport', amount: 60_000, note: 'Isi bensin', ts: d(10) },
-    { id: 'f-ex-9', type: 'keluar', cat: 'makan', amount: 32_000, note: 'Nasi goreng bangka', ts: d(9) },
-    { id: 'f-ex-10', type: 'keluar', cat: 'hiburan', amount: 120_000, note: 'Tiket bioskop', ts: d(8) },
-    { id: 'f-ex-11', type: 'keluar', cat: 'belanja', amount: 189_000, note: 'Buku & alat tulis', ts: d(7) },
+    { id: 'f-ex-1', type: 'keluar', cat: 'makan', amount: 45_000, note: 'Sarapan oatmeal & kopi', ts: d(18), walletId: 'w-tunai' },
+    { id: 'f-ex-2', type: 'keluar', cat: 'transport', amount: 25_000, note: 'Ojek ke kantor', ts: d(17), walletId: 'w-tunai' },
+    { id: 'f-ex-3', type: 'keluar', cat: 'hiburan', amount: 54_000, note: 'Langganan streaming', ts: d(16), walletId: 'w-bank', recurrence: 'bulanan' },
+    { id: 'f-ex-4', type: 'keluar', cat: 'tagihan', amount: 350_000, note: 'Token listrik', ts: d(15), walletId: 'w-bank' },
+    { id: 'f-ex-5', type: 'keluar', cat: 'belanja', amount: 425_000, note: 'Belanja mingguan', ts: d(14), walletId: 'w-bank' },
+    { id: 'f-ex-6', type: 'keluar', cat: 'makan', amount: 128_000, note: 'Makan malam keluarga', ts: d(12), walletId: 'w-tunai' },
+    { id: 'f-ex-7', type: 'keluar', cat: 'kesehatan', amount: 75_000, note: 'Vitamin & suplemen', ts: d(11), walletId: 'w-bank' },
+    { id: 'f-ex-8', type: 'keluar', cat: 'transport', amount: 60_000, note: 'Isi bensin', ts: d(10), walletId: 'w-tunai' },
+    { id: 'f-ex-9', type: 'keluar', cat: 'makan', amount: 32_000, note: 'Nasi goreng bangka', ts: d(9), walletId: 'w-tunai' },
+    { id: 'f-ex-10', type: 'keluar', cat: 'hiburan', amount: 120_000, note: 'Tiket bioskop', ts: d(8), walletId: 'w-tunai' },
+    { id: 'f-ex-11', type: 'keluar', cat: 'belanja', amount: 189_000, note: 'Buku & alat tulis', ts: d(7), walletId: 'w-bank' },
     // Pengeluaran — pekan berjalan
-    { id: 'f-ex-12', type: 'keluar', cat: 'makan', amount: 52_000, note: 'Kopi & roti pagi', ts: d(4) },
-    { id: 'f-ex-13', type: 'keluar', cat: 'transport', amount: 18_000, note: 'KRL ke kantor', ts: d(3) },
-    { id: 'f-ex-14', type: 'keluar', cat: 'makan', amount: 65_000, note: 'Makan siang tim', ts: d(2) },
-    { id: 'f-ex-15', type: 'keluar', cat: 'hiburan', amount: 45_000, note: 'Arcade sore', ts: d(1) },
-    { id: 'f-ex-16', type: 'keluar', cat: 'makan', amount: 38_000, note: 'Es kopi sore', ts: t },
+    { id: 'f-ex-12', type: 'keluar', cat: 'makan', amount: 52_000, note: 'Kopi & roti pagi', ts: d(4), walletId: 'w-tunai' },
+    { id: 'f-ex-13', type: 'keluar', cat: 'transport', amount: 18_000, note: 'KRL ke kantor', ts: d(3), walletId: 'w-tunai' },
+    { id: 'f-ex-14', type: 'keluar', cat: 'makan', amount: 65_000, note: 'Makan siang tim', ts: d(2), walletId: 'w-tunai' },
+    { id: 'f-ex-15', type: 'keluar', cat: 'hiburan', amount: 45_000, note: 'Arcade sore', ts: d(1), walletId: 'w-tunai' },
+    { id: 'f-ex-16', type: 'keluar', cat: 'makan', amount: 38_000, note: 'Es kopi sore', ts: t, walletId: 'w-tunai' },
   ]
 })()
 
@@ -754,8 +794,12 @@ interface RutinaState {
   /* Keuangan */
   txs: Tx[]
   goals: Goal[]
+  wallets: Wallet[]
+  budgets: Budgets
   finPeriod: FinPeriod
   txSheetOpen: boolean
+  transferSheetOpen: boolean
+  walletDialogOpen: boolean
   goalSheetId: string | null
   goalDialogOpen: boolean
   expandedTxId: string | null
@@ -779,9 +823,33 @@ interface RutinaState {
   setFinPeriod: (p: FinPeriod) => void
   openTxSheet: () => void
   closeTxSheet: () => void
-  addTx: (input: { type: TxType; cat: FinCat; amount: number; note: string }) => void
+  addTx: (input: {
+    type: TxType
+    cat: FinCat
+    amount: number
+    note: string
+    walletId?: string
+    recurrence?: Recurrence | null
+  }) => void
   deleteTx: (id: string) => void
   toggleExpandedTx: (id: string) => void
+  /* Dompet & transfer */
+  addWallet: (name: string, initial: number) => void
+  openTransferSheet: () => void
+  closeTransferSheet: () => void
+  addTransfer: (input: {
+    fromId: string
+    toId: string
+    amount: number
+    note: string
+  }) => void
+  openWalletDialog: () => void
+  closeWalletDialog: () => void
+  /* Anggaran */
+  setBudget: (cat: string, limit: number) => void
+  removeBudget: (cat: string) => void
+  /* Transaksi berulang */
+  materializeRecurring: () => void
   openGoalSheet: (id: string) => void
   closeGoalSheet: () => void
   contributeGoal: (id: string, amount: number) => void
@@ -859,8 +927,12 @@ export const useRutina = create<RutinaState>()(
   /* Keuangan */
   txs: SEED_TXS,
   goals: SEED_GOALS,
+  wallets: SEED_WALLETS,
+  budgets: { ...DEFAULT_BUDGETS },
   finPeriod: 'bulan',
   txSheetOpen: false,
+  transferSheetOpen: false,
+  walletDialogOpen: false,
   goalSheetId: null,
   goalDialogOpen: false,
   expandedTxId: null,
@@ -887,20 +959,116 @@ export const useRutina = create<RutinaState>()(
 
   closeTxSheet: () => set({ txSheetOpen: false }),
 
-  addTx: ({ type, cat, amount, note }) =>
+  addTx: ({ type, cat, amount, note, walletId, recurrence }) =>
     set((s) => ({
       txs: [
         {
-          id: `tx-${Date.now()}`,
+          id: `tx-${Date.now()}-${Math.floor(Math.random() * 1e4)}`,
           type,
           cat,
           amount,
           note: note.trim(),
           ts: todayFinISO(),
+          walletId,
+          recurrence: recurrence ?? null,
         },
         ...s.txs,
       ],
     })),
+
+  /* --- Dompet & transfer --- */
+
+  addWallet: (name, initial) =>
+    set((s) => ({
+      wallets: [
+        ...s.wallets,
+        { id: `w-${Date.now()}`, name: name.trim(), initial },
+      ],
+      walletDialogOpen: false,
+    })),
+
+  openTransferSheet: () => set({ transferSheetOpen: true }),
+
+  closeTransferSheet: () => set({ transferSheetOpen: false }),
+
+  /** Transfer antar-dompet — tercatat sebagai tipe 'transfer' yang
+   *  TIDAK dihitung sebagai pemasukan/pengeluaran di statistik. */
+  addTransfer: ({ fromId, toId, amount, note }) =>
+    set((s) => ({
+      txs: [
+        {
+          id: `tx-${Date.now()}-${Math.floor(Math.random() * 1e4)}`,
+          type: 'transfer' as const,
+          cat: 'transfer' as const,
+          amount,
+          note: note.trim(),
+          ts: todayFinISO(),
+          walletId: fromId,
+          toWalletId: toId,
+          recurrence: null,
+        },
+        ...s.txs,
+      ],
+      transferSheetOpen: false,
+    })),
+
+  openWalletDialog: () => set({ walletDialogOpen: true }),
+
+  closeWalletDialog: () => set({ walletDialogOpen: false }),
+
+  /* --- Anggaran --- */
+
+  setBudget: (cat, limit) =>
+    set((s) => ({ budgets: { ...s.budgets, [cat]: limit } })),
+
+  removeBudget: (cat) =>
+    set((s) => {
+      const next = { ...s.budgets }
+      delete next[cat]
+      return { budgets: next }
+    }),
+
+  /* --- Transaksi berulang --- */
+
+  /** Catat otomatis salinan transaksi berulang yang jadwalnya sudah
+   *  tiba (mingguan/bulanan), dari templat hingga hari ini — idempoten:
+   *  salinan baru melanjutkan rantai lewat recurOf. */
+  materializeRecurring: () =>
+    set((s) => {
+      const today = todayFinISO()
+      const next = [...s.txs]
+      const templates = next.filter(
+        (t) => t.recurrence && !t.recurOf,
+      )
+      let added = 0
+      for (const tpl of templates) {
+        /* Terbaru dalam rantai: templat atau salinan terakhirnya. */
+        const chain = next.filter(
+          (t) => t.id === tpl.id || t.recurOf === tpl.id,
+        )
+        let cursor = chain.reduce(
+          (latest, t) => (t.ts > latest ? t.ts : latest),
+          tpl.ts,
+        )
+        const step = (iso: string) =>
+          tpl.recurrence === 'mingguan'
+            ? addDaysISO(iso, 7)
+            : addMonthsISO(iso, 1)
+        let due = step(cursor)
+        while (due <= today && added < 200) {
+          next.unshift({
+            ...tpl,
+            id: `tx-${Date.now()}-${added}-${Math.floor(Math.random() * 1e4)}`,
+            ts: due,
+            recurOf: tpl.id,
+          })
+          added++
+          cursor = due
+          due = step(cursor)
+        }
+      }
+      return added > 0 ? { txs: next } : {}
+    }),
 
   deleteTx: (id) =>
     set((s) => ({
@@ -1224,6 +1392,8 @@ export const useRutina = create<RutinaState>()(
         notes: s.notes,
         txs: s.txs,
         goals: s.goals,
+        wallets: s.wallets,
+        budgets: s.budgets,
         workouts: s.workouts,
         foodEntries: s.foodEntries,
         calorieTarget: s.calorieTarget,

@@ -14,7 +14,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
-import { shortDateLabel, todayISO, useRutina, type FinCat, type TxType } from '../store'
+import {
+  shortDateLabel,
+  todayISO,
+  useRutina,
+  type FinCat,
+  type Recurrence,
+  type TxType,
+} from '../store'
 import { useFocusTrap } from '../use-focus-trap'
 import { CAT_META, CATS_BY_TYPE } from './cats'
 import { formatIDR } from './utils'
@@ -38,11 +45,14 @@ export function AddTxSheet() {
   const open = useRutina((s) => s.txSheetOpen)
   const closeTxSheet = useRutina((s) => s.closeTxSheet)
   const addTx = useRutina((s) => s.addTx)
+  const wallets = useRutina((s) => s.wallets)
 
   const [type, setType] = useState<TxType>('keluar')
   const [cat, setCat] = useState<FinCat>('makan')
   const [digits, setDigits] = useState('')
   const [note, setNote] = useState('')
+  const [walletId, setWalletId] = useState('')
+  const [recurrence, setRecurrence] = useState<Recurrence | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -58,6 +68,8 @@ export function AddTxSheet() {
       setCat('makan')
       setDigits('')
       setNote('')
+      setWalletId(wallets[0]?.id ?? '')
+      setRecurrence(null)
     }
   }
 
@@ -94,7 +106,17 @@ export function AddTxSheet() {
       toast.warning('Masukkan nominal terlebih dahulu')
       return
     }
-    addTx({ type, cat, amount, note })
+    addTx({
+      type,
+      cat,
+      amount,
+      note,
+      walletId: walletId || undefined,
+      recurrence,
+    })
+    if (recurrence) {
+      useRutina.getState().materializeRecurring()
+    }
     closeTxSheet()
     toast.success(
       type === 'keluar'
@@ -208,7 +230,7 @@ export function AddTxSheet() {
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
               <p className="mt-1 text-[11px] text-[#4A3B32]/55">
-                {CAT_META[cat].label} · 20 Jun 2025
+                {CAT_META[cat].label} · {shortDateLabel(todayISO())}
               </p>
             </div>
 
@@ -276,6 +298,65 @@ export function AddTxSheet() {
                 maxLength={40}
                 className="h-11 rounded-xl border-[#4A3B3233] bg-[#F5F3EE] text-[#231F1E] placeholder:text-[#4A3B32]/40 focus-visible:border-[#749B58] focus-visible:ring-[#749B58]/25"
               />
+            </div>
+
+            {/* Dompet sumber — hanya bila pengguna punya dompet */}
+            {wallets.length > 0 && (
+              <div className="mt-4 space-y-1.5">
+                <span className="text-[13px] font-semibold text-[#4A3B32]">
+                  Dompet
+                </span>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {wallets.map((w) => {
+                    const on = walletId === w.id
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => setWalletId(w.id)}
+                        aria-pressed={on}
+                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                          on
+                            ? 'bg-[#231F1E] text-[#FAF9F6] shadow-soft'
+                            : 'border border-[#4A3B3233] bg-[#F5F3EE] text-[#4A3B32]'
+                        }`}
+                      >
+                        {w.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Transaksi berulang */}
+            <div className="mt-4 space-y-1.5">
+              <span className="text-[13px] font-semibold text-[#4A3B32]">
+                Berulang{' '}
+                <span className="font-normal text-[#4A3B32]/50">
+                  (tercatat otomatis tiap jadwal)
+                </span>
+              </span>
+              <div className="flex gap-2">
+                {([null, 'mingguan', 'bulanan'] as const).map((r) => {
+                  const on = recurrence === r
+                  return (
+                    <button
+                      key={r ?? 'sekali'}
+                      type="button"
+                      onClick={() => setRecurrence(r as Recurrence | null)}
+                      aria-pressed={on}
+                      className={`h-10 flex-1 cursor-pointer rounded-xl text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ${
+                        on
+                          ? 'bg-[#749B58] text-white shadow-soft'
+                          : 'border border-[#4A3B3233] bg-[#F5F3EE] text-[#4A3B32]'
+                      }`}
+                    >
+                      {r === null ? 'Sekali' : r === 'mingguan' ? 'Mingguan' : 'Bulanan'}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Keypad */}
