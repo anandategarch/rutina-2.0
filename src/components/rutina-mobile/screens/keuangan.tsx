@@ -387,7 +387,7 @@ function SaldoCard({
       onPointerLeave={onLeave}
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
-      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,var(--surface-inverse)_0%,var(--espresso-soft)_46%,var(--surface-inverse)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
       <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
 
@@ -398,21 +398,21 @@ function SaldoCard({
       />
 
       {/* Baris merek */}
-      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-gold">
+      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-hero-accent">
         <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
         Rutina Vault
       </p>
 
       {/* Saldo */}
       <div className="relative z-10 mt-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-content-inverse/65">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-hero-content-muted">
           Saldo Tersedia
         </p>
         <div className="mt-0.5 flex items-baseline gap-1">
-          <span className="text-[19px] font-bold text-gold">Rp</span>
+          <span className="text-[19px] font-bold text-hero-accent">Rp</span>
           <span
             ref={saldoRef}
-            className="text-[31px] font-bold leading-none tabular-nums text-content-inverse"
+            className="text-[31px] font-bold leading-none tabular-nums text-hero-content"
           >
             <Counter to={saldo} />
           </span>
@@ -422,18 +422,18 @@ function SaldoCard({
       {/* Transaksi bulan ini + pemegang */}
       <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-content-inverse/65">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-hero-content-muted">
             Transaksi bulan ini
           </p>
-          <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-gold">
+          <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-hero-accent">
             {txCount}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-content-inverse/65">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-hero-content-muted">
             Pemegang
           </p>
-          <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-gold">
+          <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-hero-accent">
             ANANDA
           </p>
         </div>

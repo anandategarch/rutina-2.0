@@ -73,6 +73,15 @@
   --action-primary-fg: #ffffff;
   --action-hover: var(--palette-matcha-deep);
 
+  /* Hero — kartu fokus identitas tetap (espresso + emas + parchment).
+     TIDAK ikut terbalik saat dark mode: aksen emas #D9B98C hanya lolos
+     kontras di atas permukaan gelap, maka permukaan hero selalu espresso. */
+  --hero-surface: var(--palette-espresso);
+  --hero-surface-raised: var(--palette-espresso-soft);
+  --hero-content: var(--palette-parchment);
+  --hero-content-muted: rgb(250 249 246 / 68%);
+  --hero-accent: var(--palette-gold);
+
   /* Status — nilai teks AMAN kontras (≥ 4,5:1) di atas permukaan terang.
      Gunakan untuk teks kecil bermakna (nominal, label status). */
   --success: #4f7440; /* matcha tua — teks berhasil/positif */
@@ -143,6 +152,14 @@
   --action-primary: var(--palette-pistachio);
   --action-primary-fg: var(--palette-espresso);
   --action-hover: #b3d49b;
+
+  /* Hero tetap espresso di kanvas gelap — sedikit diangkat agar terbedakan
+     dari background (#1c1817); aksen emas & teks parchment tetap kontras. */
+  --hero-surface: #26211f;
+  --hero-surface-raised: #362d27;
+  --hero-content: var(--palette-parchment);
+  --hero-content-muted: rgb(250 249 246 / 68%);
+  --hero-accent: var(--palette-gold);
 
   /* Status — versi terang untuk kanvas gelap */
   --success: var(--palette-pistachio);
@@ -221,6 +238,11 @@
   --color-action-primary: var(--action-primary);
   --color-action-primary-fg: var(--action-primary-fg);
   --color-action-hover: var(--action-hover);
+  --color-hero-surface: var(--hero-surface);
+  --color-hero-surface-raised: var(--hero-surface-raised);
+  --color-hero-content: var(--hero-content);
+  --color-hero-content-muted: var(--hero-content-muted);
+  --color-hero-accent: var(--hero-accent);
   --color-success: var(--success);
   --color-warning: var(--warning);
 
