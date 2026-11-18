@@ -6,7 +6,12 @@
    (pendekatan coach Rutina v3: "data dulu, rekomendasi kemudian").
    ============================================================ */
 
-import { addDaysISO, todayISO, type Workout } from '../store'
+import {
+  addDaysISO,
+  todayISO,
+  type BodyLogs,
+  type Workout,
+} from '../store'
 
 /* ===== e1RM (Epley) ===== */
 
@@ -150,5 +155,73 @@ export function cardioSummary(workouts: Workout[]): CardioSummary {
     sessions: cardio.length,
     km: cardio.reduce((a, w) => a + (w.distance ?? 0), 0),
     farthest: cardio.reduce((a, w) => Math.max(a, w.distance ?? 0), 0),
+  }
+}
+
+/* ===== Tubuh & pemulihan ===== */
+
+/** Berat badan terakhir yang tercatat (kg), atau null bila belum pernah. */
+export function latestWeight(logs: BodyLogs): number | null {
+  const keys = Object.keys(logs).sort().reverse()
+  for (const k of keys) {
+    const w = logs[k]?.weight
+    if (w && w > 0) return w
+  }
+  return null
+}
+
+/** Deret berat badan tercatat (tanggal naik) — untuk grafik tren. */
+export function weightSeries(logs: BodyLogs): { date: string; kg: number }[] {
+  return Object.keys(logs)
+    .filter((d) => logs[d]?.weight && logs[d]!.weight! > 0)
+    .sort()
+    .map((d) => ({ date: d, kg: logs[d]!.weight! }))
+}
+
+/** Faktor MET per jenis latihan — estimasi pembakaran energi.
+    kcal ≈ MET × berat (kg) × durasi (jam). */
+const KCAL_MET: Record<Workout['kind'], number> = {
+  beban: 5,
+  jalan: 4.3,
+  lari: 8.3,
+}
+
+/** Estimasi kalori terbakar dari satu sesi — memakai berat tercatat
+    pengguna (fallback 60 kg bila belum menimbang). */
+export function kcalOf(w: Workout, bodyWeight: number | null): number {
+  const met = KCAL_MET[w.kind] ?? 5
+  return Math.round(met * (bodyWeight ?? 60) * ((w.duration || 0) / 60))
+}
+
+export interface Readiness {
+  score: number
+  label: string
+  hint: string
+}
+
+/** Kesiapan latihan — gabungan tidur (target 7–8 jam) & energi 1–5.
+    Bila belum check-in, pengguna diajak mengisinya dulu. */
+export function readinessOf(logs: BodyLogs): Readiness | null {
+  const today = logs[todayISO()]
+  if (!today || today.sleepH == null || today.energy == null) return null
+  const sleepScore = Math.min((today.sleepH ?? 0) / 8, 1) * 55
+  const energyScore = ((today.energy ?? 0) / 5) * 45
+  const score = Math.round(sleepScore + energyScore)
+  if (score >= 75)
+    return {
+      score,
+      label: 'Siap latihan',
+      hint: 'Tidur & energi kamu prima — manfaatkan untuk sesi berkualitas.',
+    }
+  if (score >= 50)
+    return {
+      score,
+      label: 'Cukup siap',
+      hint: 'Boleh latihan — jaga volume secukupnya dan dengarkan tubuh.',
+    }
+  return {
+    score,
+    label: 'Fokus pemulihan',
+    hint: 'Tubuh butuh istirahat — pilih sesi ringan atau libur aktif.',
   }
 }

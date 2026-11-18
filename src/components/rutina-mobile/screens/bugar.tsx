@@ -28,8 +28,11 @@ import { BlurFade } from '../motion-kit'
 import {
   bestE1rmIn,
   cardioSummary,
+  kcalOf,
+  latestWeight,
   prBoard,
   tonaseOf,
+  weekRange,
   weekSummary,
 } from '../fitness/fit-utils'
 import {
@@ -40,13 +43,14 @@ import {
   type Program,
 } from '../fitness/data'
 import { AsupanPanel } from '../fitness/asupan-panel'
+import { TubuhPanel } from '../fitness/tubuh-panel'
 
-/* Subtab Bugar — Latihan & Asupan; Tubuh menyusul sebagai
-   pengembangan berikutnya. */
-type BugarTab = 'latihan' | 'asupan'
+/* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
+type BugarTab = 'latihan' | 'asupan' | 'tubuh'
 const BUGAR_TABS: { id: BugarTab; label: string }[] = [
   { id: 'latihan', label: 'Latihan' },
   { id: 'asupan', label: 'Asupan' },
+  { id: 'tubuh', label: 'Tubuh' },
 ]
 
 /* ===== Kartu program ===== */
@@ -411,6 +415,7 @@ function ExerciseCard({ name }: { name: string }) {
 
 export default function BugarScreen() {
   const workouts = useRutina((s) => s.workouts)
+  const bodyLogs = useRutina((s) => s.bodyLogs)
   const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
 
   const [tab, setTab] = useState<BugarTab>('latihan')
@@ -421,6 +426,15 @@ export default function BugarScreen() {
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
   const prs = useMemo(() => prBoard(workouts), [workouts])
   const topPr = prs[0]
+  /* Estimasi kalori terbakar pekan ini — MET × berat tercatat. */
+  const weight = useMemo(() => latestWeight(bodyLogs), [bodyLogs])
+  const weekKcal = useMemo(
+    () =>
+      workouts
+        .filter((w) => w.date >= weekRange().start)
+        .reduce((a, w) => a + kcalOf(w, weight), 0),
+    [workouts, weight],
+  )
 
   const strengthCount = workouts.filter((w) => w.kind === 'beban').length
 
@@ -455,7 +469,9 @@ export default function BugarScreen() {
             ? week.sessions > 0
               ? `${week.sessions} sesi pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
               : 'Latihan beban & kardio — catat sesi pertamamu'
-            : 'Asupan & neraca kalori dari master 179 makanan Indonesia'}
+            : tab === 'asupan'
+              ? 'Asupan & neraca kalori dari master 179 makanan Indonesia'
+              : 'Hidrasi, berat badan, tidur & kesiapan latihan'}
         </p>
       </header>
 
@@ -552,6 +568,13 @@ export default function BugarScreen() {
                 {prs.length} gerakan
               </span>
             </div>
+          )}
+
+          {weekKcal > 0 && (
+            <p className="mt-2 text-[11px] font-medium text-[#FAF9F6]/70">
+              ≈ {weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini
+              {weight == null && ' (asumsi 60 kg — timbang dirimu di tab Tubuh)'}
+            </p>
           )}
         </div>
       </m.section>
@@ -771,6 +794,8 @@ export default function BugarScreen() {
       )}
 
       {tab === 'asupan' && <AsupanPanel />}
+
+      {tab === 'tubuh' && <TubuhPanel />}
     </div>
   )
 }

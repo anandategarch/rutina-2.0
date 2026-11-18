@@ -636,6 +636,24 @@ export interface FoodEntryInput {
   fat: number | null
 }
 
+/* ===== Domain Bugar — tubuh & pemulihan ===== */
+
+/** Satu catatan tubuh per tanggal (UPSERT harian) — hidrasi, berat,
+ *  tidur & energi jadi satu sumber kebenaran untuk kesiapan latihan. */
+export interface BodyLog {
+  /** Jumlah gelas air hari itu. */
+  water: number
+  /** Berat badan (kg) bila diukur hari itu. */
+  weight?: number
+  /** Jam tidur semalam. */
+  sleepH?: number
+  /** Energi 1–5 (1 = sangat lelah, 5 = bugar). */
+  energy?: number
+}
+
+/** Log tubuh per tanggal ISO — selaras pola Completions. */
+export type BodyLogs = Record<string, BodyLog>
+
 /** "Hari ini" finansial — SELALU tanggal nyata saat transaksi dibuat.
  *  (Sebelumnya konstanta demo 2025-06-20 yang membuat data baru berjarak
  *  berbulan-bulan dari hari aktual; lihat finance/utils.ts untuk jendela
@@ -751,6 +769,8 @@ interface RutinaState {
   foodSheetOpen: boolean
   /** Target energi harian (kkal) — dasar neraca kalori. */
   calorieTarget: number
+  /* Bugar — tubuh */
+  bodyLogs: BodyLogs
   /* Papan sistem desain — overlay spesifikasi visual (UI state, tak dipersist) */
   boardOpen: boolean
   openBoard: () => void
@@ -779,6 +799,10 @@ interface RutinaState {
   addFoodEntry: (input: FoodEntryInput) => void
   deleteFoodEntry: (id: string) => void
   setCalorieTarget: (n: number) => void
+  /* Aksi tubuh */
+  setWaterToday: (delta: number) => void
+  logWeightToday: (kg: number) => void
+  logBodyCheckIn: (input: { sleepH?: number; energy?: number }) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
@@ -847,6 +871,7 @@ export const useRutina = create<RutinaState>()(
   foodEntries: [],
   foodSheetOpen: false,
   calorieTarget: 2000,
+  bodyLogs: {},
   boardOpen: false,
 
   openBoard: () => set({ boardOpen: true }),
@@ -963,6 +988,39 @@ export const useRutina = create<RutinaState>()(
     })),
 
   setCalorieTarget: (calorieTarget) => set({ calorieTarget }),
+
+  /* --- Aksi tubuh (UPSERT harian) --- */
+
+  setWaterToday: (delta) =>
+    set((s) => {
+      const key = todayISO()
+      const cur = s.bodyLogs[key] ?? { water: 0 }
+      return {
+        bodyLogs: {
+          ...s.bodyLogs,
+          [key]: { ...cur, water: Math.max(0, Math.min(20, cur.water + delta)) },
+        },
+      }
+    }),
+
+  logWeightToday: (kg) =>
+    set((s) => {
+      const key = todayISO()
+      const cur = s.bodyLogs[key] ?? { water: 0 }
+      return {
+        bodyLogs: { ...s.bodyLogs, [key]: { ...cur, weight: kg } },
+      }
+    }),
+
+  logBodyCheckIn: ({ sleepH, energy }) =>
+    set((s) => {
+      const key = todayISO()
+      const cur = s.bodyLogs[key] ?? { water: 0 }
+      const next: BodyLog = { ...cur }
+      if (sleepH !== undefined) next.sleepH = sleepH
+      if (energy !== undefined) next.energy = energy
+      return { bodyLogs: { ...s.bodyLogs, [key]: next } }
+    }),
 
   setJournalFilter: (journalFilter) => set({ journalFilter }),
 
@@ -1169,6 +1227,7 @@ export const useRutina = create<RutinaState>()(
         workouts: s.workouts,
         foodEntries: s.foodEntries,
         calorieTarget: s.calorieTarget,
+        bodyLogs: s.bodyLogs,
         dailyGoal: s.dailyGoal,
         mood: s.mood,
         bonusClaimed: s.bonusClaimed,
