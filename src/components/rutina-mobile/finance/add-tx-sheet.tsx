@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type FinCat, type TxType } from '../store'
+import { useFocusTrap } from '../use-focus-trap'
 import { CAT_META, CATS_BY_TYPE } from './cats'
 import { formatIDR } from './utils'
 
@@ -44,6 +45,10 @@ export function AddTxSheet() {
   const [note, setNote] = useState('')
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
+  useFocusTrap(open, panelRef)
 
   /* Draf di-reset setiap kali lembar dibuka. */
   if (open !== prevOpen) {
@@ -118,8 +123,10 @@ export function AddTxSheet() {
           />
           <motion.div
             key="panel"
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
+            tabIndex={-1}
             aria-label="Tambah transaksi"
             drag="y"
             dragListener={false}

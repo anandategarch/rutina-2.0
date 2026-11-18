@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useDragControls } from 'motion/react'
 import { CheckCircle2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina } from '../store'
+import { useFocusTrap } from '../use-focus-trap'
 import { formatIDR, formatIDRShort } from './utils'
 
 /* ================================================================= */
@@ -40,6 +41,10 @@ export function ContributeGoalSheet() {
   const [amount, setAmount] = useState(100_000)
   const [prevId, setPrevId] = useState<string | null>(null)
   const dragControls = useDragControls()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
+  useFocusTrap(Boolean(goal), panelRef)
 
   /* Reset draf tiap kali target lembar berganti. */
   if (goalSheetId !== prevId) {
@@ -89,8 +94,10 @@ export function ContributeGoalSheet() {
           />
           <motion.div
             key="panel"
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
+            tabIndex={-1}
             aria-label={`Isi tabungan ${goal.name}`}
             drag="y"
             dragListener={false}

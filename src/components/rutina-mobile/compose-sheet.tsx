@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useDragControls } from 'motion/react'
 import { PenLine } from 'lucide-react'
 import { toast } from 'sonner'
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CONTENT_W } from './layout-widths'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from './store'
+import { useFocusTrap } from './use-focus-trap'
 
 /**
  * Sheet bawah kustom — dibangun manual (bukan shadcn Sheet) agar tetap
@@ -28,6 +29,10 @@ export function ComposeSheet() {
   const [folder, setFolder] = useState<FolderKey>('pribadi')
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
+  useFocusTrap(open, panelRef)
 
   // Reset draf setiap kali sheet dibuka — pola "sesuaikan state saat render"
   // (folder awal mengikuti composeFolder, mis. dari tombol + di kartu folder)
@@ -79,8 +84,10 @@ export function ComposeSheet() {
           />
           <motion.div
             key="panel"
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
+            tabIndex={-1}
             aria-label="Buat catatan baru"
             drag="y"
             dragListener={false}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion, useDragControls } from 'motion/react'
 import { Pin, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator'
 import { CONTENT_W } from './layout-widths'
 import { FOLDER_SHORT, useRutina } from './store'
 import { playfair } from './serif'
+import { useFocusTrap } from './use-focus-trap'
 
 /**
  * Sheet baca catatan — pola drag-to-close yang sama dengan ComposeSheet
@@ -35,6 +36,10 @@ export function ReadingSheet() {
 
   const note = notes.find((n) => n.id === readingNoteId)
   const dragControls = useDragControls()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
+  useFocusTrap(Boolean(note), panelRef)
 
   // Tutup dengan Escape
   useEffect(() => {
@@ -62,8 +67,10 @@ export function ReadingSheet() {
           />
           <motion.div
             key="panel"
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
+            tabIndex={-1}
             aria-label={`Baca catatan: ${note.title}`}
             drag="y"
             dragListener={false}
