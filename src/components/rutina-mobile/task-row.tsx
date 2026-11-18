@@ -7,30 +7,56 @@ import {
   useMotionValue,
   useTransform,
 } from 'motion/react'
-import { Check, ChevronDown, Flame, Undo2, Zap } from 'lucide-react'
+import {
+  Bell,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Flame,
+  Pencil,
+  Repeat,
+  Undo2,
+  Zap,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { type Task } from './store'
+import { type Habit } from './store'
 
 /**
- * Baris tugas tingkat lanjut: geser kanan untuk menandai selesai,
- * geser kiri untuk membatalkan, ketuk untuk membuka detail.
- * Menampilkan ganjaran XP + animasi pop saat selesai.
+ * Baris kebiasaan: geser kanan untuk menandai selesai, geser kiri untuk
+ * membatalkan. Area klik DIPISAHKAN tegas:
+ * - Tombol lingkaran centang (32px, target sentuh luas) = satu-satunya
+ *   cara menandai selesai.
+ * - Sisa baris (judul, pil meta, chevron) = membuka detail.
  */
 export function TaskRow({
-  task,
+  habit,
   done,
-  expanded,
+  streak,
+  recent,
+  weekDone,
   xp,
+  expanded,
+  readOnly = false,
   onToggle,
   onExpand,
+  onEdit,
 }: {
-  task: Task
+  habit: Habit
   done: boolean
-  expanded: boolean
+  /** Streak aktif nyata (dihitung parent dari histori). */
+  streak: number
+  /** 14 hari terakhir berakhir pada tanggal yang dilihat. */
+  recent: boolean[]
+  /** Selesai dalam pekan berjalan vs target mingguan. */
+  weekDone: number
   xp?: number
+  expanded: boolean
+  /** true bila tanggal yang dilihat masa depan — centang dimatikan. */
+  readOnly?: boolean
   onToggle: () => void
   onExpand: () => void
+  onEdit: () => void
 }) {
   const dragGuardRef = useRef(false)
 
@@ -49,7 +75,7 @@ export function TaskRow({
       className={
         'relative overflow-hidden rounded-[16px] border transition-colors duration-300 ' +
         (done ? 'border-[#749B5833]' : 'border-[#4A3B321F]') +
-        ' bg-white'
+        ' bg-white shadow-soft'
       }
     >
       {/* Lapisan isi (absolut, di belakang konten) */}
@@ -80,10 +106,11 @@ export function TaskRow({
         <Undo2 className="h-4 w-4" />
       </motion.span>
 
-      {/* Baris konten yang bisa digeser */}
+      {/* Baris konten yang bisa digeser — klik di mana pun (kecuali centang)
+          membuka detail kebiasaan. */}
       <motion.div
         style={{ x }}
-        drag="x"
+        drag={readOnly ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.45}
@@ -112,16 +139,17 @@ export function TaskRow({
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
-        aria-label={`${task.title} — ketuk untuk detail, geser kanan untuk menandai selesai`}
+        aria-label={`${habit.title} — ketuk untuk detail, tombol lingkaran untuk menandai selesai`}
         whileTap={{ scale: 0.985 }}
         className={
-          'relative z-10 flex cursor-pointer items-center gap-3 p-3.5 transition-colors duration-300 ' +
+          'relative z-10 flex cursor-pointer items-center gap-2 p-3.5 transition-colors duration-300 ' +
           (done ? 'bg-[#E4EFE0]' : 'bg-white')
         }
       >
-        {/* Tombol lingkaran centang */}
+        {/* Tombol lingkaran centang — area kontrol terpisah, target sentuh 32px */}
         <motion.button
           type="button"
+          disabled={readOnly}
           onClick={(e) => {
             e.stopPropagation()
             onToggle()
@@ -129,12 +157,15 @@ export function TaskRow({
           whileTap={{ scale: 0.85 }}
           role="checkbox"
           aria-checked={done}
-          aria-label={`Tandai selesai: ${task.title}`}
+          aria-disabled={readOnly}
+          aria-label={`Tandai selesai: ${habit.title}`}
           className={
-            'flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
+            'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] disabled:cursor-not-allowed ' +
             (done
               ? 'border-[#749B58] bg-[#749B58] text-white'
-              : 'border-[#4A3B3240] text-transparent hover:border-[#749B58]/60')
+              : readOnly
+                ? 'border-[#4A3B32]/20 text-transparent'
+                : 'border-[#4A3B3240] text-transparent hover:border-[#749B58]/60')
           }
         >
           <motion.span
@@ -149,7 +180,7 @@ export function TaskRow({
           </motion.span>
         </motion.button>
 
-        {/* Judul tugas */}
+        {/* Judul kebiasaan */}
         <span
           className={
             'min-w-0 flex-1 truncate text-left text-[15px] font-medium transition-colors duration-300 ' +
@@ -158,18 +189,18 @@ export function TaskRow({
               : 'text-[#231F1E]')
           }
         >
-          {task.title}
+          {habit.title}
         </span>
 
-        {/* Pil meta: streak atau kategori */}
-        {task.streak ? (
+        {/* Pil meta: streak nyata atau kategori */}
+        {streak > 0 ? (
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#EAE5D9] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
             <Flame className="h-3.5 w-3.5" />
-            {task.streak} hari
+            {streak} hari
           </span>
-        ) : task.cat ? (
+        ) : habit.cat !== 'Kebiasaan' ? (
           <span className="shrink-0 rounded-full bg-[#E4EFE0] px-2.5 py-1 text-[11px] font-bold text-[#4A3B32]">
-            {task.cat}
+            {habit.cat}
           </span>
         ) : null}
 
@@ -177,7 +208,7 @@ export function TaskRow({
         {typeof xp === 'number' && (
           <span
             className={
-              'flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold tabular-nums transition-colors duration-300 ' +
+              'flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold tabular-nums transition-colors duration-300 ' +
               (done
                 ? 'bg-[#4A3B32]/10 text-[#4A3B32]/45'
                 : 'bg-[#749B58]/15 text-[#658A4C]')
@@ -196,9 +227,9 @@ export function TaskRow({
           <ChevronDown className="h-4 w-4" />
         </motion.span>
 
-        {/* XP pop — mengambang naik saat tugas baru selesai */}
+        {/* XP pop — mengambang naik saat kebiasaan baru selesai */}
         <AnimatePresence>
-          {done && typeof xp === 'number' && (
+          {done && typeof xp === 'number' && !readOnly && (
             <motion.span
               key="xp-pop"
               aria-hidden="true"
@@ -225,17 +256,45 @@ export function TaskRow({
             className="relative z-10 overflow-hidden bg-white"
           >
             <div className="border-t border-[#4A3B3214] px-3.5 pb-4 pt-3 text-left">
-              <p className="text-[13px] leading-relaxed text-[#231F1E]/70">
-                {task.desc}
+              <p className="text-[13px] leading-relaxed text-[#231F1E]/75">
+                {habit.desc || 'Belum ada deskripsi untuk kebiasaan ini.'}
               </p>
 
-              {/* Riwayat streak 14 hari */}
+              {/* Meta jadwal, pengingat, target pekanan */}
+              <dl className="mt-3 grid grid-cols-1 gap-1.5">
+                <div className="flex items-center gap-2 text-[11px] font-medium text-[#4A3B32]/80">
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[#749B58]" />
+                  <span>
+                    {habit.schedule.length === 0
+                      ? 'Terjadwal setiap hari'
+                      : 'Terjadwal: ' +
+                        [...habit.schedule]
+                          .sort((a, b) => a - b)
+                          .map((d) => ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][d])
+                          .join(', ')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-medium text-[#4A3B32]/80">
+                  <Repeat className="h-3.5 w-3.5 shrink-0 text-[#749B58]" />
+                  <span>
+                    {weekDone}/{habit.weeklyTarget} target pekan ini
+                  </span>
+                </div>
+                {habit.reminder && (
+                  <div className="flex items-center gap-2 text-[11px] font-medium text-[#4A3B32]/80">
+                    <Bell className="h-3.5 w-3.5 shrink-0 text-[#749B58]" />
+                    <span>Pengingat {habit.reminder} WIB</span>
+                  </div>
+                )}
+              </dl>
+
+              {/* Riwayat 14 hari nyata */}
               <div className="mt-3 flex items-center gap-2">
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/60">
+                <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
                   14 hari
                 </span>
                 <div className="flex flex-wrap gap-1">
-                  {task.history.map((h, j) => (
+                  {recent.map((h, j) => (
                     <span
                       key={j}
                       aria-hidden="true"
@@ -258,7 +317,20 @@ export function TaskRow({
                 >
                   Sembunyikan
                 </Button>
-                {done ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onEdit}
+                  className="h-9 flex-1 rounded-full border-[#749B58]/40 text-[13px] font-semibold text-[#658A4C] hover:bg-[#E4EFE0] hover:text-[#658A4C]"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+                {readOnly ? (
+                  <span className="flex h-9 flex-1 items-center justify-center rounded-full bg-[#EAE5D9] text-[12px] font-semibold text-[#4A3B32]/60">
+                    Belum terjadi
+                  </span>
+                ) : done ? (
                   <Button
                     type="button"
                     variant="ghost"

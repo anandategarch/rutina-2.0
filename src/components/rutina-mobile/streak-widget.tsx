@@ -4,19 +4,19 @@ import { motion } from 'motion/react'
 import { Flame } from 'lucide-react'
 
 import { Counter } from './counter'
-import { useRutina } from './store'
+import { bestStreak, todayISO, useRutina } from './store'
 
 /**
  * Kartu bento setengah kolom (espresso gelap): streak aktif terpanjang.
- * Angka dihitung dinamis dari daftar tugas agar konsisten dengan layar Statistik.
+ * Angka dihitung NYATA dari histori penyelesaian (completions) —
+ * konsisten dengan layar Statistik.
  */
 export function StreakWidget() {
-  const tasks = useRutina((s) => s.tasks)
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
 
-  const best = [...tasks].sort(
-    (a, b) => (b.streak ?? 0) - (a.streak ?? 0),
-  )[0]
-  const streak = best?.streak ?? 0
+  const best = bestStreak(habits, completions, todayISO())
+  const streak = best.streak
 
   return (
     <motion.div
@@ -29,9 +29,9 @@ export function StreakWidget() {
         ease: [0.22, 1, 0.36, 1],
       }}
       aria-label={`Streak terpanjang aktif, ${streak} hari`}
-      className="flex flex-col rounded-[16px] bg-[#4A3B32] p-4 text-[#F5F3EE]"
+      className="flex flex-col rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-4 text-[#F5F3EE] shadow-soft"
     >
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/60">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
         Streak Terpanjang
       </p>
 
@@ -41,12 +41,12 @@ export function StreakWidget() {
             <span className="text-[30px] font-semibold leading-none tracking-tight text-[#F5F3EE]">
               <Counter to={streak} />
             </span>
-            <span className="text-[11px] font-medium text-[#F5F3EE]/60">
+            <span className="text-[11px] font-medium text-[#F5F3EE]/70">
               hari
             </span>
           </p>
-          <p className="mt-1.5 line-clamp-2 pr-1 text-[11px] font-medium leading-snug text-[#F5F3EE]/70">
-            {best?.title ?? 'Mulai kebiasaan pertamamu'}
+          <p className="mt-1.5 line-clamp-2 pr-1 text-[11px] font-medium leading-snug text-[#F5F3EE]/75">
+            {best.habit?.title ?? 'Mulai kebiasaan pertamamu'}
           </p>
         </div>
         <span

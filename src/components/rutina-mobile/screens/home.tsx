@@ -1,17 +1,22 @@
 'use client'
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import { animate } from 'animejs'
 import {
+  Archive,
+  ArchiveRestore,
   BookOpen,
+  CalendarDays,
   Check,
+  ChevronDown,
   Gift,
   Heart,
   Lightbulb,
   Plus,
   Quote,
   Sparkles,
+  Undo2,
   Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -27,29 +32,54 @@ import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
 import {
+  addDaysISO,
   computeLevel,
   computeXp,
-  FOLDERS,
+  doneCountOn,
+  folderCount,
+  fromISO,
+  habitsOn,
+  habitStreak,
+  isDoneOn,
+  longDateLabel,
   QUOTE_AUTHOR,
   QUOTE_TEXT,
+  shortDateLabel,
+  todayISO,
   useRutina,
+  WEEKDAY_MIN,
   XP_BONUS,
   XP_PER_TASK,
   XP_TARGET,
+  type Completions,
   type FolderKey,
+  type Habit,
 } from '../store'
 
 /* ===== Potongan kecil ===== */
 
-function SectionTitle({ title, hint }: { title: string; hint?: string }) {
+function SectionTitle({
+  title,
+  hint,
+  action,
+}: {
+  title: string
+  hint?: string
+  action?: React.ReactNode
+}) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
-        {title}
-      </h2>
-      {hint ? (
-        <span className="text-xs font-medium text-[#4A3B32]/70">{hint}</span>
-      ) : null}
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-baseline gap-2.5">
+        <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
+          {title}
+        </h2>
+        {hint ? (
+          <span className="truncate text-[12px] font-medium text-[#4A3B32]/75">
+            {hint}
+          </span>
+        ) : null}
+      </div>
+      {action}
     </div>
   )
 }
@@ -81,139 +111,126 @@ function getClientGreeting(): string {
   return 'Selamat malam'
 }
 
-/* ===== 1 — Horizontal Date Strip (kalender mingguan melayang) ===== */
+/* ===== Utilitas pekan (Senin = awal pekan) ===== */
 
-const DAY_MINI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+/** Senin pada pekan yang memuat tanggal ISO tersebut. */
+function weekStartISO(iso: string): string {
+  const day = fromISO(iso).getDay() // 0=Minggu..6=Sabtu
+  const diff = day === 0 ? -6 : 1 - day
+  return addDaysISO(iso, diff)
+}
+
+/** Jumlah selesai sepanjang pekan (sampai tanggal yang dilihat). */
+function weekDoneCount(c: Completions, habitId: string, iso: string): number {
+  let cursor = weekStartISO(iso)
+  let n = 0
+  for (let i = 0; i < 7; i++) {
+    if (cursor > iso) break
+    if (isDoneOn(c, cursor, habitId)) n++
+    cursor = addDaysISO(cursor, 1)
+  }
+  return n
+}
+
+/** Riwayat 14 hari terakhir berakhir pada tanggal yang dilihat. */
+function recentDays(c: Completions, habitId: string, iso: string): boolean[] {
+  const out: boolean[] = []
+  for (let i = 13; i >= 0; i--) {
+    out.push(isDoneOn(c, addDaysISO(iso, -i), habitId))
+  }
+  return out
+}
+
+/* ===== 1 — Horizontal Date Strip (kalender dua pekan, histori nyata) ===== */
 
 interface DayChip {
-  key: string
+  iso: string
   label: string
   dateNum: number
-  full: string
   isToday: boolean
   isFuture: boolean
-  /** Capaian pseudo-deterministik (misi selesai) untuk hari selain hari ini. */
+  /** Jumlah kebiasaan selesai NYATA pada tanggal itu. */
   done: number
 }
 
-function buildDays(totalTasks: number): DayChip[] {
-  const today = new Date()
-  const chips: DayChip[] = []
-  for (let i = -7; i <= 6; i++) {
-    const d = new Date(today)
-    d.setDate(d.getDate() + i)
-    const isToday = i === 0
-    const dateNum = d.getDate()
-    chips.push({
-      key: d.toDateString(),
-      label: DAY_MINI[d.getDay()],
-      dateNum,
-      full: new Intl.DateTimeFormat('id-ID', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }).format(d),
-      isToday,
-      isFuture: i > 0,
-      done: isToday
-        ? -1
-        : Math.min(((dateNum * 7) % 6) + 1, Math.max(totalTasks, 1)),
-    })
-  }
-  return chips
-}
-
-/* Snapshot klien untuk useSyncExternalStore — di-cache per (hari, jumlah
-   tugas) agar referensi stabil dan tidak memicu render berulang. */
-let daysCache: { key: string; days: DayChip[] } | null = null
-function getDaysSnapshot(totalTasks: number): DayChip[] {
-  const key = `${new Date().toDateString()}#${totalTasks}`
-  if (daysCache?.key === key) return daysCache.days
-  daysCache = { key, days: buildDays(totalTasks) }
-  return daysCache.days
-}
-
-function DateStrip({
-  doneCount,
-  totalTasks,
-}: {
-  doneCount: number
-  totalTasks: number
-}) {
+function DateStrip() {
+  const completions = useRutina((s) => s.completions)
   const dailyGoal = useRutina((s) => s.dailyGoal)
-  /* Tanggal klien via useSyncExternalStore — snapshot server kosong
-     (kerangka), snapshot klien terisi setelah mount. Aman dari hydration. */
-  const days = useSyncExternalStore(
-    emptySubscribe,
-    () => getDaysSnapshot(totalTasks),
-    () => null,
-  )
-  /* null = ikuti hari ini (tanpa setState di dalam effect). */
-  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const selectedDate = useRutina((s) => s.selectedDate)
+  const setSelectedDate = useRutina((s) => s.setSelectedDate)
+
+  /* Layar Beranda hanya tampil setelah splash (klien murni) —
+     perhitungan tanggal langsung aman. */
+  const today = todayISO()
+
+  const days = useMemo<DayChip[]>(() => {
+    const chips: DayChip[] = []
+    for (let i = -7; i <= 6; i++) {
+      const iso = addDaysISO(today, i)
+      const d = fromISO(iso)
+      chips.push({
+        iso,
+        label: WEEKDAY_MIN[d.getDay()],
+        dateNum: d.getDate(),
+        isToday: i === 0,
+        isFuture: i > 0,
+        done: doneCountOn(completions, iso),
+      })
+    }
+    return chips
+  }, [completions, today])
+
   const stripRef = useRef<HTMLDivElement>(null)
 
   /* Gulir mulus ke hari ini begitu strip siap. */
   useEffect(() => {
-    if (!days || !stripRef.current) return
+    if (!stripRef.current) return
     const el = stripRef.current.querySelector('[data-today="true"]')
     el?.scrollIntoView({
       inline: 'center',
       block: 'nearest',
       behavior: 'smooth',
     })
-  }, [days])
+  }, [])
 
-  const selected = days
-    ? (days.find((d) => d.key === selectedKey) ??
-      days.find((d) => d.isToday) ??
-      null)
-    : null
   const goal = Math.max(dailyGoal, 1)
+  const selected = days.find((d) => d.iso === selectedDate) ?? null
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-[#4A3B32]/5 bg-[#F5F3EE]/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
+    <div className="sticky top-0 z-30 -mx-4 border-b border-[#4A3B32]/5 bg-[#FAF9F6]/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
       <div
         ref={stripRef}
         role="group"
         aria-label="Kalender dua pekan"
         className="flex snap-x snap-mandatory gap-2 overflow-x-auto no-scrollbar"
       >
-        {(days ?? Array.from({ length: 7 }, () => null)).map((d, i) => {
-          if (!d) {
-            /* Kerangka memuat sebelum tanggal klien tersedia (aman SSR) */
-            return (
-              <span
-                key={`skeleton-${i}`}
-                aria-hidden="true"
-                className="h-[54px] w-11 shrink-0 animate-pulse rounded-2xl bg-[#4A3B32]/8"
-              />
-            )
-          }
-          const isSelected = d.key === selectedKey
-          const done = d.isToday ? doneCount : d.done
-          const full = d.isFuture
+        {days.map((d) => {
+          const isSelected = d.iso === selectedDate
+          const done = d.done
+          const caption = d.isFuture
             ? 'belum terjadi'
             : `${Math.min(done, goal)}/${goal} misi`
           return (
             <button
-              key={d.key}
+              key={d.iso}
               type="button"
               data-today={d.isToday ? 'true' : undefined}
               aria-pressed={isSelected}
-              aria-label={`${d.full} — ${full}`}
-              onClick={() => setSelectedKey(d.key)}
+              aria-current={d.isToday ? 'date' : undefined}
+              aria-label={`${longDateLabel(d.iso)} — ${caption}`}
+              onClick={() => setSelectedDate(d.iso)}
               className={
                 'relative flex h-[54px] w-11 shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-0.5 rounded-2xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
                 (d.isToday
                   ? 'bg-[#749B58] text-[#FAF9F6] shadow-[0_6px_16px_rgba(116,155,88,0.35)]'
                   : isSelected
-                    ? 'bg-white text-[#231F1E] ring-2 ring-[#749B58]'
+                    ? 'bg-white text-[#231F1E] ring-2 ring-[#749B58] shadow-soft'
                     : d.isFuture
                       ? 'bg-white/40 text-[#4A3B32]/35'
                       : 'bg-white/80 text-[#4A3B32] hover:bg-white')
               }
             >
-              <span className="text-[9px] font-bold uppercase tracking-wider opacity-75">
+              <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">
                 {d.label}
               </span>
               <span className="text-[15px] font-bold leading-none tabular-nums">
@@ -236,13 +253,13 @@ function DateStrip({
           )
         })}
       </div>
-      <p className="mt-2 px-0.5 text-[11px] font-medium text-[#4A3B32]/70">
+      <p className="mt-2 px-0.5 text-[12px] font-medium text-[#4A3B32]/75">
         {selected
           ? selected.isToday
-            ? `Hari ini — ${Math.min(doneCount, goal)}/${goal} misi target tercapai`
+            ? `Hari ini — ${Math.min(selected.done, goal)}/${goal} misi target tercapai`
             : selected.isFuture
-              ? `${selected.full} — belum terjadi`
-              : `${selected.full} — ${selected.done} misi selesai`
+              ? `${longDateLabel(selected.iso)} — belum terjadi`
+              : `${longDateLabel(selected.iso)} — ${selected.done} misi selesai`
           : 'Memuat kalender…'}
       </p>
     </div>
@@ -290,7 +307,7 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
           {done}
           <span className="text-[11px] font-semibold opacity-60">/{goal}</span>
         </p>
-        <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.18em] opacity-70">
+        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] opacity-75">
           target
         </p>
       </div>
@@ -298,26 +315,48 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
   )
 }
 
-/* ===== Layar Beranda — Bento Grid × Gamified XP ===== */
+/* ===== Layar Beranda — histori nyata × gamified XP ===== */
 
 export default function HomeScreen() {
-  const tasks = useRutina((s) => s.tasks)
-  const toggleTask = useRutina((s) => s.toggleTask)
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
+  const selectedDate = useRutina((s) => s.selectedDate)
+  const setSelectedDate = useRutina((s) => s.setSelectedDate)
+  const toggleHabit = useRutina((s) => s.toggleHabit)
   const openFolder = useRutina((s) => s.openFolder)
   const openCompose = useRutina((s) => s.openCompose)
   const quoteSaved = useRutina((s) => s.quoteSaved)
   const saveQuote = useRutina((s) => s.saveQuote)
+  const notes = useRutina((s) => s.notes)
   const expandedTaskId = useRutina((s) => s.expandedTaskId)
   const toggleExpandedTask = useRutina((s) => s.toggleExpandedTask)
+  const openHabitCreate = useRutina((s) => s.openHabitCreate)
+  const openHabitEdit = useRutina((s) => s.openHabitEdit)
+  const setHabitArchived = useRutina((s) => s.setHabitArchived)
   const setCelebrating = useRutina((s) => s.setCelebrating)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const claimBonus = useRutina((s) => s.claimBonus)
   const dailyGoal = useRutina((s) => s.dailyGoal)
 
+  const [showArchive, setShowArchive] = useState(false)
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
   const giftRef = useRef<HTMLSpanElement>(null)
   const prevBonusRef = useRef(bonusClaimed)
+
+  const today = todayISO()
+  const viewingToday = selectedDate === today
+  const viewingPast = selectedDate < today
+
+  /* Misi mengikuti tanggal yang dipilih — inilah inti histori nyata. */
+  const dayHabits = useMemo(
+    () => habitsOn(habits, selectedDate),
+    [habits, selectedDate],
+  )
+  const archivedHabits = habits.filter((h) => h.archived)
+  const doneToday = doneCountOn(completions, today)
+  const doneSelected = doneCountOn(completions, selectedDate)
 
   /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim */
   useEffect(() => {
@@ -352,22 +391,27 @@ export default function HomeScreen() {
     () => 'Selamat pagi',
   )
 
-  const doneCount = tasks.filter((t) => t.done).length
+  /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
   const pct =
-    tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0
-  const xp = computeXp(doneCount, bonusClaimed)
+    dayHabits.length > 0 ? Math.round((doneToday / habitsOn(habits, today).length) * 100) : 0
+  const xp = computeXp(doneToday, bonusClaimed)
   const level = computeLevel(xp)
   const xpProgress = Math.min(xp / XP_TARGET, 1)
   const remaining = Math.max(XP_TARGET - xp, 0)
 
-  // Perayaan + toast saat semua tugas selesai — hanya sekali
+  // Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali
+  const todayHabits = habitsOn(habits, today)
   useEffect(() => {
-    if (tasks.length > 0 && tasks.every((t) => t.done) && !firedRef.current) {
+    if (
+      todayHabits.length > 0 &&
+      todayHabits.every((h) => isDoneOn(completions, today, h.id)) &&
+      !firedRef.current
+    ) {
       firedRef.current = true
       setCelebrating(true)
       toast.success('Semua misi selesai — hari yang produktif!')
     }
-  }, [tasks, setCelebrating])
+  }, [completions, todayHabits, today, setCelebrating])
 
   return (
     <div
@@ -392,8 +436,8 @@ export default function HomeScreen() {
         </div>
       </header>
 
-      {/* Kalender mingguan melayang (sticky) */}
-      <DateStrip doneCount={doneCount} totalTasks={tasks.length} />
+      {/* Kalender dua pekan melayang (sticky) — histori nyata */}
+      <DateStrip />
 
       {/* 1 — Hero: ringkasan harian + cincin target + progres XP */}
       <motion.section
@@ -406,7 +450,7 @@ export default function HomeScreen() {
       >
         <HeroDoodle />
         <div className="relative z-10 sm:mx-auto sm:max-w-[600px]">
-          <p className="text-[13px] font-medium text-[#FAF9F6]/75">
+          <p className="text-[13px] font-medium text-[#FAF9F6]/80">
             {dateLabel}
           </p>
           <h1
@@ -417,21 +461,21 @@ export default function HomeScreen() {
 
           <div className="mt-5 flex items-center gap-5">
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium text-[#FAF9F6]/75">
-                Tugas selesai
+              <p className="text-[12px] font-medium text-[#FAF9F6]/80">
+                Misi selesai hari ini
               </p>
               <p className="mt-0.5 flex items-baseline gap-1.5">
                 <span className="text-[56px] font-semibold leading-none tracking-tight">
                   <Counter to={pct} />
                 </span>
-                <span className="text-lg font-medium text-[#FAF9F6]/80">%</span>
+                <span className="text-lg font-medium text-[#FAF9F6]/85">%</span>
               </p>
-              <p className="mt-1.5 text-xs font-medium text-[#FAF9F6]/70">
-                {doneCount} dari {tasks.length} tugas •{' '}
-                {tasks.length - doneCount} tersisa
+              <p className="mt-1.5 text-xs font-medium text-[#FAF9F6]/75">
+                {doneToday} dari {todayHabits.length} misi •{' '}
+                {Math.max(todayHabits.length - doneToday, 0)} tersisa
               </p>
             </div>
-            <GoalRing done={doneCount} goal={dailyGoal} />
+            <GoalRing done={doneToday} goal={dailyGoal} />
           </div>
 
           <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#FAF9F6]/25">
@@ -443,13 +487,11 @@ export default function HomeScreen() {
             />
           </div>
 
-          {/* Strip XP gamified di dalam hero — angka berkilau (shimmer) */}
+          {/* Strip XP gamified di dalam hero — angka polos tanpa shimmer */}
           <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
             <span className="flex items-center gap-1.5 text-[12px] font-bold tabular-nums">
               <Zap className="h-3.5 w-3.5 text-pistachio" strokeWidth={2.4} />
-              <span className="text-shimmer">
-                <Counter to={xp} /> XP
-              </span>
+              <Counter to={xp} /> XP
             </span>
             <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#FAF9F6]/20">
               <motion.span
@@ -459,7 +501,7 @@ export default function HomeScreen() {
                 transition={{ type: 'spring', stiffness: 110, damping: 20 }}
               />
             </span>
-            <span className="text-[10px] font-semibold tabular-nums text-[#FAF9F6]/70">
+            <span className="text-[11px] font-semibold tabular-nums text-[#FAF9F6]/75">
               {remaining > 0 ? `${remaining} XP lagi` : 'MAX'}
             </span>
           </div>
@@ -526,7 +568,7 @@ export default function HomeScreen() {
             <span className="block text-[14px] font-bold text-[#231F1E]">
               {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
             </span>
-            <span className="mt-0.5 block text-[12px] font-medium text-[#4A3B32]/70">
+            <span className="mt-0.5 block text-[12px] font-medium text-[#4A3B32]/75">
               {bonusClaimed
                 ? `+${XP_BONUS} XP sudah masuk ke saldo kamu`
                 : `Hadiah konsistensi: +${XP_BONUS} XP gratis setiap hari`}
@@ -540,61 +582,205 @@ export default function HomeScreen() {
         </button>
       </motion.section>
 
-      {/* 2.5 — Kartu stempel pekan (pattern punch card loyalti) */}
+      {/* 2.5 — Kartu stempel pekan (pola punch card, histori nyata) */}
       <PunchCard />
 
-      {/* 3 — Daftar misi & kebiasaan */}
-      <section className="mt-8" aria-label="Daftar tugas harian">
+      {/* 3 — Daftar misi mengikuti tanggal terpilih */}
+      <section className="mt-8" aria-label="Daftar misi">
         <SectionTitle
-          title="Misi Hari Ini"
-          hint={`${doneCount}/${tasks.length} selesai`}
+          title={viewingToday ? 'Misi Hari Ini' : 'Misi'}
+          hint={
+            viewingToday
+              ? `${doneSelected}/${dayHabits.length} selesai`
+              : shortDateLabel(selectedDate)
+          }
+          action={
+            <button
+              type="button"
+              onClick={openHabitCreate}
+              aria-label="Tambah kebiasaan baru"
+              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#749B58] text-white shadow-soft transition-all hover:bg-[#658A4C] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.6} />
+            </button>
+          }
         />
+
+        {/* Pita konteks tanggal lampau / masa depan */}
+        {!viewingToday && (
+          <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-[#D9B98C]/40 bg-[#F5F3EE] px-3.5 py-2.5">
+            <CalendarDays className="h-4 w-4 shrink-0 text-[#A98650]" />
+            <p className="min-w-0 flex-1 text-[12px] font-medium text-[#4A3B32]/85">
+              {viewingPast
+                ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
+                : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
+            </p>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(today)}
+              className="shrink-0 cursor-pointer rounded-full bg-[#749B58] px-3 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-[#658A4C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            >
+              Hari ini
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {tasks.map((t, i) => (
+          {dayHabits.map((h: Habit, i) => (
             <motion.div
-              key={t.id}
+              key={h.id}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: 0.4,
-                delay: 0.14 + i * 0.05,
+                delay: Math.min(0.14 + i * 0.05, 0.4),
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
               <TaskRow
-                task={t}
-                done={t.done}
-                expanded={expandedTaskId === t.id}
+                habit={h}
+                done={isDoneOn(completions, selectedDate, h.id)}
+                streak={habitStreak(h, completions, selectedDate)}
+                recent={recentDays(completions, h.id, selectedDate)}
+                weekDone={weekDoneCount(completions, h.id, selectedDate)}
+                expanded={expandedTaskId === h.id}
+                readOnly={selectedDate > today}
                 xp={XP_PER_TASK}
-                onToggle={() => toggleTask(t.id)}
-                onExpand={() => toggleExpandedTask(t.id)}
+                onToggle={() => toggleHabit(h.id, selectedDate)}
+                onExpand={() => toggleExpandedTask(h.id)}
+                onEdit={() => openHabitEdit(h.id)}
               />
             </motion.div>
           ))}
         </div>
+
+        {dayHabits.length === 0 && (
+          <div className="flex flex-col items-center rounded-[20px] border-2 border-dashed border-[#749B58]/30 bg-white/60 px-6 py-8 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E4EFE0] text-[#658A4C]">
+              <CalendarDays className="h-5 w-5" />
+            </span>
+            <p className="mt-3 text-[14px] font-bold text-[#231F1E]">
+              Tidak ada misi terjadwal
+            </p>
+            <p className="mt-1 text-[12px] font-medium text-[#4A3B32]/75">
+              {shortDateLabel(selectedDate)} bebas — atau tambah kebiasaan baru.
+            </p>
+            <Button
+              type="button"
+              onClick={openHabitCreate}
+              className="mt-4 h-10 rounded-full bg-[#749B58] px-5 text-[13px] font-bold text-white hover:bg-[#658A4C]"
+            >
+              <Plus className="h-4 w-4" />
+              Kebiasaan Baru
+            </Button>
+          </div>
+        )}
+
+        {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
+        {archivedHabits.length > 0 && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowArchive((v) => !v)}
+              aria-expanded={showArchive}
+              className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+            >
+              <span className="flex items-center gap-2 text-[12px] font-bold text-[#4A3B32]">
+                <Archive className="h-3.5 w-3.5" />
+                Arsip · {archivedHabits.length} kebiasaan
+              </span>
+              <motion.span
+                aria-hidden="true"
+                animate={{ rotate: showArchive ? 180 : 0 }}
+                transition={{ duration: 0.25 }}
+                className="text-[#4A3B32]/50"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </motion.span>
+            </button>
+            {showArchive && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="mt-2 space-y-2"
+              >
+                {archivedHabits.map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex items-center gap-3 rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-2.5 shadow-soft"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EAE5D9] text-[#4A3B32]/60">
+                      <Archive className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-[#231F1E]/70">
+                        {h.title}
+                      </span>
+                      <span className="block text-[11px] font-medium text-[#4A3B32]/70">
+                        {h.cat} · diarsipkan
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHabitArchived(h.id, false)
+                        toast.success('Kebiasaan dipulihkan dari arsip')
+                      }}
+                      aria-label={`Pulihkan ${h.title} dari arsip`}
+                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#749B58]/40 text-[#658A4C] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    >
+                      <ArchiveRestore className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openHabitEdit(h.id)}
+                      aria-label={`Sunting ${h.title}`}
+                      className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#4A3B32]/25 text-[#4A3B32] transition-colors hover:bg-[#EAE5D9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </div>
+        )}
       </section>
 
-      {/* 4 — Bento insight: fokus & streak berdampingan */}
+      {/* 4 — Bento insight: aktivitas & streak berdampingan */}
       <section className="mt-8" aria-label="Insight pekan ini">
-        <SectionTitle title="Insight Pekan" hint="Fokus & konsistensi" />
+        <SectionTitle title="Insight Pekan" hint="Aktivitas & konsistensi" />
         <div className="grid grid-cols-2 gap-3">
           <FocusWidget />
           <StreakWidget />
         </div>
       </section>
 
-      {/* 5 — Kartu Kategori / Folder */}
+      {/* 5 — Kartu Kategori / Folder (jumlah dihitung nyata) */}
       <section className="mt-8" aria-label="Koleksi folder catatan">
-        <SectionTitle title="Koleksi" hint="4 folder" />
+        <SectionTitle
+          title="Koleksi"
+          hint={`${FOLDER_ICONS ? Object.keys(FOLDER_ICONS).length : 0} folder`}
+        />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {FOLDERS.map((f, i) => {
-            const Icon = FOLDER_ICONS[f.key]
+          {(Object.keys(FOLDER_ICONS) as FolderKey[]).map((key, i) => {
+            const Icon = FOLDER_ICONS[key]
+            const label =
+              key === 'kerja'
+                ? 'Kerja'
+                : key === 'ide'
+                  ? 'Ide & Gagasan'
+                  : key === 'bacaan'
+                    ? 'Bacaan'
+                    : 'Pribadi'
+            const count = folderCount(notes, key)
             return (
               <motion.div
-                key={f.key}
+                key={key}
                 role="button"
                 tabIndex={0}
-                aria-label={`Buka folder ${f.label}, ${f.count} catatan`}
+                aria-label={`Buka folder ${label}, ${count} catatan`}
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-20px' }}
@@ -605,11 +791,11 @@ export default function HomeScreen() {
                 }}
                 whileHover={{ y: -3 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => openFolder(f.key)}
+                onClick={() => openFolder(key)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    openFolder(f.key)
+                    openFolder(key)
                   }
                 }}
                 className="flex aspect-square cursor-pointer flex-col justify-between rounded-[20px] bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-pop focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
@@ -620,10 +806,10 @@ export default function HomeScreen() {
                   </span>
                   <button
                     type="button"
-                    aria-label={`Buat catatan baru di folder ${f.label}`}
+                    aria-label={`Buat catatan baru di folder ${label}`}
                     onClick={(e) => {
                       e.stopPropagation()
-                      openCompose(f.key)
+                      openCompose(key)
                     }}
                     className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#E4EFE0]/70 text-[#4A3B32] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
                   >
@@ -632,10 +818,10 @@ export default function HomeScreen() {
                 </div>
                 <span>
                   <span className="block text-[15px] font-semibold leading-tight text-[#231F1E]">
-                    {f.label}
+                    {label}
                   </span>
-                  <span className="mt-0.5 block text-xs font-medium text-[#4A3B32]/70">
-                    {f.count} Catatan
+                  <span className="mt-0.5 block text-xs font-medium text-[#4A3B32]/75">
+                    {count} Catatan
                   </span>
                 </span>
               </motion.div>
@@ -654,35 +840,35 @@ export default function HomeScreen() {
         className="mt-8 rounded-[20px] bg-[#4A3B32] p-6 text-[#F5F3EE] shadow-ink"
       >
         <div className="sm:mx-auto sm:max-w-[600px]">
-        <div className="flex items-start justify-between gap-3">
-          <Quote className="h-6 w-6 shrink-0 text-[#F5F3EE]/45" />
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/60">
-            Refleksi Hari Ini
-          </span>
-        </div>
-        <p
-          className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-[#F5F3EE]`}
-        >
-          &ldquo;{QUOTE_TEXT}&rdquo;
-        </p>
-        <p className="mt-3 text-xs font-medium text-[#F5F3EE]/70">
-          — {QUOTE_AUTHOR}
-        </p>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={quoteSaved}
-          onClick={() => {
-            if (!quoteSaved) {
-              saveQuote()
-              toast.success('Kutipan disimpan ke jurnal')
-            }
-          }}
-          className="mt-5 h-9 rounded-full border border-[#F5F3EE]/35 px-4 text-[13px] font-semibold text-[#F5F3EE] hover:bg-[#F5F3EE]/10 hover:text-[#F5F3EE] disabled:opacity-60"
-        >
-          {quoteSaved ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
-          {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
-        </Button>
+          <div className="flex items-start justify-between gap-3">
+            <Quote className="h-6 w-6 shrink-0 text-[#F5F3EE]/45" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/70">
+              Refleksi Hari Ini
+            </span>
+          </div>
+          <p
+            className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-[#F5F3EE]`}
+          >
+            &ldquo;{QUOTE_TEXT}&rdquo;
+          </p>
+          <p className="mt-3 text-xs font-medium text-[#F5F3EE]/75">
+            — {QUOTE_AUTHOR}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={quoteSaved}
+            onClick={() => {
+              if (!quoteSaved) {
+                saveQuote()
+                toast.success('Kutipan disimpan ke jurnal')
+              }
+            }}
+            className="mt-5 h-9 rounded-full border border-[#F5F3EE]/35 px-4 text-[13px] font-semibold text-[#F5F3EE] hover:bg-[#F5F3EE]/10 hover:text-[#F5F3EE] disabled:opacity-60"
+          >
+            {quoteSaved ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
+            {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
+          </Button>
         </div>
       </motion.section>
     </div>

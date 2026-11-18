@@ -10,7 +10,9 @@ import {
 import {
   computeLevel,
   computeXp,
+  doneCountOn,
   SCREEN_THEME,
+  todayISO,
   useRutina,
   type Screen,
 } from './store'
@@ -23,6 +25,7 @@ import { CelebrationOverlay } from './celebration'
 import { Splash } from './splash'
 import { AddTxSheet } from './finance/add-tx-sheet'
 import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
+import { HabitSheet } from './habit-sheet'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
@@ -33,14 +36,14 @@ import ProfileScreen from './screens/profile'
 /* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan). */
 const ORDER: Screen[] = ['beranda', 'jurnal', 'keuangan', 'statistik', 'profil']
 
-/** Cahaya ambien per layar: tiga blob radial dengan warna khas tiap tab. */
-const AMBIENT: Record<Screen, [string, string, string]> = {
-  beranda: ['rgba(228,239,224,0.9)', 'rgba(116,155,88,0.10)', 'rgba(234,229,217,0.7)'],
-  jurnal: ['rgba(250,249,246,0.14)', 'rgba(35,31,30,0.16)', 'rgba(163,196,137,0.30)'],
-  keuangan: ['rgba(217,185,140,0.30)', 'rgba(35,31,30,0.55)', 'rgba(163,196,137,0.12)'],
-  statistik: ['rgba(116,155,88,0.20)', 'rgba(74,59,50,0.65)', 'rgba(163,196,137,0.08)'],
-  profil: ['rgba(250,249,246,0.16)', 'rgba(35,31,30,0.20)', 'rgba(217,142,107,0.35)'],
-}
+/** Cahaya ambien lembut — SATU set netral (sand + matcha tipis) untuk semua
+   layar. Kanvas utama seragam Warm Sand; perpindahan tab tidak lagi
+   terasa seperti berpindah aplikasi. */
+const AMBIENT: [string, string, string] = [
+  'rgba(228,239,224,0.55)',
+  'rgba(116,155,88,0.08)',
+  'rgba(234,229,217,0.45)',
+]
 
 /* Variants transisi berarah — masuk dari sisi sesuai arah pindah tab. */
 const slide: Variants = {
@@ -65,8 +68,8 @@ export function RutinaApp() {
   const screen = useRutina((s) => s.screen)
   const prevScreen = useRutina((s) => s.prevScreen)
   const celebrating = useRutina((s) => s.celebrating)
-  const tasks = useRutina((s) => s.tasks)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  const completions = useRutina((s) => s.completions)
   const [phase, setPhase] = useState<'splash' | 'app'>('splash')
 
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
@@ -74,13 +77,16 @@ export function RutinaApp() {
   const dir =
     ORDER.indexOf(screen) >= ORDER.indexOf(prevScreen) ? 1 : -1
 
+  /* Kanvas utama seragam Warm Sand untuk semua tab (SCREEN_THEME). */
   const theme = SCREEN_THEME[screen]
-  const ambient = AMBIENT[screen]
+  const ambient = AMBIENT
 
   /* Momen naik level — konfeti + toast, dipusatkan di shell agar berlaku
-     untuk semua layar (tugas bisa dicentang dari Beranda maupun Statistik). */
+     untuk semua layar (misi bisa dicentang dari Beranda maupun Statistik).
+     XP dihitung dari penyelesaian HARI INI yang nyata. */
   const leveledRef = useRef(false)
-  const xp = computeXp(tasks.filter((t) => t.done).length, bonusClaimed)
+  const today = todayISO()
+  const xp = computeXp(doneCountOn(completions, today), bonusClaimed)
   const level = computeLevel(xp)
   useEffect(() => {
     if (level >= 8 && !leveledRef.current) {
@@ -160,6 +166,7 @@ export function RutinaApp() {
             <AddTxSheet />
             <ContributeGoalSheet />
             <NewGoalDialog />
+            <HabitSheet />
             <CelebrationOverlay active={celebrating} />
           </>
         )}

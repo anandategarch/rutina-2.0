@@ -4,16 +4,21 @@ import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import { BadgeCheck, Leaf, Sparkles } from 'lucide-react'
 
-import { useRutina } from './store'
+import {
+  addDaysISO,
+  doneCountOn,
+  fromISO,
+  todayISO,
+  useRutina,
+  WEEKDAY_MIN,
+} from './store'
 
 /**
  * Kartu Stempel Pekan — pattern "punch card" ala kartu loyalti kafe:
- * satu pekan = 7 lubang; hari dengan misi tuntas mendapat stempel
- * (lubang berisi daun) dengan animasi cap yang muncul beruntun.
- * Hari ini dihitung LANGSUNG dari progres misi nyata.
+ * satu pekan = 7 lubang; hari dengan target misi tercapai mendapat
+ * stempel (lubang berisi daun). SEMUA hari — lampau maupun hari ini —
+ * dihitung dari histori penyelesaian NYATA.
  */
-
-const DAY_LABEL = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
 interface PunchDay {
   key: string
@@ -23,25 +28,21 @@ interface PunchDay {
 }
 
 function buildPunchWeek(
-  doneToday: number,
+  completions: Parameters<typeof doneCountOn>[0],
   goal: number,
 ): { days: PunchDay[]; stampedCount: number } {
-  const today = new Date()
+  const today = todayISO()
   const days: PunchDay[] = []
   let stampedCount = 0
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
+    const iso = addDaysISO(today, -i)
     const isToday = i === 0
-    /* Hari lampau: capaian pseudo-deterministik (selaras DateStrip);
-       hari ini: tuntas bila target harian tercapai. */
-    const stamped = isToday
-      ? doneToday >= goal
-      : ((d.getDate() * 7) % 6) + 1 >= Math.max(goal - 2, 2)
+    /* Stempel = jumlah selesai NYATA pada hari itu mencapai target. */
+    const stamped = doneCountOn(completions, iso) >= goal
     if (stamped) stampedCount++
     days.push({
-      key: d.toDateString(),
-      label: DAY_LABEL[d.getDay()],
+      key: iso,
+      label: WEEKDAY_MIN[fromISO(iso).getDay()],
       stamped,
       isToday,
     })
@@ -50,13 +51,12 @@ function buildPunchWeek(
 }
 
 export function PunchCard() {
-  const tasks = useRutina((s) => s.tasks)
+  const completions = useRutina((s) => s.completions)
   const dailyGoal = useRutina((s) => s.dailyGoal)
-  const doneCount = tasks.filter((t) => t.done).length
 
   const { days, stampedCount } = useMemo(
-    () => buildPunchWeek(doneCount, dailyGoal),
-    [doneCount, dailyGoal],
+    () => buildPunchWeek(completions, Math.max(dailyGoal, 1)),
+    [completions, dailyGoal],
   )
   const perfect = stampedCount === 7
 
@@ -66,7 +66,7 @@ export function PunchCard() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
       aria-label="Kartu stempel pekan"
-      className="relative overflow-hidden rounded-[20px] border-2 border-dashed border-[#749B58]/35 bg-white p-5 shadow-card"
+      className="relative mt-3 overflow-hidden rounded-[20px] border-2 border-dashed border-[#749B58]/35 bg-white p-5 shadow-card"
     >
       {/* Kepingan polos khas kartu loyalti: lingkaran lembut di sudut */}
       <div
@@ -76,17 +76,17 @@ export function PunchCard() {
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#4A3B32]/60">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4A3B32]/70">
             <BadgeCheck className="h-3.5 w-3.5 text-[#749B58]" />
             Kartu Stempel Pekan
           </p>
           <p className="mt-1 text-[15px] font-bold text-[#231F1E]">
             {stampedCount} dari 7 hari tuntas
           </p>
-          <p className="mt-0.5 text-[11.5px] font-medium text-[#4A3B32]/65">
+          <p className="mt-0.5 text-[12px] font-medium text-[#4A3B32]/75">
             {perfect
               ? 'Pekan sempurna — pertahankan!'
-              : 'Selesaikan misi hari ini untuk stempel baru'}
+              : 'Selesaikan target misi untuk stempel baru'}
           </p>
         </div>
         {perfect && (
@@ -94,7 +94,7 @@ export function PunchCard() {
             initial={{ scale: 0.5, rotate: -8, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58] px-2.5 py-1 text-[10px] font-bold text-white shadow-leaf"
+            className="flex shrink-0 items-center gap-1 rounded-full bg-[#749B58] px-2.5 py-1 text-[11px] font-bold text-white shadow-leaf"
           >
             <Sparkles className="h-3 w-3" />
             Sempurna
@@ -143,7 +143,7 @@ export function PunchCard() {
             </motion.div>
             <span
               className={
-                'text-[9px] font-bold uppercase leading-tight tracking-tight ' +
+                'text-[10px] font-bold uppercase leading-tight tracking-tight ' +
                 (d.isToday
                   ? 'whitespace-nowrap text-[#658A4C]'
                   : d.stamped
@@ -151,7 +151,7 @@ export function PunchCard() {
                     : 'text-[#4A3B32]/40')
               }
             >
-              {d.isToday ? 'Hari ini' : d.label}
+              {d.label}
             </span>
           </div>
         ))}
