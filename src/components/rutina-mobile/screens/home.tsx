@@ -7,6 +7,7 @@ import { animate } from 'animejs'
 import {
   Archive,
   ArchiveRestore,
+  Bell,
   BookOpen,
   CalendarDays,
   Check,
@@ -17,11 +18,13 @@ import {
   Gift,
   Heart,
   Lightbulb,
+  Minimize2,
   Plus,
   Quote,
   Sun,
   Sunrise,
   Sunset,
+  TrendingUp,
   Undo2,
   Zap,
 } from 'lucide-react'
@@ -37,6 +40,13 @@ import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
 import { HomeProgressRing } from '../home-progress-ring'
+import { HomeFinanceCard } from '../home-finance-card'
+import { PlantGarden } from '../plant-garden'
+import {
+  goldilocksOf,
+  missedYesterday,
+  type GoldilocksAdvice,
+} from '../habit-coach'
 import { RutinaCard } from '../rutina-card'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaEmptyState } from '../rutina-empty-state'
@@ -46,6 +56,7 @@ import {
   bestStreak,
   computeLevel,
   computeXp,
+  dailyQuote,
   doneCountOn,
   FOLDERS,
   folderCount,
@@ -54,8 +65,6 @@ import {
   habitStreak,
   isDoneOn,
   longDateLabel,
-  QUOTE_AUTHOR,
-  QUOTE_TEXT,
   shortDateLabel,
   todayISO,
   useRutina,
@@ -357,7 +366,7 @@ export default function HomeScreen() {
   const toggleHabit = useRutina((s) => s.toggleHabit)
   const openFolder = useRutina((s) => s.openFolder)
   const openCompose = useRutina((s) => s.openCompose)
-  const quoteSaved = useRutina((s) => s.quoteSaved)
+  const quoteSavedDate = useRutina((s) => s.quoteSavedDate)
   const saveQuote = useRutina((s) => s.saveQuote)
   const notes = useRutina((s) => s.notes)
   const expandedTaskId = useRutina((s) => s.expandedTaskId)
@@ -432,6 +441,31 @@ export default function HomeScreen() {
     () => dayHabits.filter((h) => isDoneOn(completions, selectedDate, h.id)),
     [dayHabits, completions, selectedDate],
   )
+
+  /* Kutipan harian — berganti tiap tanggal, stabil sepanjang hari. */
+  const quote = dailyQuote(today)
+  const quoteSavedToday = quoteSavedDate === today
+
+  /* Nudge "Jangan Bolong Dua Kali" — terlewat kemarin DAN belum
+     diselesaikan hari ini; kartu lenyap sendiri begitu semua selesai. */
+  const missedList = useMemo(
+    () =>
+      missedYesterday(habits, completions, today).filter(
+        (h) => !isDoneOn(completions, today, h.id),
+      ),
+    [habits, completions, today],
+  )
+
+  /* Saran Coach (Goldilocks) — kebiasaan terjadwal hari ini yang hasil
+     pekanannya meminta penyesuaian; batasi 3 saran paling releven. */
+  const coachTips = useMemo(() => {
+    const out: { habit: Habit; advice: GoldilocksAdvice }[] = []
+    for (const h of todayHabits) {
+      const advice = goldilocksOf(h, completions, today)
+      if (advice) out.push({ habit: h, advice })
+    }
+    return out.slice(0, 3)
+  }, [todayHabits, completions, today])
 
   /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim */
   useEffect(() => {
@@ -864,6 +898,115 @@ export default function HomeScreen() {
         )}
       </section>
 
+      {/* Nudge "Jangan Bolong Dua Kali" — kartu hangat (bukan merah):
+         kebiasaan terlewat kemarin, selesaikan hari ini. */}
+      {missedList.length > 0 && (
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+          aria-label="Pengingat jangan bolong dua kali"
+          className="mt-6"
+        >
+          <div className="rounded-[20px] border border-gold/45 bg-gold/15 p-4">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/30 text-warning"
+              >
+                <Bell className="h-4 w-4" strokeWidth={2.2} />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-[14px] font-bold text-content-primary">
+                  Jangan bolong dua kali
+                </h3>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                  Terlewat kemarin tak apa — selesaikan hari ini supaya
+                  tidak bolong dua kali berturut-turut.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 space-y-1.5">
+              {missedList.map((h) => (
+                <div
+                  key={h.id}
+                  className="flex items-center gap-3 rounded-xl border border-gold/30 bg-surface-primary/70 px-3 py-1.5"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-content-primary">
+                    {h.title}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleHabit(h.id, today)
+                      toast.success(`"${h.title}" selesai — streak kembali berjalan.`)
+                    }}
+                    className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-[11px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    Selesaikan sekarang
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </m.section>
+      )}
+
+      {/* Saran Coach — Goldilocks: naikkan atau perkecil, dari hasil pekan */}
+      {coachTips.length > 0 && (
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.05,
+            ease: motionTokens.easing.standard,
+          }}
+          aria-label="Saran Coach"
+          className="mt-6"
+        >
+          <RutinaSectionHeader
+            title="Saran Coach"
+            description="Penyesuaian kecil dari hasil pekan ini"
+          />
+          <div className="mt-3 space-y-2.5">
+            {coachTips.map(({ habit: h, advice }) => {
+              const naik = advice.tone === 'naik'
+              const Icon = naik ? TrendingUp : Minimize2
+              return (
+                <div
+                  key={h.id}
+                  className="flex items-start gap-3 rounded-[16px] border border-border bg-surface-primary p-3.5 shadow-soft"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full ' +
+                      (naik
+                        ? 'bg-secondary text-success'
+                        : 'bg-gold/25 text-warning')
+                    }
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={2.2} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold text-content-primary">
+                      {advice.title}
+                    </p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                      {advice.text}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </m.section>
+      )}
+
+      {/* Ringkasan finansial harian (audit #11) */}
+      <HomeFinanceCard />
+
       {/* 3 — Bonus konsistensi (klaim XP harian) */}
       <m.section
         initial={{ opacity: 0, y: 16 }}
@@ -1021,6 +1164,9 @@ export default function HomeScreen() {
         </div>
       </section>
 
+      {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap kebiasaan */}
+      <PlantGarden />
+
       {/* 7 — Kartu Kutipan & Pengingat (pembatas visual) */}
       <m.section
         initial={{ opacity: 0, y: 18 }}
@@ -1040,25 +1186,27 @@ export default function HomeScreen() {
           <p
             className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-content-inverse`}
           >
-            &ldquo;{QUOTE_TEXT}&rdquo;
+            &ldquo;{quote.text}&rdquo;
           </p>
           <p className="mt-3 text-xs font-medium text-content-inverse/75">
-            — {QUOTE_AUTHOR}
+            — {quote.author}
           </p>
           <Button
             type="button"
             variant="ghost"
-            disabled={quoteSaved}
+            disabled={quoteSavedToday}
             onClick={() => {
-              if (!quoteSaved) {
+              if (!quoteSavedToday) {
                 saveQuote()
                 toast.success('Kutipan disimpan ke jurnal')
               }
             }}
             className="mt-5 h-9 rounded-full border border-content-inverse/35 px-4 text-[13px] font-semibold text-content-inverse hover:bg-content-inverse/10 hover:text-content-inverse disabled:opacity-60"
           >
-            {quoteSaved ? <Check className="h-4 w-4" strokeWidth={2.5} /> : null}
-            {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
+            {quoteSavedToday ? (
+              <Check className="h-4 w-4" strokeWidth={2.5} />
+            ) : null}
+            {quoteSavedToday ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
           </Button>
         </div>
       </m.section>

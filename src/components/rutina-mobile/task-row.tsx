@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import {
   AnimatePresence,
   useMotionValue,
@@ -13,14 +13,17 @@ import {
   Check,
   ChevronDown,
   Flame,
+  Link2,
   Pencil,
   Repeat,
   Undo2,
   Zap,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { type Habit } from './store'
+import { PLANT_STAGES, plantStageOf, triggerLabelOf } from './habit-coach'
+import { type Habit, todayISO, useRutina } from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /**
@@ -60,6 +63,22 @@ export function TaskRow({
   onEdit: () => void
 }) {
   const dragGuardRef = useRef(false)
+
+  /* Kecerdasan kebiasaan — pemicu susun & tahap tanaman dibaca langsung
+     dari store agar baris tetap ringkas tanpa prop tambahan dari induk. */
+  const allHabits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
+  const today = todayISO()
+  const triggerLabel = habit.afterId
+    ? triggerLabelOf(allHabits, habit)
+    : null
+  const plant = useMemo(
+    () => plantStageOf(habit, completions, today),
+    [habit, completions, today],
+  )
+  const nextStageLabel = plant.nextAt
+    ? PLANT_STAGES[plant.index + 1]?.label
+    : null
 
   const x = useMotionValue(0)
   /* Isi hijau yang terkuak saat menggeser ke kanan (tandai selesai) */
@@ -261,6 +280,18 @@ export function TaskRow({
                 {habit.desc || 'Belum ada deskripsi untuk kebiasaan ini.'}
               </p>
 
+              {/* Pil pemicu susun kebiasaan: "Setelah [pemicu]" */}
+              {triggerLabel && (
+                <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-success">
+                  <Link2
+                    aria-hidden="true"
+                    className="h-3 w-3 shrink-0"
+                    strokeWidth={2.4}
+                  />
+                  Setelah {triggerLabel}
+                </p>
+              )}
+
               {/* Meta jadwal, pengingat, target pekanan */}
               <dl className="mt-3 grid grid-cols-1 gap-1.5">
                 <div className="flex items-center gap-2 text-[11px] font-medium text-content-muted">
@@ -306,6 +337,58 @@ export function TaskRow({
                     />
                   ))}
                 </div>
+              </div>
+
+              {/* Versi 2 Menit — aksi sekunder: cukup bentuk terkecil,
+                  tetap dihitung selesai untuk tanggal baris ini. */}
+              {habit.mini && !done && !readOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggle()
+                    toast.success(`Cukup ${habit.mini} — dihitung!`)
+                  }}
+                  aria-label={`Selesaikan versi 2 menit: ${habit.mini}`}
+                  className="mt-3 flex w-full cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/40 bg-secondary/40 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-success">
+                    <Zap className="h-4 w-4" strokeWidth={2.4} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                      Versi 2 menit
+                    </span>
+                    <span className="mt-0.5 block truncate text-[13px] font-semibold text-content-primary">
+                      {habit.mini}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[11px] font-bold text-success">
+                    Selesaikan
+                  </span>
+                </button>
+              )}
+
+              {/* Tahap tanaman — Taman Pertumbuhan mini di dalam detail */}
+              <div className="mt-3 rounded-xl bg-surface-secondary/70 px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="text-[18px] leading-none"
+                  >
+                    {plant.stage.emoji}
+                  </span>
+                  <span className="text-[12px] font-bold text-content-primary">
+                    {plant.stage.label}
+                  </span>
+                  <span className="ml-auto shrink-0 text-[11px] font-semibold tabular-nums text-content-muted">
+                    {plant.nextAt
+                      ? `${plant.total} dari ${plant.nextAt} untuk ${nextStageLabel}`
+                      : 'Tahap akhir'}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] leading-snug text-content-muted">
+                  {plant.stage.hint}
+                </p>
               </div>
 
               {/* Aksi */}

@@ -5,11 +5,14 @@ import { animate } from 'animejs'
 import { AnimatePresence, useSpring } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
+  AlertTriangle,
   ArrowDownRight,
   ArrowLeftRight,
+  ArrowRight,
   ArrowUpRight,
   CheckCircle2,
   ChevronDown,
+  Info,
   Laptop,
   Minus,
   Pencil,
@@ -57,6 +60,7 @@ import {
 } from '../store'
 import { FinChart } from '../finance/fin-chart'
 import { BUDGETABLE_CATS, CAT_META } from '../finance/cats'
+import { SpendHeatmap } from '../spend-heatmap'
 import {
   buildSeries,
   currentMonthKey,
@@ -66,8 +70,11 @@ import {
   formatIDR,
   formatIDRShort,
   groupByDay,
+  monthFlow,
+  monthSpendByCat,
   periodScope,
   spentByCat,
+  shiftMonthKey,
   totalSaldo,
   walletBalance,
   WEEKDAY_LABELS,
@@ -75,6 +82,7 @@ import {
   type PeriodPoint,
 } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
+import { RutinaSectionHeader } from '../rutina-section-header'
 
 /* ===== Konstanta gerak ===== */
 
@@ -975,6 +983,24 @@ function budgetRowProps(
   return { cat: b.cat, limit: b.limit, used, pct, over, warn, barColor, Icon }
 }
 
+/* ===== Temuan & Rekomendasi (audit #10) =====
+
+   Aturan berbasis data bulan berjalan. Bahasa observasional
+   ("terdeteksi", "terlihat") — tanpa klaim sebab-akibat. */
+
+/** Satu temuan: kartu baris + rekomendasi menjorok. */
+interface FinFinding {
+  key: string
+  /** Urutan kepentingan — kecil tampil lebih dulu; maksimal 4 tampil. */
+  weight: number
+  /** warn = amber, info = netral, good = matcha positif. */
+  tone: 'warn' | 'info' | 'good'
+  icon: LucideIcon
+  title: string
+  body: string
+  rec: string
+}
+
 export default function KeuanganScreen() {
   const txs = useRutina((s) => s.txs)
   const goals = useRutina((s) => s.goals)
@@ -1111,6 +1137,106 @@ export default function KeuanganScreen() {
         .slice(0, 4),
     [txs],
   )
+
+  /* Temuan & rekomendasi — deret aturan observasional, maks 4, urut
+     kepentingan: over-anggaran > dominan > naik > berulang > surplus. */
+  const findings = useMemo<FinFinding[]>(() => {
+    const out: FinFinding[] = []
+    const ym = currentMonthKey()
+    const flow = monthFlow(txs, ym)
+    const prevFlow = monthFlow(txs, shiftMonthKey(ym, -1))
+    const byCat = monthSpendByCat(txs, ym)
+
+    /* 1 — kategori over-anggaran bulan berjalan. */
+    for (const [cat, limit] of Object.entries(budgets)) {
+      if (!BUDGETABLE_CATS.includes(cat as FinCat) || limit <= 0) continue
+      const used = byCat[cat] ?? 0
+      if (used <= limit) continue
+      const label = CAT_META[cat as FinCat].label
+      const pct = Math.round((used / limit) * 100)
+      out.push({
+        key: `over-${cat}`,
+        weight: 0,
+        tone: 'warn',
+        icon: AlertTriangle,
+        title: `Batas ${label} terlampaui`,
+        body: `Anggaran ${label} terlampaui ${formatIDR(used - limit)} (${pct}% dari batas) — terdeteksi dari ${formatIDR(used)} pemakaian bulan ini.`,
+        rec: `Tinjau kembali jatah ${label} atau kecilkan porsi pekan depan.`,
+      })
+    }
+
+    /* 2 — kategori dominan (>40% dari total keluar). */
+    const spent = flow.keluar
+    const catEntries = Object.entries(byCat).sort((a, b) => b[1] - a[1])
+    if (spent > 0 && catEntries.length > 0) {
+      const [topCat, topVal] = catEntries[0]
+      const share = Math.round((topVal / spent) * 100)
+      if (share > 40) {
+        const label = CAT_META[topCat as FinCat].label
+        out.push({
+          key: 'dominan',
+          weight: 1,
+          tone: 'warn',
+          icon: AlertTriangle,
+          title: 'Pengeluaran terkonsentrasi',
+          body: `Pengeluaran terlihat terkonsentrasi di ${label} — ${share}% dari total ${formatIDR(spent)} bulan ini.`,
+          rec: `Cek apakah semua transaksi ${label} masih sesuai prioritas.`,
+        })
+      }
+    }
+
+    /* 3 — pengeluaran naik >15% vs bulan lalu (keduanya non-nol). */
+    if (prevFlow.keluar > 0 && flow.keluar > prevFlow.keluar * 1.15) {
+      const pct = Math.round((flow.keluar / prevFlow.keluar - 1) * 100)
+      out.push({
+        key: 'naik',
+        weight: 2,
+        tone: 'warn',
+        icon: AlertTriangle,
+        title: 'Pengeluaran naik',
+        body: `Pengeluaran naik ${pct}% dibanding bulan lalu — terdeteksi dari ${formatIDR(flow.keluar)} vs ${formatIDR(prevFlow.keluar)}.`,
+        rec: 'Tinjau transaksi terbesar sebelum menutup bulan.',
+      })
+    }
+
+    /* 4 — transaksi berulang aktif (templat, bukan salinan otomatis). */
+    const recurrings = txs.filter((t) => t.recurrence && !t.recurOf)
+    if (recurrings.length > 0) {
+      const monthly = recurrings.reduce(
+        (a, t) =>
+          a +
+          (t.recurrence === 'bulanan'
+            ? t.amount
+            : Math.round((t.amount * 52) / 12)),
+        0,
+      )
+      out.push({
+        key: 'berulang',
+        weight: 3,
+        tone: 'info',
+        icon: Info,
+        title: 'Transaksi berulang aktif',
+        body: `Ada ${recurrings.length} transaksi berulang aktif senilai ${formatIDR(monthly)}/bulan — terlihat dari jadwal langganan tercatat.`,
+        rec: 'Pastikan langganan ini masih dipakai.',
+      })
+    }
+
+    /* 5 — surplus arus kas (positif, paling akhir). */
+    const netFlow = flow.masuk - flow.keluar
+    if (netFlow > 0) {
+      out.push({
+        key: 'surplus',
+        weight: 4,
+        tone: 'good',
+        icon: TrendingUp,
+        title: 'Arus kas surplus',
+        body: `Arus kas bulan ini surplus ${formatIDR(netFlow)} — terlihat dari masuk ${formatIDR(flow.masuk)} berbanding keluar ${formatIDR(flow.keluar)}.`,
+        rec: 'Pertimbangkan menambah setoran ke target tabungan.',
+      })
+    }
+
+    return out.sort((a, b) => a.weight - b.weight).slice(0, 4)
+  }, [txs, budgets])
 
   /* anime.js — denyut "ka-ching" pada angka saldo saat transaksi baru masuk. */
   const prevLen = useRef(txs.length)
@@ -1508,6 +1634,71 @@ export default function KeuanganScreen() {
                 <TxRow key={tx.id} tx={tx} />
               ))}
             </div>
+          )}
+        </BlurFade>
+
+        {/* ===== PETA PANAS PENGELUARAN — 12 pekan (audit #9) ===== */}
+        <BlurFade delay={0.14}>
+          <RutinaSectionHeader
+            title="Peta Panas Pengeluaran"
+            description="Total keluar harian · 12 pekan terakhir · tanpa transfer."
+          />
+          <div className="mt-3">
+            <SpendHeatmap />
+          </div>
+        </BlurFade>
+
+        {/* ===== TEMUAN & REKOMENDASI — observasi bulan berjalan (audit #10) ===== */}
+        <BlurFade delay={0.18}>
+          <RutinaSectionHeader
+            title="Temuan & Rekomendasi"
+            description="Observasi bulan ini — bukan kesimpulan sebab-akibat."
+          />
+          {findings.length === 0 ? (
+            <RutinaEmptyState
+              className="mt-3"
+              icon={<Info />}
+              title="Belum cukup data untuk temuan bulan ini"
+              description="Temuan muncul setelah ada transaksi, anggaran, atau perbandingan bulan yang cukup."
+            />
+          ) : (
+            <ul className="mt-3 space-y-2.5">
+              {findings.map((f) => (
+                <li
+                  key={f.key}
+                  className="rounded-[18px] border border-border bg-surface-primary p-4 shadow-soft"
+                >
+                  <div className="flex gap-3">
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        f.tone === 'warn'
+                          ? 'bg-gold/25 text-warning'
+                          : f.tone === 'good'
+                            ? 'bg-secondary text-success'
+                            : 'bg-surface-sunken text-content-secondary'
+                      }`}
+                    >
+                      <f.icon className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-bold text-content-primary">
+                        {f.title}
+                      </p>
+                      <p className="mt-1 text-[12px] leading-relaxed text-content-secondary">
+                        {f.body}
+                      </p>
+                      <p className="mt-2 flex gap-1.5 border-l-2 border-gold/60 pl-2.5 text-[11.5px] leading-relaxed text-content-muted">
+                        <ArrowRight
+                          aria-hidden="true"
+                          className="mt-[3px] h-3 w-3 shrink-0 text-warning"
+                        />
+                        {f.rec}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </BlurFade>
           </>

@@ -4,13 +4,18 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
+  AlertTriangle,
+  Calculator,
   ChevronDown,
+  ChevronRight,
   Dumbbell,
   Footprints,
   Play,
   Plus,
   Search,
+  Sparkles,
   Timer,
+  TrendingDown,
   Trash2,
   Trophy,
   Zap,
@@ -20,6 +25,7 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { playfair } from '../serif'
 import {
+  longDateLabel,
   shortDateLabel,
   todayISO,
   useRutina,
@@ -29,10 +35,14 @@ import { BlurFade } from '../motion-kit'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import {
   bestE1rmIn,
+  cardioGuard,
   cardioSummary,
+  deloadActive,
+  detectPlateau,
   kcalOf,
   latestWeight,
   prBoard,
+  readinessOf,
   tonaseOf,
   weekRange,
   weekSummary,
@@ -51,6 +61,9 @@ import {
   WorkoutSessionOverlay,
   startSeededSession,
 } from '../fitness/workout-session'
+import { BarbellToolsSheet } from '../fitness/barbell-tools'
+import { useCheckInSheet } from '../checkin-sheet'
+import { RutinaSectionHeader } from '../rutina-section-header'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
@@ -428,11 +441,16 @@ export default function BugarScreen() {
   const workouts = useRutina((s) => s.workouts)
   const bodyLogs = useRutina((s) => s.bodyLogs)
   const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
+  const deloadUntil = useRutina((s) => s.deloadUntil)
+  const startDeload = useRutina((s) => s.startDeload)
+  const endDeload = useRutina((s) => s.endDeload)
+  const openCheckIn = useCheckInSheet((s) => s.openCheckIn)
 
   const [tab, setTab] = useState<BugarTab>('latihan')
   const [libQuery, setLibQuery] = useState('')
   const [libMuscle, setLibMuscle] = useState<string>('Semua')
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
+  const [barbellOpen, setBarbellOpen] = useState(false)
 
   const week = useMemo(() => weekSummary(workouts), [workouts])
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
@@ -447,6 +465,26 @@ export default function BugarScreen() {
         .reduce((a, w) => a + kcalOf(w, weight), 0),
     [workouts, weight],
   )
+
+  /* ===== Coach Bugar — derivasi dari data pengguna ===== */
+  const readiness = useMemo(() => readinessOf(bodyLogs), [bodyLogs])
+  const deloadOn = deloadActive(deloadUntil, todayISO())
+  const guard = useMemo(() => cardioGuard(workouts), [workouts])
+  /* Gerakan unik dari sesi beban; plateau dicek untuk yang ≥3 sesi
+     (detectPlateau mengembalikan null di bawah itu). */
+  const stalledNames = useMemo(() => {
+    if (deloadActive(deloadUntil)) return []
+    const names = new Set<string>()
+    for (const w of workouts) {
+      if (w.kind !== 'beban') continue
+      for (const s of w.sets) names.add(s.exercise)
+    }
+    const out: string[] = []
+    for (const n of names) {
+      if (detectPlateau(workouts, n)?.stalled) out.push(n)
+    }
+    return out
+  }, [workouts, deloadUntil])
 
   const strengthCount = workouts.filter((w) => w.kind === 'beban').length
 
@@ -590,6 +628,189 @@ export default function BugarScreen() {
       >
         Catat manual
       </button>
+
+      {/* ===== Coach Bugar — kesiapan, deload, guard, alat ===== */}
+      <section className="mt-7" aria-label="Coach Bugar">
+        <RutinaSectionHeader
+          eyebrow="Saran latihan"
+          title="Coach Bugar"
+          description="Kesiapan, deload, dan alat bantu — dihitung dari data latihanmu sendiri."
+        />
+        <div className="mt-3 space-y-2.5">
+          {/* a. Kesiapan latihan — ringkas dari check-in hari ini */}
+          <m.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
+            className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-success">
+                <Sparkles className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14.5px] font-bold text-content-primary">
+                  Kesiapan latihan
+                </p>
+                <p className="mt-0.5 text-[11.5px] font-medium text-content-muted">
+                  {readiness
+                    ? `${readiness.label} · dari check-in hari ini`
+                    : 'Belum ada check-in hari ini'}
+                </p>
+              </div>
+              {readiness && (
+                <p className="shrink-0 text-right">
+                  <span className="block text-[26px] font-bold leading-none tabular-nums text-content-primary">
+                    {readiness.score}
+                  </span>
+                  <span className="block text-[10px] font-bold uppercase tracking-wide text-content-muted">
+                    / 100
+                  </span>
+                </p>
+              )}
+            </div>
+            {readiness ? (
+              <p className="mt-2.5 rounded-xl bg-secondary/60 px-3.5 py-2.5 text-[11.5px] leading-relaxed text-content-secondary">
+                {readiness.hint}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={openCheckIn}
+                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-[12.5px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Isi check-in pagi untuk saran latihan
+              </button>
+            )}
+          </m.div>
+
+          {/* b. Deload aktif / plateau terdeteksi */}
+          {deloadOn && deloadUntil ? (
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.05, ease: motionTokens.easing.standard }}
+              className="rounded-[20px] border border-warning/40 bg-gold/25 p-4 shadow-soft"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-warning text-content-inverse">
+                  <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-bold leading-snug text-content-primary">
+                    Masa deload aktif hingga {longDateLabel(deloadUntil)}
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] font-medium text-content-muted">
+                    Target beban otomatis dikurangi 50%
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  endDeload()
+                  toast.success('Deload diakhiri — beban kembali normal.')
+                }}
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-warning/50 text-[12.5px] font-bold text-warning transition-colors hover:bg-gold/40 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+              >
+                Akhiri deload sekarang
+              </button>
+            </m.div>
+          ) : stalledNames.length > 0 ? (
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.05, ease: motionTokens.easing.standard }}
+              className="rounded-[20px] border border-warning/40 bg-gold/25 p-4 shadow-soft"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-warning text-content-inverse">
+                  <TrendingDown className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-bold text-content-primary">
+                    Plateau terdeteksi
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-content-muted">
+                    e1RM tidak membaik dalam 3 sesi terakhir:
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {stalledNames.map((n) => (
+                      <span
+                        key={n}
+                        className="rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold text-warning"
+                      >
+                        {n}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2.5 text-[11.5px] leading-relaxed text-content-muted">
+                Deload memangkas target beban 50% selama beberapa hari agar
+                tubuh bangkit lebih kuat.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  startDeload(7)
+                  toast.success('Deload 7 hari dimulai — target beban dipangkas 50%.')
+                }}
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-[12.5px] font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+              >
+                Mulai deload 7 hari
+              </button>
+            </m.div>
+          ) : null}
+
+          {/* c. Guard latihan silang — kardio berlebihan 7 hari */}
+          {guard.tooMuch && guard.suggestion && (
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.08, ease: motionTokens.easing.standard }}
+              className="rounded-[20px] border border-warning/35 bg-surface-sunken p-4"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gold/40 text-warning">
+                  <Footprints className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-bold text-content-primary">
+                    Jeda sejenak — {guard.cardioCount7d} sesi kardio 7 hari terakhir
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-content-muted">
+                    {guard.suggestion}
+                  </p>
+                </div>
+              </div>
+            </m.div>
+          )}
+
+          {/* d. Pintasan Alat Barbel */}
+          <button
+            type="button"
+            onClick={() => setBarbellOpen(true)}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary p-4 text-left shadow-soft transition-all hover:bg-surface-secondary/60 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-success">
+              <Calculator className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14.5px] font-bold text-content-primary">
+                Alat Barbel
+              </span>
+              <span className="mt-0.5 block text-[11.5px] font-medium text-content-muted">
+                Kalkulator piring, 1RM, dan pemanasan
+              </span>
+            </span>
+            <ChevronRight
+              className="h-5 w-5 shrink-0 text-content-muted"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+      </section>
 
       {/* ===== Program latihan ===== */}
       <section className="mt-7" aria-label="Program latihan">
@@ -802,6 +1023,7 @@ export default function BugarScreen() {
         open={sessionPickerOpen}
         onClose={() => setSessionPickerOpen(false)}
       />
+      <BarbellToolsSheet open={barbellOpen} onClose={() => setBarbellOpen(false)} />
       <WorkoutSessionOverlay />
     </div>
   )

@@ -265,3 +265,87 @@ export function defaultActive(period: FinPeriod, txs: Tx[] = []): number {
   }
   return now.getMonth() - yearWindow(txs).first
 }
+
+/* ===== Alat bulanan umum — kalender & laporan (audit 7–10) =====
+   Semua fungsi murni: kunci bulan "yyyy-mm" (zero-padded), rentang ISO,
+   tanpa menyentuh state. */
+
+/** Rentang ISO bulan dari kunci "yyyy-mm": tanggal 1 s.d. akhir bulan. */
+export function monthRange(ym: string): { start: string; end: string } {
+  const [y, m] = ym.split('-').map(Number)
+  const year = y ?? 1970
+  const month = (m ?? 1) - 1
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  const mm = String((m ?? 1)).padStart(2, '0')
+  const dd = String(lastDay).padStart(2, '0')
+  return { start: `${ym}-01`, end: `${year}-${mm}-${dd}` }
+}
+
+/** Label bulan panjang + tahun: "Juni 2025" (id-ID). */
+export function monthLabel(ym: string): string {
+  const [y, m] = ym.split('-').map(Number)
+  return new Intl.DateTimeFormat('id-ID', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(y ?? 1970, (m ?? 1) - 1, 1))
+}
+
+/** Kunci bulan "yyyy-mm" digeser n bulan (n boleh negatif). */
+export function shiftMonthKey(ym: string, n: number): string {
+  const [y, m] = ym.split('-').map(Number)
+  const d = new Date(y ?? 1970, (m ?? 1) - 1 + n, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Total masuk & keluar bulan tertentu (transfer dikecualikan —
+ *  sama filosofi dengan grafik arus kas). */
+export function monthFlow(txs: Tx[], ym: string): { masuk: number; keluar: number } {
+  const r = monthRange(ym)
+  let masuk = 0
+  let keluar = 0
+  for (const t of txs) {
+    if (t.type === 'transfer') continue
+    if (t.ts < r.start || t.ts > r.end) continue
+    if (t.type === 'masuk') masuk += t.amount
+    else keluar += t.amount
+  }
+  return { masuk, keluar }
+}
+
+/** Total pengeluaran (keluar, tanpa transfer) satu bulan — versi umum
+ *  dari spentByCat: menerima kunci bulan apa pun, bukan hanya berjalan. */
+export function monthSpend(txs: Tx[], ym: string): number {
+  return monthFlow(txs, ym).keluar
+}
+
+/** Pengeluaran per kategori (keluar, tanpa transfer) pada bulan tertentu. */
+export function monthSpendByCat(txs: Tx[], ym: string): Record<string, number> {
+  const r = monthRange(ym)
+  const out: Record<string, number> = {}
+  for (const t of txs) {
+    if (t.type !== 'keluar') continue
+    if (t.ts < r.start || t.ts > r.end) continue
+    out[t.cat] = (out[t.cat] ?? 0) + t.amount
+  }
+  return out
+}
+
+/** Rekap pengeluaran satu hari untuk peta panas: total + jumlah transaksi. */
+export interface DaySpend {
+  total: number
+  count: number
+}
+
+/** Total & jumlah transaksi keluar per tanggal (tanpa transfer) —
+ *  dasar peta panas pengeluaran dan pembanding mingguan. */
+export function spendByDay(txs: Tx[]): Record<string, DaySpend> {
+  const out: Record<string, DaySpend> = {}
+  for (const t of txs) {
+    if (t.type !== 'keluar') continue
+    const cur = out[t.ts] ?? { total: 0, count: 0 }
+    cur.total += t.amount
+    cur.count += 1
+    out[t.ts] = cur
+  }
+  return out
+}

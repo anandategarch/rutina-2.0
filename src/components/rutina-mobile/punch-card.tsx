@@ -125,9 +125,10 @@ export function PunchCard() {
               }
               transition={{
                 delay: 0.3 + i * 0.09,
-                type: 'spring',
-                stiffness: 320,
-                damping: 15,
+                /* Tween (bukan spring): Motion.dev hanya mendukung dua
+                   keyframe untuk spring — butuh tiga untuk efek "cap". */
+                duration: 0.45,
+                ease: [0.22, 1, 0.36, 1],
               }}
               className={
                 'flex h-11 w-full items-center justify-center rounded-full ' +

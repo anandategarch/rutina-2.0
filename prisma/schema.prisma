@@ -36,6 +36,9 @@ model Habit {
   schedule    String // JSON: number[] — hari aktif 0=Minggu..6=Sabtu
   weeklyTarget Int      @default(7)
   reminder    String? // "HH:MM"
+  restDays    String     @default("[]") // JSON: string[] — ISO jeda runtun terjadwal
+  afterId     String? // Susun Kebiasaan — id kebiasaan pemicu
+  mini        String     @default("") // Versi 2 Menit
   archived    Boolean    @default(false)
   createdAt   String // ISO yyyy-mm-dd — batas hitung streak
   logs        HabitLog[]
@@ -160,13 +163,23 @@ model FoodEntry {
 
 /// Satu catatan tubuh per tanggal (UPSERT harian).
 model BodyLog {
-  date   String  @id // ISO yyyy-mm-dd
-  water  Int     @default(0) // gelas
-  weight Float? // kg
-  sleepH Float? // jam tidur semalam
-  energy Int? // 1–5
+  date     String  @id // ISO yyyy-mm-dd
+  water    Int     @default(0) // gelas
+  weight   Float? // kg
+  sleepH   Float? // jam tidur semalam
+  energy   Int? // 1–5
+  soreness Int? // DOMS / nyeri otot 1–5
+  stress   Int? // tingkat stres 1–5
 
   @@map("rutina_body_logs")
+}
+
+/// Riwayat mood per tanggal (Rutina lama: DailyLog).
+model MoodLog {
+  date String @id // ISO yyyy-mm-dd
+  mood String // nama mood, mis. "Ceria"
+
+  @@map("rutina_mood_logs")
 }
 
 /* ===== Pengaturan aplikasi (k-v) ===== */

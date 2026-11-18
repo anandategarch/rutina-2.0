@@ -12,10 +12,13 @@ import {
   Bell,
   CalendarDays,
   Check,
+  Link2,
   Minus,
   Plus,
+  Snowflake,
   Sparkles,
   Trash2,
+  Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -37,7 +40,11 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { CONTENT_W } from './layout-widths'
 import {
+  addDaysISO,
   HABIT_CATS,
+  scheduledOn,
+  shortDateLabel,
+  todayISO,
   useRutina,
   WEEKDAY_MIN,
   type HabitCat,
@@ -57,6 +64,9 @@ const EMPTY_DRAFT: Draft = {
   schedule: [0, 1, 2, 3, 4, 5, 6],
   weeklyTarget: 7,
   reminder: null,
+  restDays: [],
+  afterId: null,
+  mini: '',
 }
 
 /**
@@ -73,6 +83,8 @@ export function HabitSheet() {
   const updateHabit = useRutina((s) => s.updateHabit)
   const setHabitArchived = useRutina((s) => s.setHabitArchived)
   const deleteHabit = useRutina((s) => s.deleteHabit)
+  const scheduleRestDay = useRutina((s) => s.scheduleRestDay)
+  const cancelRestDay = useRutina((s) => s.cancelRestDay)
   const closeHabitSheet = useRutina((s) => s.closeHabitSheet)
 
   const open = mode !== 'closed'
@@ -102,6 +114,9 @@ export function HabitSheet() {
             : [0, 1, 2, 3, 4, 5, 6],
           weeklyTarget: editing.weeklyTarget,
           reminder: editing.reminder,
+          restDays: [...(editing.restDays ?? [])],
+          afterId: editing.afterId ?? null,
+          mini: editing.mini ?? '',
         })
         setReminderOn(Boolean(editing.reminder))
       } else {
@@ -143,6 +158,28 @@ export function HabitSheet() {
     }))
   }
 
+  /* Susun Kebiasaan — kandidat pemicu: kebiasaan aktif lain, kecuali
+     kebiasaan yang sedang disunting (tidak menumpuk pada dirinya sendiri). */
+  const stackCandidates = habits.filter(
+    (x) => !x.archived && x.id !== editing?.id,
+  )
+  const triggerTitle = draft.afterId
+    ? (habits.find((x) => x.id === draft.afterId)?.title ?? null)
+    : null
+
+  /* Jeda Runtun Aman — 14 hari ke depan yang terjadwal saja. */
+  const today = todayISO()
+  const restDayOptions: string[] = []
+  if (mode === 'edit' && editing) {
+    for (let i = 1; i <= 14; i++) {
+      const iso = addDaysISO(today, i)
+      if (scheduledOn(editing, iso)) restDayOptions.push(iso)
+    }
+  }
+  const upcomingRestDays = [...(editing?.restDays ?? [])]
+    .filter((d) => d > today)
+    .sort()
+
   const submit = () => {
     const title = draft.title.trim()
     if (!title) {
@@ -154,6 +191,15 @@ export function HabitSheet() {
       title,
       desc: draft.desc.trim(),
       reminder: reminderOn ? draft.reminder ?? '07:00' : null,
+      mini: draft.mini.trim(),
+      afterId: draft.afterId || null,
+      /* Jeda Runtun dikelola langsung lewat bagiannya (scheduleRestDay /
+         cancelRestDay memutasi store saat itu juga) — kirim nilai TERKINI
+         milik kebiasaan, bukan draf yang mungkin basi. */
+      restDays:
+        mode === 'edit' && editing
+          ? [...(editing.restDays ?? [])]
+          : [...draft.restDays],
     }
     if (mode === 'edit' && editing) {
       updateHabit(editing.id, payload)
@@ -421,6 +467,183 @@ export function HabitSheet() {
                   </m.div>
                 )}
               </div>
+
+              {/* Versi 2 Menit — bentuk terkecil kebiasaan */}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="habit-mini"
+                  className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary"
+                >
+                  <Zap aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
+                  Versi 2 Menit
+                </Label>
+                <Input
+                  id="habit-mini"
+                  value={draft.mini}
+                  onChange={(e) =>
+                    setDraft((p) => ({ ...p, mini: e.target.value }))
+                  }
+                  placeholder="Contoh: baca satu halaman"
+                  className="h-11 rounded-xl border-border bg-surface-primary text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+                />
+                <p className="text-xs text-content-muted">
+                  Bentuk terkecil kebiasaan ini — cukup dua menit untuk memulai.
+                </p>
+              </div>
+
+              {/* Susun Kebiasaan — pasang menempel pada kebiasaan pemicu */}
+              <div className="space-y-1.5">
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                  <Link2
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 text-primary"
+                  />
+                  Susun Kebiasaan
+                </span>
+                {stackCandidates.length > 0 ? (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraft((p) => ({ ...p, afterId: null }))
+                        }
+                        aria-pressed={draft.afterId === null}
+                        className={
+                          'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                          (draft.afterId === null
+                            ? 'bg-primary text-primary-foreground'
+                            : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                        }
+                      >
+                        Tanpa pemicu
+                      </button>
+                      {stackCandidates.map((x) => {
+                        const on = draft.afterId === x.id
+                        return (
+                          <button
+                            key={x.id}
+                            type="button"
+                            onClick={() =>
+                              setDraft((p) => ({ ...p, afterId: x.id }))
+                            }
+                            aria-pressed={on}
+                            title={x.title}
+                            className={
+                              'h-9 max-w-[220px] shrink-0 cursor-pointer truncate rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                              (on
+                                ? 'bg-primary text-primary-foreground'
+                                : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                            }
+                          >
+                            {x.title}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs leading-relaxed text-content-muted">
+                      {triggerTitle
+                        ? `Setelah "${triggerTitle}", saya akan menjalankan kebiasaan ini.`
+                        : 'Pilih kebiasaan pemicu — kebiasaan ini menyusul tepat setelahnya.'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-content-muted">
+                    Belum ada kebiasaan lain untuk dijadikan pemicu — tambahkan
+                    dulu kebiasaan lainnya.
+                  </p>
+                )}
+              </div>
+
+              {/* Jeda Runtun Aman — butuh kebiasaan yang sudah ada */}
+              {mode === 'edit' && editing && (
+                <div className="space-y-2.5 rounded-2xl border border-border bg-surface-sunken/70 p-3.5">
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                    <Snowflake
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 text-primary"
+                    />
+                    Jeda Runtun Aman
+                  </span>
+                  <p className="text-xs leading-relaxed text-content-muted">
+                    Satu hari jeda per pekan, ditetapkan sebelum tanggalnya
+                    tiba. Streak tidak bertambah, tetapi juga tidak putus.
+                  </p>
+
+                  {/* Jeda terjadwal yang akan datang */}
+                  {upcomingRestDays.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {upcomingRestDays.map((iso) => (
+                        <span
+                          key={iso}
+                          className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2.5 py-1 text-[11px] font-bold text-espresso"
+                        >
+                          <Snowflake
+                            aria-hidden="true"
+                            className="h-3 w-3"
+                          />
+                          {shortDateLabel(iso)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {restDayOptions.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {restDayOptions.map((iso) => {
+                        const scheduled = (editing.restDays ?? []).includes(
+                          iso,
+                        )
+                        return (
+                          <div
+                            key={iso}
+                            className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-primary px-3 py-1.5"
+                          >
+                            <span className="min-w-0 truncate text-[12px] font-semibold text-content-primary">
+                              {shortDateLabel(iso)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (scheduled) {
+                                  cancelRestDay(editing.id, iso)
+                                  toast(
+                                    `Jeda ${shortDateLabel(iso)} dibatalkan.`,
+                                  )
+                                } else {
+                                  const res = scheduleRestDay(editing.id, iso)
+                                  if (!res.ok) {
+                                    toast.error(
+                                      res.error ??
+                                        'Jeda tidak bisa dijadwalkan.',
+                                    )
+                                  } else {
+                                    toast.success(
+                                      `Jeda ${shortDateLabel(iso)} dijadwalkan — streak tetap aman.`,
+                                    )
+                                  }
+                                }
+                              }}
+                              className={
+                                'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[11px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                                (scheduled
+                                  ? 'border border-gold/50 bg-gold/20 text-warning hover:bg-gold/30'
+                                  : 'border border-primary/35 bg-surface-primary text-success hover:bg-secondary')
+                              }
+                            >
+                              {scheduled ? 'Batalkan' : 'Jadwalkan jeda'}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-content-muted">
+                      Tidak ada hari terjadwal dalam 14 hari ke depan.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Aksi utama */}

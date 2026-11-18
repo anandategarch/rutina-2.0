@@ -30,6 +30,9 @@ export async function GET() {
         schedule: JSON.parse(h.schedule) as number[],
         weeklyTarget: h.weeklyTarget,
         reminder: h.reminder,
+        restDays: JSON.parse(h.restDays ?? '[]') as string[],
+        afterId: h.afterId ?? null,
+        mini: h.mini ?? '',
         archived: h.archived,
         createdAt: h.createdAt,
       })),
@@ -53,10 +56,22 @@ export async function POST(req: Request) {
         schedule: JSON.stringify([...input.schedule].sort((a, b) => a - b)),
         weeklyTarget: input.weeklyTarget,
         reminder: input.reminder,
+        restDays: JSON.stringify(input.restDays ?? []),
+        afterId: input.afterId ?? null,
+        mini: input.mini ?? '',
         archived: false,
         createdAt: todayJakartaISO(),
       },
     })
-    return ok({ habit: { ...habit, schedule: JSON.parse(habit.schedule) as number[] } }, 201)
+    return ok(
+      {
+        habit: {
+          ...habit,
+          schedule: JSON.parse(habit.schedule) as number[],
+          restDays: JSON.parse(habit.restDays ?? '[]') as string[],
+        },
+      },
+      201,
+    )
   })
 }

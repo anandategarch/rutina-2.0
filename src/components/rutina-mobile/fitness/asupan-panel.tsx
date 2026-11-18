@@ -4,10 +4,12 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
+  AlertTriangle,
   Apple,
   Flame,
   Minus,
   Plus,
+  Sparkles,
   Target,
   Trash2,
   Utensils,
@@ -23,6 +25,7 @@ import {
   type FoodEntry,
 } from '../store'
 import { FOOD_DB } from './food-db'
+import { burnedToday } from './fit-utils'
 
 /* ===== Utilitas asupan ===== */
 
@@ -121,6 +124,8 @@ export function AsupanPanel() {
   const calorieTarget = useRutina((s) => s.calorieTarget)
   const setCalorieTarget = useRutina((s) => s.setCalorieTarget)
   const openFoodSheet = useRutina((s) => s.openFoodSheet)
+  const workouts = useRutina((s) => s.workouts)
+  const bodyLogs = useRutina((s) => s.bodyLogs)
 
   const [editingTarget, setEditingTarget] = useState(false)
   const [targetDraft, setTargetDraft] = useState('2000')
@@ -131,6 +136,14 @@ export function AsupanPanel() {
     [foodEntries, today],
   )
   const sum = useMemo(() => summarize(todayEntries), [todayEntries])
+
+  /* Energi terbakar hari ini (MET × berat × durasi) — jatah tambahan
+     di atas target: Sisa = Target + Terbakar − Masuk. */
+  const burned = useMemo(
+    () => burnedToday(workouts, bodyLogs, today),
+    [workouts, bodyLogs, today],
+  )
+  const allowance = calorieTarget + burned
 
   /* Deret 7 hari untuk grafik mini. */
   const week = useMemo(() => {
@@ -146,8 +159,8 @@ export function AsupanPanel() {
     return { days, kcalByDay, max }
   }, [foodEntries, today, calorieTarget])
 
-  const remaining = calorieTarget - sum.kcal
-  const pct = Math.min((sum.kcal / Math.max(calorieTarget, 1)) * 100, 100)
+  const remaining = allowance - sum.kcal
+  const pct = Math.min((sum.kcal / Math.max(allowance, 1)) * 100, 100)
 
   return (
     <div>
@@ -170,7 +183,7 @@ export function AsupanPanel() {
                 {fmt(sum.kcal)}
               </span>
               <span className="text-lg font-medium text-primary-foreground/85">
-                / {fmt(calorieTarget)} kkal
+                / {fmt(allowance)} kkal
               </span>
             </p>
           </div>
@@ -249,7 +262,7 @@ export function AsupanPanel() {
           )}
         </AnimatePresence>
 
-        {/* Bar progres */}
+        {/* Bar progres — terisi relatif jatah (target + terbakar) */}
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-primary-foreground/25">
           <m.div
             initial={false}
@@ -258,13 +271,55 @@ export function AsupanPanel() {
             transition={{ type: 'spring', stiffness: 130, damping: 22 }}
           />
         </div>
-        <p className="mt-2 text-[12px] font-semibold text-primary-foreground/85">
-          {remaining > 0
-            ? `Sisa ${fmt(remaining)} kkal untuk hari ini`
-            : remaining === 0
-              ? 'Pas sesuai target — kerja bagus!'
-              : `Surplus ${fmt(-remaining)} kkal dari target`}
-        </p>
+
+        {/* Energi terbakar — baris tambahan neraca v2 */}
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-primary-foreground/90">
+            <Flame className="h-4 w-4 text-gold" aria-hidden="true" />
+            Energi terbakar
+          </p>
+          <p className="text-[13px] font-bold tabular-nums text-primary-foreground">
+            +{fmt(burned)}
+            <span className="ml-0.5 text-[10px] font-semibold text-primary-foreground/75">
+              kkal
+            </span>
+          </p>
+        </div>
+        {burned === 0 && (
+          <p className="mt-1.5 px-0.5 text-[10.5px] font-medium text-primary-foreground/70">
+            Catat latihan di Bugar untuk menambah jatah.
+          </p>
+        )}
+
+        {/* Coaching adaptif — menggantikan teks sisa lama */}
+        {remaining < -300 ? (
+          <p className="mt-2 flex items-start gap-2 rounded-xl bg-espresso/35 px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-primary-foreground">
+            <AlertTriangle
+              className="mt-0.5 h-4 w-4 shrink-0 text-gold"
+              aria-hidden="true"
+            />
+            Defisit terlalu dalam — jatah energi sudah terlampaui{' '}
+            {fmt(-remaining)} kkal. Tambah asupan sehat atau kurangi
+            intensitas.
+          </p>
+        ) : remaining < 0 ? (
+          <p className="mt-2 px-0.5 text-[12px] font-semibold text-primary-foreground/85">
+            Sedikit di atas jatah — tidak masalah, seimbangkan besok.
+          </p>
+        ) : remaining <= 400 ? (
+          <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[12px] font-semibold text-primary-foreground">
+            <Sparkles
+              className="h-4 w-4 shrink-0 text-pistachio"
+              aria-hidden="true"
+            />
+            Sisa {fmt(remaining)} kkal — tempo yang pas untuk hari ini.
+          </p>
+        ) : (
+          <p className="mt-2 px-0.5 text-[12px] font-semibold text-primary-foreground/85">
+            Masih ada {fmt(remaining)} kkal jatah — jangan lewatkan energi
+            untuk pemulihan.
+          </p>
+        )}
 
         {/* Makro */}
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-espresso/35 p-3 backdrop-blur-sm">

@@ -50,6 +50,30 @@ export const QUOTE_TEXT =
   'Kebiasaan kecil yang konsisten akan mengalahkan motivasi besar yang sesaat.'
 export const QUOTE_AUTHOR = 'James Clear, Atomic Habits'
 
+/* ===== Semangat Hari Ini — kutipan harian bergilir (deterministik) ===== */
+
+export const DAILY_QUOTES: { text: string; author: string }[] = [
+  { text: 'Kebiasaan kecil yang konsisten akan mengalahkan motivasi besar yang sesaat.', author: 'James Clear, Atomic Habits' },
+  { text: 'Kita adalah apa yang kita lakukan berulang-ulang. Keunggulan, karenanya, bukanlah tindakan, melainkan kebiasaan.', author: 'Aristoteles' },
+  { text: 'Satu persen lebih baik setiap hari berarti 37 kali lebih baik dalam setahun.', author: 'James Clear' },
+  { text: 'Disiplin adalah jembatan antara tujuan dan pencapaian.', author: 'Jim Rohn' },
+  { text: 'Motivasi membuat kamu memulai. Kebiasaan membuat kamu bertahan.', author: 'Jim Ryun' },
+  { text: 'Jangan menunggu momen yang sempurna — ambil momen ini dan buat sempurna.', author: 'Zig Ziglar' },
+  { text: 'Kualitas hidupmu, pada akhirnya, ditentukan oleh kualitas kebiasaanmu.', author: 'Anonim' },
+  { text: 'Fokus pada sistem, bukan hanya tujuan. Tujuan menetapkan arah; sistemlah yang membawamu ke sana.', author: 'James Clear' },
+  { text: 'Tubuhmu mendengarkan semua yang pikiranmu katakan. Berikan kata-kata yang baik.', author: 'Naomi Judd' },
+  { text: 'Uang tidak membeli kebahagiaan, tetapi mengelolanya dengan baik membeli ketenangan.', author: 'Anonim' },
+]
+
+/** Kutipan hari ini — index dari hari-dalam-tahun sehingga berganti
+ *  tiap tanggal namun stabil sepanjang hari yang sama. */
+export function dailyQuote(today: string): { text: string; author: string } {
+  const d = fromISO(today)
+  const start = new Date(d.getFullYear(), 0, 0)
+  const dayOfYear = Math.floor((d.getTime() - start.getTime()) / 86_400_000)
+  return DAILY_QUOTES[Math.abs(dayOfYear) % DAILY_QUOTES.length]!
+}
+
 /* ===== Ekonomi XP (gabungan varian Gamified ke dalam app utuh) ===== */
 
 export const XP_BASE = 1840
@@ -99,6 +123,15 @@ export interface Habit {
   weeklyTarget: number
   /** Jam pengingat format "HH:MM", atau null bila tanpa pengingat. */
   reminder: string | null
+  /** Jeda Runtun Aman (streak freeze) — tanggal ISO terjadwal; maksimal
+   *  satu per pekan, ditetapkan sebelum tanggalnya tiba, dan tidak
+   *  menambah/memutus streak (hanya mengampuni hari kosong). */
+  restDays: string[]
+  /** Susun Kebiasaan (habit stacking) — id kebiasaan pemicu:
+   *  "Setelah [pemicu], saya akan [kebiasaan ini]." */
+  afterId: string | null
+  /** Versi 2 Menit — bentuk terkecil kebiasaan yang mudah dimulai. */
+  mini: string
   archived: boolean
   /** Tanggal ISO mulai kebiasaan dijalankan (batas hitung streak). */
   createdAt: string
@@ -112,12 +145,47 @@ export interface HabitInput {
   schedule: number[]
   weeklyTarget: number
   reminder: string | null
+  restDays: string[]
+  afterId: string | null
+  mini: string
 }
 
 /** completions[tanggalISO][habitId] = true — sumber tunggal histori. */
 export type Completions = Record<string, Record<string, boolean>>
 
 /* --- Utilitas tanggal (ISO yyyy-mm-dd, aman zona waktu lokal) --- */
+
+/** Awal pekan (Senin) dari sebuah tanggal ISO. */
+export function weekStartISO(iso: string): string {
+  const dow = (fromISO(iso).getDay() + 6) % 7 // Senin = 0
+  return addDaysISO(iso, -dow)
+}
+
+/* --- Jeda Runtun Aman (streak freeze): validasi penjadwalan --- */
+
+/** Alasan penolakan jadwal jeda, atau null bila boleh. Aturan lama
+ *  Rutina: maks. satu per pekan, sebelum tanggalnya tiba, hanya untuk
+ *  streak yang sedang berjalan (tidak bisa memulai streak baru). */
+export function restDayError(
+  h: Habit,
+  c: Completions,
+  iso: string,
+  today: string = todayISO(),
+): string | null {
+  if (iso <= today) return 'Jeda harus ditetapkan sebelum tanggalnya tiba.'
+  if (!scheduledOn(h, iso))
+    return 'Hari itu bukan hari terjadwal kebiasaan ini.'
+  if ((h.restDays ?? []).includes(iso))
+    return 'Tanggal ini sudah dijadwalkan jeda.'
+  const wk = weekStartISO(iso)
+  const inWeek = (h.restDays ?? []).filter(
+    (d) => d >= wk && d <= addDaysISO(wk, 6),
+  )
+  if (inWeek.length >= 1) return 'Maksimal satu hari jeda per pekan.'
+  if (habitStreak(h, c, today) < 1)
+    return 'Jeda tidak bisa memulai streak baru — selesaikan kebiasaan ini dulu.'
+  return null
+}
 
 export function isoOf(d: Date): string {
   const y = d.getFullYear()
@@ -212,8 +280,16 @@ export function habitStreak(
   for (let i = 0; i < 400; i++) {
     if (cursor < h.createdAt) break
     if (scheduledOn(h, cursor)) {
-      if (isDoneOn(c, cursor, h.id)) streak++
-      else break
+      if (isDoneOn(c, cursor, h.id)) {
+        streak++
+      } else if ((h.restDays ?? []).includes(cursor)) {
+        /* Jeda Runtun Aman: hari jeda terjadwal tidak menambah streak
+           dan tidak memutuskannya. Aturan "jeda tidak boleh memulai
+           streak baru" dijaga saat penjadwalan (restDayError) — di
+           sini hari jeda transparan terhadap perhitungan. */
+      } else {
+        break
+      }
     }
     cursor = addDaysISO(cursor, -1)
   }
@@ -235,6 +311,8 @@ export function longestStreak(
       if (isDoneOn(c, cursor, h.id)) {
         run++
         best = Math.max(best, run)
+      } else if ((h.restDays ?? []).includes(cursor)) {
+        /* Jeda terjadwal menjembatani rekor tanpa menambah hitungan. */
       } else {
         run = 0
       }
@@ -406,6 +484,9 @@ const SEED_HABITS: Habit[] = [
     schedule: [],
     weeklyTarget: 7,
     reminder: '06:00',
+    restDays: [],
+    afterId: null,
+    mini: 'Duduk tegak dan tarik tiga napas dalam',
     archived: false,
     createdAt: SEED_START,
   },
@@ -417,6 +498,9 @@ const SEED_HABITS: Habit[] = [
     schedule: [1, 2, 3, 4, 5],
     weeklyTarget: 5,
     reminder: '09:00',
+    restDays: [],
+    afterId: null,
+    mini: 'Buka laporan dan baca satu baris angka',
     archived: false,
     createdAt: SEED_START,
   },
@@ -428,6 +512,9 @@ const SEED_HABITS: Habit[] = [
     schedule: [],
     weeklyTarget: 7,
     reminder: '21:00',
+    restDays: [],
+    afterId: 'h1',
+    mini: 'Baca satu halaman',
     archived: false,
     createdAt: SEED_START,
   },
@@ -439,6 +526,9 @@ const SEED_HABITS: Habit[] = [
     schedule: [],
     weeklyTarget: 4,
     reminder: null,
+    restDays: [],
+    afterId: null,
+    mini: 'Pakai sepatu dan berdiri di depan pintu',
     archived: false,
     createdAt: SEED_START,
   },
@@ -450,6 +540,9 @@ const SEED_HABITS: Habit[] = [
     schedule: [],
     weeklyTarget: 7,
     reminder: '19:30',
+    restDays: [],
+    afterId: 'h3',
+    mini: 'Baca arti satu kosakata baru',
     archived: false,
     createdAt: SEED_START,
   },
@@ -461,6 +554,9 @@ const SEED_HABITS: Habit[] = [
     schedule: [0, 6],
     weeklyTarget: 2,
     reminder: null,
+    restDays: [],
+    afterId: null,
+    mini: 'Rapikan satu barang di meja',
     archived: false,
     createdAt: SEED_START,
   },
@@ -692,6 +788,10 @@ export interface BodyLog {
   sleepH?: number
   /** Energi 1–5 (1 = sangat lelah, 5 = bugar). */
   energy?: number
+  /** DOMS / nyeri otot 1–5 (1 = tidak nyeri, 5 = sangat nyeri). */
+  soreness?: number
+  /** Tingkat stres 1–5 (1 = tenang, 5 = sangat stres). */
+  stress?: number
 }
 
 /** Log tubuh per tanggal ISO — selaras pola Completions. */
@@ -782,7 +882,17 @@ interface RutinaState {
   habitSheetId: string | null
   notes: Note[]
   quoteSaved: boolean
+  /** Tanggal ISO kutipan terakhir yang disimpan — kutipan harian boleh
+   *  disimpan ulang setiap ganti hari. */
+  quoteSavedDate: string | null
   mood: string | null
+  /** Riwayat mood per tanggal ISO — histori wellness jujur seperti
+   *  DailyLog Rutina lama (mood tetap tercermin di state `mood`). */
+  moodLogs: Record<string, string>
+  /** Suara Identitas — teks identitas personal (filosofi Atomic Habits). */
+  identityText: string
+  /** Batas akhir deload (ISO) — null bila sedang tidak deload. */
+  deloadUntil: string | null
   expandedTaskId: string | null
   readingNoteId: string | null
   celebrating: boolean
@@ -870,7 +980,12 @@ interface RutinaState {
   /* Aksi tubuh */
   setWaterToday: (delta: number) => void
   logWeightToday: (kg: number) => void
-  logBodyCheckIn: (input: { sleepH?: number; energy?: number }) => void
+  logBodyCheckIn: (input: {
+    sleepH?: number
+    energy?: number
+    soreness?: number
+    stress?: number
+  }) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
@@ -885,6 +1000,16 @@ interface RutinaState {
   openHabitCreate: () => void
   openHabitEdit: (id: string) => void
   closeHabitSheet: () => void
+  /* Jeda Runtun Aman (streak freeze) */
+  scheduleRestDay: (
+    id: string,
+    iso: string,
+  ) => { ok: boolean; error?: string }
+  cancelRestDay: (id: string, iso: string) => void
+  /* Suara Identitas & deload */
+  setIdentityText: (text: string) => void
+  startDeload: (days: number) => void
+  endDeload: () => void
   addNote: (input: { title: string; body: string; folder: FolderKey }) => void
   togglePin: (id: string) => void
   deleteNote: (id: string) => void
@@ -916,7 +1041,11 @@ export const useRutina = create<RutinaState>()(
   habitSheetId: null,
   notes: SEED_NOTES,
   quoteSaved: false,
+  quoteSavedDate: null,
   mood: null,
+  moodLogs: {},
+  identityText: '',
+  deloadUntil: null,
   expandedTaskId: null,
   readingNoteId: null,
   celebrating: false,
@@ -1180,13 +1309,15 @@ export const useRutina = create<RutinaState>()(
       }
     }),
 
-  logBodyCheckIn: ({ sleepH, energy }) =>
+  logBodyCheckIn: ({ sleepH, energy, soreness, stress }) =>
     set((s) => {
       const key = todayISO()
       const cur = s.bodyLogs[key] ?? { water: 0 }
       const next: BodyLog = { ...cur }
       if (sleepH !== undefined) next.sleepH = sleepH
       if (energy !== undefined) next.energy = energy
+      if (soreness !== undefined) next.soreness = soreness
+      if (stress !== undefined) next.stress = stress
       return { bodyLogs: { ...s.bodyLogs, [key]: next } }
     }),
 
@@ -1233,6 +1364,9 @@ export const useRutina = create<RutinaState>()(
           schedule: [...input.schedule].sort((a, b) => a - b),
           weeklyTarget: input.weeklyTarget,
           reminder: input.reminder,
+          restDays: [...(input.restDays ?? [])].sort(),
+          afterId: input.afterId || null,
+          mini: (input.mini ?? '').trim(),
           archived: false,
           createdAt: todayISO(),
         },
@@ -1249,6 +1383,8 @@ export const useRutina = create<RutinaState>()(
         }
         if (patch.title !== undefined) next.title = patch.title.trim()
         if (patch.desc !== undefined) next.desc = patch.desc.trim()
+        if (patch.mini !== undefined) next.mini = patch.mini.trim()
+        if (patch.afterId !== undefined) next.afterId = patch.afterId || null
         return next
       }),
     })),
@@ -1282,6 +1418,43 @@ export const useRutina = create<RutinaState>()(
 
   closeHabitSheet: () => set({ habitSheetMode: 'closed', habitSheetId: null }),
 
+  /* --- Jeda Runtun Aman (streak freeze) --- */
+
+  scheduleRestDay: (id, iso) => {
+    const s = get()
+    const h = s.habits.find((x) => x.id === id)
+    if (!h) return { ok: false, error: 'Kebiasaan tidak ditemukan.' }
+    const error = restDayError(h, s.completions, iso)
+    if (error) return { ok: false, error }
+    set({
+      habits: s.habits.map((x) =>
+        x.id === id
+          ? { ...x, restDays: [...(x.restDays ?? []), iso].sort() }
+          : x,
+      ),
+    })
+    return { ok: true }
+  },
+
+  cancelRestDay: (id, iso) =>
+    set((s) => ({
+      habits: s.habits.map((x) =>
+        x.id === id
+          ? { ...x, restDays: (x.restDays ?? []).filter((d) => d !== iso) }
+          : x,
+      ),
+    })),
+
+  /* --- Suara Identitas & deload --- */
+
+  setIdentityText: (text) =>
+    set({ identityText: text.slice(0, 600) }),
+
+  startDeload: (days) =>
+    set({ deloadUntil: addDaysISO(todayISO(), Math.max(1, days)) }),
+
+  endDeload: () => set({ deloadUntil: null }),
+
   addNote: ({ title, body, folder }) =>
     set((s) => ({
       notes: [
@@ -1312,14 +1485,17 @@ export const useRutina = create<RutinaState>()(
     })),
 
   saveQuote: () => {
-    if (get().quoteSaved) return
+    const today = todayISO()
+    if (get().quoteSavedDate === today) return
+    const q = dailyQuote(today)
     set((s) => ({
       quoteSaved: true,
+      quoteSavedDate: today,
       notes: [
         {
           id: `quote-${Date.now()}`,
           title: 'Kutipan Hari Ini',
-          body: `"${QUOTE_TEXT}" — ${QUOTE_AUTHOR}`,
+          body: `"${q.text}" — ${q.author}`,
           date: 'Hari ini',
           pinned: true,
           tone: 1,
@@ -1330,7 +1506,14 @@ export const useRutina = create<RutinaState>()(
     }))
   },
 
-  setMood: (mood) => set({ mood }),
+  setMood: (mood) =>
+    set((s) => {
+      const key = todayISO()
+      const moodLogs = { ...s.moodLogs }
+      if (mood == null) delete moodLogs[key]
+      else moodLogs[key] = mood
+      return { mood, moodLogs }
+    }),
 
   toggleExpandedTask: (id) =>
     set((s) => ({
@@ -1377,12 +1560,32 @@ export const useRutina = create<RutinaState>()(
       /* Persistensi lokal — histori pengguna nyata & permanen di perangkat,
          selaras dengan janji "data tersimpan di perangkat" pada FAQ Profil. */
       name: 'rutina-2.0-store',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       /* Rehidrasi manual pasca-mount (pola aman Next.js SSR): HTML server
          dirender dari seed, lalu state tersimpan dipulihkan di klien —
          bebas hydration mismatch. RutinaApp memanggil rehydrate(). */
       skipHydration: true,
+      /* Migrasi v1 → v2: isi field baru (Jeda Runtun, Susun Kebiasaan,
+         Versi 2 Menit, moodLogs, identitas, deload, kutipan harian). */
+      migrate: (persisted) => {
+        const p = persisted as Record<string, unknown> & {
+          habits?: Record<string, unknown>[]
+        }
+        if (Array.isArray(p.habits)) {
+          p.habits = p.habits.map((h) => ({
+            ...h,
+            restDays: Array.isArray(h.restDays) ? h.restDays : [],
+            afterId: h.afterId ?? null,
+            mini: typeof h.mini === 'string' ? h.mini : '',
+          }))
+        }
+        if (!p.moodLogs || typeof p.moodLogs !== 'object') p.moodLogs = {}
+        if (typeof p.identityText !== 'string') p.identityText = ''
+        if (typeof p.deloadUntil !== 'string') p.deloadUntil = null
+        if (typeof p.quoteSavedDate !== 'string') p.quoteSavedDate = null
+        return p as unknown as RutinaState
+      },
       /* Hanya state domain yang dipersist — state UI sesaat (tab aktif,
          sheet terbuka, item terkembangi) selalu mulai segar. */
       partialize: (s) => ({
@@ -1400,8 +1603,12 @@ export const useRutina = create<RutinaState>()(
         bodyLogs: s.bodyLogs,
         dailyGoal: s.dailyGoal,
         mood: s.mood,
+        moodLogs: s.moodLogs,
+        identityText: s.identityText,
+        deloadUntil: s.deloadUntil,
         bonusClaimed: s.bonusClaimed,
         quoteSaved: s.quoteSaved,
+        quoteSavedDate: s.quoteSavedDate,
       }),
     },
   ),

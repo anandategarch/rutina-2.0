@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
   BatteryCharging,
+  ClipboardList,
   Droplets,
   Minus,
   Moon,
@@ -14,6 +15,7 @@ import {
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
+import { useCheckInSheet } from '../checkin-sheet'
 import { todayISO, useRutina, type BodyLogs } from '../store'
 import {
   latestWeight,
@@ -98,6 +100,7 @@ export function TubuhPanel() {
   const setWaterToday = useRutina((s) => s.setWaterToday)
   const logWeightToday = useRutina((s) => s.logWeightToday)
   const logBodyCheckIn = useRutina((s) => s.logBodyCheckIn)
+  const openCheckIn = useCheckInSheet((s) => s.openCheckIn)
 
   const today = todayISO()
   const log = bodyLogs[today]
@@ -263,14 +266,100 @@ export function TubuhPanel() {
                 </p>
               </>
             ) : (
-              <p className="mt-0.5 text-[12.5px] leading-relaxed text-primary-foreground/85">
-                Isi jam tidur &amp; energi di atas — kesiapan dihitung otomatis
-                dari keduanya.
-              </p>
+              <>
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-primary-foreground/85">
+                  Isi check-in — kesiapan dihitung otomatis dari empat
+                  komponen: tidur, nyeri otot, stres, dan energi.
+                </p>
+                <button
+                  type="button"
+                  onClick={openCheckIn}
+                  className="mt-2.5 flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary-foreground/15 px-4 text-[12px] font-bold text-primary-foreground transition-colors hover:bg-primary-foreground/25 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                  Isi check-in pagi
+                </button>
+              </>
             )}
           </div>
         </div>
       </m.section>
+
+      {/* Rincian kesiapan per komponen — Coach Bugar v3.02
+          (tidur 30% · nyeri 30% · stres 20% · energi 20%) */}
+      {readiness && (
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.09, ease: [0.22, 1, 0.36, 1] }}
+          aria-label="Rincian kesiapan latihan"
+          className="mt-3 rounded-[24px] border border-border bg-surface-primary p-5 shadow-soft"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
+              <Sparkles className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <p className="text-[14.5px] font-bold text-content-primary">
+                Rincian Kesiapan
+              </p>
+              <p className="text-[11.5px] font-medium text-content-muted">
+                Bobot komponen Coach Bugar — skor rendah jadi perhatian
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {readiness.detail.map((c) => {
+              const low = c.score < 50
+              return (
+                <div key={c.key}>
+                  <div className="flex items-baseline justify-between gap-2 px-0.5">
+                    <p className="text-[12px] font-bold text-content-primary">
+                      {c.label}
+                    </p>
+                    <p className="text-[11px] font-semibold tabular-nums text-content-muted">
+                      {Math.round(c.weight * 100)}% bobot
+                    </p>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                    <m.div
+                      initial={false}
+                      className={`h-full rounded-full ${
+                        low
+                          ? 'bg-clay'
+                          : 'bg-gradient-to-r from-primary to-pistachio'
+                      }`}
+                      animate={{ width: `${c.score}%` }}
+                      transition={{ type: 'spring', stiffness: 130, damping: 22 }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {readiness.missing.length > 0 && (
+            <button
+              type="button"
+              onClick={openCheckIn}
+              className="mt-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl bg-surface-sunken p-3.5 text-left transition-colors hover:bg-secondary/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <ClipboardList
+                className="mt-0.5 h-4 w-4 shrink-0 text-content-muted"
+                aria-hidden="true"
+              />
+              <span className="text-[11.5px] leading-relaxed text-content-muted">
+                Lengkapi check-in:{' '}
+                <span className="font-bold text-content-secondary">
+                  {readiness.missing.join(', ')}
+                </span>{' '}
+                agar Coach lebih akurat.
+              </span>
+            </button>
+          )}
+        </m.section>
+      )}
 
       {/* Hidrasi */}
       <m.section

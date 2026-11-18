@@ -51,12 +51,21 @@ Set di **Project → Settings → Environment Variables**:
 
 > **PENTING — token terverifikasi 18 Nov:** token terbaru (read-write)
 > terpasang di `.env` lokal sandbox dan **terverifikasi end-to-end**
-> (`SELECT 1` OK via `/v2/pipeline`, `bun run db:smoke-turso` OK — 11 tabel
-> `rutina_*` terbaca berisi data nyata). Salin nilai persisnya dari file
-> `vercel-env.txt` (di-ignore git) ke `DATABASE_AUTH_TOKEN` di dashboard
-> Vercel. Catatan: token mentah yang dikirim sempat terpotong 1 karakter
-> pada header JWT (`Q` hilang di `...RERTQSIs...`) — gunakan versi yang
-> sudah diperbaiki di `vercel-env.txt`, bukan hasil salin ulang.
+> (`SELECT 1` OK via `/v2/pipeline`, migrasi skema v2.1 sukses — 12 tabel
+> `rutina_*` terbaca). Catatan: token mentah yang dikirim sempat terpotong
+> 1 karakter pada header JWT (`Q` hilang di `...RERTQSIs...`) — versi di
+> `.env` sudah diperbaiki dan **tidak memiliki klaim kedaluwarsa** (tahan
+> lama). Pastikan `DATABASE_AUTH_TOKEN` di dashboard Vercel memakai token
+> yang sama persis dengan isi `TURSO_AUTH_TOKEN` di `.env` (header dimulai
+> `eyJhbGciOiJFZERTQSIs...` — perhatikan huruf **Q**).
+
+> **STATUS 18 Nov (gelombang v2.1):** skema v2.1 SUDAH diterapkan ke Turso
+> (kolom `restDays`/`afterId`/`mini` di `rutina_habits`, `soreness`/
+> `stress` di `rutina_body_logs`, tabel baru `rutina_mood_logs`) lewat
+> `scripts/migrate-turso-incremental.ts` — data lama tidak tersentuh.
+> Token 1-hari yang dulu dipasang via API **kedaluwarsa 19 Nov 03:35 UTC**
+> — WAJIB diganti di dashboard Vercel dengan token tahan lama di atas
+> sebelum tanggal itu, jika tidak sinkronisasi produksi akan gagal.
 
 ## 3. Sinkronisasi skema ke Turso (sekali per perubahan skema)
 

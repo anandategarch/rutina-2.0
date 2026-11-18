@@ -37,6 +37,15 @@ function parseSchedule(json: string): number[] {
   }
 }
 
+function parseRestDays(json: string | null): string[] {
+  try {
+    const parsed = json ? JSON.parse(json) : []
+    return Array.isArray(parsed) ? (parsed as string[]) : []
+  } catch {
+    return []
+  }
+}
+
 function parseSets(json: string): WorkoutWire['sets'] {
   try {
     const parsed = JSON.parse(json)
@@ -60,6 +69,7 @@ export async function readFullState(): Promise<FullStateResult> {
     workouts,
     foods,
     bodyLogs,
+    moodLogs,
     settings,
   ] = await Promise.all([
     db.habit.findMany(),
@@ -72,6 +82,7 @@ export async function readFullState(): Promise<FullStateResult> {
     db.workoutSession.findMany(),
     db.foodEntry.findMany(),
     db.bodyLog.findMany(),
+    db.moodLog.findMany(),
     db.appSetting.findMany(),
   ])
 
@@ -101,7 +112,15 @@ export async function readFullState(): Promise<FullStateResult> {
       weight: b.weight ?? null,
       sleepH: b.sleepH ?? null,
       energy: b.energy ?? null,
+      soreness: b.soreness ?? null,
+      stress: b.stress ?? null,
     }
+  }
+
+  /* moodLogs[tanggal] */
+  const moodLogMap: SyncState['moodLogs'] = {}
+  for (const m of moodLogs) {
+    moodLogMap[m.date] = m.mood
   }
 
   const habitWires: HabitWire[] = habits.map((h) => ({
@@ -112,6 +131,9 @@ export async function readFullState(): Promise<FullStateResult> {
     schedule: parseSchedule(h.schedule),
     weeklyTarget: h.weeklyTarget,
     reminder: h.reminder ?? null,
+    restDays: parseRestDays(h.restDays),
+    afterId: h.afterId ?? null,
+    mini: h.mini ?? '',
     archived: h.archived,
     createdAt: h.createdAt,
   }))
@@ -164,6 +186,8 @@ export async function readFullState(): Promise<FullStateResult> {
   }))
 
   const moodRaw = settingsMap.get(SYNC_SETTING_KEYS.mood)
+  const deloadRaw = settingsMap.get(SYNC_SETTING_KEYS.deloadUntil)
+  const quoteDateRaw = settingsMap.get(SYNC_SETTING_KEYS.quoteSavedDate)
 
   result.initialized = true
   result.state = {
@@ -186,8 +210,13 @@ export async function readFullState(): Promise<FullStateResult> {
     bodyLogs: bodyLogMap,
     dailyGoal: Number(settingsMap.get(SYNC_SETTING_KEYS.dailyGoal) ?? 4),
     mood: moodRaw && moodRaw.length > 0 ? moodRaw : null,
+    moodLogs: moodLogMap,
+    identityText: settingsMap.get(SYNC_SETTING_KEYS.identityText) ?? '',
+    deloadUntil: deloadRaw && deloadRaw.length > 0 ? deloadRaw : null,
     bonusClaimed: settingsMap.get(SYNC_SETTING_KEYS.bonusClaimed) === 'true',
     quoteSaved: settingsMap.get(SYNC_SETTING_KEYS.quoteSaved) === 'true',
+    quoteSavedDate:
+      quoteDateRaw && quoteDateRaw.length > 0 ? quoteDateRaw : null,
   }
   return result
 }
@@ -223,7 +252,13 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     weight: b.weight ?? null,
     sleepH: b.sleepH ?? null,
     energy: b.energy ?? null,
+    soreness: b.soreness ?? null,
+    stress: b.stress ?? null,
   }))
+
+  const moodLogRows = Object.entries(state.moodLogs ?? {}).map(
+    ([date, mood]) => ({ date, mood }),
+  )
 
   const budgetRows = Object.entries(state.budgets).map(([cat, amount]) => ({
     cat,
@@ -236,6 +271,12 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     { key: SYNC_SETTING_KEYS.calorieTarget, value: String(state.calorieTarget) },
     { key: SYNC_SETTING_KEYS.dailyGoal, value: String(state.dailyGoal) },
     { key: SYNC_SETTING_KEYS.mood, value: state.mood ?? '' },
+    { key: SYNC_SETTING_KEYS.identityText, value: state.identityText ?? '' },
+    { key: SYNC_SETTING_KEYS.deloadUntil, value: state.deloadUntil ?? '' },
+    {
+      key: SYNC_SETTING_KEYS.quoteSavedDate,
+      value: state.quoteSavedDate ?? '',
+    },
     { key: SYNC_SETTING_KEYS.bonusClaimed, value: String(state.bonusClaimed) },
     { key: SYNC_SETTING_KEYS.quoteSaved, value: String(state.quoteSaved) },
     { key: SYNC_SETTING_KEYS.initialized, value: 'true' },
@@ -255,6 +296,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     db.workoutSession.deleteMany(),
     db.foodEntry.deleteMany(),
     db.bodyLog.deleteMany(),
+    db.moodLog.deleteMany(),
     ...(state.habits.length
       ? [
           db.habit.createMany({
@@ -266,6 +308,9 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               schedule: JSON.stringify(h.schedule),
               weeklyTarget: h.weeklyTarget,
               reminder: h.reminder,
+              restDays: JSON.stringify(h.restDays ?? []),
+              afterId: h.afterId ?? null,
+              mini: h.mini ?? '',
               archived: h.archived,
               createdAt: h.createdAt,
             })),
@@ -365,6 +410,9 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
         ]
       : []),
     ...(bodyLogRows.length ? [db.bodyLog.createMany({ data: bodyLogRows })] : []),
+    ...(moodLogRows.length
+      ? [db.moodLog.createMany({ data: moodLogRows })]
+      : []),
     ...settingRows.map((s) =>
       db.appSetting.upsert({
         where: { key: s.key },
@@ -402,6 +450,7 @@ export async function resetAllData(): Promise<void> {
     db.workoutSession.deleteMany(),
     db.foodEntry.deleteMany(),
     db.bodyLog.deleteMany(),
+    db.moodLog.deleteMany(),
     db.appSetting.deleteMany(),
   ])
 }

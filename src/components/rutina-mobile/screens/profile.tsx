@@ -4,17 +4,29 @@ import { useEffect, useRef, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
   ArrowLeft,
+  BatteryLow,
+  Check,
   ChevronRight,
   Cloud,
+  Fingerprint,
   Globe,
   HardDrive,
+  HeartPulse,
   Info,
+  Laugh,
   Leaf,
+  Meh,
+  Minus,
+  Pencil,
+  Plus,
   RotateCcw,
+  Smile,
   Sparkles,
   Target,
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+import { cn } from '@/lib/utils'
 
 import {
   Accordion,
@@ -59,6 +71,9 @@ import { Slider } from '@/components/ui/slider'
 
 import { Counter } from '../counter'
 import { BlurFade, SplitText } from '../motion-kit'
+import { useCheckInSheet } from '../checkin-sheet'
+import { RutinaButton } from '../rutina-button'
+import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
@@ -66,14 +81,18 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { syncStatus } from '../sync-engine'
 import {
   activeSinceISO,
+  addDaysISO,
   bestStreak,
   computeLevel,
   computeXp,
   doneCountOn,
   fromISO,
   habitsOn,
+  MOODS,
+  shortDateLabel,
   todayISO,
   useRutina,
+  WEEKDAY_MIN,
   XP_TARGET,
 } from '../store'
 
@@ -104,6 +123,24 @@ const FOCUS_WORDS = [
   'Syukur',
 ]
 
+/* Ikon suasana hati — padanan MOODS di store (selaras lembar check-in
+   & panel Statistik; MOOD_ICONS di checkin-sheet tidak diekspor). */
+const MOOD_ICONS: Record<string, typeof Laugh> = {
+  Ceria: Laugh,
+  Baik: Smile,
+  Biasa: Meh,
+  Lelah: BatteryLow,
+}
+
+/* Warna ikon per mood — gradasi energi dari matcha pekat ke
+   cokelat redup (Cerai paling hidup, Lelah paling teduh). */
+const MOOD_TONE: Record<string, string> = {
+  Ceria: 'text-[#749B58]',
+  Baik: 'text-[#A3C489]',
+  Biasa: 'text-[#C7A17A]',
+  Lelah: 'text-[#8A7460]',
+}
+
 export default function ProfileScreen() {
   const notes = useRutina((s) => s.notes)
   const habits = useRutina((s) => s.habits)
@@ -114,7 +151,27 @@ export default function ProfileScreen() {
   const setDailyGoal = useRutina((s) => s.setDailyGoal)
   const openBoard = useRutina((s) => s.openBoard)
   const setScreen = useRutina((s) => s.setScreen)
+  const identityText = useRutina((s) => s.identityText)
+  const setIdentityText = useRutina((s) => s.setIdentityText)
+  const moodLogs = useRutina((s) => s.moodLogs)
   const [lang, setLang] = useState('id')
+
+  /* Draf penyuntingan Suara Identitas (audit #23) — draf terpisah agar
+     teks tersimpan tetap utuh selama menyunting; dibatasi 600 karakter
+     (store juga memangkas otomatis). */
+  const [editingIdentity, setEditingIdentity] = useState(false)
+  const [identityDraft, setIdentityDraft] = useState('')
+
+  const startEditIdentity = () => {
+    setIdentityDraft(identityText)
+    setEditingIdentity(true)
+  }
+
+  const saveIdentity = () => {
+    setIdentityText(identityDraft.trim())
+    setEditingIdentity(false)
+    toast.success('Suara identitas tersimpan.')
+  }
 
   /* Status sinkronisasi cloud — dibaca dari meta engine (bukan state
      React) lalu disegarkan berkala agar stempel waktu tetap hangat. */
@@ -173,6 +230,25 @@ export default function ProfileScreen() {
     : 'Belum ada aktivitas'
 
   const streak = bestStreak(habits, completions, today).streak
+
+  /* Jendela mood 14 hari (terlama → terbaru) untuk kartu Riwayat
+     Mood (audit #25) + rekap jumlah per mood pada periode itu. */
+  const moodDays = Array.from({ length: 14 }, (_, idx) => {
+    const back = 13 - idx
+    const iso = addDaysISO(today, -back)
+    return {
+      iso,
+      label: WEEKDAY_MIN[fromISO(iso).getDay()],
+      mood: moodLogs[iso],
+      isToday: back === 0,
+    }
+  })
+  const moodCounts = MOODS.map((name) => ({
+    name,
+    count: moodDays.filter((d) => d.mood === name).length,
+  }))
+  const moodLogged = moodCounts.some((c) => c.count > 0)
+  const todayMood = moodDays[13].mood
 
   /* ANIMATION OWNERSHIP RULE — sebelumnya anime.js menulis translateX+opacity
      pada [data-row] yang sebagian adalah motion.section dengan initial/animate
@@ -306,6 +382,246 @@ export default function ProfileScreen() {
           </m.div>
         ))}
       </div>
+
+      {/* Suara Identitas (audit #23) — pernyataan editorial "aku menjadi
+          orang yang…": tampil sebagai kutipan serif italic, disunting
+          lewat textarea dengan pembatas 600 karakter. */}
+      <m.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+        className="mt-3 rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
+        aria-label="Suara identitas"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+            <Fingerprint className="h-4 w-4" />
+          </span>
+          <div className="flex-1">
+            <p className="text-[14px] font-semibold text-content-primary">
+              Suara Identitas
+            </p>
+            <p className="text-[11px] font-medium text-content-muted">
+              Deklarasi siapa dirimu, bukan sekadar target
+            </p>
+          </div>
+          {identityText !== '' && !editingIdentity && (
+            <button
+              type="button"
+              onClick={startEditIdentity}
+              aria-label="Ubah suara identitas"
+              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-sunken text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {editingIdentity ? (
+          <div className="mt-4">
+            <textarea
+              value={identityDraft}
+              onChange={(e) => setIdentityDraft(e.target.value.slice(0, 600))}
+              placeholder="Aku menjadi orang yang…"
+              rows={4}
+              aria-label="Teks suara identitas"
+              className="w-full resize-none rounded-xl border border-border bg-surface-sunken px-3.5 py-3 text-[14px] leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-muted focus-visible:border-primary"
+            />
+            <p className="mt-2 text-[11px] font-medium leading-relaxed text-content-muted">
+              Tulis identitas yang ingin kamu bangun — bukan target,
+              melainkan siapa dirimu.
+            </p>
+            <div className="mt-2.5 flex items-center justify-between gap-3">
+              <span className="text-[11px] font-bold tabular-nums text-content-muted">
+                {identityDraft.length}/600
+              </span>
+              <div className="flex gap-2">
+                <RutinaButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingIdentity(false)}
+                >
+                  Batal
+                </RutinaButton>
+                <RutinaButton
+                  variant="primary"
+                  size="sm"
+                  onClick={saveIdentity}
+                >
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  Simpan
+                </RutinaButton>
+              </div>
+            </div>
+          </div>
+        ) : identityText !== '' ? (
+          <figure className="relative mt-4 rounded-xl bg-secondary/50 px-5 pb-3.5 pt-5">
+            <span
+              aria-hidden="true"
+              className={`${playfair.className} pointer-events-none absolute -top-2 left-2.5 select-none text-[52px] leading-none text-primary/30`}
+            >
+              &ldquo;
+            </span>
+            <blockquote
+              className={`${playfair.className} text-[18px] font-medium italic leading-relaxed text-content-primary`}
+            >
+              {identityText}
+            </blockquote>
+            <figcaption className="mt-2 text-right text-[10.5px] font-bold uppercase tracking-[0.16em] text-content-muted">
+              Suara identitasku
+            </figcaption>
+          </figure>
+        ) : (
+          <div className="mt-4 rounded-xl bg-surface-sunken px-4 py-4">
+            <p
+              className={`${playfair.className} text-[16px] font-medium italic leading-relaxed text-content-secondary`}
+            >
+              Siapa yang ingin kamu jadi lewat kebiasaan ini?
+            </p>
+            <RutinaButton
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              onClick={startEditIdentity}
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+              Tulis identitasku
+            </RutinaButton>
+          </div>
+        )}
+      </m.section>
+
+      {/* Riwayat Mood (audit #25) — strip 14 hari (terlama → terbaru):
+          inisial hari kerja + ikon mood sesuai warna energi, hari ini
+          disorot; di bawahnya rekap jumlah per mood. Kosong → ajakan
+          check-in lewat toko modul check-in. */}
+      <m.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.5,
+          delay: 0.08,
+          ease: motionTokens.easing.standard,
+        }}
+        className="mt-3 rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
+        aria-label="Riwayat mood"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+            <HeartPulse className="h-4 w-4" />
+          </span>
+          <div className="flex-1">
+            <p className="text-[14px] font-semibold text-content-primary">
+              Riwayat Mood
+            </p>
+            <p className="text-[11px] font-medium text-content-muted">
+              Suasana hati 14 hari terakhir
+            </p>
+          </div>
+          {moodLogged && !todayMood && (
+            <button
+              type="button"
+              onClick={() => useCheckInSheet.getState().openCheckIn()}
+              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-secondary px-3 text-[11px] font-bold text-success transition-colors hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              Check-in
+            </button>
+          )}
+        </div>
+
+        {moodLogged ? (
+          <>
+            <div
+              className="mt-4 flex gap-1"
+              role="list"
+              aria-label="Mood per hari, 14 hari terakhir"
+            >
+              {moodDays.map((d) => {
+                const MoodIcon = d.mood != null ? MOOD_ICONS[d.mood] : null
+                return (
+                  <div
+                    key={d.iso}
+                    role="listitem"
+                    title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
+                    aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
+                    className={cn(
+                      'flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl py-2',
+                      d.isToday && 'bg-secondary/60 ring-1 ring-primary/30',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'text-[9.5px] font-bold uppercase tracking-wide',
+                        d.isToday
+                          ? 'text-content-secondary'
+                          : 'text-content-muted',
+                      )}
+                    >
+                      {d.label}
+                    </span>
+                    {MoodIcon ? (
+                      <MoodIcon
+                        className={cn('h-4.5 w-4.5', MOOD_TONE[d.mood ?? ''])}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Minus
+                        className="h-4 w-4 text-content-muted/40"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                Rekap 14 hari
+              </span>
+              {moodCounts
+                .filter((c) => c.count > 0)
+                .map((c, i, arr) => (
+                  <span
+                    key={c.name}
+                    className="flex items-center gap-2 text-[11.5px] font-semibold"
+                  >
+                    <span>
+                      <span className={MOOD_TONE[c.name]}>{c.name}</span>{' '}
+                      <span className="tabular-nums text-content-muted">
+                        {c.count}×
+                      </span>
+                    </span>
+                    {i < arr.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className="text-content-muted/50"
+                      >
+                        ·
+                      </span>
+                    )}
+                  </span>
+                ))}
+            </div>
+          </>
+        ) : (
+          <RutinaEmptyState
+            className="mt-4"
+            icon={<Smile className="h-6 w-6" aria-hidden="true" />}
+            title="Belum ada catatan mood"
+            description="Isi check-in harian untuk mulai melihat pola suasana hatimu di sini."
+            action={
+              <RutinaButton
+                variant="primary"
+                size="sm"
+                onClick={() => useCheckInSheet.getState().openCheckIn()}
+              >
+                Isi check-in hari ini
+              </RutinaButton>
+            }
+          />
+        )}
+      </m.section>
 
       {/* Chip kata kunci statis — tanpa marquee; ikon Leaf terracotta. */}
       <BlurFade delay={0.18} className="mt-4">

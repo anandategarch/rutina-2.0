@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 import {
   Activity,
+  ArrowDownRight,
+  ArrowUpRight,
   BatteryLow,
+  CalendarDays,
   Dumbbell,
   Flame,
   Laugh,
@@ -33,25 +36,45 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 import { Counter } from '../counter'
+import { DayDetailSheet, notesInWindow } from '../day-detail-sheet'
 import Heatmap from '../heatmap'
+import { MonthCalendar, type MonthDayInfo } from '../month-calendar'
+import { CAT_META } from '../finance/cats'
+import {
+  formatIDR,
+  monthFlow,
+  monthLabel,
+  monthRange,
+  monthSpendByCat,
+  spendByDay,
+} from '../finance/utils'
 import {
   MOODS,
   XP_PER_TASK,
   XP_TARGET,
   addDaysISO,
+  addMonthsISO,
   bestStreak,
   computeLevel,
   computeXp,
   dayCounts,
+  doneCountOn,
+  fromISO,
   habitsOn,
   isDoneOn,
   rateSeries,
+  shortDateLabel,
   todayISO,
   useRutina,
   weekCounts,
+  weekStartISO,
+  type FinCat,
   type Habit,
   type HabitCat,
 } from '../store'
+import { RutinaCard } from '../rutina-card'
+import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaSectionHeader } from '../rutina-section-header'
 import TrendLine from '../trend-line'
 import { motionTokens } from '@/lib/motion/tokens'
 import {
@@ -133,10 +156,181 @@ export default function StatsScreen() {
   const workouts = useRutina((s) => s.workouts)
   const foodEntries = useRutina((s) => s.foodEntries)
   const bodyLogs = useRutina((s) => s.bodyLogs)
+  const txs = useRutina((s) => s.txs)
+  const budgets = useRutina((s) => s.budgets)
+  const identityText = useRutina((s) => s.identityText)
 
   const today = todayISO()
 
   const [period, setPeriod] = useState<'pekan' | 'bulan'>('pekan')
+
+  /* ===== Kalender Aktivitas & Laporan Bulanan (audit #7 & #8) =====
+     Satu state bulan dipakai bersama: kalender menavigasi, laporan
+     mengikuti. Jangkau: Jan (tahun ini − 2) s.d. bulan berjalan. */
+  const [viewAnchor, setViewAnchor] = useState(today)
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const viewYm = viewAnchor.slice(0, 7)
+  const todayYm = today.slice(0, 7)
+  const minYm = `${fromISO(today).getFullYear() - 2}-01`
+  const canPrev = viewYm > minYm
+  const canNext = viewYm < todayYm
+  const goPrevMonth = () => setViewAnchor(addMonthsISO(`${viewYm}-01`, -1))
+  const goNextMonth = () => setViewAnchor(addMonthsISO(`${viewYm}-01`, 1))
+
+  /* Peta data per tanggal untuk titik kalender — sekali hitung untuk
+     seluruh histori; jumlah terjadwal hanya dihitung untuk bulan tampilan
+     (kebutuhan intensitas titik matcha). */
+  const dayInfo = useMemo<Record<string, MonthDayInfo>>(() => {
+    const map: Record<string, MonthDayInfo> = {}
+    for (const [iso, rec] of Object.entries(completions)) {
+      const done = Object.values(rec ?? {}).filter(Boolean).length
+      if (done > 0) map[iso] = { ...map[iso], done }
+    }
+    for (const t of txs) {
+      if (t.type === 'transfer') continue
+      map[t.ts] = { ...map[t.ts], hasTx: true }
+    }
+    for (const w of workouts) map[w.date] = { ...map[w.date], hasWorkout: true }
+    const range = monthRange(viewYm)
+    for (let iso = range.start; iso <= range.end; iso = addDaysISO(iso, 1)) {
+      const scheduled = habitsOn(habits, iso).length
+      if (scheduled > 0) map[iso] = { ...map[iso], scheduled }
+    }
+    return map
+  }, [completions, txs, workouts, habits, viewYm])
+
+  /* Laporan bulanan — konsistensi, pengeluaran, anggaran (audit #8). */
+  const monthReport = useMemo(() => {
+    const range = monthRange(viewYm)
+    /* Bulan berjalan dihitung sampai hari ini agar persentase tidak
+       terkempiskan oleh hari yang belum terjadi. */
+    const last = viewYm === todayYm ? today : range.end
+    let sched = 0
+    let done = 0
+    for (let iso = range.start; iso <= last; iso = addDaysISO(iso, 1)) {
+      const dayHabits = habitsOn(habits, iso)
+      sched += dayHabits.length
+      for (const h of dayHabits) {
+        if (isDoneOn(completions, iso, h.id)) done++
+      }
+    }
+    const flow = monthFlow(txs, viewYm)
+    const byCat = monthSpendByCat(txs, viewYm)
+    const catTotal = flow.keluar
+    const topCats = Object.entries(byCat)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([cat, amount]) => ({
+        cat: cat as FinCat,
+        amount,
+        share: catTotal > 0 ? Math.round((amount / catTotal) * 100) : 0,
+      }))
+    const budgetUse = Object.entries(budgets)
+      .map(([cat, limit]) => ({
+        cat: cat as FinCat,
+        limit,
+        used: byCat[cat] ?? 0,
+      }))
+      .filter((b) => b.used > 0)
+      .sort((a, b) => b.used / Math.max(1, b.limit) - a.used / Math.max(1, a.limit))
+    const monthWorkouts = workouts.filter(
+      (w) => w.date >= range.start && w.date <= range.end,
+    )
+    const hasActivity =
+      done > 0 || flow.masuk > 0 || flow.keluar > 0 || monthWorkouts.length > 0
+    return {
+      pct: sched > 0 ? Math.round((done / sched) * 100) : 0,
+      sched,
+      done,
+      flow,
+      topCats,
+      budgetUse,
+      hasActivity,
+    }
+  }, [habits, completions, txs, budgets, workouts, viewYm, todayYm, today])
+
+  /* ===== Pekan Ini vs Pekan Lalu (audit #12) =====
+     Pekan berjalan dihitung Senin..hari ini; pekan lalu tujuh hari penuh. */
+  const weekStart = weekStartISO(today)
+  const prevWeekStart = addDaysISO(weekStart, -7)
+  const weekMetrics = useMemo(() => {
+    const byDay = spendByDay(txs)
+    const daysOf = (start: string, end: string) => {
+      const out: string[] = []
+      for (let iso = start; iso <= end; iso = addDaysISO(iso, 1)) out.push(iso)
+      return out
+    }
+    const curDays = daysOf(weekStart, today)
+    const prevDays = daysOf(prevWeekStart, addDaysISO(weekStart, -1))
+
+    const activeDays = (ds: string[]) =>
+      ds.filter((iso) => doneCountOn(completions, iso) > 0).length
+    const totalDone = (ds: string[]) =>
+      ds.reduce((a, iso) => a + doneCountOn(completions, iso), 0)
+    const spendOf = (ds: string[]) =>
+      ds.reduce((a, iso) => a + (byDay[iso]?.total ?? 0), 0)
+    const workoutsOf = (ds: string[]) => {
+      const set = new Set(ds)
+      const list = workouts.filter((w) => set.has(w.date))
+      return {
+        count: list.length,
+        minutes: list.reduce((a, w) => a + w.duration, 0),
+      }
+    }
+
+    interface MetricRow {
+      key: string
+      label: string
+      cur: string
+      prev: string
+      delta: number
+      dir: 'up' | 'down' | 'flat'
+      good: boolean | null
+    }
+    const rows: MetricRow[] = []
+    const push = (
+      key: string,
+      label: string,
+      curN: number,
+      prevN: number,
+      invert: boolean,
+      fmt: (n: number) => string,
+    ) => {
+      const delta = curN - prevN
+      const dir: MetricRow['dir'] = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
+      rows.push({
+        key,
+        label,
+        cur: fmt(curN),
+        prev: fmt(prevN),
+        delta,
+        dir,
+        good: dir === 'flat' ? null : invert ? delta < 0 : delta > 0,
+      })
+    }
+
+    push('active', 'Hari aktif', activeDays(curDays), activeDays(prevDays), false, (n) => `${n} hari`)
+    push('done', 'Kebiasaan selesai', totalDone(curDays), totalDone(prevDays), false, (n) => `${n} misi`)
+    push(
+      'notes',
+      'Catatan (perkiraan)',
+      notesInWindow(notes, weekStart, today, today),
+      notesInWindow(notes, prevWeekStart, addDaysISO(weekStart, -1), today),
+      false,
+      (n) => `${n} catatan`,
+    )
+    /* Pengeluaran: makin kecil makin baik — panah dibalik. */
+    push('spend', 'Total pengeluaran', spendOf(curDays), spendOf(prevDays), true, (n) => formatIDR(n))
+    const woCur = workoutsOf(curDays)
+    const woPrev = workoutsOf(prevDays)
+    push('workout', 'Latihan', woCur.count, woPrev.count, false, (n) => `${n} sesi`)
+    const workoutRow = rows.find((r) => r.key === 'workout')
+    if (workoutRow) {
+      workoutRow.cur = `${woCur.count} sesi · ${woCur.minutes} mnt`
+      workoutRow.prev = `${woPrev.count} sesi · ${woPrev.minutes} mnt`
+    }
+    return rows
+  }, [txs, completions, notes, workouts, weekStart, prevWeekStart, today])
 
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInView = useInView(chartRef, { once: true, margin: '-40px' })
@@ -798,6 +992,290 @@ export default function StatsScreen() {
           <TrendLine />
         </div>
 
+        {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-24px' }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="mt-6"
+          aria-label="Kalender aktivitas bulanan"
+        >
+          <RutinaSectionHeader
+            title="Kalender Aktivitas"
+            description="Titik harian: kebiasaan, transaksi, dan latihan sepanjang bulan."
+          />
+          <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+            <MonthCalendar
+              month={viewYm}
+              info={dayInfo}
+              today={today}
+              selected={selectedDay}
+              canPrev={canPrev}
+              canNext={canNext}
+              onPrev={goPrevMonth}
+              onNext={goNextMonth}
+              onSelect={(iso) => setSelectedDay(iso)}
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3.5 text-[11px] font-medium text-content-muted">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-matcha" />
+                Kebiasaan selesai
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: '#C7A17A' }}
+                />
+                Ada transaksi
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-cocoa" />
+                Ada latihan
+              </span>
+              <span className="ml-auto hidden sm:inline">Ketuk tanggal untuk detail.</span>
+            </div>
+          </RutinaCard>
+        </m.section>
+
+        {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8) ===== */}
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-24px' }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="mt-6"
+          aria-label="Laporan bulanan"
+        >
+          <RutinaSectionHeader
+            title="Laporan Bulanan"
+            description={monthLabel(viewYm)}
+          />
+          <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+            {monthReport.hasActivity ? (
+              <div className="space-y-5">
+                {/* Konsistensi kebiasaan — angka besar matcha + batang tipis. */}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                    Konsistensi kebiasaan
+                  </p>
+                  <p className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="text-[40px] font-semibold leading-none tabular-nums text-success">
+                      {monthReport.pct}%
+                    </span>
+                    <span className="text-[12px] font-medium text-content-muted">
+                      {monthReport.done} dari {monthReport.sched} terjadwal selesai
+                    </span>
+                  </p>
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                    <m.div
+                      initial={{ width: '0%' }}
+                      whileInView={{ width: `${monthReport.pct}%` }}
+                      viewport={{ once: true, margin: '-16px' }}
+                      transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-5 border-t border-border pt-5 sm:grid-cols-2">
+                  {/* Tiga kategori pengeluaran teratas. */}
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                      Pengeluaran teratas
+                    </p>
+                    {monthReport.topCats.length === 0 ? (
+                      <p className="mt-2 text-[12px] font-medium text-content-muted">
+                        Tidak ada pengeluaran bulan ini.
+                      </p>
+                    ) : (
+                      <ul className="mt-2.5 space-y-3">
+                        {monthReport.topCats.map((c) => {
+                          const Icon = CAT_META[c.cat].icon
+                          return (
+                            <li key={c.cat}>
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="flex min-w-0 items-center gap-1.5 truncate text-[12.5px] font-semibold text-content-primary">
+                                  <Icon
+                                    aria-hidden="true"
+                                    className="h-3.5 w-3.5 shrink-0 text-content-secondary"
+                                  />
+                                  {CAT_META[c.cat].label}
+                                </span>
+                                <span className="shrink-0 text-[12px] font-bold tabular-nums text-content-primary">
+                                  {formatIDR(c.amount)}
+                                </span>
+                              </div>
+                              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                                <m.div
+                                  initial={{ width: '0%' }}
+                                  whileInView={{ width: `${Math.min(100, c.share)}%` }}
+                                  viewport={{ once: true, margin: '-16px' }}
+                                  transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+                                  className="h-full rounded-full bg-clay"
+                                />
+                              </div>
+                              <p className="mt-1 text-[10.5px] font-medium tabular-nums text-content-muted">
+                                {c.share}% dari total pengeluaran
+                              </p>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Penggunaan anggaran bulan berjalan. */}
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                      Penggunaan anggaran
+                    </p>
+                    {monthReport.budgetUse.length === 0 ? (
+                      <p className="mt-2 text-[12px] font-medium text-content-muted">
+                        Tidak ada pemakaian anggaran bulan ini.
+                      </p>
+                    ) : (
+                      <ul className="mt-2.5 space-y-3">
+                        {monthReport.budgetUse.map((b) => {
+                          const over = b.used > b.limit
+                          const pctB =
+                            b.limit > 0
+                              ? Math.min(100, Math.round((b.used / b.limit) * 100))
+                              : 0
+                          return (
+                            <li key={b.cat}>
+                              <p className="text-[12.5px] font-semibold text-content-primary">
+                                {CAT_META[b.cat].label} — {formatIDR(b.used)}{' '}
+                                <span className="font-medium text-content-muted">
+                                  dari {formatIDR(b.limit)}
+                                </span>
+                              </p>
+                              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                                <m.div
+                                  initial={{ width: '0%' }}
+                                  whileInView={{ width: `${pctB}%` }}
+                                  viewport={{ once: true, margin: '-16px' }}
+                                  transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+                                  className={`h-full rounded-full ${over ? 'bg-destructive' : 'bg-primary'}`}
+                                />
+                              </div>
+                              <p
+                                className={`mt-1 text-[10.5px] ${
+                                  over
+                                    ? 'font-bold text-content-danger'
+                                    : 'text-content-muted'
+                                }`}
+                              >
+                                {over
+                                  ? `Lewat ${formatIDR(b.used - b.limit)} dari batas`
+                                  : `Sisa ${formatIDR(b.limit - b.used)} lagi`}
+                              </p>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Refleksi identitas + runtun terbaik. */}
+                <div className="rounded-2xl bg-surface-sunken p-4">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                    <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
+                    Refleksi identitas
+                  </p>
+                  {identityText ? (
+                    <p className="mt-2 text-[13px] italic leading-relaxed text-content-secondary">
+                      Suara identitasmu: &ldquo;{identityText}&rdquo;
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-[12.5px] leading-relaxed text-content-muted">
+                      Belum ada suara identitas — atur di Profil.
+                    </p>
+                  )}
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                    <p className="min-w-0 truncate text-[12px] font-semibold text-content-secondary">
+                      Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
+                    </p>
+                    <p className="flex shrink-0 items-center gap-1 text-[13px] font-bold tabular-nums text-success">
+                      <Flame aria-hidden="true" className="h-3.5 w-3.5" />
+                      {best.streak} hari
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <RutinaEmptyState
+                icon={<CalendarDays />}
+                title="Belum ada aktivitas bulan ini"
+                description="Tidak ada kebiasaan selesai, transaksi, atau latihan pada bulan ini — pilih bulan lain di kalender."
+              />
+            )}
+          </RutinaCard>
+        </m.section>
+
+        {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12) ===== */}
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-24px' }}
+          transition={{ duration: 0.5, ease: EASE }}
+          className="mt-6"
+          aria-label="Pembanding pekan ini vs pekan lalu"
+        >
+          <RutinaSectionHeader
+            title="Pekan Ini vs Pekan Lalu"
+            description={`${shortDateLabel(weekStart)} – ${shortDateLabel(today)} · dibanding pekan lalu`}
+          />
+          <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+            <ul className="space-y-2.5">
+              {weekMetrics.map((row) => {
+                const DeltaIcon =
+                  row.dir === 'up' ? ArrowUpRight : row.dir === 'down' ? ArrowDownRight : Minus
+                const tone =
+                  row.good == null
+                    ? 'text-content-muted'
+                    : row.good
+                      ? 'text-success'
+                      : 'text-warning'
+                return (
+                  <li
+                    key={row.key}
+                    className="flex items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12.5px] font-bold text-content-primary">
+                        {row.label}
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] font-medium tabular-nums text-content-muted">
+                        pekan lalu: {row.prev}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[13.5px] font-bold leading-tight tabular-nums text-content-primary">
+                        {row.cur}
+                      </p>
+                      <p
+                        className={`mt-0.5 flex items-center justify-end gap-1 text-[11px] font-bold tabular-nums ${tone}`}
+                      >
+                        <DeltaIcon aria-hidden="true" className="h-3 w-3" strokeWidth={2.4} />
+                        {row.delta === 0
+                          ? 'sama dengan pekan lalu'
+                          : `${row.delta > 0 ? '+' : '−'}${Math.abs(row.delta).toLocaleString('id-ID')}`}
+                      </p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="mt-3 text-[11px] leading-relaxed text-content-muted">
+              Pengeluaran dihitung tanpa transfer; nilai lebih kecil dinilai lebih baik.
+              Jumlah catatan bersifat perkiraan (pencocokan label tanggal).
+            </p>
+          </RutinaCard>
+        </m.section>
+
         {/* ===== Bugar & Tubuh — statistik lintas modul ===== */}
         <section className="mt-6" aria-label="Statistik bugar dan tubuh">
           <SectionTitle title="Bugar & Tubuh" hint="data modul Bugar" />
@@ -1075,6 +1553,9 @@ export default function StatsScreen() {
             </div>
           </div>
         </m.section>
+
+        {/* Detail harian — dibuka dengan mengetuk tanggal kalender. */}
+        <DayDetailSheet date={selectedDay} onClose={() => setSelectedDay(null)} />
       </div>
     </TooltipProvider>
   )

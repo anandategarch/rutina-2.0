@@ -55,8 +55,12 @@ const DOMAIN_KEYS = [
   'bodyLogs',
   'dailyGoal',
   'mood',
+  'moodLogs',
+  'identityText',
+  'deloadUntil',
   'bonusClaimed',
   'quoteSaved',
+  'quoteSavedDate',
 ] as const
 
 type DomainKey = (typeof DOMAIN_KEYS)[number]
@@ -128,6 +132,9 @@ function applyServerState(remote: SyncState): void {
       ...h,
       cat: h.cat as HabitCat,
       schedule: [...h.schedule],
+      restDays: [...(h.restDays ?? [])],
+      afterId: h.afterId ?? null,
+      mini: h.mini ?? '',
     })),
     completions: remote.completions,
     notes: remote.notes.map((n) => ({ ...n, folder: n.folder as FolderKey })),
@@ -164,13 +171,19 @@ function applyServerState(remote: SyncState): void {
           weight: log.weight ?? undefined,
           sleepH: log.sleepH ?? undefined,
           energy: log.energy ?? undefined,
+          soreness: log.soreness ?? undefined,
+          stress: log.stress ?? undefined,
         },
       ]),
     ),
     dailyGoal: remote.dailyGoal,
     mood: remote.mood,
+    moodLogs: { ...(remote.moodLogs ?? {}) },
+    identityText: remote.identityText ?? '',
+    deloadUntil: remote.deloadUntil ?? null,
     bonusClaimed: remote.bonusClaimed,
     quoteSaved: remote.quoteSaved,
+    quoteSavedDate: remote.quoteSavedDate ?? null,
   })
 }
 

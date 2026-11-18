@@ -12,6 +12,58 @@ import { RutinaSectionHeader } from './rutina-section-header'
 import { RutinaSheet } from './rutina-sheet'
 import { MOODS, todayISO, useRutina } from './store'
 
+/* ===== Pemilih skala 1–5 (energi / nyeri otot / stres) =====
+   Satu sumber kelas visual — dipakai tiga kali dengan label berbeda;
+   kelas tombol identik dengan pemilih Energi versi sebelumnya. */
+function Scale1to5({
+  label,
+  value,
+  onPick,
+  scaleLabel,
+  lowLabel,
+  highLabel,
+}: {
+  label: string
+  value: number | null
+  onPick: (v: number | null) => void
+  scaleLabel: string
+  lowLabel: string
+  highLabel: string
+}) {
+  return (
+    <div className="mt-4">
+      <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+        {label}
+      </p>
+      <div className="mt-2 flex gap-2">
+        {[1, 2, 3, 4, 5].map((v) => {
+          const selected = value === v
+          return (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={selected}
+              aria-label={`${scaleLabel} ${v}`}
+              onClick={() => onPick(selected ? null : v)}
+              className={cn(
+                'flex h-11 w-11 flex-1 cursor-pointer items-center justify-center rounded-full text-[14px] font-bold tabular-nums outline-none transition-all duration-150 active:scale-[0.92] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                selected
+                  ? 'bg-primary text-primary-foreground shadow-soft'
+                  : 'border border-border bg-surface-secondary text-content-secondary hover:border-border-strong',
+              )}
+            >
+              {v}
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-1.5 px-0.5 text-[11px] font-medium text-content-muted">
+        1 = {lowLabel} · 5 = {highLabel}
+      </p>
+    </div>
+  )
+}
+
 /* ===== Toko state sheet check-in (module-level zustand) =====
    Dibuka dari pusat aksi cepat (quick-action-hub) — toko modul-level
    terpisah, pola yang sama dengan useQuickHub, tanpa menyentuh store
@@ -49,11 +101,12 @@ function fmtHours(n: number): string {
 }
 
 /**
- * CheckInSheet — check-in harian: suasana hati, energi (1–5), dan jam
- * tidur semalam dalam satu lembar bawah ringkas.
+ * CheckInSheet — check-in harian: suasana hati, energi (1–5), nyeri
+ * otot/DOMS (1–5), stres (1–5), dan jam tidur semalam dalam satu
+ * lembar bawah ringkas.
  *
  * Semua isian opsional: mood yang tidak disentuh tetap memakai mood
- * tersimpan; energi/tidur yang tidak diisi tidak menimpa log tubuh
+ * tersimpan; skala/tidur yang tidak diisi tidak menimpa log tubuh
  * hari ini (logBodyCheckIn hanya menulis field yang terisi). Pra-isi
  * dari keadaan hari ini (store mood + bodyLogs[today]).
  */
@@ -65,6 +118,8 @@ export function CheckInSheet() {
 
   const [moodDraft, setMoodDraft] = useState<string | null>(null)
   const [energy, setEnergy] = useState<number | null>(null)
+  const [soreness, setSoreness] = useState<number | null>(null)
+  const [stress, setStress] = useState<number | null>(null)
   const [sleepH, setSleepH] = useState<number | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
 
@@ -76,6 +131,8 @@ export function CheckInSheet() {
       const today = bodyLogs[todayISO()]
       setMoodDraft(mood)
       setEnergy(today?.energy ?? null)
+      setSoreness(today?.soreness ?? null)
+      setStress(today?.stress ?? null)
       setSleepH(today?.sleepH ?? null)
     }
   }
@@ -87,6 +144,8 @@ export function CheckInSheet() {
     s.logBodyCheckIn({
       sleepH: sleepH ?? undefined,
       energy: energy ?? undefined,
+      soreness: soreness ?? undefined,
+      stress: stress ?? undefined,
     })
     toast.success('Check-in tersimpan — terima kasih sudah merawat dirimu.')
     closeCheckIn()
@@ -102,7 +161,7 @@ export function CheckInSheet() {
         <RutinaSectionHeader
           eyebrow="Suasana & pemulihan"
           title="Check-in hari ini"
-          description="Catat suasana hati, energi, dan tidur semalam — semuanya opsional."
+          description="Catat suasana hati, energi, nyeri otot, stres, dan tidur — semuanya opsional."
         />
       </div>
 
@@ -137,37 +196,31 @@ export function CheckInSheet() {
         </div>
       </div>
 
-      {/* Energi — pemilih 1–5 */}
-      <div className="mt-4">
-        <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
-          Energi
-        </p>
-        <div className="mt-2 flex gap-2">
-          {[1, 2, 3, 4, 5].map((v) => {
-            const selected = energy === v
-            return (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={selected}
-                aria-label={`Energi ${v}`}
-                onClick={() => setEnergy(selected ? null : v)}
-                className={cn(
-                  'flex h-11 w-11 flex-1 cursor-pointer items-center justify-center rounded-full text-[14px] font-bold tabular-nums outline-none transition-all duration-150 active:scale-[0.92] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-                  selected
-                    ? 'bg-primary text-primary-foreground shadow-soft'
-                    : 'border border-border bg-surface-secondary text-content-secondary hover:border-border-strong',
-                )}
-              >
-                {v}
-              </button>
-            )
-          })}
-        </div>
-        <p className="mt-1.5 px-0.5 text-[11px] font-medium text-content-muted">
-          1 = sangat lelah · 5 = bugar
-        </p>
-      </div>
+      {/* Skala 1–5 — energi, nyeri otot (DOMS), stres; pola visual satu sumber */}
+      <Scale1to5
+        label="Energi"
+        value={energy}
+        onPick={setEnergy}
+        scaleLabel="Energi"
+        lowLabel="sangat lelah"
+        highLabel="bugar"
+      />
+      <Scale1to5
+        label="Nyeri otot (DOMS)"
+        value={soreness}
+        onPick={setSoreness}
+        scaleLabel="Nyeri otot"
+        lowLabel="tidak nyeri"
+        highLabel="sangat nyeri"
+      />
+      <Scale1to5
+        label="Stres"
+        value={stress}
+        onPick={setStress}
+        scaleLabel="Stres"
+        lowLabel="tenang"
+        highLabel="sangat stres"
+      />
 
       {/* Tidur — stepper setengah jam */}
       <div className="mt-4">

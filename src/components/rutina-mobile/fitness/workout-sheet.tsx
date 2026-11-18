@@ -6,13 +6,15 @@ import {
   useDragControls,
 } from 'motion/react'
 import * as m from 'motion/react-m'
-import { Minus, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, Minus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
 import {
+  deloadActive,
+  deloadSets,
   exStatOf,
   paceOf,
 } from './fit-utils'
@@ -74,6 +76,7 @@ export function WorkoutSheet() {
   const open = useRutina((s) => s.workoutSheetOpen)
   const seed = useRutina((s) => s.workoutSheetSeed)
   const workouts = useRutina((s) => s.workouts)
+  const deloadUntil = useRutina((s) => s.deloadUntil)
   const closeWorkoutSheet = useRutina((s) => s.closeWorkoutSheet)
   const addWorkout = useRutina((s) => s.addWorkout)
 
@@ -175,6 +178,46 @@ export function WorkoutSheet() {
   }
 
   const pace = paceOf(Number(duration || '0'), Number(distance.replace(',', '.') || '0'))
+
+  /* ===== Deload-aware targets — mode beban + masa deload aktif ===== */
+  const deloadOn = deloadActive(deloadUntil)
+
+  /** Angka input Indonesia: 27.5 -> "27,5" (integer tetap polos). */
+  const fmtInput = (n: number) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ',')
+
+  /* Terapkan deloadSets() ke draf: blok valid diekspansi menjadi set
+     (persis jalur submit), dipangkas 50% + pembulatan 2,5 kg, lalu
+     dipetakan balik per blok. Blok tidak valid dibiarkan apa adanya. */
+  const applyDeload = () => {
+    const valid: WorkoutSet[] = []
+    const spans: { index: number; count: number }[] = []
+    blocks.forEach((b, i) => {
+      const w = Number(b.weight.replace(',', '.'))
+      const r = Number(b.reps)
+      if (!b.exercise || w <= 0 || r <= 0 || b.count < 1) return
+      spans.push({ index: i, count: b.count })
+      for (let k = 0; k < b.count; k++) valid.push({ exercise: b.exercise, weight: w, reps: r })
+    })
+    if (valid.length === 0) {
+      toast.warning('Isi minimal satu gerakan dengan beban dulu.')
+      return
+    }
+    const halved = deloadSets(valid)
+    let cursor = 0
+    setBlocks((bs) =>
+      bs.map((b, i) => {
+        const span = spans.find((s) => s.index === i)
+        if (!span) return b
+        const next = halved.slice(cursor, cursor + span.count)
+        cursor += span.count
+        const w0 = next[0]?.weight
+        if (w0 != null && w0 > 0) return { ...b, weight: fmtInput(w0) }
+        return b
+      }),
+    )
+    toast.success('Target beban dipangkas 50% — masih bisa diedit manual.')
+  }
 
   return (
     <AnimatePresence>
@@ -312,6 +355,34 @@ export function WorkoutSheet() {
                       {blocks.length} blok
                     </span>
                   </div>
+
+                  {/* Deload-aware targets — saran 50% saat masa deload */}
+                  {deloadOn && (
+                    <div className="mt-2.5 rounded-2xl border border-warning/40 bg-gold/25 p-3.5">
+                      <div className="flex items-start gap-2.5">
+                        <AlertTriangle
+                          className="mt-0.5 h-4 w-4 shrink-0 text-warning"
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12px] font-bold leading-snug text-content-primary">
+                            Masa deload — target beban disarankan 50%
+                          </p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-content-muted">
+                            Setengah beban, pembulatan 2,5 kg — tetap bisa
+                            diedit manual setelah diterapkan.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={applyDeload}
+                        className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-[12.5px] font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+                      >
+                        Terapkan 50%
+                      </button>
+                    </div>
+                  )}
 
                   <div className="mt-2 space-y-2.5">
                     {blocks.map((b, i) => (

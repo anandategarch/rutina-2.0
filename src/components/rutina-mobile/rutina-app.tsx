@@ -98,6 +98,18 @@ export function RutinaApp() {
      materializeRecurring dijalankan engine setelah sinkronisasi awal. */
   useSyncEngine()
 
+  /* PWA — daftarkan service worker offline shell (hanya di klien,
+     pada konteks aman: https atau localhost). Kegagalan didiamkan:
+     SW adalah pening pengalaman, bukan kebutuhan fungsional. */
+  useEffect(() => {
+    if (
+      'serviceWorker' in navigator &&
+      (location.protocol === 'https:' || location.hostname === 'localhost')
+    ) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+  }, [])
+
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
      kanan, mundur (-1) bila ke kiri. */
   const dir =

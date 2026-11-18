@@ -42,9 +42,22 @@ export async function PATCH(req: Request, { params }: Ctx) {
           ? { weeklyTarget: patch.weeklyTarget }
           : {}),
         ...(patch.reminder !== undefined ? { reminder: patch.reminder } : {}),
+        ...(patch.restDays !== undefined
+          ? { restDays: JSON.stringify(patch.restDays) }
+          : {}),
+        ...(patch.afterId !== undefined
+          ? { afterId: patch.afterId || null }
+          : {}),
+        ...(patch.mini !== undefined ? { mini: patch.mini } : {}),
       },
     })
-    return ok({ habit: { ...habit, schedule: JSON.parse(habit.schedule) as number[] } })
+    return ok({
+      habit: {
+        ...habit,
+        schedule: JSON.parse(habit.schedule) as number[],
+        restDays: JSON.parse(habit.restDays ?? '[]') as string[],
+      },
+    })
   })
 }
 

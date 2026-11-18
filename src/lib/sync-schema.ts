@@ -20,6 +20,12 @@ export const SYNC_SETTING_KEYS = {
   mood: 'app.mood',
   bonusClaimed: 'app.bonusClaimed',
   quoteSaved: 'app.quoteSaved',
+  /** Suara Identitas — teks identitas personal pengguna. */
+  identityText: 'app.identityText',
+  /** Batas akhir deload (ISO) — string kosong bila tidak aktif. */
+  deloadUntil: 'app.deloadUntil',
+  /** Tanggal kutipan harian terakhir yang disimpan. */
+  quoteSavedDate: 'app.quoteSavedDate',
   /** Penanda "dataset pernah diunggah" — dasar kebijakan server-menang. */
   initialized: 'sync.initialized',
   lastPushAt: 'sync.lastPushAt',
@@ -41,6 +47,12 @@ export const habitSchema = z.object({
   schedule: z.array(z.number().int().min(0).max(6)).max(7),
   weeklyTarget: z.number().int().min(1).max(7),
   reminder: z.string().max(5).nullable(),
+  /** Jeda Runtun Aman — tanggal jeda terjadwal. */
+  restDays: z.array(isoDate).max(400).default([]),
+  /** Susun Kebiasaan — id kebiasaan pemicu. */
+  afterId: z.string().max(64).nullable().default(null),
+  /** Versi 2 Menit — bentuk terkecil kebiasaan. */
+  mini: z.string().max(300).default(''),
   archived: z.boolean(),
   createdAt: isoDate,
 })
@@ -157,8 +169,15 @@ export const bodyLogSchema = z.object({
   weight: z.number().min(0).max(500).nullable().optional(),
   sleepH: z.number().min(0).max(24).nullable().optional(),
   energy: z.number().int().min(1).max(5).nullable().optional(),
+  /** DOMS / nyeri otot 1–5. */
+  soreness: z.number().int().min(1).max(5).nullable().optional(),
+  /** Stres 1–5. */
+  stress: z.number().int().min(1).max(5).nullable().optional(),
 })
 export const bodyLogsSchema = z.record(isoDate, bodyLogSchema)
+
+/** moodLogs[tanggalISO] = nama mood — histori wellness per tanggal. */
+export const moodLogsSchema = z.record(isoDate, z.string().min(1).max(24))
 
 /* ===== Snapshot penuh ===== */
 
@@ -177,8 +196,16 @@ export const syncStateSchema = z.object({
   bodyLogs: bodyLogsSchema,
   dailyGoal: z.number().int().min(1).max(20),
   mood: z.string().max(24).nullable(),
+  /** Riwayat mood per tanggal (Rutina lama: DailyLog). */
+  moodLogs: moodLogsSchema.default({}),
+  /** Suara Identitas — teks identitas personal. */
+  identityText: z.string().max(600).default(''),
+  /** Batas akhir deload (ISO), null bila tidak aktif. */
+  deloadUntil: isoDate.nullable().default(null),
   bonusClaimed: z.boolean(),
   quoteSaved: z.boolean(),
+  /** Tanggal kutipan harian terakhir disimpan. */
+  quoteSavedDate: isoDate.nullable().default(null),
 })
 
 /** Muatan PUT /api/state — { state: SyncState }. */

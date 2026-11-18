@@ -5,17 +5,23 @@ import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
 import { createScope, createTimeline, stagger } from 'animejs'
 import {
+  ArrowDownCircle,
+  ArrowUpCircle,
   Check,
   ChevronLeft,
   ChevronRight,
+  Circle,
   Dumbbell,
   Minus,
   Play,
   Plus,
   SkipForward,
   Timer,
+  TrendingDown,
   Trash2,
   Trophy,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -24,7 +30,7 @@ import { CONTENT_W } from '../layout-widths'
 import { playfair } from '../serif'
 import { useFocusTrap } from '../use-focus-trap'
 import { RutinaDialog } from '../rutina-dialog'
-import { exStatOf } from './fit-utils'
+import { deloadActive, doubleProgression, exStatOf } from './fit-utils'
 import { EX_LIB, EX_LEVELS, MUSCLE_GROUPS } from './data'
 import { useRutina, type Workout, type WorkoutKind } from '../store'
 import { useSessionStore, type ActiveSession } from './session-store'
@@ -69,6 +75,81 @@ const mmss = (ms: number): string => {
 }
 
 const roundStep = (v: number): number => Math.round(v * 10) / 10
+
+/* ===== Suara timer istirahat — modul lokal berkas =====
+   AudioContext dibuat malas pada interaksi pengguna pertama (kebijakan
+   autoplay); semua pemutaran dibungkus try/catch — kegagalan suara
+   tidak pernah boleh menjatuhkan sesi. `soundOn` module-level (bukan
+   store) — bertahan antar-mount, default menyala. */
+let audioCtx: AudioContext | null = null
+let soundOn = true
+
+/** Bangun/resume konteks audio — dipanggil dari gestur pengguna. */
+function ensureAudio(): void {
+  try {
+    if (audioCtx) {
+      if (audioCtx.state === 'suspended') void audioCtx.resume()
+      return
+    }
+    const AC =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext
+    if (!AC) return
+    audioCtx = new AC()
+  } catch {
+    /* diam — tanpa suara tetap aman */
+  }
+}
+
+/** Bip pendek; hanya bunyi bila konteks sudah ada (interaksi pertama). */
+function playBeep(freq = 880, duration = 0.08, delay = 0): void {
+  try {
+    if (!soundOn || !audioCtx) return
+    const ctx = audioCtx
+    const t0 = ctx.currentTime + delay
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.value = freq
+    gain.gain.setValueAtTime(0.0001, t0)
+    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.012)
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start(t0)
+    osc.stop(t0 + duration + 0.06)
+  } catch {
+    /* diam */
+  }
+}
+
+/** Chime penutup dua nada saat timer habis. */
+function finishChime(): void {
+  playBeep(660, 0.16)
+  playBeep(880, 0.32, 0.16)
+}
+
+/** Ajakan lisan — suara id-ID dipakai bila tersedia, selain itu suara
+    default peramban (tanpa paksa lang agar tidak bisu). */
+function speakNextSet(): void {
+  try {
+    if (!soundOn || typeof window === 'undefined') return
+    const synth = window.speechSynthesis
+    if (!synth) return
+    const idVoice = synth
+      .getVoices()
+      .find((v) => v.lang.toLowerCase().startsWith('id'))
+    const u = new SpeechSynthesisUtterance('Ayo, set berikutnya!')
+    if (idVoice) {
+      u.voice = idVoice
+      u.lang = 'id-ID'
+    }
+    synth.speak(u)
+  } catch {
+    /* diam */
+  }
+}
 
 /** Rekap sesi untuk momen perayaan paska-simpan. */
 interface SessionSummary {
@@ -162,6 +243,9 @@ function RestCard({
   onFinished: () => void
 }) {
   const [now, setNow] = useState(() => Date.now())
+  /* Cermin module-level soundOn — agar ikon toggle mengikuti nilai yang
+     bertahan antar-mount. */
+  const [sound, setSound] = useState(soundOn)
 
   /* Tick 250ms — cukup halus untuk detik, murah untuk render. */
   useEffect(() => {
@@ -172,6 +256,21 @@ function RestCard({
   const remaining = Math.max(0, restingUntil - now)
   const pct = Math.min(100, (remaining / Math.max(restDuration, 1)) * 100)
   const urgent = remaining > 0 && remaining <= 5_000
+  const secondsLeft = Math.max(0, Math.ceil(remaining / 1000))
+
+  /* Bunyi penanda pada detik 3-2-1 (satu bip per detik utuh berubah);
+     saat habis: chime dua nada + ajakan lisan. Efek samping murni —
+     tidak ada setState di sini. */
+  useEffect(() => {
+    if (remaining <= 0) {
+      finishChime()
+      speakNextSet()
+      return
+    }
+    if (secondsLeft === 3 || secondsLeft === 2 || secondsLeft === 1) {
+      playBeep()
+    }
+  }, [secondsLeft, remaining])
 
   /* Habis → bersihkan state + umpan balik (denyut & toast ada di induk). */
   useEffect(() => {
@@ -188,10 +287,35 @@ function RestCard({
       aria-label={`Istirahat ${mmss(remaining)}`}
       className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
     >
-      <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
-        <Timer className="h-3.5 w-3.5" aria-hidden="true" />
-        Istirahat · Timer berjalan
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
+          <Timer className="h-3.5 w-3.5" aria-hidden="true" />
+          Istirahat · Timer berjalan
+        </p>
+        <button
+          type="button"
+          aria-pressed={sound}
+          aria-label={
+            sound ? 'Matikan suara timer' : 'Nyalakan suara timer'
+          }
+          onClick={() => {
+            soundOn = !soundOn
+            setSound(soundOn)
+            if (soundOn) ensureAudio()
+          }}
+          className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            sound
+              ? 'text-hero-accent hover:bg-hero-content/10'
+              : 'text-hero-content-muted hover:bg-hero-content/10'
+          }`}
+        >
+          {sound ? (
+            <Volume2 className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <VolumeX className="h-4 w-4" aria-hidden="true" />
+          )}
+        </button>
+      </div>
       <m.p
         animate={urgent ? { scale: [1, 1.06, 1] } : { scale: 1 }}
         transition={{
@@ -216,7 +340,10 @@ function RestCard({
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <button
           type="button"
-          onClick={() => onExtend(15)}
+          onClick={() => {
+            ensureAudio()
+            onExtend(15)
+          }}
           className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-hero-content/25 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -332,6 +459,7 @@ function SessionView({
 }) {
   const workouts = useRutina((s) => s.workouts)
   const addWorkout = useRutina((s) => s.addWorkout)
+  const deloadUntil = useRutina((s) => s.deloadUntil)
   const completeSet = useSessionStore((s) => s.completeSet)
   const nextExercise = useSessionStore((s) => s.nextExercise)
   const prevExercise = useSessionStore((s) => s.prevExercise)
@@ -421,6 +549,9 @@ function SessionView({
 
   const handleComplete = () => {
     if (!ex) return
+    /* Gestur pengguna pertama yang menjamin timer berikutnya bersuara —
+       bangun AudioContext di sini (kebijakan autoplay). */
+    ensureAudio()
     completeSet(weight, reps)
     const doneAfter = ex.sets.length + 1
     const allDoneAfter = session.exercises.every((e, i) =>
@@ -485,6 +616,32 @@ function SessionView({
       ? `Set sebelumnya (sesi lalu): ${fmtKg(ex.hintWeight)} kg × ${ex.hintReps}`
       : 'Set pertama untuk gerakan ini'
   const exMeta = ex ? EX_LIB.find((e) => e.name === ex.name) : undefined
+
+  /* ===== Saran Coach — double progression untuk gerakan aktif =====
+     Target repetisi = set PERTAMA gerakan ini sesi berjalan (fallback
+     histori terakhir / 8). Muncul setelah minimal satu set tercatat. */
+  const advice = useMemo(() => {
+    if (!ex || ex.sets.length === 0) return null
+    const first = ex.sets[0]
+    const targetReps = first
+      ? first.reps
+      : ex.hintReps > 0
+        ? ex.hintReps
+        : 8
+    return doubleProgression(ex.sets, targetReps)
+  }, [ex])
+
+  /* Terapkan saran ke stepper beban = target set berikutnya (state lokal
+     SessionView — satu-satunya tempat beban rencana disimpan; tetap bisa
+     diedit manual setelahnya). */
+  const applyAdvice = (w: number) => {
+    setWeight(Math.min(WEIGHT_MAX, Math.max(WEIGHT_MIN, w)))
+    toast.success('Saran Coach diterapkan ke set berikutnya.')
+  }
+
+  /* Deload aktif saat sesi berjalan — banner informatif, tanpa mutasi
+     data pengguna apa pun. */
+  const deloadOn = deloadActive(deloadUntil)
 
   return (
     <m.div
@@ -598,6 +755,23 @@ function SessionView({
 
         {/* Kartu gerakan aktif — bisa digeser kiri/kanan */}
         <main className="min-h-0 flex-1 overflow-y-auto no-scrollbar overscroll-contain px-5">
+          {/* Banner deload sekali — informatif, tanpa mutasi otomatis */}
+          {deloadOn && (
+            <div
+              role="note"
+              className="mb-3 flex items-start gap-2.5 rounded-2xl border border-hero-accent/35 bg-hero-accent/15 p-3.5"
+            >
+              <TrendingDown
+                className="mt-0.5 h-4.5 w-4.5 shrink-0 text-hero-accent"
+                aria-hidden="true"
+              />
+              <p className="text-[12px] leading-relaxed text-hero-content">
+                Masa deload aktif — pertimbangkan{' '}
+                <span className="font-bold text-hero-accent">50% beban</span>{' '}
+                dari biasa. Tubuh sedang memulihkan diri.
+              </p>
+            </div>
+          )}
           {adding ? (
             <AddExercisePanel
               onAdd={handleAddExercise}
@@ -683,6 +857,50 @@ function SessionView({
                     </span>
                   ))}
                 </div>
+              )}
+
+              {/* Saran Coach — chip progresi di samping daftar set */}
+              {advice && (
+                <m.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                  className="mt-3 rounded-2xl border border-hero-content/12 bg-hero-content/[0.06] p-3.5"
+                >
+                  <div className="flex items-start gap-2.5">
+                    {advice.action === 'naik' ? (
+                      <ArrowUpCircle
+                        className="mt-0.5 h-5 w-5 shrink-0 text-pistachio"
+                        aria-hidden="true"
+                      />
+                    ) : advice.action === 'turun' ? (
+                      <ArrowDownCircle
+                        className="mt-0.5 h-5 w-5 shrink-0 text-hero-accent"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Circle
+                        className="mt-0.5 h-5 w-5 shrink-0 text-hero-content-muted"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
+                        Saran Coach
+                      </p>
+                      <p className="mt-0.5 text-[12.5px] font-semibold leading-relaxed text-hero-content">
+                        {fmtKg(advice.nextWeight)} kg — {advice.reason}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => applyAdvice(advice.nextWeight)}
+                      className="h-8 shrink-0 cursor-pointer rounded-full bg-primary px-3.5 text-[12px] font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.95] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      Terapkan
+                    </button>
+                  </div>
+                </m.div>
               )}
 
               {session.exercises.length > 1 && (

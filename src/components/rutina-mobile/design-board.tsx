@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
-import { X } from 'lucide-react'
+import { FlaskConical, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { playfair } from './serif'
+import { CssLab } from './css-lab'
 import { RutinaCard } from './rutina-card'
 import { HABIT_CATS, HABIT_CAT_COLORS } from './store'
 import { CONTENT_W } from './layout-widths'
@@ -225,15 +226,19 @@ export function DesignBoard({
   const panelRef = useRef<HTMLDivElement>(null)
   useFocusTrap(open, panelRef)
 
-  /* Escape untuk menutup */
+  /* CSS Lab — lapisan di atas papan (dibuka dari tombol kepala). */
+  const [labOpen, setLabOpen] = useState(false)
+
+  /* Escape untuk menutup — saat CSS Lab terbuka, lab menangani
+     Escape-nya sendiri (satu ketukan, satu lapis). */
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !labOpen) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, labOpen])
 
   return (
     <AnimatePresence>
@@ -279,14 +284,25 @@ export function DesignBoard({
                   Calm by design. Precise by engineering.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Tutup papan sistem desain"
-                className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-inverse text-content-inverse transition-transform hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                <X className="h-5 w-5" strokeWidth={2.5} />
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLabOpen(true)}
+                  aria-label="Buka CSS Lab"
+                  className="flex h-11 cursor-pointer items-center gap-1.5 rounded-full border border-border-default bg-surface-secondary px-4 text-[12px] font-bold text-content-secondary transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <FlaskConical className="h-4 w-4" aria-hidden="true" />
+                  CSS Lab
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Tutup papan sistem desain"
+                  className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-inverse text-content-inverse transition-transform hover:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <X className="h-5 w-5" strokeWidth={2.5} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -695,6 +711,14 @@ export function DesignBoard({
             </BoardSection>
           </div>
         </m.div>
+      )}
+      {/* CSS Lab — lapisan laboratorium efek di atas papan (z-65/70). */}
+      {open && (
+        <CssLab
+          key="css-lab"
+          open={labOpen}
+          onClose={() => setLabOpen(false)}
+        />
       )}
     </AnimatePresence>
   )

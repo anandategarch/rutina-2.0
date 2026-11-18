@@ -11,6 +11,7 @@ import {
   todayISO,
   type BodyLogs,
   type Workout,
+  type WorkoutSet,
 } from '../store'
 
 /* ===== e1RM (Epley) ===== */
@@ -193,35 +194,334 @@ export function kcalOf(w: Workout, bodyWeight: number | null): number {
   return Math.round(met * (bodyWeight ?? 60) * ((w.duration || 0) / 60))
 }
 
+export interface ReadinessComponent {
+  key: 'tidur' | 'nyeri' | 'stres' | 'energi'
+  label: string
+  /** Skor komponen 0–100. */
+  score: number
+  /** Bobot asli (total 1.0 bila semua terisi). */
+  weight: number
+}
+
 export interface Readiness {
   score: number
   label: string
   hint: string
+  /** Rincian skor per komponen — untuk kartu Coach Bugar. */
+  detail: ReadinessComponent[]
+  /** Komponen yang belum diisi check-in hari ini. */
+  missing: string[]
 }
 
-/** Kesiapan latihan — gabungan tidur (target 7–8 jam) & energi 1–5.
-    Bila belum check-in, pengguna diajak mengisinya dulu. */
+/** Bobot Coach Bugar lama: tidur 30%, DOMS 30%, stres 20%, energi 20%. */
+const READINESS_WEIGHTS = { tidur: 0.3, nyeri: 0.3, stres: 0.2, energi: 0.2 }
+
+/** Kesiapan latihan — empat komponen Coach Bugar (v3.02) lama:
+ *  tidur (target 7–8 jam), DOMS/nyeri otot, stres, dan energi.
+ *  Bila sebagian komponen belum diisi, bobot dinormalisasi dari yang
+ *  terisi dan komponen kosong dilaporkan lewat `missing`. */
 export function readinessOf(logs: BodyLogs): Readiness | null {
   const today = logs[todayISO()]
-  if (!today || today.sleepH == null || today.energy == null) return null
-  const sleepScore = Math.min((today.sleepH ?? 0) / 8, 1) * 55
-  const energyScore = ((today.energy ?? 0) / 5) * 45
-  const score = Math.round(sleepScore + energyScore)
+  if (!today) return null
+  const parts: ReadinessComponent[] = []
+  const missing: string[] = []
+
+  if (today.sleepH != null) {
+    parts.push({
+      key: 'tidur',
+      label: 'Tidur',
+      score: Math.min(today.sleepH / 8, 1) * 100,
+      weight: READINESS_WEIGHTS.tidur,
+    })
+  } else missing.push('tidur')
+
+  if (today.soreness != null) {
+    parts.push({
+      key: 'nyeri',
+      label: 'Nyeri otot',
+      score: ((6 - today.soreness) / 5) * 100,
+      weight: READINESS_WEIGHTS.nyeri,
+    })
+  } else missing.push('nyeri otot')
+
+  if (today.stress != null) {
+    parts.push({
+      key: 'stres',
+      label: 'Stres',
+      score: ((6 - today.stress) / 5) * 100,
+      weight: READINESS_WEIGHTS.stres,
+    })
+  } else missing.push('stres')
+
+  if (today.energy != null) {
+    parts.push({
+      key: 'energi',
+      label: 'Energi',
+      score: (today.energy / 5) * 100,
+      weight: READINESS_WEIGHTS.energi,
+    })
+  } else missing.push('energi')
+
+  if (parts.length === 0) return null
+  const totalW = parts.reduce((a, p) => a + p.weight, 0)
+  const score = Math.round(
+    parts.reduce((a, p) => a + p.score * (p.weight / totalW), 0),
+  )
+
+  const base = { score, detail: parts, missing }
   if (score >= 75)
     return {
-      score,
+      ...base,
       label: 'Siap latihan',
-      hint: 'Tidur & energi kamu prima — manfaatkan untuk sesi berkualitas.',
+      hint: 'Tidur & tubuh prima — manfaatkan untuk sesi berkualitas.',
     }
   if (score >= 50)
     return {
-      score,
+      ...base,
       label: 'Cukup siap',
       hint: 'Boleh latihan — jaga volume secukupnya dan dengarkan tubuh.',
     }
   return {
-    score,
+    ...base,
     label: 'Fokus pemulihan',
     hint: 'Tubuh butuh istirahat — pilih sesi ringan atau libur aktif.',
   }
+}
+
+/* ===== Coach Bugar — double progression otomatis ===== */
+
+/** Pembulatan ke kelipatan 2,5 kg (inkremen piring terkecil). */
+export function round2_5(kg: number): number {
+  return Math.round(kg / 2.5) * 2.5
+}
+
+export interface ProgressionAdvice {
+  action: 'naik' | 'turun' | 'pertahankan'
+  nextWeight: number
+  reason: string
+}
+
+/** Double progression per gerakan (aturan Coach lama):
+ *  - Semua set mencapai target repetisi → beban naik 2,5 kg.
+ *  - Repetisi jauh tertinggal (rata-rata ≤ target − 2) → beban turun 10%.
+ *  - Selain itu → pertahankan beban, kejar target repetisi. */
+export function doubleProgression(
+  sets: Pick<WorkoutSet, 'weight' | 'reps'>[],
+  targetReps: number,
+): ProgressionAdvice | null {
+  if (sets.length === 0) return null
+  const lastWeight = sets[sets.length - 1]!.weight
+  const avgReps = sets.reduce((a, s) => a + s.reps, 0) / sets.length
+  if (avgReps >= targetReps) {
+    return {
+      action: 'naik',
+      nextWeight: round2_5(lastWeight + 2.5),
+      reason: 'Semua set mencapai target repetisi — naikkan beban 2,5 kg.',
+    }
+  }
+  if (avgReps <= targetReps - 2) {
+    return {
+      action: 'turun',
+      nextWeight: round2_5(lastWeight * 0.9),
+      reason: 'Repetisi jauh tertinggal — turunkan beban 10% agar teknik terjaga.',
+    }
+  }
+  return {
+    action: 'pertahankan',
+    nextWeight: lastWeight,
+    reason: 'Pertahankan beban — raih target repetisi di semua set dulu.',
+  }
+}
+
+/* ===== Coach Bugar — deteksi plateau & deload ===== */
+
+export interface PlateauInfo {
+  stalled: boolean
+  /** e1RM terbaik per tiga sesi terakhir (kronologis). */
+  bests: number[]
+  /** Rekor e1RM sepanjang histori sebelum tiga sesi terakhir. */
+  priorBest: number
+}
+
+/** Deteksi stagnasi kekuatan: tiga sesi terakhir sebuah gerakan
+ *  tanpa perbaikan e1RM sama sekali → rekomendasi deload. */
+export function detectPlateau(
+  workouts: Workout[],
+  exercise: string,
+): PlateauInfo | null {
+  /* Sesi berisi gerakan ini, kronologis (terbaru dulu → dibalik). */
+  const sessions = workouts
+    .filter(
+      (w) =>
+        w.kind === 'beban' && w.sets.some((s) => s.exercise === exercise),
+    )
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+    .reverse()
+  if (sessions.length < 3) return null
+
+  const bestOf = (w: Workout) =>
+    Math.max(
+      ...w.sets
+        .filter((s) => s.exercise === exercise)
+        .map((s) => e1rmOf(s.weight, s.reps)),
+    )
+
+  const last3 = sessions.slice(-3)
+  const bests = last3.map(bestOf)
+  const prior = sessions.slice(0, -3)
+  const priorBest = prior.length
+    ? Math.max(...prior.map(bestOf))
+    : Math.max(...bests)
+
+  /* Stagnasi: tidak ada sesi tiga-terakhir yang melampaui rekor
+     sebelumnya, dan tidak ada tren naik di dalamnya. */
+  const stalled =
+    bests.every((b) => b <= priorBest) && bests[2]! <= bests[0]!
+  return { stalled, bests, priorBest }
+}
+
+/** Apakah sedang masa deload aktif (sampai tanggal deloadUntil). */
+export function deloadActive(
+  deloadUntil: string | null,
+  today: string = todayISO(),
+): boolean {
+  return deloadUntil != null && today <= deloadUntil
+}
+
+/** Target set versi deload — beban dikurangi 50% (aturan Coach lama). */
+export function deloadSets(sets: WorkoutSet[]): WorkoutSet[] {
+  return sets.map((s) => ({ ...s, weight: round2_5(s.weight * 0.5) }))
+}
+
+/* ===== Coach Bugar — guard latihan silang ===== */
+
+export interface GuardInfo {
+  tooMuch: boolean
+  cardioCount7d: number
+  suggestion: string | null
+}
+
+/** Guard latihan silang: frekuensi kardio (jalan+lari) 7 hari terakhir
+ *  terlalu tinggi (≥ 5 sesi) → sarankan variasi latihan beban/mobilitas. */
+export function cardioGuard(
+  workouts: Workout[],
+  today: string = todayISO(),
+): GuardInfo {
+  const from = addDaysISO(today, -6)
+  const cardioCount7d = workouts.filter(
+    (w) => w.kind !== 'beban' && w.date >= from && w.date <= today,
+  ).length
+  const tooMuch = cardioCount7d >= 5
+  return {
+    tooMuch,
+    cardioCount7d,
+    suggestion: tooMuch
+      ? 'Kardio cukup padat pekan ini — imbangi dengan latihan beban atau mobilitas agar pemulihan tetap seimbang.'
+      : null,
+  }
+}
+
+/* ===== Alat barbel (v3.04 lama) ===== */
+
+export interface PlateSpec {
+  kg: number
+  /** Warna standar IWF. */
+  color: string
+}
+
+/** Piring standar IWF — warna resmi. */
+export const IWF_PLATES: PlateSpec[] = [
+  { kg: 25, color: '#C8102E' }, // merah
+  { kg: 20, color: '#1D4E9B' }, // biru
+  { kg: 15, color: '#F4C542' }, // kuning
+  { kg: 10, color: '#2E7D46' }, // hijau
+  { kg: 5, color: '#E8E8E8' }, // putih
+  { kg: 2.5, color: '#2B2B2B' }, // hitam
+  { kg: 1.25, color: '#B8B8B8' }, // krom
+]
+
+export interface PlateLoad {
+  spec: PlateSpec
+  countPerSide: number
+}
+
+export interface PlateLoadResult {
+  plates: PlateLoad[]
+  /** Total beban yang benar-benar tercapai (kg). */
+  achieved: number
+  /** Sisa beban yang tak terwakili piring (kg). */
+  remainder: number
+}
+
+/** Kalkulator Pemuat Piring — piring yang harus dipasang di
+ *  MASING-MASING sisi barbel untuk total beban tertentu. */
+export function plateLoader(
+  totalKg: number,
+  barKg = 20,
+): PlateLoadResult | null {
+  if (!Number.isFinite(totalKg) || totalKg < barKg || barKg <= 0) return null
+  let perSide = (totalKg - barKg) / 2
+  const plates: PlateLoad[] = []
+  for (const spec of IWF_PLATES) {
+    const count = Math.floor(perSide / spec.kg + 1e-9)
+    if (count > 0) {
+      plates.push({ spec, countPerSide: count })
+      perSide -= count * spec.kg
+    }
+  }
+  const remainder = Math.round(perSide * 2 * 100) / 100
+  const achieved = Math.round((totalKg - remainder) * 100) / 100
+  return { plates, achieved, remainder }
+}
+
+export interface RmRow {
+  pct: number
+  kg: number
+}
+
+/** Kalkulator 1RM — estimasi Epley + tabel persentase 95–65%
+ *  (pembulatan 2,5 kg agar langsung dipakai di barbel). */
+export function rmTable(weight: number, reps: number): RmRow[] {
+  const e1rm = e1rmOf(weight, reps)
+  return [95, 90, 85, 80, 75, 70, 65].map((pct) => ({
+    pct,
+    kg: round2_5((e1rm * pct) / 100),
+  }))
+}
+
+/** Tangga pemanasan otomatis: bar kosong → 40% → 60% → 80%
+ *  dari beban kerja, pembulatan 2,5 kg (duplikat dilompati). */
+export function warmupLadder(
+  workKg: number,
+  barKg = 20,
+): { label: string; kg: number }[] {
+  const steps = [
+    { label: 'Bar kosong', kg: barKg },
+    { label: '40%', kg: round2_5(workKg * 0.4) },
+    { label: '60%', kg: round2_5(workKg * 0.6) },
+    { label: '80%', kg: round2_5(workKg * 0.8) },
+  ]
+  const out: { label: string; kg: number }[] = []
+  for (const s of steps) {
+    if (s.kg >= workKg) continue
+    if (out.length > 0 && out[out.length - 1]!.kg === s.kg) continue
+    out.push(s)
+  }
+  return out
+}
+
+/* ===== Asupan — neraca kalori dengan kalori aktivitas ===== */
+
+/** Total kalori terbakar hari ini dari sesi latihan (MET × berat ×
+ *  durasi) — untuk integrasi neraca Asupan versi lama:
+ *  Sisa = Target + Terbakar − Masuk. */
+export function burnedToday(
+  workouts: Workout[],
+  bodyLogs: BodyLogs,
+  today: string = todayISO(),
+): number {
+  const bw = latestWeight(bodyLogs)
+  return workouts
+    .filter((w) => w.date === today)
+    .reduce((a, w) => a + kcalOf(w, bw), 0)
 }
