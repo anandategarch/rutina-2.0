@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { useScroll, useTransform } from 'motion/react'
+import { AnimatePresence, useScroll, useTransform } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate } from 'animejs'
 import {
@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  FlaskConical,
   Gift,
   Heart,
   Lightbulb,
@@ -58,6 +59,76 @@ import {
 } from '../store'
 
 /* ===== Potongan kecil ===== */
+
+/* Banner mode data contoh — jujur memisahkan demo dari data milik
+   pengguna. Dua pilihan eksplisit: mulai bersih (hapus semua contoh)
+   atau pakai contoh sebagai titik awal. */
+function DemoBanner() {
+  const demoMode = useRutina((s) => s.demoMode)
+  const startFresh = useRutina((s) => s.startFresh)
+  const keepSample = useRutina((s) => s.keepSample)
+
+  return (
+    <AnimatePresence initial={false}>
+      {demoMode && (
+        <m.section
+          key="demo-banner"
+          initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+          animate={{
+            opacity: 1,
+            height: 'auto',
+            marginBottom: '0.75rem',
+          }}
+          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden"
+          aria-label="Mode data contoh"
+        >
+          <div className="rounded-2xl border border-dashed border-[#B25E3F]/45 bg-[#F5F3EE] px-4 py-3.5">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#B25E3F]/12 text-[#B25E3F]">
+                <FlaskConical className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold text-[#231F1E]">
+                  Data contoh
+                </p>
+                <p className="mt-0.5 text-[12px] leading-relaxed text-[#4A3B32]/80">
+                  Kebiasaan, catatan, dan transaksi yang tampil masih contoh —
+                  bukan datamu. Pilih cara memulai:
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startFresh()
+                      toast.success(
+                        'Data contoh dibersihkan — mulailah dari nol.',
+                      )
+                    }}
+                    className="h-9 cursor-pointer rounded-full bg-[#B25E3F] px-4 text-[12px] font-bold text-[#FAF9F6] shadow-soft transition-all hover:bg-[#9E4E33] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F]"
+                  >
+                    Mulai bersih
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      keepSample()
+                      toast('Data contoh dipertahankan sebagai milikmu.')
+                    }}
+                    className="h-9 cursor-pointer rounded-full border border-[#4A3B32]/25 bg-white px-4 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+                  >
+                    Pakai contoh ini
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </m.section>
+      )}
+    </AnimatePresence>
+  )
+}
 
 function SectionTitle({
   title,
@@ -436,6 +507,9 @@ export default function HomeScreen() {
           </Avatar>
         </div>
       </header>
+
+      {/* Banner mode contoh — tampil selagi pengguna belum memilih */}
+      <DemoBanner />
 
       {/* Kalender dua pekan melayang (sticky) — histori nyata */}
       <DateStrip />

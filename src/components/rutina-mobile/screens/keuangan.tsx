@@ -434,8 +434,8 @@ export default function KeuanganScreen() {
 
   const [active, setActive] = useState(2)
   useEffect(() => {
-    setActive(defaultActive(finPeriod))
-  }, [finPeriod])
+    setActive(defaultActive(finPeriod, txs))
+  }, [finPeriod, txs])
 
   /* Derivasi data — murni dari state, aman untuk SSR. */
   const series = useMemo(() => buildSeries(txs, finPeriod), [txs, finPeriod])
@@ -554,7 +554,7 @@ export default function KeuanganScreen() {
               Arus Kas
             </h2>
             <span className="text-[11px] font-medium tabular-nums text-[#4A3B32]/70">
-              {periodScope(finPeriod)}
+              {periodScope(finPeriod, txs)}
             </span>
           </div>
 
@@ -818,7 +818,7 @@ export default function KeuanganScreen() {
                     Belum ada transaksi
                   </p>
                   <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
-                    pada periode {periodScope(finPeriod).toLowerCase()}
+                    pada periode {periodScope(finPeriod, txs).toLowerCase()}
                   </p>
                 </m.div>
               )}

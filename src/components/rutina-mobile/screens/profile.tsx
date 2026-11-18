@@ -5,9 +5,11 @@ import * as m from 'motion/react-m'
 import {
   ChevronRight,
   Globe,
+  HardDrive,
   Info,
   Leaf,
   Palette,
+  RotateCcw,
   Sparkles,
   Target,
 } from 'lucide-react'
@@ -32,6 +34,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,6 +103,7 @@ const FOCUS_WORDS = [
 export default function ProfileScreen() {
   const notes = useRutina((s) => s.notes)
   const habits = useRutina((s) => s.habits)
+  const txs = useRutina((s) => s.txs)
   const completions = useRutina((s) => s.completions)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const dailyGoal = useRutina((s) => s.dailyGoal)
@@ -348,6 +362,70 @@ export default function ProfileScreen() {
             </DropdownMenuContent>
           </DropdownMenu>
         </m.div>
+
+        {/* Data & penyimpanan — status jujur + mulai dari awal */}
+        <m.section
+          variants={slideInRow}
+          className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-soft"
+          aria-label="Data dan penyimpanan"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+              <HardDrive className="h-4 w-4" />
+            </span>
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold text-[#231F1E]">
+                Data &amp; Penyimpanan
+              </p>
+              <p className="text-[11px] font-medium text-[#4A3B32]/70">
+                {habits.length} kebiasaan · {notes.length} catatan ·{' '}
+                {txs.length} transaksi — tersimpan lokal di perangkat ini
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 rounded-xl bg-[#F5F3EE] px-3.5 py-2.5 text-[11.5px] leading-relaxed text-[#4A3B32]/80">
+            Rutina bekerja tanpa akun dan tanpa server — seluruh catatanmu
+            hidup di penyimpanan perangkat ini dan tetap ada meski aplikasi
+            ditutup. Mulai dari awal akan menghapus semuanya secara permanen.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#B25E3F]/40 bg-white text-[13px] font-bold text-[#B25E3F] transition-all hover:bg-[#B25E3F]/8 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B25E3F]"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Mulai dari awal
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-[320px] rounded-[24px] border-[#4A3B3214]">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-[#231F1E]">
+                  Hapus semua data?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-[12.5px] leading-relaxed text-[#4A3B32]/75">
+                  Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
+                  tabungan akan dihapus permanen dari perangkat ini. Tindakan
+                  ini tidak bisa dibatalkan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-row gap-2">
+                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-[#4A3B32]/25 text-[12.5px] font-bold text-[#4A3B32]">
+                  Batal
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    useRutina.getState().startFresh()
+                    toast.success('Aplikasi direset — mulailah dari nol.')
+                  }}
+                  className="h-10 flex-1 rounded-full border-none bg-[#B25E3F] text-[12.5px] font-bold text-white hover:bg-[#9E4E33]"
+                >
+                  Ya, hapus
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </m.section>
 
         {/* Pertanyaan umum (shadcn Accordion) */}
         <m.section

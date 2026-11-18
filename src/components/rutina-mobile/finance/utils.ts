@@ -59,8 +59,9 @@ function currentMonth(): { start: string; end: string } {
 const inRange = (ts: string, r: { start: string; end: string }) =>
   ts >= r.start && ts <= r.end
 
-/** Label cakupan periode terpilih — mengikuti tanggal nyata. */
-export function periodScope(period: FinPeriod): string {
+/** Label cakupan periode terpilih — mengikuti tanggal nyata. Untuk tahun,
+    cakupan mengikuti bulan terawal yang benar-benar punya transaksi. */
+export function periodScope(period: FinPeriod, txs: Tx[] = []): string {
   const now = fromISO(todayISO())
   const y = now.getFullYear()
   if (period === 'minggu') {
@@ -73,7 +74,10 @@ export function periodScope(period: FinPeriod): string {
     }).format(now)
     return `${monthName} ${y}`
   }
-  return `Jan – ${MONTHS_ID[now.getMonth()]} ${y}`
+  const w = yearWindow(txs)
+  return w.first === w.now
+    ? `${MONTHS_ID[w.now]} ${y}`
+    : `${MONTHS_ID[w.first]} – ${MONTHS_ID[w.now]} ${y}`
 }
 
 /* ===== Deret data grafik per periode ===== */
@@ -84,15 +88,24 @@ export interface PeriodPoint {
   keluar: number
 }
 
-/** Profil statis bulan-bulan lampau (untuk mode Tahun); bulan berjalan
-    selalu diturunkan dari transaksi nyata. */
-const YEAR_PROFILE: PeriodPoint[] = [
-  { label: 'Jan', masuk: 8_500_000, keluar: 4_300_000 },
-  { label: 'Feb', masuk: 9_150_000, keluar: 3_900_000 },
-  { label: 'Mar', masuk: 8_500_000, keluar: 4_600_000 },
-  { label: 'Apr', masuk: 8_500_000, keluar: 3_750_000 },
-  { label: 'Mei', masuk: 9_750_000, keluar: 4_150_000 },
-]
+/** Cakupan tampilan Tahun: dari bulan terawal yang benar-benar memiliki
+    transaksi tahun berjalan (minimal bulan ini) hingga bulan berjalan.
+    Bulan tanpa data tidak direkayasa — grafik hanya memuat bulan nyata. */
+export function yearWindow(txs: Tx[]): {
+  first: number
+  now: number
+  year: number
+} {
+  const now = fromISO(todayISO())
+  const year = now.getFullYear()
+  let first = now.getMonth()
+  for (const t of txs) {
+    if (Number(t.ts.slice(0, 4)) !== year) continue
+    const tm = Number(t.ts.slice(5, 7)) - 1
+    if (tm < first) first = tm
+  }
+  return { first, now: now.getMonth(), year }
+}
 
 /** Indeks hari dalam pekan (0 = Senin) — dari tanggal nyata. */
 const weekdayIdx = (ts: string) => (fromISO(ts).getDay() + 6) % 7
@@ -107,20 +120,19 @@ const accumulate = (pts: PeriodPoint[], idx: number, t: Tx) => {
   else pts[idx].keluar += t.amount
 }
 
-/** Deret batang: minggu -> Sen..Min, bulan -> P1..P4, tahun -> Jan..kini. */
+/** Deret batang: minggu -> Sen..Min, bulan -> P1..P4, tahun -> bulan
+    terawal bertransaksi..bulan berjalan — semuanya dari data nyata. */
 export function buildSeries(txs: Tx[], period: FinPeriod): PeriodPoint[] {
   if (period === 'tahun') {
-    const mIdx = fromISO(todayISO()).getMonth()
-    /* Bulan berjalan diturunkan dari transaksi; bulan sebelumnya memakai
-       profil demo (siklus deterministik untuk tahun > 6 bulan). */
-    const current = zeros([MONTHS_ID[mIdx]])
-    const m = currentMonth()
-    for (const t of txs) if (inRange(t.ts, m)) accumulate(current, 0, t)
-    const past = Array.from({ length: mIdx }, (_, i) => ({
-      ...YEAR_PROFILE[i % YEAR_PROFILE.length],
-      label: MONTHS_ID[i],
-    }))
-    return [...past, ...current]
+    const w = yearWindow(txs)
+    const pts = zeros(MONTHS_ID.slice(w.first, w.now + 1))
+    for (const t of txs) {
+      const ty = Number(t.ts.slice(0, 4))
+      const tm = Number(t.ts.slice(5, 7)) - 1
+      if (ty !== w.year || tm < w.first || tm > w.now) continue
+      accumulate(pts, tm - w.first, t)
+    }
+    return pts
   }
   if (period === 'bulan') {
     const pts = zeros(['P1', 'P2', 'P3', 'P4'])
@@ -161,11 +173,11 @@ export function spentByCat(txs: Tx[]): Record<string, number> {
 }
 
 /** Titik aktif bawaan per periode (titik "hari ini"). */
-export function defaultActive(period: FinPeriod): number {
+export function defaultActive(period: FinPeriod, txs: Tx[] = []): number {
   const now = fromISO(todayISO())
   if (period === 'minggu') return (now.getDay() + 6) % 7
   if (period === 'bulan') {
     return Math.min(3, Math.floor((now.getDate() - 1) / 7))
   }
-  return now.getMonth()
+  return now.getMonth() - yearWindow(txs).first
 }

@@ -641,6 +641,9 @@ interface RutinaState {
   celebrating: boolean
   bonusClaimed: boolean
   dailyGoal: number
+  /** Mode data contoh — true selagi pengguna masih melihat seed demo;
+   *  sekali pengguna memilih (mulai bersih / pakai contoh), false selamanya. */
+  demoMode: boolean
   /* Keuangan */
   txs: Tx[]
   goals: Goal[]
@@ -691,6 +694,9 @@ interface RutinaState {
   setCelebrating: (v: boolean) => void
   claimBonus: () => void
   setDailyGoal: (n: number) => void
+  /* Aksi data contoh */
+  startFresh: () => void
+  keepSample: () => void
 }
 
 export const useRutina = create<RutinaState>()(
@@ -714,6 +720,7 @@ export const useRutina = create<RutinaState>()(
   celebrating: false,
   bonusClaimed: false,
   dailyGoal: 4,
+  demoMode: true,
 
   /* Keuangan */
   txs: SEED_TXS,
@@ -946,6 +953,29 @@ export const useRutina = create<RutinaState>()(
   },
 
   setDailyGoal: (dailyGoal) => set({ dailyGoal }),
+
+  /* --- Aksi data contoh --- */
+
+  /** Mulai bersih: buang seluruh data contoh & histori yang melekat —
+   *  pengguna baru tanpa data, jujur dari nol. Preferensi (dailyGoal)
+   *  dipertahankan karena bukan data domain. */
+  startFresh: () =>
+    set({
+      demoMode: false,
+      habits: [],
+      completions: {},
+      notes: [],
+      txs: [],
+      goals: [],
+      mood: null,
+      bonusClaimed: false,
+      quoteSaved: false,
+      selectedDate: todayISO(),
+    }),
+
+  /** Pertahankan data contoh sebagai titik awal milik pengguna —
+   *  banner tidak lagi tampil, angka dianggap milik pengguna sendiri. */
+  keepSample: () => set({ demoMode: false }),
     }),
     {
       /* Persistensi lokal — histori pengguna nyata & permanen di perangkat,
@@ -960,6 +990,7 @@ export const useRutina = create<RutinaState>()(
       /* Hanya state domain yang dipersist — state UI sesaat (tab aktif,
          sheet terbuka, item terkembangi) selalu mulai segar. */
       partialize: (s) => ({
+        demoMode: s.demoMode,
         habits: s.habits,
         completions: s.completions,
         notes: s.notes,
