@@ -52,6 +52,7 @@ import {
 } from '../store'
 import { FinChart } from '../finance/fin-chart'
 import { BUDGETABLE_CATS, CAT_META, EXPENSE, INCOME } from '../finance/cats'
+import { motionTokens } from '@/lib/motion/tokens'
 import {
   buildSeries,
   currentMonthKey,
@@ -69,7 +70,7 @@ import {
 
 /* ===== Konstanta gerak ===== */
 
-const EASE = [0.22, 1, 0.36, 1] as const
+const EASE = motionTokens.easing.standard
 
 /* Ikon tujuan tabungan — tiga pertama tetap, sisanya koin celengan. */
 const GOAL_ICONS: LucideIcon[] = [ShieldCheck, Laptop, Plane]

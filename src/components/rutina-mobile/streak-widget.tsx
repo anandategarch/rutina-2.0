@@ -6,6 +6,7 @@ import { Flame } from 'lucide-react'
 import { Counter } from './counter'
 import { bestStreak, todayISO, useRutina } from './store'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /**
  * Kartu bento setengah kolom (espresso gelap): streak aktif terpanjang.
  * Angka dihitung NYATA dari histori penyelesaian (completions) —
@@ -26,7 +27,7 @@ export function StreakWidget() {
       transition={{
         duration: 0.45,
         delay: 0.06,
-        ease: [0.22, 1, 0.36, 1],
+        ease: motionTokens.easing.standard,
       }}
       aria-label={`Streak terpanjang aktif, ${streak} hari`}
       className="flex flex-col rounded-[16px] border border-border bg-surface-inverse p-4 text-content-inverse shadow-soft"

@@ -32,6 +32,7 @@ import {
 import { RutinaApp } from './rutina-app'
 import { playfair } from './serif'
 import { formatIDRShort } from './finance/utils'
+import { motionTokens } from '@/lib/motion/tokens'
 import {
   bestStreak,
   dayCounts,
@@ -39,7 +40,7 @@ import {
   useRutina,
 } from './store'
 
-const EASE = [0.22, 1, 0.36, 1] as const
+const EASE = motionTokens.easing.standard
 
 /* ===== Potongan: kata dengan reveal mask (warisan split-screen lama) ===== */
 

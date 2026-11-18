@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useInView } from 'motion/react'
+import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
 import { dayCounts, fromISO, todayISO, useRutina } from './store'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /* ===== Konsistensi 12 pekan — dari histori penyelesaian nyata ===== */
 
 const WEEKS = 12
@@ -37,20 +38,25 @@ function levelOf(count: number): number {
 export default function Heatmap() {
   const completions = useRutina((s) => s.completions)
   const today = todayISO()
+  const reducedMotion = useReducedMotion()
 
   /** 84 hari terakhir diakhiri hari ini — kolom terakhir grid adalah
       pekan berjalan dan sel terakhir adalah hari ini. */
   const days = dayCounts(completions, today, WEEKS * 7)
 
-  const gridRef = useRef<HTMLDivElement>(null)
-  const gridInView = useInView(gridRef, { once: true, margin: '-40px' })
+  /* SATU observer untuk seluruh kartu: entrance Motion dan gelombang
+      sel anime.js dipicu `inView` yang sama — sebelumnya whileInView
+      pada kartu + useInView pada grid membuat dua IntersectionObserver. */
+  const rootRef = useRef<HTMLDivElement>(null)
+  const inView = useInView(rootRef, { once: true, margin: '-40px' })
 
   const [sel, setSel] = useState<{ w: number; d: number } | null>(null)
 
-  // anime.js — sel heatmap bermunculan bergelombang saat terlihat
+  // anime.js — sel heatmap bermunculan bergelombang saat terlihat.
+  // Kebijakan reduced-motion: sel langsung tampil tanpa gelombang.
   useEffect(() => {
-    if (!gridInView || !gridRef.current) return
-    const anim = animate(gridRef.current.querySelectorAll('button'), {
+    if (!inView || reducedMotion || !rootRef.current) return
+    const anim = animate(rootRef.current.querySelectorAll('button'), {
       scale: [0, 1],
       delay: stagger(6, { grid: [7, 12], from: 'first' }),
       duration: 420,
@@ -59,7 +65,7 @@ export default function Heatmap() {
     return () => {
       anim.revert()
     }
-  }, [gridInView])
+  }, [inView, reducedMotion])
 
   const selEntry = sel ? days[sel.d * WEEKS + sel.w] : null
 
@@ -74,10 +80,10 @@ export default function Heatmap() {
 
   return (
     <m.div
+      ref={rootRef}
       initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-24px' }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+      transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
       className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
     >
       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -91,7 +97,6 @@ export default function Heatmap() {
           Data dipetakan berurutan: kolom terakhir = pekan berjalan,
           sel terakhir = hari ini. */}
       <div
-        ref={gridRef}
         className="mt-3 grid grid-cols-[repeat(12,minmax(0,1fr))] gap-1"
       >
         {Array.from({ length: 7 }, (_, d) =>

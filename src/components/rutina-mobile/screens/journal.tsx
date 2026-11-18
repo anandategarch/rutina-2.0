@@ -11,6 +11,7 @@ import { journalCard, journalList } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from '../store'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /** Variasi latar kartu jurnal: putih, pistachio muda, warm sand —
     semuanya kartu terang di atas kanvas Warm Sand yang seragam. */
 const NOTE_TONES = [
@@ -99,7 +100,7 @@ export default function JournalScreen() {
       <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.08, ease: motionTokens.easing.standard }}
         className="relative mt-5"
       >
         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
@@ -115,7 +116,7 @@ export default function JournalScreen() {
       <m.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.14, ease: motionTokens.easing.standard }}
         className="relative mt-3"
       >
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">

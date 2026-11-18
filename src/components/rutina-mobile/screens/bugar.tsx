@@ -46,6 +46,7 @@ import {
 import { AsupanPanel } from '../fitness/asupan-panel'
 import { TubuhPanel } from '../fitness/tubuh-panel'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
 type BugarTab = 'latihan' | 'asupan' | 'tubuh'
 const BUGAR_TABS: { id: BugarTab; label: string }[] = [
@@ -67,7 +68,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
       transition={{
         duration: 0.45,
         delay: Math.min(0.08 + index * 0.06, 0.3),
-        ease: [0.22, 1, 0.36, 1],
+        ease: motionTokens.easing.standard,
       }}
       className="rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
     >
@@ -105,7 +106,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
             className="overflow-hidden"
           >
             <p className="mt-3 text-[12.5px] leading-relaxed text-content-muted">
@@ -194,7 +195,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
       transition={{
         duration: 0.35,
         delay: Math.min(index * 0.04, 0.2),
-        ease: [0.22, 1, 0.36, 1],
+        ease: motionTokens.easing.standard,
       }}
       className="rounded-[18px] border border-border bg-surface-primary p-4 shadow-soft"
     >
@@ -248,7 +249,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-xl bg-surface-sunken p-3">
@@ -360,7 +361,7 @@ function ExerciseCard({ name }: { name: string }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
             className="overflow-hidden"
           >
             <div className="mt-3 space-y-3">
@@ -493,7 +494,7 @@ export default function BugarScreen() {
           <m.section
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
             aria-label="Ringkasan latihan pekan ini"
             className="relative mt-4 overflow-hidden rounded-[24px] bg-primary p-6 text-primary-foreground shadow-leaf"
           >
@@ -566,7 +567,7 @@ export default function BugarScreen() {
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.4, delay: 0.08, ease: motionTokens.easing.standard }}
         className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-[15px] font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
@@ -620,7 +621,7 @@ export default function BugarScreen() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
                 className="rounded-[20px] border-2 border-dashed border-primary/30 px-6 py-9 text-center"
               >
                 <Dumbbell className="mx-auto h-6 w-6 text-content-muted" />
@@ -669,7 +670,7 @@ export default function BugarScreen() {
                 transition={{
                   duration: 0.35,
                   delay: Math.min(i * 0.05, 0.3),
-                  ease: [0.22, 1, 0.36, 1],
+                  ease: motionTokens.easing.standard,
                 }}
                 className={`flex items-center gap-3 rounded-[16px] border p-3.5 ${
                   i === 0

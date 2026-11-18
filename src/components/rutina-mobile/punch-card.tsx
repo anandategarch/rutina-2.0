@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import * as m from 'motion/react-m'
 import { BadgeCheck, Leaf, Sparkles } from 'lucide-react'
 
+import { motionTokens } from '@/lib/motion/tokens'
 import {
   addDaysISO,
   doneCountOn,
@@ -64,7 +65,7 @@ export function PunchCard() {
     <m.section
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.55, delay: 0.14, ease: motionTokens.easing.standard }}
       aria-label="Kartu stempel pekan"
       className="relative mt-3 overflow-hidden rounded-[20px] border-2 border-dashed border-primary/35 bg-surface-primary p-5 shadow-card"
     >

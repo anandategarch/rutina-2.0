@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { useInView } from 'motion/react'
+import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
 import { Counter } from './counter'
 import { dayCounts, todayISO, useRutina } from './store'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /**
  * Kartu bento setengah kolom: aktivitas misi minggu ini + 7 batang mini.
  * Batang & total dihitung NYATA dari histori penyelesaian — bukan jam
@@ -17,6 +18,7 @@ export function FocusWidget() {
   const completions = useRutina((s) => s.completions)
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-40px' })
+  const reducedMotion = useReducedMotion()
 
   const week = useMemo(
     () => dayCounts(completions, todayISO(), 7),
@@ -27,9 +29,10 @@ export function FocusWidget() {
 
   /* SATU observer untuk dua tujuan: `inView` yang sama memicu animasi
      batang anime.js DAN entrance kartu Motion — sebelumnya useInView dan
-     whileInView membuat dua IntersectionObserver pada elemen yang sama. */
+     whileInView membuat dua IntersectionObserver pada elemen yang sama.
+     Kebijakan reduced-motion: batang langsung tampil tanpa animasi tumbuh. */
   useEffect(() => {
-    if (!inView || !ref.current) return
+    if (!inView || reducedMotion || !ref.current) return
     const anim = animate(ref.current.querySelectorAll('[data-mini-bar]'), {
       scaleY: [0, 1],
       delay: stagger(45),
@@ -39,14 +42,14 @@ export function FocusWidget() {
     return () => {
       anim.revert()
     }
-  }, [inView])
+  }, [inView, reducedMotion])
 
   return (
     <m.div
       ref={ref}
       initial={{ opacity: 0, y: 16 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
       aria-label={`Misi selesai pekan ini, total ${total} misi`}
       className="flex flex-col rounded-[16px] border border-border bg-surface-primary p-4 shadow-soft"
     >

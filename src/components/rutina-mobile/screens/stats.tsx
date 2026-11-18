@@ -53,6 +53,7 @@ import {
   type HabitCat,
 } from '../store'
 import TrendLine from '../trend-line'
+import { motionTokens } from '@/lib/motion/tokens'
 import {
   cardioSummary,
   prBoard,
@@ -75,7 +76,7 @@ import {
 /** Keliling ring progres XP (r = 78 pada viewBox 200). */
 const R = 78
 const CIRC = 2 * Math.PI * R
-const EASE = [0.22, 1, 0.36, 1] as const
+const EASE = motionTokens.easing.standard
 
 /** Ikon suasana hati — padanan MOODS di store. */
 const MOOD_ICONS: Record<string, typeof Laugh> = {

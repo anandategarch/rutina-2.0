@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { type Habit } from './store'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /**
  * Baris kebiasaan: geser kanan untuk menandai selesai, geser kiri untuk
  * membatalkan. Area klik DIPISAHKAN tegas:
@@ -252,7 +253,7 @@ export function TaskRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
             className="relative z-10 overflow-hidden bg-surface-primary"
           >
             <div className="border-t border-border px-3.5 pb-4 pt-3 text-left">

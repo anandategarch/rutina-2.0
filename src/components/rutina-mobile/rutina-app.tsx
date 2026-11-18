@@ -37,6 +37,7 @@ import StatsScreen from './screens/stats'
 import ProfileScreen from './screens/profile'
 import BugarScreen from './screens/bugar'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan).
    Profil berada terakhir untuk arah transisi, tetapi TIDAK ada di
    navigasi bawah — dibuka dari avatar header Beranda. */
@@ -139,7 +140,7 @@ export function RutinaApp() {
               className="absolute inset-0"
               initial={false}
               animate={{ backgroundColor: theme.bg }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
             />
 
             {/* Cahaya ambien — tiga blob lembut yang berganti warna per tab */}
@@ -174,7 +175,7 @@ export function RutinaApp() {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
                   className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}
                 >
                   {screen === 'beranda' && <HomeScreen />}

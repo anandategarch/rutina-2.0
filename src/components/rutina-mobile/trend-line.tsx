@@ -8,6 +8,7 @@ import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
 import { dayCounts, todayISO, useRutina } from './store'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /* ===== Geometri grafik ===== */
 
 const W = 320
@@ -111,7 +112,7 @@ export default function TrendLine() {
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
-      transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.5, delay: 0.06, ease: motionTokens.easing.standard }}
       className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
     >
       <div className="flex items-end justify-between gap-3">

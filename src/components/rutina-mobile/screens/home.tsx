@@ -33,6 +33,7 @@ import { PunchCard } from '../punch-card'
 import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
+import { motionTokens } from '@/lib/motion/tokens'
 import {
   addDaysISO,
   computeLevel,
@@ -80,7 +81,7 @@ function DemoBanner() {
             marginBottom: '0.75rem',
           }}
           exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.38, ease: motionTokens.easing.standard }}
           className="overflow-hidden"
           aria-label="Mode data contoh"
         >
@@ -528,7 +529,7 @@ export default function HomeScreen() {
         style={{ y: heroY, opacity: heroOpacity }}
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
         aria-label="Ringkasan harian"
         className="relative mt-4 overflow-hidden rounded-[24px] bg-primary p-6 pb-7 text-primary-foreground shadow-leaf"
       >
@@ -605,7 +606,7 @@ export default function HomeScreen() {
       <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.1, ease: motionTokens.easing.standard }}
         aria-label="Bonus harian"
         className="mt-3"
       >
@@ -718,7 +719,7 @@ export default function HomeScreen() {
               transition={{
                 duration: 0.4,
                 delay: Math.min(0.14 + i * 0.05, 0.4),
-                ease: [0.22, 1, 0.36, 1],
+                ease: motionTokens.easing.standard,
               }}
             >
               <TaskRow
@@ -868,7 +869,7 @@ export default function HomeScreen() {
                 transition={{
                   duration: 0.45,
                   delay: i * 0.05,
-                  ease: [0.22, 1, 0.36, 1],
+                  ease: motionTokens.easing.standard,
                 }}
                 whileHover={{ y: -3 }}
                 /* Tanpa whileTap: Motion menyuntikkan tabindex pada div
@@ -918,7 +919,7 @@ export default function HomeScreen() {
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
         aria-label="Refleksi hari ini"
         className="mt-8 rounded-[20px] bg-surface-inverse p-6 text-content-inverse shadow-ink"
       >

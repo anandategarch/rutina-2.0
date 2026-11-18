@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import * as m from 'motion/react-m'
 import { createScope, createTimeline, stagger } from 'animejs'
 
+import { motionTokens } from '@/lib/motion/tokens'
 /**
  * Layar pembuka — logo tunas digambar garis demi garis (anime.js timeline),
  * lalu wordmark & tagline muncul bertahap. Bisa diketuk untuk melewati.
@@ -97,7 +98,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
       key="splash"
       ref={rootRef}
       exit={{ opacity: 0, scale: 1.06 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
       onClick={finish}
       role="button"
       aria-label="Lewati layar pembuka"

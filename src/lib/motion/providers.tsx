@@ -10,10 +10,12 @@ import type { ReactNode } from 'react'
  *
  * Seluruh komponen beranimasi di bawah provider ini memakai `m.*`
  * (motion/react-m) sehingga beban fitur animasi dimuat satu kali.
+ * strict={true} menjamin disiplin itu: komponen yang tidak sengaja
+ * memakai `motion.*` penuh akan langsung gagal saat development.
  */
 export function AppMotionProvider({ children }: { children: ReactNode }) {
   return (
-    <LazyMotion features={domMax} strict={false}>
+    <LazyMotion features={domMax} strict={true}>
       <MotionConfig reducedMotion="user">{children}</MotionConfig>
     </LazyMotion>
   )

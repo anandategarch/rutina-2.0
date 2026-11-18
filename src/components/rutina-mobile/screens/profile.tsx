@@ -61,6 +61,7 @@ import { BlurFade, SplitText } from '../motion-kit'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
+import { motionTokens } from '@/lib/motion/tokens'
 import {
   activeSinceISO,
   bestStreak,
@@ -182,7 +183,7 @@ export default function ProfileScreen() {
         whileTap={{ scale: 0.92 }}
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.3, ease: motionTokens.easing.standard }}
         className="-ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-[13px] font-semibold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <ArrowLeft className="h-4.5 w-4.5" />
@@ -212,7 +213,7 @@ export default function ProfileScreen() {
       <m.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
         className="mt-3 flex flex-col items-center rounded-[20px] border border-border bg-surface-primary p-5 text-center shadow-card"
       >
         <Avatar className="h-16 w-16 border-4 border-surface-primary shadow-card">
@@ -275,7 +276,7 @@ export default function ProfileScreen() {
             transition={{
               duration: 0.5,
               delay: 0.06 + i * 0.06,
-              ease: [0.22, 1, 0.36, 1],
+              ease: motionTokens.easing.standard,
             }}
             className="flex flex-col items-center rounded-[16px] border border-border bg-surface-primary p-3.5 shadow-soft"
           >
