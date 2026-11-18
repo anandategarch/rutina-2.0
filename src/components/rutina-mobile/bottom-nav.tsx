@@ -13,58 +13,23 @@ const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'profil', label: 'Profil', icon: User },
 ]
 
-/** Tema navigasi mengikuti layar aktif — pil & ikon berubah warna
- *  secara halus (crossfade 500ms) saat berpindah tab. */
-const NAV_THEME: Record<
-  Screen,
-  { shell: string; pill: string; active: string; inactive: string }
-> = {
-  beranda: {
-    shell: 'border-[#4A3B321F] bg-[#FAF9F6]/95',
-    pill: 'bg-[#E4EFE0]',
-    active: 'text-[#749B58]',
-    inactive: 'text-[#4A3B32]/55',
-  },
-  jurnal: {
-    shell: 'border-[#FAF9F6]/20 bg-[#5E8347]/95',
-    pill: 'bg-[#FAF9F6]/20',
-    active: 'text-[#FAF9F6]',
-    inactive: 'text-[#FAF9F6]/60',
-  },
-  keuangan: {
-    shell: 'border-[#FAF9F6]/12 bg-[#3A2E24]/95',
-    pill: 'bg-[#6B5744]',
-    active: 'text-[#E9D5B8]',
-    inactive: 'text-[#FAF9F6]/55',
-  },
-  statistik: {
-    shell: 'border-[#F5F3EE]/10 bg-[#231F1E]/95',
-    pill: 'bg-[#4A3B32]',
-    active: 'text-[#A3C489]',
-    inactive: 'text-[#F5F3EE]/50',
-  },
-  profil: {
-    shell: 'border-[#FAF9F6]/20 bg-[#B25E3F]/95',
-    pill: 'bg-[#FAF9F6]/22',
-    active: 'text-[#FAF9F6]',
-    inactive: 'text-[#FAF9F6]/65',
-  },
-}
-
+/**
+ * Navigasi bawah KONSISTEN — cangkang, pil, dan warna aktif tidak berubah
+ * antar tab agar orientasi pengguna tetap stabil. Identitas warna tiap
+ * tab hidup pada konten layarnya (ikon, badge, grafik), bukan di navigasi.
+ */
 export function BottomNav() {
   const screen = useRutina((s) => s.screen)
   const setScreen = useRutina((s) => s.setScreen)
-  const theme = NAV_THEME[screen]
 
   return (
     <nav
       aria-label="Navigasi utama"
-      className={`z-20 shrink-0 border-t pb-[max(env(safe-area-inset-bottom),10px)] pt-1 backdrop-blur-md transition-colors duration-500 ${theme.shell}`}
+      className="z-20 shrink-0 border-t border-[#4A3B321F] bg-[#FAF9F6]/95 pb-[max(env(safe-area-inset-bottom),10px)] pt-1 shadow-[0_-6px_20px_rgba(74,59,50,0.06)] backdrop-blur-md"
     >
       <div className={`mx-auto grid w-full grid-cols-5 ${CONTENT_W}`}>
         {TABS.map((tab) => {
           const active = screen === tab.id
-          const tabTheme = NAV_THEME[tab.id]
           return (
             <button
               key={tab.id}
@@ -77,7 +42,7 @@ export function BottomNav() {
                 <motion.span
                   layoutId="nav-pill"
                   aria-hidden="true"
-                  className={`absolute inset-x-3 inset-y-[6px] rounded-full ${tabTheme.pill}`}
+                  className="absolute inset-x-3 inset-y-[6px] rounded-full bg-[#E4EFE0]"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
@@ -88,15 +53,15 @@ export function BottomNav() {
                 transition={{ type: 'spring', stiffness: 500, damping: 26 }}
               >
                 <tab.icon
-                  className={`h-[19px] w-[19px] transition-colors duration-500 ${
-                    active ? theme.active : theme.inactive
+                  className={`h-[19px] w-[19px] transition-colors duration-300 ${
+                    active ? 'text-[#749B58]' : 'text-[#4A3B32]/55'
                   }`}
                   strokeWidth={active ? 2.4 : 2}
                 />
               </motion.span>
               <span
-                className={`relative z-10 text-[10px] font-bold transition-colors duration-500 ${
-                  active ? theme.active : theme.inactive
+                className={`relative z-10 text-[11px] font-bold transition-colors duration-300 ${
+                  active ? 'text-[#658A4C]' : 'text-[#4A3B32]/60'
                 }`}
               >
                 {tab.label}
