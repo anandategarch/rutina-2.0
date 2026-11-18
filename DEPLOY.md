@@ -49,12 +49,14 @@ Set di **Project → Settings → Environment Variables**:
 | `DATABASE_URL` | `libsql://habit-tracker-v2-anandategarch.aws-ap-northeast-1.turso.io` |
 | `DATABASE_AUTH_TOKEN` | token akses database Turso (read-write) |
 
-> **PENTING — rotasi token 18 Nov 2026:** token lama berumur 1 hari dan
-> **kedaluwarsa 19 Nov 2026 03:35 UTC**. Token baru (read-write, tanpa
-> kedaluwarsa) sudah dipasang di `.env` lokal dan sandbox. **Perbarui
-> `DATABASE_AUTH_TOKEN` di dashboard Vercel dengan token baru** — tanpa
-> itu, koneksi database produksi gagal (HTTP 401) begitu token lama
-> kedaluwarsa.
+> **PENTING — token terverifikasi 18 Nov:** token terbaru (read-write)
+> terpasang di `.env` lokal sandbox dan **terverifikasi end-to-end**
+> (`SELECT 1` OK via `/v2/pipeline`, `bun run db:smoke-turso` OK — 11 tabel
+> `rutina_*` terbaca berisi data nyata). Salin nilai persisnya dari file
+> `vercel-env.txt` (di-ignore git) ke `DATABASE_AUTH_TOKEN` di dashboard
+> Vercel. Catatan: token mentah yang dikirim sempat terpotong 1 karakter
+> pada header JWT (`Q` hilang di `...RERTQSIs...`) — gunakan versi yang
+> sudah diperbaiki di `vercel-env.txt`, bukan hasil salin ulang.
 
 ## 3. Sinkronisasi skema ke Turso (sekali per perubahan skema)
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
-import { Pin, Trash2 } from 'lucide-react'
+import { PenLine, Pin, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
@@ -18,15 +18,19 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { CONTENT_W } from './layout-widths'
+import { MOOD_DOT, useJournalUi } from './journal-ui'
 import { FOLDER_SHORT, useRutina } from './store'
 import { playfair } from './serif'
 import { useFocusTrap } from './use-focus-trap'
+import { motionTokens } from '@/lib/motion/tokens'
 
 /**
- * Sheet baca catatan — pola drag-to-close yang sama dengan ComposeSheet
- * (dibangun manual agar tetap di dalam bingkai ponsel).
+ * Sheet baca catatan — MODE BACA yang jelas terpisah dari mode menulis:
+ * tipografi editorial (judul serif, ukuran terbaca, langgang), metadata
+ * lengkap (kategori, suasana hati, tanggal), lalu aksi "Sunting" yang
+ * membuka kanvas menulis di atasnya. Pola drag-to-close sama dengan
+ * sheet lain (dibangun manual agar tetap di dalam bingkai ponsel).
  */
 export function ReadingSheet() {
   const notes = useRutina((s) => s.notes)
@@ -34,19 +38,25 @@ export function ReadingSheet() {
   const closeReading = useRutina((s) => s.closeReading)
   const togglePin = useRutina((s) => s.togglePin)
   const deleteNote = useRutina((s) => s.deleteNote)
+  const noteMoods = useJournalUi((s) => s.noteMoods)
+  const openCanvas = useJournalUi((s) => s.openCanvas)
 
   const note = notes.find((n) => n.id === readingNoteId)
+  const mood = note ? noteMoods[note.id] : undefined
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
 
   /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
   useFocusTrap(Boolean(note), panelRef)
 
-  // Tutup dengan Escape
+  // Tutup dengan Escape — kecuali kanvas menulis sedang terbuka di atas
+  // sheet ini (Escape milik kanvas duluan, sheet menyusul setelahnya).
   useEffect(() => {
     if (!note) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeReading()
+      if (e.key !== 'Escape') return
+      if (useJournalUi.getState().canvasOpen) return
+      closeReading()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -72,7 +82,7 @@ export function ReadingSheet() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            aria-label={`Baca catatan: ${note.title}`}
+            aria-label={`Baca catatan: ${note.title || 'tanpa judul'}`}
             drag="y"
             dragListener={false}
             dragControls={dragControls}
@@ -85,7 +95,7 @@ export function ReadingSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[calc(100%-1.5rem)] w-full overflow-y-auto no-scrollbar overscroll-contain rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -96,11 +106,30 @@ export function ReadingSheet() {
               <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
             </div>
 
+            {/* Kepala editorial — metadata lalu judul serif */}
             <div className="text-left">
-              <div className="flex flex-wrap items-center gap-1.5">
+              <m.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.4,
+                  delay: 0.08,
+                  ease: motionTokens.easing.standard,
+                }}
+                className="flex flex-wrap items-center gap-1.5"
+              >
                 <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-content-secondary">
                   {FOLDER_SHORT[note.folder]}
                 </span>
+                {mood ? (
+                  <span className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-content-secondary">
+                    <span
+                      aria-hidden="true"
+                      className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
+                    />
+                    {mood}
+                  </span>
+                ) : null}
                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-muted">
                   {note.date}
                 </span>
@@ -110,21 +139,62 @@ export function ReadingSheet() {
                     fill="currentColor"
                   />
                 ) : null}
-              </div>
-              <h2
-                className={`${playfair.className} mt-2 text-[22px] font-semibold leading-snug tracking-tight text-content-primary`}
+              </m.div>
+              <m.h2
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.45,
+                  delay: 0.14,
+                  ease: motionTokens.easing.entrance,
+                }}
+                className={`${playfair.className} mt-2 text-2xl font-semibold leading-snug tracking-tight text-content-primary`}
               >
-                {note.title}
-              </h2>
+                {note.title === '' ? (
+                  <span className="italic text-content-muted">
+                    Tanpa judul
+                  </span>
+                ) : (
+                  note.title
+                )}
+              </m.h2>
             </div>
 
-            <Separator className="mt-4 bg-border" />
+            <m.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.45,
+                delay: 0.2,
+                ease: motionTokens.easing.entrance,
+              }}
+              className="mt-5 border-t border-border/60 pt-5"
+            >
+              <p className="max-w-[62ch] whitespace-pre-wrap text-left text-[15.5px] leading-[1.85] text-content-secondary">
+                {note.body}
+              </p>
+            </m.div>
 
-            <p className="mt-4 text-left text-[14px] leading-relaxed text-content-secondary">
-              {note.body}
-            </p>
-
-            <div className="mt-6 flex gap-2">
+            <m.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.4,
+                delay: 0.26,
+                ease: motionTokens.easing.standard,
+              }}
+              className="mt-7 flex gap-2"
+            >
+              {/* Sunting — buka kanvas menulis di atas sheet ini; saat
+                  kanvas ditutup, pembaca kembali dengan isi terbaru. */}
+              <Button
+                type="button"
+                onClick={() => openCanvas(note)}
+                className="h-11 flex-[1.3] rounded-full bg-primary font-semibold text-primary-foreground shadow-soft hover:bg-action-hover"
+              >
+                <PenLine className="h-4 w-4" />
+                Sunting
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -163,8 +233,8 @@ export function ReadingSheet() {
                       Hapus catatan ini?
                     </AlertDialogTitle>
                     <AlertDialogDescription className="text-center text-[12.5px] leading-relaxed text-content-muted">
-                      Catatan “{note.title}” akan dihapus permanen dan tidak
-                      bisa dikembalikan.
+                      Catatan “{note.title || 'tanpa judul'}” akan dihapus
+                      permanen dan tidak bisa dikembalikan.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
@@ -183,7 +253,7 @@ export function ReadingSheet() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
+            </m.div>
           </m.div>
         </>
       )}

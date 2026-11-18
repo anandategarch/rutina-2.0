@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { JournalCanvas } from './journal-canvas'
 import { CONTENT_W } from './layout-widths'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from './store'
 import { useFocusTrap } from './use-focus-trap'
@@ -70,8 +71,9 @@ export function ComposeSheet() {
   }
 
   return (
-    <AnimatePresence>
-      {open && (
+    <>
+      <AnimatePresence>
+        {open && (
         <>
           <m.div
             key="backdrop"
@@ -197,7 +199,16 @@ export function ComposeSheet() {
             </div>
           </m.div>
         </>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+
+      {/* Kanvas menulis jurnal (mode layar penuh) dipasang di sini karena
+          komponen ini adalah komponen tingkat-cangkang yang dimuat langsung
+          oleh rutina-app — posisi anak langsung cangkang membuat overlay
+          absolut kanvas menutupi SELURUH aplikasi (termasuk navigasi bawah)
+          tanpa perlu mengubah rutina-app.tsx. ComposeSheet sendiri tetap
+          dipakai alur cepat "Catatan Baru" di layar Beranda. */}
+      <JournalCanvas />
+    </>
   )
 }

@@ -6,8 +6,11 @@ import type { PeriodPoint } from './utils'
 
 /**
  * Grafik batang arus kas — sepasang batang (masuk & keluar) per titik.
- * Tinggi mengikuti nilai maksimum deret; batang aktif menyala penuh,
- * titik lain diredupkan. Garis bawah aktif berpindah mulus (layoutId).
+ * Tinggi mengikuti nilai maksimum deret. Titik aktif menyala penuh dan
+ * mendapat sorotan kolom lembut yang meluncur mengikuti pilihan
+ * (layoutId); titik lain diredupkan namun tetap dapat ditekan.
+ * Lebar batang & kepadatan label menyesuaikan jumlah titik sehingga
+ * deret panjang (mode "Semua") tetap muat tanpa bertumpuk.
  */
 
 const TRACK_H = 118 // ruang tumbuh batang (px)
@@ -15,6 +18,22 @@ const LABEL_H = 24 // baris label di bawah
 const BAR_MIN = 5
 
 const EASE = [0.22, 1, 0.36, 1] as const
+
+/** Ukuran batang & jarak antar batang menurut kepadatan deret. */
+function barMetrics(count: number): { bar: number; gap: number } {
+  if (count > 24) return { bar: 4, gap: 1.5 }
+  if (count > 16) return { bar: 5, gap: 2 }
+  if (count > 10) return { bar: 7, gap: 2.5 }
+  return { bar: 9, gap: 3 }
+}
+
+/** Label sumbu-x ditampilkan melangkah agar tidak bertumpuk pada
+    deret panjang (informasi lengkap tetap tersedia via aria-label). */
+function labelEvery(count: number): number {
+  if (count > 24) return 3
+  if (count > 12) return 2
+  return 1
+}
 
 export function FinChart({
   points,
@@ -28,6 +47,8 @@ export function FinChart({
   const max = Math.max(1, ...points.map((p) => Math.max(p.masuk, p.keluar)))
   const h = (v: number) =>
     Math.max(BAR_MIN, Math.round((v / max) * (TRACK_H - 14)))
+  const { bar: BAR_W, gap: BAR_GAP } = barMetrics(points.length)
+  const every = labelEvery(points.length)
 
   return (
     <div
@@ -56,12 +77,26 @@ export function FinChart({
               onClick={() => onPick(i)}
               aria-pressed={isOn}
               aria-label={`${p.label}: masuk ${p.masuk.toLocaleString('id-ID')}, keluar ${p.keluar.toLocaleString('id-ID')}`}
-              className="relative flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              className={`group relative flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                isOn
+                  ? ''
+                  : 'transition-colors duration-200 hover:bg-surface-sunken/70'
+              }`}
             >
+              {/* Sorotan kolom titik aktif — meluncur antar titik */}
+              {isOn && (
+                <m.span
+                  aria-hidden="true"
+                  layoutId="fin-active-col"
+                  className="absolute inset-0 rounded-xl bg-primary/10"
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                />
+              )}
+
               {/* Sepasang batang */}
               <div
-                className="relative flex items-end justify-center gap-[3px]"
-                style={{ height: TRACK_H }}
+                className="relative z-10 flex items-end justify-center"
+                style={{ height: TRACK_H, gap: BAR_GAP }}
               >
                 <m.span
                   aria-hidden="true"
@@ -71,11 +106,11 @@ export function FinChart({
                     type: 'spring',
                     stiffness: 260,
                     damping: 24,
-                    delay: i * 0.045,
+                    delay: Math.min(i * 0.045, 0.5),
                   }}
-                  style={{ backgroundColor: INCOME }}
-                  className={`w-[9px] rounded-full transition-opacity duration-300 ${
-                    isOn ? 'opacity-100' : 'opacity-45'
+                  style={{ backgroundColor: INCOME, width: BAR_W }}
+                  className={`rounded-full transition-opacity duration-300 ${
+                    isOn ? 'opacity-100' : 'opacity-45 group-hover:opacity-80'
                   }`}
                 />
                 <m.span
@@ -86,22 +121,22 @@ export function FinChart({
                     type: 'spring',
                     stiffness: 260,
                     damping: 24,
-                    delay: i * 0.045 + 0.03,
+                    delay: Math.min(i * 0.045 + 0.03, 0.53),
                   }}
-                  style={{ backgroundColor: EXPENSE }}
-                  className={`w-[9px] rounded-full transition-opacity duration-300 ${
-                    isOn ? 'opacity-100' : 'opacity-45'
+                  style={{ backgroundColor: EXPENSE, width: BAR_W }}
+                  className={`rounded-full transition-opacity duration-300 ${
+                    isOn ? 'opacity-100' : 'opacity-45 group-hover:opacity-80'
                   }`}
                 />
               </div>
 
               {/* Label + garis bawah aktif */}
               <span
-                className={`relative flex h-[24px] w-full items-center justify-center text-[10.5px] font-bold tracking-wide transition-colors duration-300 ${
+                className={`relative z-10 flex h-[24px] w-full items-center justify-center text-[10.5px] font-bold tracking-wide transition-colors duration-300 ${
                   isOn ? 'text-content-secondary' : 'text-content-muted'
                 }`}
               >
-                {p.label}
+                {i % every === 0 ? p.label : ''}
                 {isOn && (
                   <m.span
                     aria-hidden="true"

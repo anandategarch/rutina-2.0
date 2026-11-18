@@ -154,7 +154,19 @@ function applyServerState(remote: SyncState): void {
       meal: f.meal as MealSlot,
     })),
     calorieTarget: remote.calorieTarget,
-    bodyLogs: remote.bodyLogs,
+    /* Wire memakai `null` untuk "tidak diisi" (lihat bodyLogSchema), sedangkan
+       domain BodyLog memakai `undefined` — normalisasi saat diterapkan. */
+    bodyLogs: Object.fromEntries(
+      Object.entries(remote.bodyLogs).map(([date, log]) => [
+        date,
+        {
+          water: log.water,
+          weight: log.weight ?? undefined,
+          sleepH: log.sleepH ?? undefined,
+          energy: log.energy ?? undefined,
+        },
+      ]),
+    ),
     dailyGoal: remote.dailyGoal,
     mood: remote.mood,
     bonusClaimed: remote.bonusClaimed,

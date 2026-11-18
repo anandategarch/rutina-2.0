@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Dumbbell,
   Footprints,
+  Play,
   Plus,
   Search,
   Timer,
@@ -45,6 +46,11 @@ import {
 } from '../fitness/data'
 import { AsupanPanel } from '../fitness/asupan-panel'
 import { TubuhPanel } from '../fitness/tubuh-panel'
+import {
+  SessionPickerSheet,
+  WorkoutSessionOverlay,
+  startSeededSession,
+} from '../fitness/workout-session'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
@@ -58,7 +64,7 @@ const BUGAR_TABS: { id: BugarTab; label: string }[] = [
 /* ===== Kartu program ===== */
 
 function ProgramCard({ prog, index }: { prog: Program; index: number }) {
-  const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
+  const workouts = useRutina((s) => s.workouts)
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -149,17 +155,20 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                   <button
                     type="button"
                     onClick={() =>
-                      openWorkoutSheet(
+                      /* Hari program → sesi imersif terisi otomatis (target
+                         set & pra-isi beban dari histori terakhir). */
+                      startSeededSession(
                         day.ex.map((e) => ({
                           name: e.name,
                           count: e.sets,
                           reps: e.reps,
                         })),
+                        workouts,
                       )
                     }
                     className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-[12.5px] font-bold text-primary-foreground transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Play className="h-3.5 w-3.5" />
                     Mulai sesi {day.label}
                   </button>
                 </div>
@@ -423,6 +432,7 @@ export default function BugarScreen() {
   const [tab, setTab] = useState<BugarTab>('latihan')
   const [libQuery, setLibQuery] = useState('')
   const [libMuscle, setLibMuscle] = useState<string>('Semua')
+  const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
 
   const week = useMemo(() => weekSummary(workouts), [workouts])
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
@@ -560,19 +570,26 @@ export default function BugarScreen() {
         </div>
       </m.section>
 
-      {/* Tombol catat sesi */}
+      {/* Tombol mulai sesi imersif + pintasan catat manual */}
       <m.button
         type="button"
-        onClick={() => openWorkoutSheet()}
+        onClick={() => setSessionPickerOpen(true)}
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.08, ease: motionTokens.easing.standard }}
         className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-[15px] font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        <Plus className="h-5 w-5" strokeWidth={2.5} />
-        Catat Sesi Latihan
+        <Play className="h-5 w-5" strokeWidth={2.5} />
+        Mulai Sesi Latihan
       </m.button>
+      <button
+        type="button"
+        onClick={() => openWorkoutSheet()}
+        className="mx-auto mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-[12.5px] font-semibold text-content-muted underline-offset-4 transition-colors hover:text-content-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        Catat manual
+      </button>
 
       {/* ===== Program latihan ===== */}
       <section className="mt-7" aria-label="Program latihan">
@@ -777,6 +794,15 @@ export default function BugarScreen() {
       {tab === 'asupan' && <AsupanPanel />}
 
       {tab === 'tubuh' && <TubuhPanel />}
+
+      {/* Mode sesi latihan imersif — fixed overlay di atas navigasi bawah;
+          state sesi hidup di session-store sehingga tetap berjalan walau
+          layar ini unmount saat berpindah tab. */}
+      <SessionPickerSheet
+        open={sessionPickerOpen}
+        onClose={() => setSessionPickerOpen(false)}
+      />
+      <WorkoutSessionOverlay />
     </div>
   )
 }

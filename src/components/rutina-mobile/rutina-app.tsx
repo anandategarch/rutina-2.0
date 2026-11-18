@@ -18,6 +18,8 @@ import {
 import { toast } from 'sonner'
 
 import { BottomNav } from './bottom-nav'
+import { CheckInSheet } from './checkin-sheet'
+import { QuickActionFab, QuickActionHub } from './quick-action-hub'
 import { ComposeSheet } from './compose-sheet'
 import { ReadingSheet } from './reading-sheet'
 import { CelebrationOverlay } from './celebration'
@@ -187,8 +189,14 @@ export function RutinaApp() {
             </div>
 
             {/* Navigasi bawah disembunyikan di layar Profil (bukan tab) —
-                orientasi dijaga tombol "Kembali" pada layar Profil. */}
+                orientasi dijaga tombol "Kembali" pada layar Profil.
+                Di desktop (lg+) tab bawah disembunyikan total oleh
+                bottom-nav (lg:hidden); navigasi berpindah ke bilah sisi
+                yang dirender app-frame di luar komponen ini. */}
             {screen !== 'profil' && <BottomNav />}
+            {/* Pusat aksi cepat global — FAB mengambang (disembunyikan di
+                Profil, konsisten dengan navigasi bawah) + hub + check-in. */}
+            <QuickActionFab />
             <ComposeSheet />
             <ReadingSheet />
             <AddTxSheet />
@@ -198,6 +206,8 @@ export function RutinaApp() {
             <HabitSheet />
             <WorkoutSheet />
             <FoodSheet />
+            <CheckInSheet />
+            <QuickActionHub />
             <DesignBoard open={boardOpen} onClose={closeBoard} />
             <CelebrationOverlay active={celebrating} />
           </>

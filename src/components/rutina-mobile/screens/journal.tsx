@@ -1,24 +1,26 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { useScroll, useTransform } from 'motion/react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
-import { BookOpen, Feather, Pin, Plus, Search } from 'lucide-react'
+import { BookOpen, Feather, PenLine, Pin, Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { journalCard, journalList } from '@/lib/motion/variants'
-
-import { playfair } from '../serif'
-import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from '../store'
-
 import { motionTokens } from '@/lib/motion/tokens'
-/** Variasi latar kartu jurnal: putih, pistachio muda, warm sand —
-    semuanya kartu terang di atas kanvas Warm Sand yang seragam. */
-const NOTE_TONES = [
-  'border border-border bg-surface-primary',
-  'bg-secondary',
-  'bg-surface-secondary',
-]
+
+import { MOOD_DOT, useJournalUi } from '../journal-ui'
+import {
+  FOLDERS,
+  FOLDER_SHORT,
+  folderCount,
+  longDateLabel,
+  todayISO,
+  useRutina,
+  type FolderKey,
+  type Note,
+} from '../store'
+import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaSectionHeader } from '../rutina-section-header'
 
 const FILTERS: { key: FolderKey | 'semua'; label: string }[] = [
   { key: 'semua', label: 'Semua' },
@@ -30,98 +32,109 @@ export default function JournalScreen() {
   const notes = useRutina((s) => s.notes)
   const journalFilter = useRutina((s) => s.journalFilter)
   const setJournalFilter = useRutina((s) => s.setJournalFilter)
-  const openCompose = useRutina((s) => s.openCompose)
   const togglePin = useRutina((s) => s.togglePin)
   const openReading = useRutina((s) => s.openReading)
+  const noteMoods = useJournalUi((s) => s.noteMoods)
+  const openCanvas = useJournalUi((s) => s.openCanvas)
 
-  const scrollRef = useRef<HTMLDivElement>(null)
+  /* Pulihkan metadata suasana hati tersimpan (pola skipHydration —
+     dipanggil pasca-mount agar tidak ada hydration mismatch). */
+  useEffect(() => {
+    void useJournalUi.persist.rehydrate()
+  }, [])
 
-  /* Parallax editorial: judul serif bergeser & memudar saat menggulir */
-  const { scrollY } = useScroll({ container: scrollRef })
-  const titleY = useTransform(scrollY, [0, 120], [0, -28])
-  const titleOpacity = useTransform(scrollY, [0, 110], [1, 0.25])
-
-  /* ANIMATION OWNERSHIP RULE — sebelumnya anime.js menulis translateY+opacity
-     pada <article> yang transform-nya juga dikendalikan Motion (whileTap).
-     Kini Motion memegang seluruh siklus hidup kartu: entrance (variants
-     journalList/journalCard dengan stagger) + umpan balik sentuh. Kartu yang
-     baru terpasang (hasil filter/pencarian) otomatis masuk dengan animasi;
-     kartu yang sudah ada tidak mengulang animasi saat mengetik. */
-
+  const total = notes.length
   const pinnedCount = notes.filter((n) => n.pinned).length
-  const filtered = notes.filter(
-    (n) =>
-      (journalFilter === 'semua' || n.folder === journalFilter) &&
-      (query.trim() === '' ||
-        (n.title + ' ' + n.body)
-          .toLowerCase()
-          .includes(query.trim().toLowerCase())),
-  )
-  // Sort stabil — urutan kronologis tetap terjaga di dalam tiap kelompok.
-  const sorted = [...filtered].sort(
-    (a, b) => Number(b.pinned) - Number(a.pinned),
-  )
+
+  /* Pencarian + filter kategori bekerja bersama; catatan terbaru tetap
+     di depan (addNote menambah di awal daftar). */
+  const { pinned, rest } = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const filtered = notes.filter(
+      (n) =>
+        (journalFilter === 'semua' || n.folder === journalFilter) &&
+        (q === '' ||
+          (n.title + ' ' + n.body).toLowerCase().includes(q)),
+    )
+    return {
+      pinned: filtered.filter((n) => n.pinned),
+      rest: filtered.filter((n) => !n.pinned),
+    }
+  }, [notes, journalFilter, query])
 
   return (
-    <div
-      ref={scrollRef}
-      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
-    >
-      {/* Header editorial — serif besar, gaya Clean Typography */}
-      <m.header style={{ y: titleY, opacity: titleOpacity }}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-success">
-              <Feather className="h-3.5 w-3.5" />
-              Catatan &amp; refleksi
-            </p>
-            <h1
-              className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight`}
-            >
-              Jurnal<span className="text-primary">.</span>
-            </h1>
-            <p className="mt-2 text-xs font-medium text-content-muted">
-              {notes.length} catatan • {pinnedCount} disematkan
-            </p>
-          </div>
-          <m.button
-            type="button"
-            aria-label="Buat catatan baru"
-            onClick={() => openCompose()}
-            whileTap={{ scale: 0.9 }}
-            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-inverse text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <Plus className="h-5 w-5" strokeWidth={2.5} />
-          </m.button>
-        </div>
+    <div className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
+      {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
+      <m.header
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.45,
+          ease: motionTokens.easing.standard,
+        }}
+      >
+        <RutinaSectionHeader
+          eyebrow={longDateLabel(todayISO())}
+          title="Jurnal"
+          description={`${total} catatan · ${pinnedCount} disematkan`}
+        />
       </m.header>
 
-      {/* Pencarian — kartu putih di atas kanvas Warm Sand */}
+      {/* Ajakan menulis — pintu utama ke kanvas menulis */}
+      <m.button
+        type="button"
+        onClick={() => openCanvas()}
+        whileTap={{ scale: 0.98 }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.45,
+          delay: 0.06,
+          ease: motionTokens.easing.standard,
+        }}
+        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        <PenLine className="h-[18px] w-[18px]" strokeWidth={2.4} />
+        Tulis catatan
+      </m.button>
+
+      {/* Pencarian */}
       <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.08, ease: motionTokens.easing.standard }}
-        className="relative mt-5"
+        transition={{
+          duration: 0.5,
+          delay: 0.1,
+          ease: motionTokens.easing.standard,
+        }}
+        className="relative mt-4"
       >
         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari judul atau isi catatan…"
+          aria-label="Cari catatan jurnal"
           className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-sm text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
         />
       </m.div>
 
-      {/* Chip filter folder — pil terang di atas Warm Sand */}
+      {/* Chip filter kategori + jumlah catatan nyata */}
       <m.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.14, ease: motionTokens.easing.standard }}
+        transition={{
+          duration: 0.5,
+          delay: 0.14,
+          ease: motionTokens.easing.standard,
+        }}
         className="relative mt-3"
       >
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {FILTERS.map((f) => {
             const active = journalFilter === f.key
+            const count =
+              f.key === 'semua' ? total : folderCount(notes, f.key)
             return (
               <button
                 key={f.key}
@@ -136,6 +149,9 @@ export default function JournalScreen() {
                 }
               >
                 {f.label}
+                <span className="ml-1.5 tabular-nums opacity-60">
+                  {count}
+                </span>
               </button>
             )
           })}
@@ -146,89 +162,223 @@ export default function JournalScreen() {
         />
       </m.div>
 
-      {/* Masonry kartu catatan */}
-      <section className="mt-5" aria-label="Daftar catatan jurnal">
-        {sorted.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-              <BookOpen className="h-6 w-6 text-success" />
-            </span>
-            <p className="mt-4 text-[15px] font-semibold text-content-primary">
-              Tidak ada catatan
-            </p>
-            <p className="mt-1 text-xs text-content-muted">
-              Coba kata kunci lain atau buat catatan baru.
-            </p>
+      {/* Daftar catatan — hierarki tenang: sematan dulu, lingga sisanya */}
+      <section className="mt-6" aria-label="Daftar catatan jurnal">
+        {pinned.length > 0 && (
+          <div className="mt-2 first:mt-0">
+            <SectionLabel>Disematkan · {pinned.length}</SectionLabel>
+            <NoteList
+              items={pinned}
+              noteMoods={noteMoods}
+              onOpen={openReading}
+              onEdit={openCanvas}
+              onTogglePin={togglePin}
+            />
           </div>
-        ) : (
-          <m.div
-            variants={journalList}
-            initial="hidden"
-            animate="show"
-            className="columns-2 gap-3 sm:columns-3 xl:columns-4"
-          >
-            {sorted.map((n) => (
-              <m.article
-                key={n.id}
-                variants={journalCard}
-                /* Tanpa whileTap: Motion menyuntikkan tabindex pada article
-                   non-interaktif — umpan balik ketuk kini di tombol buka. */
-                className={`relative mb-3 break-inside-avoid rounded-[14px] p-4 shadow-ink transition-shadow duration-300 hover:shadow-ink-deep [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
-              >
-                {/* A11Y: tombol "buka catatan" absolut inset-0 (z-0) di bawah
-                    konten; tombol pin relative z-10 di atasnya — dua kontrol
-                    bersaudara, tidak ada tombol dalam tombol. Konten kartu
-                    pointer-events-none agar sentuhan jatuh ke tombol buka. */}
-                <button
-                  type="button"
-                  aria-label={`Buka catatan ${n.title}`}
-                  onClick={() => openReading(n.id)}
-                  className="absolute inset-0 z-0 cursor-pointer rounded-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                />
-                <div className="pointer-events-none relative z-10">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3
-                      className={`${playfair.className} flex-1 text-[15px] font-semibold leading-snug text-content-primary`}
-                    >
-                      {n.title}
-                    </h3>
-                    <button
-                      type="button"
-                      aria-label={
-                        n.pinned ? 'Lepas sematan catatan' : 'Sematkan catatan'
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        togglePin(n.id)
-                      }}
-                      className={
-                        'pointer-events-auto relative z-10 -mr-1 -mt-1 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-cocoa/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
-                        (n.pinned ? 'text-content-secondary' : 'text-content-muted')
-                      }
-                    >
-                      <Pin
-                        className="h-3.5 w-3.5"
-                        fill={n.pinned ? 'currentColor' : 'none'}
-                      />
-                    </button>
-                  </div>
-                  <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-content-secondary">
-                    {n.body}
-                  </p>
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
-                      {n.date}
-                    </p>
-                    <span className="text-[11px] font-bold text-content-muted">
-                      {FOLDER_SHORT[n.folder]}
-                    </span>
-                  </div>
-                </div>
-              </m.article>
-            ))}
-          </m.div>
+        )}
+        {rest.length > 0 && (
+          <div className="mt-6 first:mt-0">
+            <SectionLabel>
+              {pinned.length > 0 ? 'Catatan lain' : 'Catatan'} ·{' '}
+              {rest.length}
+            </SectionLabel>
+            <NoteList
+              items={rest}
+              noteMoods={noteMoods}
+              onOpen={openReading}
+              onEdit={openCanvas}
+              onTogglePin={togglePin}
+            />
+          </div>
+        )}
+
+        {pinned.length === 0 && rest.length === 0 && (
+          <>
+            {total === 0 ? (
+              <RutinaEmptyState
+                icon={<Feather />}
+                title="Belum ada catatan"
+                description="Mulailah dengan satu kalimat jujur — cukup tulis apa yang ada di pikiranmu."
+                action={
+                  <m.button
+                    type="button"
+                    onClick={() => openCanvas()}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <PenLine className="h-4 w-4" strokeWidth={2.4} />
+                    Tulis catatan pertama
+                  </m.button>
+                }
+                className="mt-2"
+              />
+            ) : (
+              <div className="flex flex-col items-center py-14 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                </span>
+                <p className="mt-4 text-[15px] font-semibold text-content-primary">
+                  Tidak ada catatan yang cocok
+                </p>
+                <p className="mt-1 text-xs text-content-muted">
+                  Coba kata kunci lain atau ganti kategori.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
+  )
+}
+
+/* ===== Bagian kecil layar ===== */
+
+/** Label seksi kecil kapital — pemisah tenang antar kelompok catatan. */
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-content-muted">
+      {children}
+    </p>
+  )
+}
+
+interface NoteListProps {
+  items: Note[]
+  noteMoods: Record<string, string>
+  onOpen: (id: string) => void
+  onEdit: (note: Note) => void
+  onTogglePin: (id: string) => void
+}
+
+function NoteList({
+  items,
+  noteMoods,
+  onOpen,
+  onEdit,
+  onTogglePin,
+}: NoteListProps) {
+  return (
+    <m.div
+      variants={journalList}
+      initial="hidden"
+      animate="show"
+      className="space-y-3"
+    >
+      {items.map((n) => (
+        <NoteCard
+          key={n.id}
+          note={n}
+          mood={noteMoods[n.id]}
+          onOpen={() => onOpen(n.id)}
+          onEdit={() => onEdit(n)}
+          onTogglePin={() => onTogglePin(n.id)}
+        />
+      ))}
+    </m.div>
+  )
+}
+
+/**
+ * Kartu catatan tenang: judul tegas, cuplikan dua baris redup, metadata
+ * (kategori, suasana hati, tanggal) di kaki kartu. Kartu dibuka ke mode
+ * baca; sematan & sunting tetap satu ketukan.
+ */
+function NoteCard({
+  note,
+  mood,
+  onOpen,
+  onEdit,
+  onTogglePin,
+}: {
+  note: Note
+  mood?: string
+  onOpen: () => void
+  onEdit: () => void
+  onTogglePin: () => void
+}) {
+  return (
+    <m.article
+      variants={journalCard}
+      /* Tanpa whileTap pada article: Motion menyuntikkan tabindex pada
+         elemen non-interaktif — umpan balik ketuk hidup di tombol buka. */
+      className="relative rounded-[16px] border border-border bg-surface-primary p-4 transition-shadow duration-300 hover:shadow-soft [content-visibility:auto] [contain-intrinsic-size:auto_120px]"
+    >
+      {/* A11Y: tombol "baca catatan" absolut inset-0 (z-0) di bawah konten;
+          tombol aksi relative z-10 — dua kontrol bersaudara tanpa tombol
+          dalam tombol. Konten pointer-events-none agar sentuhan jatuh ke
+          tombol buka. */}
+      <button
+        type="button"
+        aria-label={`Baca catatan: ${note.title || 'tanpa judul'}`}
+        onClick={onOpen}
+        className="absolute inset-0 z-0 cursor-pointer rounded-[16px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      />
+      <div className="pointer-events-none relative z-10">
+        <div className="flex items-start justify-between gap-1">
+          <h3 className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-content-primary">
+            {note.title === '' ? (
+              <span className="italic text-content-muted">Tanpa judul</span>
+            ) : (
+              note.title
+            )}
+          </h3>
+          <div className="flex shrink-0 items-center">
+            <button
+              type="button"
+              aria-label={
+                note.pinned ? 'Lepas sematan catatan' : 'Sematkan catatan'
+              }
+              onClick={(e) => {
+                e.stopPropagation()
+                onTogglePin()
+              }}
+              className={
+                'pointer-events-auto -mr-1.5 -mt-1.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-cocoa/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                (note.pinned
+                  ? 'text-content-secondary'
+                  : 'text-content-muted')
+              }
+            >
+              <Pin
+                className="h-4 w-4"
+                fill={note.pinned ? 'currentColor' : 'none'}
+              />
+            </button>
+            <button
+              type="button"
+              aria-label={`Sunting catatan: ${note.title || 'tanpa judul'}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit()
+              }}
+              className="pointer-events-auto -mr-1.5 -mt-1.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-cocoa/10 hover:text-content-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <PenLine className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-content-muted">
+          {note.body}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-content-secondary">
+            {FOLDER_SHORT[note.folder]}
+          </span>
+          {mood ? (
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-content-muted">
+              <span
+                aria-hidden="true"
+                className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
+              />
+              {mood}
+            </span>
+          ) : null}
+          <span className="ml-auto text-[10.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
+            {note.date}
+          </span>
+        </div>
+      </div>
+    </m.article>
   )
 }

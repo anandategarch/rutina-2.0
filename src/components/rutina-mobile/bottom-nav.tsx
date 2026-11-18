@@ -14,7 +14,10 @@ import { CONTENT_W } from './layout-widths'
 /* Navigasi bawah 5 item — Profil dibuka dari avatar header Beranda,
    bukan tab (menghindari 6 tab yang terlalu padat di 390px). Saat layar
    Profil aktif, seluruh navigasi disembunyikan oleh shell (rutina-app);
-   orientasi pengguna dijaga tombol "Kembali" di atas layar Profil. */
+   orientasi pengguna dijaga tombol "Kembali" di atas layar Profil.
+
+   Hanya untuk ponsel/tablet (di bawah lg): pada desktop navigasi berpindah
+   ke bilah sisi (desktop-sidebar.tsx), tab bawah disembunyikan total. */
 const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'bugar', label: 'Bugar', icon: Dumbbell },
@@ -39,7 +42,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="z-20 shrink-0 border-t border-border bg-surface-primary/95 pb-[max(env(safe-area-inset-bottom),10px)] pt-1 shadow-soft backdrop-blur-md"
+      className="z-20 shrink-0 border-t border-border bg-surface-primary/95 pb-[max(env(safe-area-inset-bottom),10px)] pt-1 shadow-soft backdrop-blur-md lg:hidden"
     >
       <div className={`mx-auto grid w-full grid-cols-5 ${CONTENT_W}`}>
         {TABS.map((tab) => {

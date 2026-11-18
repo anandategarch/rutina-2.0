@@ -11,13 +11,17 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Clock,
+  Flame,
   FlaskConical,
   Gift,
   Heart,
   Lightbulb,
   Plus,
   Quote,
-  Sparkles,
+  Sun,
+  Sunrise,
+  Sunset,
   Undo2,
   Zap,
 } from 'lucide-react'
@@ -28,17 +32,22 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
-import { HeroDoodle } from '../hero-doodle'
 import { PunchCard } from '../punch-card'
 import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
+import { HomeProgressRing } from '../home-progress-ring'
+import { RutinaCard } from '../rutina-card'
+import { RutinaSectionHeader } from '../rutina-section-header'
+import { RutinaEmptyState } from '../rutina-empty-state'
 import { motionTokens } from '@/lib/motion/tokens'
 import {
   addDaysISO,
+  bestStreak,
   computeLevel,
   computeXp,
   doneCountOn,
+  FOLDERS,
   folderCount,
   fromISO,
   habitsOn,
@@ -131,32 +140,6 @@ function DemoBanner() {
   )
 }
 
-function SectionTitle({
-  title,
-  hint,
-  action,
-}: {
-  title: string
-  hint?: string
-  action?: React.ReactNode
-}) {
-  return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-baseline gap-2.5">
-        <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
-          {title}
-        </h2>
-        {hint ? (
-          <span className="truncate text-[12px] font-medium text-content-muted">
-            {hint}
-          </span>
-        ) : null}
-      </div>
-      {action}
-    </div>
-  )
-}
-
 const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
   kerja: BookOpen,
   ide: Lightbulb,
@@ -168,20 +151,24 @@ const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
    snapshot server kosong, snapshot klien terisi setelah mount. */
 const emptySubscribe = () => () => {}
 
-function getClientDateLabel(): string {
+/** Lencana tanggal small-caps: "SELASA, 18 NOV". */
+function getClientDateBadge(): string {
   return new Intl.DateTimeFormat('id-ID', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long',
-  }).format(new Date())
+    month: 'short',
+  })
+    .format(new Date())
+    .toUpperCase()
 }
 
+/** Sapaan Playfair sesuai jam lokal pembuka aplikasi. */
 function getClientGreeting(): string {
   const hour = new Date().getHours()
-  if (hour < 11) return 'Selamat pagi'
-  if (hour < 15) return 'Selamat siang'
-  if (hour < 19) return 'Selamat sore'
-  return 'Selamat malam'
+  if (hour < 11) return 'Selamat pagi.'
+  if (hour < 14) return 'Selamat siang.'
+  if (hour < 18) return 'Selamat sore.'
+  return 'Selamat malam.'
 }
 
 /* ===== Utilitas pekan (Senin = awal pekan) ===== */
@@ -214,7 +201,7 @@ function recentDays(c: Completions, habitId: string, iso: string): boolean[] {
   return out
 }
 
-/* ===== 1 — Horizontal Date Strip (kalender dua pekan, histori nyata) ===== */
+/* ===== Kalender dua pekan (histori nyata) ===== */
 
 interface DayChip {
   iso: string
@@ -270,7 +257,7 @@ function DateStrip() {
   const selected = days.find((d) => d.iso === selectedDate) ?? null
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-surface-primary/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
+    <div className="sticky top-0 z-30 -mx-4 mt-5 border-b border-border bg-surface-primary/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
       <div
         ref={stripRef}
         role="group"
@@ -339,56 +326,28 @@ function DateStrip() {
   )
 }
 
-/* ===== 2 — Circular Progress Ring (cincin progres target harian) ===== */
+/* ===== Agenda hari ini — pengelompokan berdasarkan jam pengingat ===== */
 
-const GOAL_RING_CIRC = 2 * Math.PI * 40
+type AgendaSlot = 'pagi' | 'siang' | 'malam' | 'bebas'
 
-function GoalRing({ done, goal }: { done: number; goal: number }) {
-  const progress = Math.min(done / Math.max(goal, 1), 1)
-  return (
-    <div
-      className="relative h-[92px] w-[92px] shrink-0"
-      role="img"
-      aria-label={`Progres target harian: ${done} dari ${goal} misi`}
-    >
-      <svg viewBox="0 0 96 96" className="h-full w-full -rotate-90">
-        <circle
-          cx="48"
-          cy="48"
-          r="40"
-          fill="none"
-          stroke="var(--primary-foreground)"
-          strokeOpacity="0.25"
-          strokeWidth="8"
-        />
-        <m.circle
-          cx="48"
-          cy="48"
-          r="40"
-          fill="none"
-          stroke="var(--primary-foreground)"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={GOAL_RING_CIRC}
-          initial={{ strokeDashoffset: GOAL_RING_CIRC }}
-          animate={{ strokeDashoffset: GOAL_RING_CIRC * (1 - progress) }}
-          transition={{ type: 'spring', stiffness: 110, damping: 20 }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-[17px] font-bold leading-none tabular-nums">
-          {done}
-          <span className="text-[11px] font-semibold opacity-60">/{goal}</span>
-        </p>
-        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] opacity-75">
-          target
-        </p>
-      </div>
-    </div>
-  )
+const SLOT_META: { key: AgendaSlot; label: string; icon: LucideIcon }[] = [
+  { key: 'pagi', label: 'Pagi', icon: Sunrise },
+  { key: 'siang', label: 'Siang', icon: Sun },
+  { key: 'malam', label: 'Malam', icon: Sunset },
+  { key: 'bebas', label: 'Kapan saja', icon: Clock },
+]
+
+/** Kelompok waktu sebuah kebiasaan dari jam pengingat ("HH:MM").
+ *  Tanpa pengingat → "Kapan saja" (selalu ditempatkan terakhir). */
+function slotOf(h: Habit): AgendaSlot {
+  const r = h.reminder
+  if (!r) return 'bebas'
+  if (r < '12:00') return 'pagi'
+  if (r < '17:00') return 'siang'
+  return 'malam'
 }
 
-/* ===== Layar Beranda — histori nyata × gamified XP ===== */
+/* ===== Layar Beranda — Pusat Kendali Harian ===== */
 
 export default function HomeScreen() {
   const habits = useRutina((s) => s.habits)
@@ -409,10 +368,10 @@ export default function HomeScreen() {
   const setCelebrating = useRutina((s) => s.setCelebrating)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const claimBonus = useRutina((s) => s.claimBonus)
-  const dailyGoal = useRutina((s) => s.dailyGoal)
   const setScreen = useRutina((s) => s.setScreen)
 
   const [showArchive, setShowArchive] = useState(false)
+  const [showDone, setShowDone] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
@@ -429,8 +388,50 @@ export default function HomeScreen() {
     [habits, selectedDate],
   )
   const archivedHabits = habits.filter((h) => h.archived)
+
+  /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
+  const todayHabits = useMemo(() => habitsOn(habits, today), [habits, today])
   const doneToday = doneCountOn(completions, today)
-  const doneSelected = doneCountOn(completions, selectedDate)
+  const pct =
+    todayHabits.length > 0
+      ? Math.min(Math.round((doneToday / todayHabits.length) * 100), 100)
+      : 0
+  const missionRemaining = Math.max(todayHabits.length - doneToday, 0)
+  const xp = computeXp(doneToday, bonusClaimed)
+  const level = computeLevel(xp)
+  const xpProgress = Math.min(xp / XP_TARGET, 1)
+  const xpRemaining = Math.max(XP_TARGET - xp, 0)
+  const streak = bestStreak(habits, completions, today).streak
+
+  /* Agenda terbuka: belum selesai dikelompokkan per waktu, selesai
+     dilipat ke bagian "Selesai" di bawahnya. */
+  const pendingGroups = useMemo(() => {
+    const buckets: Record<AgendaSlot, Habit[]> = {
+      pagi: [],
+      siang: [],
+      malam: [],
+      bebas: [],
+    }
+    for (const h of dayHabits) {
+      if (!isDoneOn(completions, selectedDate, h.id)) {
+        buckets[slotOf(h)].push(h)
+      }
+    }
+    const byTime = (a: Habit, b: Habit) => {
+      const ra = a.reminder ?? '99:99'
+      const rb = b.reminder ?? '99:99'
+      return ra === rb ? a.title.localeCompare(b.title) : ra < rb ? -1 : 1
+    }
+    return SLOT_META.map((meta) => ({
+      ...meta,
+      items: buckets[meta.key].sort(byTime),
+    })).filter((g) => g.items.length > 0)
+  }, [dayHabits, completions, selectedDate])
+
+  const doneHabits = useMemo(
+    () => dayHabits.filter((h) => isDoneOn(completions, selectedDate, h.id)),
+    [dayHabits, completions, selectedDate],
+  )
 
   /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim */
   useEffect(() => {
@@ -449,32 +450,23 @@ export default function HomeScreen() {
     prevBonusRef.current = bonusClaimed
   }, [bonusClaimed])
 
-  /* Parallax lembut: hero bergeser & memudar saat daftar digulir */
+  /* Header menyusut halus saat layar digulir — transform & opacity saja. */
   const { scrollY } = useScroll({ container: scrollRef })
-  const heroY = useTransform(scrollY, [0, 180], [0, 36])
-  const heroOpacity = useTransform(scrollY, [0, 160], [1, 0.35])
+  const headerScale = useTransform(scrollY, [0, 120], [1, 0.96])
+  const subtitleOpacity = useTransform(scrollY, [0, 120], [1, 0])
 
-  const dateLabel = useSyncExternalStore(
+  const dateBadge = useSyncExternalStore(
     emptySubscribe,
-    getClientDateLabel,
+    getClientDateBadge,
     () => '',
   )
   const greeting = useSyncExternalStore(
     emptySubscribe,
     getClientGreeting,
-    () => 'Selamat pagi',
+    () => 'Selamat pagi.',
   )
 
-  /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
-  const pct =
-    dayHabits.length > 0 ? Math.round((doneToday / habitsOn(habits, today).length) * 100) : 0
-  const xp = computeXp(doneToday, bonusClaimed)
-  const level = computeLevel(xp)
-  const xpProgress = Math.min(xp / XP_TARGET, 1)
-  const remaining = Math.max(XP_TARGET - xp, 0)
-
-  // Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali
-  const todayHabits = habitsOn(habits, today)
+  /* Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali. */
   useEffect(() => {
     if (
       todayHabits.length > 0 &&
@@ -492,208 +484,145 @@ export default function HomeScreen() {
       ref={scrollRef}
       className="h-full overflow-y-auto no-scrollbar px-4 pb-28"
     >
-      {/* Header aplikasi — wordmark + level + avatar */}
-      <header className="mb-4 flex items-center justify-between pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <p className="text-[19px] font-bold tracking-tight text-content-primary">
-          rutina<span className="text-primary">.</span>
-        </p>
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-surface-primary px-3 text-[11px] font-bold text-success shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
-            LV {level}
-          </span>
-          <m.button
-            type="button"
-            onClick={() => setScreen('profil')}
-            aria-label="Buka profil dan pengaturan"
-            whileTap={{ scale: 0.92 }}
-            className="cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      {/* Kepala layar — banner demo + sapaan yang menyusut halus saat digulir */}
+      <div className="pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <DemoBanner />
+
+        <m.header
+          style={{ scale: headerScale }}
+          className="origin-top"
+          aria-label="Sapaan hari ini"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.22em] text-content-muted">
+              {dateBadge}
+            </p>
+            <m.button
+              type="button"
+              onClick={() => setScreen('profil')}
+              aria-label="Buka profil dan pengaturan"
+              whileTap={{ scale: 0.92 }}
+              className="shrink-0 cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
+                <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
+                  AN
+                </AvatarFallback>
+              </Avatar>
+            </m.button>
+          </div>
+          <h1
+            className={`${playfair.className} mt-2.5 text-[28px] font-semibold leading-tight tracking-tight text-content-primary`}
           >
-            <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
-              <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
-                AN
-              </AvatarFallback>
-            </Avatar>
-          </m.button>
-        </div>
-      </header>
+            {greeting}
+          </h1>
+          <m.p
+            style={{ opacity: subtitleOpacity }}
+            className="text-[13px] font-medium text-content-muted"
+          >
+            Mari mulai dengan satu langkah kecil.
+          </m.p>
+        </m.header>
+      </div>
 
-      {/* Banner mode contoh — tampil selagi pengguna belum memilih */}
-      <DemoBanner />
-
-      {/* Kalender dua pekan melayang (sticky) — histori nyata */}
-      <DateStrip />
-
-      {/* 1 — Hero: ringkasan harian + cincin target + progres XP */}
+      {/* 1 — Hero progres: cincin persentase + chip streak/level + bar XP */}
       <m.section
-        style={{ y: heroY, opacity: heroOpacity }}
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
-        aria-label="Ringkasan harian"
-        className="relative mt-4 overflow-hidden rounded-[24px] bg-primary p-6 pb-7 text-primary-foreground shadow-leaf"
+        aria-label="Progres hari ini"
+        className="mt-4"
       >
-        <HeroDoodle />
-        <div className="relative z-10 sm:mx-auto sm:max-w-[600px]">
-          <p className="text-[13px] font-medium text-primary-foreground/80">
-            {dateLabel}
-          </p>
-          <h1
-            className={`${playfair.className} mt-1 text-balance text-[28px] font-semibold leading-tight tracking-tight`}
-          >
-            {greeting}, Ananda.
-          </h1>
-
-          <div className="mt-5 flex items-center gap-5">
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium text-primary-foreground/80">
-                Misi selesai hari ini
-              </p>
-              <p className="mt-0.5 flex items-baseline gap-1.5">
-                <span className="text-[56px] font-semibold leading-none tracking-tight">
-                  <Counter to={pct} />
-                </span>
-                <span className="text-lg font-medium text-primary-foreground/85">%</span>
-              </p>
-              <p className="mt-1.5 text-xs font-medium text-primary-foreground/75">
-                {doneToday} dari {todayHabits.length} misi •{' '}
-                {Math.max(todayHabits.length - doneToday, 0)} tersisa
-              </p>
-            </div>
-            <GoalRing done={doneToday} goal={dailyGoal} />
-          </div>
-
-          <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-primary-foreground/25">
-            <m.div
-              initial={false}
-              className="h-full rounded-full bg-primary-foreground"
-              animate={{ width: `${pct}%` }}
-              transition={{ type: 'spring', stiffness: 130, damping: 22 }}
-            />
-          </div>
-
-          {/* Strip XP gamified di dalam hero — angka polos tanpa shimmer */}
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-surface-inverse/35 px-3.5 py-2.5 backdrop-blur-sm">
-            <span className="flex items-center gap-1.5 text-[12px] font-bold tabular-nums">
-              <Zap className="h-3.5 w-3.5 text-pistachio" strokeWidth={2.4} />
-              <Counter to={xp} /> XP
-            </span>
-            <span className="h-1 flex-1 overflow-hidden rounded-full bg-primary-foreground/20">
-              <m.span
-                initial={false}
-                className="block h-full rounded-full bg-gradient-to-r from-pistachio to-primary-foreground"
-                animate={{ width: `${xpProgress * 100}%` }}
-                transition={{ type: 'spring', stiffness: 110, damping: 20 }}
-              />
-            </span>
-            <span className="text-[11px] font-semibold tabular-nums text-primary-foreground/75">
-              {remaining > 0 ? `${remaining} XP lagi` : 'MAX'}
-            </span>
-          </div>
-
-          <Button
-            type="button"
-            onClick={() => openCompose()}
-            className="mt-4 h-11 w-full rounded-full bg-surface-primary text-[15px] font-semibold text-content-primary shadow-card hover:bg-primary-foreground hover:shadow-lift"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Catatan Baru
-          </Button>
-        </div>
-      </m.section>
-
-      {/* 2 — Bonus harian (klaim XP) */}
-      <m.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: motionTokens.easing.standard }}
-        aria-label="Bonus harian"
-        className="mt-3"
-      >
-        <button
-          type="button"
-          disabled={bonusClaimed}
-          onClick={() => {
-            claimBonus()
-            toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
-          }}
-          className={
-            'flex w-full cursor-pointer items-center gap-3.5 rounded-[18px] border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
-            (bonusClaimed
-              ? 'border-primary/15 bg-secondary/60'
-              : 'border-dashed border-primary/45 bg-surface-primary hover:-translate-y-0.5 hover:shadow-leaf')
-          }
+        <RutinaCard
+          variant="default"
+          density="spacious"
+          radius="2xl"
+          className="shadow-soft"
         >
-          <m.span
-            aria-hidden="true"
-            className={
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ' +
-              (bonusClaimed
-                ? 'bg-primary/20 text-success'
-                : 'bg-primary text-primary-foreground')
-            }
-            animate={bonusClaimed ? { scale: 1 } : { scale: [1, 1.07, 1] }}
-            transition={
-              bonusClaimed
-                ? undefined
-                : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }
-            }
-          >
-            {/* Pembungkus dalam: target anime.js terpisah dari motion —
-                keduanya menulis transform tanpa saling menimpa. */}
-            <span ref={giftRef} className="flex">
-              {bonusClaimed ? (
-                <Check className="h-5 w-5" strokeWidth={2.6} />
-              ) : (
-                <Gift className="h-5 w-5" strokeWidth={1.9} />
-              )}
-            </span>
-          </m.span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-bold text-content-primary">
-              {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
-            </span>
-            <span className="mt-0.5 block text-[12px] font-medium text-content-muted">
-              {bonusClaimed
-                ? `+${XP_BONUS} XP sudah masuk ke saldo kamu`
-                : `Hadiah konsistensi: +${XP_BONUS} XP gratis setiap hari`}
-            </span>
-          </span>
-          {!bonusClaimed && (
-            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-success">
-              +{XP_BONUS} XP
-            </span>
-          )}
-        </button>
+          <div className="sm:mx-auto sm:max-w-[600px]">
+            <div className="flex items-center gap-5">
+              <HomeProgressRing pct={pct} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-content-muted">
+                  Progres hari ini
+                </p>
+                <p className="mt-1 text-[17px] font-bold leading-tight text-content-primary">
+                  {doneToday} dari {todayHabits.length} misi
+                </p>
+                <p
+                  className={
+                    'mt-0.5 text-[13px] font-medium ' +
+                    (todayHabits.length > 0 && missionRemaining === 0
+                      ? 'text-success'
+                      : 'text-content-muted')
+                  }
+                >
+                  {todayHabits.length === 0
+                    ? 'Belum ada misi terjadwal.'
+                    : missionRemaining > 0
+                      ? `${missionRemaining} misi tersisa`
+                      : 'Semua misi selesai — hari yang sempurna.'}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-[12px] font-bold text-espresso">
+                    <Flame className="h-3.5 w-3.5" strokeWidth={2.2} />
+                    Streak {streak} hari
+                  </span>
+                  <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[12px] font-bold text-matcha-deep">
+                    <Zap className="h-3.5 w-3.5" strokeWidth={2.2} />
+                    Level {level}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Mini-bar XP menuju target Level 8 */}
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-content-muted">
+                <span className="flex items-center gap-1 tabular-nums">
+                  <Zap
+                    aria-hidden="true"
+                    className="h-3 w-3 text-success"
+                    strokeWidth={2.4}
+                  />
+                  <Counter to={xp} /> XP
+                </span>
+                <span className="tabular-nums">
+                  {xpRemaining > 0 ? `${xpRemaining} XP lagi` : 'MAX'}
+                </span>
+              </div>
+              <div
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+                role="progressbar"
+                aria-label={`Progres XP menuju ${XP_TARGET}`}
+                aria-valuenow={xp}
+                aria-valuemin={0}
+                aria-valuemax={XP_TARGET}
+              >
+                <m.div
+                  initial={false}
+                  className="h-full rounded-full bg-secondary"
+                  animate={{ width: `${xpProgress * 100}%` }}
+                  transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+                />
+              </div>
+            </div>
+          </div>
+        </RutinaCard>
       </m.section>
 
-      {/* 2.5 — Kartu stempel pekan (pola punch card, histori nyata) */}
-      <PunchCard />
+      {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal agenda */}
+      <DateStrip />
 
-      {/* 3 — Daftar misi mengikuti tanggal terpilih */}
-      <section className="mt-8" aria-label="Daftar misi">
-        <SectionTitle
-          title={viewingToday ? 'Misi Hari Ini' : 'Misi'}
-          hint={
-            viewingToday
-              ? `${doneSelected}/${dayHabits.length} selesai`
-              : shortDateLabel(selectedDate)
-          }
-          action={
-            <button
-              type="button"
-              onClick={openHabitCreate}
-              aria-label="Tambah kebiasaan baru"
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.6} />
-            </button>
-          }
+      {/* 2 — Agenda hari ini: Pagi / Siang / Malam, selesai terlipat */}
+      <section className="mt-6" aria-label="Agenda hari ini">
+        <RutinaSectionHeader
+          title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
         />
 
         {/* Pita konteks tanggal lampau / masa depan */}
         {!viewingToday && (
-          <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
+          <div className="mb-3 mt-4 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
             <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
             <p className="min-w-0 flex-1 text-[12px] font-medium text-content-muted">
               {viewingPast
@@ -710,55 +639,157 @@ export default function HomeScreen() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {dayHabits.map((h: Habit, i) => (
-            <m.div
-              key={h.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.4,
-                delay: Math.min(0.14 + i * 0.05, 0.4),
-                ease: motionTokens.easing.standard,
-              }}
-            >
-              <TaskRow
-                habit={h}
-                done={isDoneOn(completions, selectedDate, h.id)}
-                streak={habitStreak(h, completions, selectedDate)}
-                recent={recentDays(completions, h.id, selectedDate)}
-                weekDone={weekDoneCount(completions, h.id, selectedDate)}
-                expanded={expandedTaskId === h.id}
-                readOnly={selectedDate > today}
-                xp={XP_PER_TASK}
-                onToggle={() => toggleHabit(h.id, selectedDate)}
-                onExpand={() => toggleExpandedTask(h.id)}
-                onEdit={() => openHabitEdit(h.id)}
-              />
-            </m.div>
-          ))}
-        </div>
+        {dayHabits.length === 0 ? (
+          /* Tidak ada misi terjadwal — jeda yang dirayakan, bukan kegagalan */
+          <div className="mt-4">
+            <RutinaEmptyState
+              icon={<CalendarDays className="h-6 w-6" />}
+              title="Tidak ada misi terjadwal hari ini"
+              description={
+                viewingToday
+                  ? 'Nikmati jedamu — tambah kebiasaan baru kapan pun kamu siap.'
+                  : `${shortDateLabel(selectedDate)} bebas dari agenda.`
+              }
+              action={
+                <Button
+                  type="button"
+                  onClick={openHabitCreate}
+                  className="h-10 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
+                >
+                  <Plus className="h-4 w-4" />
+                  Tambah kebiasaan
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <>
+            {/* Kelompok misi belum selesai — urutan waktu alami */}
+            <div className="mt-4 space-y-5">
+              {pendingGroups.map((g, gi) => (
+                <m.div
+                  key={g.key}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: Math.min(0.1 + gi * 0.06, 0.34),
+                    ease: motionTokens.easing.standard,
+                  }}
+                >
+                  <div className="mb-2.5 flex items-center gap-2">
+                    <g.icon
+                      aria-hidden="true"
+                      className="h-4 w-4 text-primary"
+                      strokeWidth={2}
+                    />
+                    <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                      {g.label}
+                    </h3>
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
+                      {g.items.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    {g.items.map((h) => (
+                      <TaskRow
+                        key={h.id}
+                        habit={h}
+                        done={false}
+                        streak={habitStreak(h, completions, selectedDate)}
+                        recent={recentDays(completions, h.id, selectedDate)}
+                        weekDone={weekDoneCount(completions, h.id, selectedDate)}
+                        expanded={expandedTaskId === h.id}
+                        readOnly={selectedDate > today}
+                        xp={XP_PER_TASK}
+                        onToggle={() => {
+                          /* Misi dari kelompok terbuka selalu berarti "selesai" —
+                             buka lipatan Selesai agar terlihat misinya terarsip. */
+                          toggleHabit(h.id, selectedDate)
+                          setShowDone(true)
+                        }}
+                        onExpand={() => toggleExpandedTask(h.id)}
+                        onEdit={() => openHabitEdit(h.id)}
+                      />
+                    ))}
+                  </div>
+                </m.div>
+              ))}
+            </div>
 
-        {dayHabits.length === 0 && (
-          <div className="flex flex-col items-center rounded-[20px] border-2 border-dashed border-primary/30 bg-surface-primary/60 px-6 py-8 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-success">
-              <CalendarDays className="h-5 w-5" />
-            </span>
-            <p className="mt-3 text-[14px] font-bold text-content-primary">
-              Tidak ada misi terjadwal
-            </p>
-            <p className="mt-1 text-[12px] font-medium text-content-muted">
-              {shortDateLabel(selectedDate)} bebas — atau tambah kebiasaan baru.
-            </p>
-            <Button
+            {/* Misi selesai — dilipat, terbuka otomatis saat ada yang baru */}
+            {doneHabits.length > 0 && (
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowDone((v) => !v)}
+                  aria-expanded={showDone}
+                  aria-controls="agenda-done-panel"
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-primary/20 bg-secondary/50 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="h-4 w-4" strokeWidth={2.6} />
+                  </span>
+                  <span className="flex-1 text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
+                    Selesai ({doneHabits.length})
+                  </span>
+                  <m.span
+                    aria-hidden="true"
+                    animate={{ rotate: showDone ? 180 : 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-content-muted"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </m.span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {showDone && (
+                    <m.div
+                      id="agenda-done-panel"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{
+                        duration: motionTokens.duration.normal,
+                        ease: motionTokens.easing.standard,
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 gap-2.5 pt-2.5 sm:grid-cols-2">
+                        {doneHabits.map((h) => (
+                          <TaskRow
+                            key={h.id}
+                            habit={h}
+                            done
+                            streak={habitStreak(h, completions, selectedDate)}
+                            recent={recentDays(completions, h.id, selectedDate)}
+                            weekDone={weekDoneCount(completions, h.id, selectedDate)}
+                            expanded={expandedTaskId === h.id}
+                            readOnly={selectedDate > today}
+                            xp={XP_PER_TASK}
+                            onToggle={() => toggleHabit(h.id, selectedDate)}
+                            onExpand={() => toggleExpandedTask(h.id)}
+                            onEdit={() => openHabitEdit(h.id)}
+                          />
+                        ))}
+                      </div>
+                    </m.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Pintu masuk tambah kebiasaan — baris halus di ujung agenda */}
+            <button
               type="button"
               onClick={openHabitCreate}
-              className="mt-4 h-10 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
+              aria-label="Tambah kebiasaan baru"
+              className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong px-4 py-3.5 text-[13px] font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              <Plus className="h-4 w-4" />
-              Kebiasaan Baru
-            </Button>
-          </div>
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Tambah kebiasaan
+            </button>
+          </>
         )}
 
         {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
@@ -833,32 +864,108 @@ export default function HomeScreen() {
         )}
       </section>
 
-      {/* 4 — Bento insight: aktivitas & streak berdampingan */}
+      {/* 3 — Bonus konsistensi (klaim XP harian) */}
+      <m.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1, ease: motionTokens.easing.standard }}
+        aria-label="Bonus harian"
+        className="mt-6"
+      >
+        <button
+          type="button"
+          disabled={bonusClaimed}
+          onClick={() => {
+            claimBonus()
+            toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
+          }}
+          className={
+            'flex w-full cursor-pointer items-center gap-3.5 rounded-[18px] border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+            (bonusClaimed
+              ? 'border-primary/15 bg-secondary/60'
+              : 'border-dashed border-primary/45 bg-surface-primary hover:-translate-y-0.5 hover:shadow-leaf')
+          }
+        >
+          <m.span
+            aria-hidden="true"
+            className={
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ' +
+              (bonusClaimed
+                ? 'bg-primary/20 text-success'
+                : 'bg-primary text-primary-foreground')
+            }
+            animate={bonusClaimed ? { scale: 1 } : { scale: [1, 1.07, 1] }}
+            transition={
+              bonusClaimed
+                ? undefined
+                : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }
+            }
+          >
+            {/* Pembungkus dalam: target anime.js terpisah dari motion —
+                keduanya menulis transform tanpa saling menimpa. */}
+            <span ref={giftRef} className="flex">
+              {bonusClaimed ? (
+                <Check className="h-5 w-5" strokeWidth={2.6} />
+              ) : (
+                <Gift className="h-5 w-5" strokeWidth={1.9} />
+              )}
+            </span>
+          </m.span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14px] font-bold text-content-primary">
+              {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
+            </span>
+            <span className="mt-0.5 block text-[12px] font-medium text-content-muted">
+              {bonusClaimed
+                ? `+${XP_BONUS} XP sudah masuk ke saldo kamu`
+                : `Hadiah konsistensi: +${XP_BONUS} XP gratis setiap hari`}
+            </span>
+          </span>
+          {!bonusClaimed && (
+            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-success">
+              +{XP_BONUS} XP
+            </span>
+          )}
+        </button>
+      </m.section>
+
+      {/* 4 — Insight pekan: aktivitas & streak berdampingan */}
       <section className="mt-8" aria-label="Insight pekan ini">
-        <SectionTitle title="Insight Pekan" hint="Aktivitas & konsistensi" />
-        <div className="grid grid-cols-2 gap-3">
+        <RutinaSectionHeader
+          title="Insight pekan"
+          description="Aktivitas misi & konsistensi terpanjang"
+        />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FocusWidget />
           <StreakWidget />
         </div>
       </section>
 
-      {/* 5 — Kartu Kategori / Folder (jumlah dihitung nyata) */}
+      {/* 5 — Kartu stempel pekan (pola punch card, histori nyata) */}
+      <div className="mt-5">
+        <PunchCard />
+      </div>
+
+      {/* 6 — Kartu Kategori / Folder (jumlah dihitung nyata) */}
       <section className="mt-8" aria-label="Koleksi folder catatan">
-        <SectionTitle
+        <RutinaSectionHeader
           title="Koleksi"
-          hint={`${FOLDER_ICONS ? Object.keys(FOLDER_ICONS).length : 0} folder`}
+          description={`${FOLDERS.length} folder catatan`}
+          action={
+            <button
+              type="button"
+              onClick={() => openCompose()}
+              aria-label="Buat catatan baru"
+              className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
+              Catatan
+            </button>
+          }
         />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(Object.keys(FOLDER_ICONS) as FolderKey[]).map((key, i) => {
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {FOLDERS.map(({ key, label }, i) => {
             const Icon = FOLDER_ICONS[key]
-            const label =
-              key === 'kerja'
-                ? 'Kerja'
-                : key === 'ide'
-                  ? 'Ide & Gagasan'
-                  : key === 'bacaan'
-                    ? 'Bacaan'
-                    : 'Pribadi'
             const count = folderCount(notes, key)
             return (
               <m.div
@@ -877,7 +984,7 @@ export default function HomeScreen() {
                 className="relative flex aspect-square flex-col justify-between rounded-[20px] bg-surface-primary p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-pop"
               >
                 {/* Satu tombol buka folder selebar kartu (z-0) — kontrol
-                    interaktif tidak lagi bersarang di dalam kontrol lain. */}
+                    interaktif tidak bersarang di dalam kontrol lain. */}
                 <button
                   type="button"
                   aria-label={`Buka folder ${label}, ${count} catatan`}
@@ -914,7 +1021,7 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* 6 — Kartu Kutipan & Pengingat (pembatas visual) */}
+      {/* 7 — Kartu Kutipan & Pengingat (pembatas visual) */}
       <m.section
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
