@@ -3,145 +3,258 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ===== Palet earth tone Rutina 2.0 — design token terpusat =====
-   Menghasilkan utilitas Tailwind (bg-matcha, text-espresso, dst.)
-   agar warna tidak lagi tercecer sebagai nilai heksadesimal arbitrer. */
-@theme {
-  --color-matcha: #749b58;
-  --color-matcha-deep: #5e8347;
-  --color-pistachio: #a3c489;
-  --color-mist: #e4efe0;
-  --color-sand: #f5f3ee;
-  --color-parchment: #faf9f6;
-  --color-espresso: #231f1e;
-  --color-cocoa: #4a3b32;
-  --color-terracotta: #b25e3f;
-  --color-clay: #d98e6b;
+/* =====================================================================
+   RUTINA 2.0 — DESIGN TOKEN ARCHITECTURE (tiga lapis)
+   ---------------------------------------------------------------------
+   Lapisan 1  Primitive   : nilai dasar brand (--palette-*)
+   Lapisan 2  Semantic    : peran warna di UI (--surface-*, --content-*,
+                            --border-*, --action-*) + pemetaan shadcn
+   Lapisan 3  Component   : keputusan per komponen (--card-radius,
+                            --button-height, --sheet-shadow, --nav-height)
 
-  /* ===== Sistem elevasi shadow earth-tone =====
-     Empat tingkat di permukaan terang (tint cocoa) + varian tinta pekat
-     untuk kanvas gelap (espresso/jurnal/keuangan) + aksen warna.
-     Menghasilkan utilitas Tailwind: shadow-soft, shadow-card, dst. */
-  --shadow-soft: 0 2px 10px rgba(74, 59, 50, 0.07);
-  --shadow-card: 0 6px 18px rgba(74, 59, 50, 0.1);
-  --shadow-lift: 0 12px 28px rgba(74, 59, 50, 0.14);
-  --shadow-pop: 0 18px 42px rgba(74, 59, 50, 0.19);
-  /* Untuk kartu di atas kanvas gelap — bayangan tinta agar terasa melayang */
-  --shadow-ink: 0 10px 28px rgba(12, 9, 7, 0.42);
-  --shadow-ink-deep: 0 24px 56px rgba(12, 9, 7, 0.55);
-  /* Aksen warna khas tiap tab */
-  --shadow-leaf: 0 16px 38px rgba(94, 131, 71, 0.42);
-  --shadow-clay: 0 12px 30px rgba(178, 94, 63, 0.38);
-  --shadow-gold: 0 12px 30px rgba(217, 185, 140, 0.45);
+   Aturan governance: komponen & layar memakai token semantic
+   (bg-surface-primary, text-content-muted, bg-primary, …) — bukan
+   nilai heksadesimal arbitrer. Primitive hanya dirujuk oleh lapisan
+   semantic, tidak pernah langsung oleh komponen.
+   ===================================================================== */
+
+/* ---------- Lapisan 1 · Primitive tokens (nilai brand) ---------- */
+:root {
+  --palette-matcha: #749b58;
+  --palette-matcha-deep: #5e8347;
+  --palette-matcha-ink: #658a4c;
+  --palette-pistachio: #a3c489;
+  --palette-mist: #e4efe0;
+  --palette-sand: #f5f3ee;
+  --palette-parchment: #faf9f6;
+  --palette-espresso: #231f1e;
+  --palette-espresso-soft: #3a2e24;
+  --palette-cocoa: #4a3b32;
+  --palette-cocoa-muted: #766b62;
+  --palette-terracotta: #b25e3f;
+  --palette-clay: #d98e6b;
+  --palette-gold: #d9b98c;
+  --palette-linen: #eae5d9;
+
+  /* Skala jarak — ritme vertikal/horizontal seluruh halaman.
+     Ekuivalen utilitas Tailwind: p-1 … p-8 (4/8/12/16/20/24/32px). */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
 }
 
+/* ---------- Lapisan 2 · Semantic tokens ---------- */
+:root {
+  /* Kanvas & permukaan */
+  --background: var(--palette-sand);
+  --foreground: var(--palette-espresso);
+
+  --surface-primary: var(--palette-parchment);
+  --surface-secondary: var(--palette-linen);
+  --surface-sunken: var(--palette-sand);
+  --surface-inverse: var(--palette-espresso);
+
+  /* Konten teks */
+  --content-primary: var(--palette-espresso);
+  --content-secondary: var(--palette-cocoa);
+  --content-muted: var(--palette-cocoa-muted);
+  --content-inverse: var(--palette-parchment);
+
+  /* Garis & aksi */
+  --border-default: rgb(74 59 50 / 14%);
+  --border-strong: rgb(74 59 50 / 24%);
+  --action-primary: var(--palette-matcha);
+  --action-primary-fg: #ffffff;
+  --action-hover: var(--palette-matcha-deep);
+
+  /* --- Pemetaan semantic shadcn/ui (satu sumber kebenaran) --- */
+  --primary: var(--action-primary);
+  --primary-foreground: var(--action-primary-fg);
+  --secondary: var(--palette-mist);
+  --secondary-foreground: var(--palette-espresso);
+  --card: var(--surface-primary);
+  --card-foreground: var(--content-primary);
+  --popover: var(--surface-primary);
+  --popover-foreground: var(--content-primary);
+  --muted: var(--palette-linen);
+  --muted-foreground: var(--content-muted);
+  --accent: var(--palette-mist);
+  --accent-foreground: var(--palette-espresso);
+  --destructive: var(--palette-terracotta);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-default);
+  --input: var(--border-strong);
+  --ring: var(--palette-matcha);
+
+  /* Grafik — turunan palet earth-tone */
+  --chart-1: var(--palette-matcha);
+  --chart-2: var(--palette-clay);
+  --chart-3: var(--palette-gold);
+  --chart-4: var(--palette-pistachio);
+  --chart-5: var(--palette-cocoa-muted);
+
+  /* Sidebar (dipetakan ke permukaan earth-tone bila dipakai) */
+  --sidebar: var(--surface-primary);
+  --sidebar-foreground: var(--content-primary);
+  --sidebar-primary: var(--palette-matcha);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--palette-mist);
+  --sidebar-accent-foreground: var(--palette-espresso);
+  --sidebar-border: var(--border-default);
+  --sidebar-ring: var(--palette-matcha);
+
+  /* ---------- Lapisan 3 · Component tokens ---------- */
+  --radius: 16px; /* basis untuk referensi var(--radius) langsung */
+  --card-radius: 16px;
+  --button-height: 2.75rem; /* 44px — target sentuh minimum WCAG */
+  --nav-height: 4rem;
+  --sheet-shadow: 0 -18px 48px rgb(35 31 30 / 22%);
+}
+
+/* Mode gelap — kanvas espresso, permukaan arang hangat, aksen pistachio */
+.dark {
+  --background: #1c1817;
+  --foreground: var(--palette-parchment);
+
+  --surface-primary: #2a2523;
+  --surface-secondary: #352e2b;
+  --surface-sunken: #1c1817;
+  --surface-inverse: var(--palette-parchment);
+
+  --content-primary: var(--palette-parchment);
+  --content-secondary: #d8cfc4;
+  --content-muted: #a89b8d;
+  --content-inverse: var(--palette-espresso);
+
+  --border-default: rgb(250 249 246 / 12%);
+  --border-strong: rgb(250 249 246 / 20%);
+  --action-primary: var(--palette-pistachio);
+  --action-primary-fg: var(--palette-espresso);
+  --action-hover: #b3d49b;
+
+  --primary: var(--action-primary);
+  --primary-foreground: var(--action-primary-fg);
+  --secondary: #35302a;
+  --secondary-foreground: var(--palette-parchment);
+  --card: var(--surface-primary);
+  --card-foreground: var(--content-primary);
+  --popover: var(--surface-primary);
+  --popover-foreground: var(--content-primary);
+  --muted: var(--surface-secondary);
+  --muted-foreground: var(--content-muted);
+  --accent: #35302a;
+  --accent-foreground: var(--palette-parchment);
+  --destructive: var(--palette-clay);
+  --destructive-foreground: var(--palette-espresso);
+  --border: var(--border-default);
+  --input: var(--border-strong);
+  --ring: var(--palette-pistachio);
+
+  --chart-1: var(--palette-pistachio);
+  --chart-2: var(--palette-clay);
+  --chart-3: var(--palette-gold);
+  --chart-4: var(--palette-matcha);
+  --chart-5: #a89b8d;
+
+  --sidebar: var(--surface-primary);
+  --sidebar-foreground: var(--content-primary);
+  --sidebar-primary: var(--palette-pistachio);
+  --sidebar-primary-foreground: var(--palette-espresso);
+  --sidebar-accent: var(--surface-secondary);
+  --sidebar-accent-foreground: var(--palette-parchment);
+  --sidebar-border: var(--border-default);
+  --sidebar-ring: var(--palette-pistachio);
+}
+
+/* ---------- Jembatan Tailwind: token → utilitas ----------
+   `@theme inline` menautkan utilitas langsung ke var() sehingga
+   pergantian tema (terang/gelap) otomatis mengalir tanpa duplikasi. */
 @theme inline {
+  /* Primitive — utilitas bg-matcha, text-espresso, dst. tetap hidup */
+  --color-matcha: var(--palette-matcha);
+  --color-matcha-deep: var(--palette-matcha-deep);
+  --color-pistachio: var(--palette-pistachio);
+  --color-mist: var(--palette-mist);
+  --color-sand: var(--palette-sand);
+  --color-parchment: var(--palette-parchment);
+  --color-espresso: var(--palette-espresso);
+  --color-cocoa: var(--palette-cocoa);
+  --color-terracotta: var(--palette-terracotta);
+  --color-clay: var(--palette-clay);
+
+  /* Semantic — utilitas tata kelola: bg-surface-primary, dsb. */
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-content-primary: var(--content-primary);
+  --color-content-secondary: var(--content-secondary);
+  --color-content-muted: var(--content-muted);
+  --color-content-inverse: var(--content-inverse);
+  --color-border-default: var(--border-default);
+  --color-action-primary: var(--action-primary);
+
+  /* Pemetaan shadcn/ui */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* Radius — skala tetap sesuai spesifikasi governance
+     (sm 8 · md 12 · lg 16 · xl 20 · 2xl 24 · sheet 28) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-sheet: 28px;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Elevasi — sistem bayangan earth-tone (tint cokelat hangat) */
+  --shadow-soft: 0 2px 10px rgb(74 59 50 / 7%);
+  --shadow-card: 0 6px 18px rgb(74 59 50 / 10%);
+  --shadow-lift: 0 12px 28px rgb(74 59 50 / 14%);
+  --shadow-pop: 0 18px 42px rgb(74 59 50 / 19%);
+  --shadow-ink: 0 10px 28px rgb(12 9 7 / 42%);
+  --shadow-ink-deep: 0 24px 56px rgb(12 9 7 / 55%);
+  --shadow-leaf: 0 16px 38px rgb(94 131 71 / 42%);
+  --shadow-clay: 0 12px 30px rgb(178 94 63 / 38%);
+  --shadow-gold: 0 12px 30px rgb(217 185 140 / 45%);
+  --shadow-sheet: var(--sheet-shadow);
 }
 
 @layer base {
@@ -151,6 +264,9 @@
   :root {
     /* Deklarasi skema warna — panduan modern web (color-scheme). */
     color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
   }
   html {
     /* Hentikan scroll-chaining & permulaan pull-to-refresh di tepi aplikasi. */
@@ -165,17 +281,18 @@
   }
   /* Seleksi teks mengikuti identitas merek (pistachio → espresso). */
   ::selection {
-    background-color: #a3c489;
-    color: #231f1e;
+    background-color: var(--palette-pistachio);
+    color: var(--palette-espresso);
   }
   /* Validasi native: isyarat visual hanya setelah interaksi pengguna
-     (:user-invalid) — panduan Forms & UI modern. */
+     (:user-invalid) — memakai token destructive earth-tone. */
   input:user-invalid,
   textarea:user-invalid {
-    border-color: oklch(0.577 0.245 27.325 / 55%);
+    border-color: color-mix(in oklab, var(--destructive) 55%, transparent);
   }
   /* Hormati preferensi gerak minimal — matikan animasi dekoratif CSS.
-     (Animasi JS Motion sudah diatur lewat MotionConfig reducedMotion.) */
+     (Animasi JS Motion diatur lewat MotionConfig reducedMotion="user";
+     anime.js diatur per-scope via mediaQueries createScope.) */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -208,8 +325,27 @@
     inset: 0;
     pointer-events: none;
     opacity: 0.05;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'%3E%3C/svg%3E");
   }
+}
+
+/* ===== Tipografi fluid — skala responsif berbasis container query =====
+   Layar Rutina berjalan dalam kolom @container (lihat rutina-app), maka
+   judul menyesuaikan lebar konteksnya — bukan hanya lebar viewport —
+   sehingga tetap proporsional di ponsel, tablet, maupun panel desktop. */
+@utility text-fluid-hero {
+  font-size: clamp(2rem, 9cqi, 2.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+@utility text-fluid-title {
+  font-size: clamp(1.5rem, 7cqi, 2rem);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+@utility text-fluid-body {
+  font-size: clamp(0.875rem, 3.6cqi, 1rem);
+  line-height: 1.6;
 }
 
 /* Kunci animasi tambahan untuk Rutina 2.0 */
