@@ -436,7 +436,7 @@ export default function KebiasaanScreen() {
                   className="h-full"
                 >
                   <RutinaMetric
-                    label="Runtun terpanjang"
+                    label="Runtun terbaik"
                     value={maxStreak}
                     unit="hari"
                     trend={maxStreak > 0 ? 'up' : 'neutral'}

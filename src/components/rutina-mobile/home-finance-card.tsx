@@ -101,7 +101,7 @@ export function HomeFinanceCard() {
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-content-danger"
                   />
-                  <span className="truncate">Uang keluar</span>
+                  <span className="truncate">Keluar</span>
                 </p>
                 <p className="mt-1 truncate text-[14px] font-bold tabular-nums text-content-danger">
                   {formatIDR(keluar)}
@@ -113,7 +113,7 @@ export function HomeFinanceCard() {
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-success"
                   />
-                  <span className="truncate">Pemasukan</span>
+                  <span className="truncate">Masuk</span>
                 </p>
                 <p className="mt-1 truncate text-[14px] font-bold tabular-nums text-success">
                   {formatIDR(masuk)}
@@ -125,7 +125,7 @@ export function HomeFinanceCard() {
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-content-secondary"
                   />
-                  <span className="truncate">Saldo bersih</span>
+                  <span className="truncate">Saldo</span>
                 </p>
                 <p
                   className={
@@ -198,12 +198,12 @@ export function HomeFinanceCard() {
                         />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-content-primary">
+                        <span className="block min-w-0 line-clamp-2 break-words leading-snug text-[13px] font-semibold text-content-primary">
                           {t.note || CAT_META[t.cat].label}
                         </span>
-                        <span className="mt-0.5 block truncate text-[11px] font-medium text-content-muted">
+                        <span className="mt-0.5 block break-words text-[11px] font-medium leading-snug text-content-muted">
                           {CAT_META[t.cat].label} ·{' '}
-                          {income ? 'Pemasukan' : 'Pengeluaran'}
+                          {income ? 'Masuk' : 'Keluar'}
                         </span>
                       </span>
                       <span

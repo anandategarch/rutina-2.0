@@ -51,7 +51,7 @@ export function PlantGarden() {
             <div
               key={h.id}
               role="listitem"
-              className="w-[136px] shrink-0 snap-start rounded-[18px] border border-border bg-surface-primary p-3.5 shadow-soft"
+              className="w-[156px] shrink-0 snap-start rounded-[18px] border border-border bg-surface-primary p-3 shadow-soft"
             >
               <span
                 aria-hidden="true"
@@ -59,7 +59,7 @@ export function PlantGarden() {
               >
                 {p.stage.emoji}
               </span>
-              <p className="mt-2.5 truncate text-[12px] font-semibold text-content-primary">
+              <p className="mt-2.5 line-clamp-2 break-words text-left text-[12px] font-semibold leading-snug text-content-primary">
                 {h.title}
               </p>
               <p className="mt-0.5 truncate text-[11px] font-medium text-content-muted">

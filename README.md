@@ -5,6 +5,31 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+## v2.4 — Audit UI/UX Mobile: Nol Teks Terpotong
+
+Sapuan audit menyeluruh di viewport ponsel **390px & 360px** (semua tab, layar
+Jurnal/Profil, 6 sheet overlay, sesi latihan imersif, alat barbel, day-detail)
+memakai deteksi DOM presisi (elemen terpotong = `scrollWidth > clientWidth`,
+lulus-layar, dan overflow halaman) + verifikasi visual. 30+ temuan teks
+terpotong diperbaiki hingga **0 tersisa** di kedua lebar layar.
+
+| Perbaikan | Rincian |
+|---|---|
+| **Taman Pertumbuhan** | Kartu dilebarkan 136→156px (padding 3.5→3) dan judul kebiasaan kini `line-clamp-2` + `break-words` — "Review laporan mingguan" utuh 2 baris, subteks tahap ("Berbunga · Tahap akhir") tak lagi terpotong. |
+| **Baris kebiasaan (TaskRow)** | Judul bebas melipat hingga 2 baris (sebelumnya `truncate` terjepit ±106px oleh pil streak + XP + chevron). Pil streak dipadatkan (ikon api + angka; satuan "hari" pindah ke `title` + `sr-only` demi aksesibilitas) sehingga judul mendapat ruang ±150px di 390px. |
+| **Kartu Arus Kas (Beranda)** | Label metrik harian disingkat konsisten: Keluar / Masuk / Saldo (sebelumnya "Uang keluar"/"Pemasukan"/"Saldo bersih" terpotong di 360px). Catatan transaksi `line-clamp-2`, meta kategori `break-words`. |
+| **Baris transaksi (Keuangan)** | Catatan (`line-clamp-2` + `min-w-0`) dan meta "Kategori · Dompet · Tanggal" kini melipat, bukan terpotong — "Makan & Minum · Tunai · 18 Nov" utuh di 360px. |
+| **Baris anggaran (Keuangan)** | Restrukturisasi: label kategori mendapat baris penuh (badge Melebihi/Hampir batas di baris yang sama), nominal `terpakai / batas` pindah ke baris progres — "Makan & Minum" tak lagi terpotong di antara nominal. |
+| **Grafik arus kas & peta panas** | Label bulan axis (fin-chart) dan penanda bulan heatmap pengeluaran memakai lebar konten (`w-max`) — "Agu"/"Nov" tidak terjepit kolom 18px. |
+| **Bugar** | Baris rekor "Rekor e1RM: Back Squat ≈ 34,8 kg" dan meta program ("Pemula → Menengah · 3×/pekan · ±45 mnt") melipat 2 baris, bukan terpotong. |
+| **Statistik** | "Runtun terbaik — {kebiasaan}" dan label metrik pekanan + "pekan lalu: …" kini `break-words` utuh. |
+| **Kebiasaan** | Label kartu ringkasan "Runtun terpanjang" → "Runtun terbaik" (kata "TERPANJANG" 82px tak muat sel 77px pada grid-3 di 360px; konsisten dengan istilah di Statistik). |
+
+Audit juga memastikan: navigasi bawah tetap 5 tab (Beranda, Bugar, Keuangan,
+Kebiasaan, Statistik — tanpa Jurnal), layar Jurnal tetap terjangkau via
+Quick Action Hub, container scroll tiap layar ber-`pb-28` sehingga konten akhir
+tak tertutup FAB, tanpa error console, dan tanpa pergeseran tata letak.
+
 ## Gelombang migrasi Rutina lama → 2.0 (v2.1)
 
 Audit menemukan 27 kelompok kapabilitas Rutina lama yang belum ada di 2.0.

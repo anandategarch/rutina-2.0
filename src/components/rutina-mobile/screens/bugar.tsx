@@ -105,7 +105,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
           <span className="block text-[15px] font-bold tracking-tight text-content-primary">
             {prog.name}
           </span>
-          <span className="mt-0.5 block truncate text-[11.5px] font-medium text-content-muted">
+          <span className="mt-0.5 block break-words text-[11.5px] font-medium leading-snug text-content-muted">
             {prog.level} · {prog.freq} · ±{prog.dur} mnt
           </span>
         </span>
@@ -615,7 +615,7 @@ export default function BugarScreen() {
           {topPr && (
             <div className="mt-4 flex items-center gap-2 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
               <Trophy className="h-4 w-4 shrink-0 text-pistachio" />
-              <p className="min-w-0 flex-1 truncate text-[12px] font-semibold">
+              <p className="min-w-0 flex-1 break-words text-[12px] font-semibold leading-snug">
                 Rekor e1RM: {topPr.name} ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
               </p>
               <span className="shrink-0 text-[11px] font-bold tabular-nums text-module-accent-fg/75">

@@ -449,7 +449,7 @@ function TxRow({ tx }: { tx: Tx }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
-            <span className="block truncate text-[14px] font-semibold">
+            <span className="block min-w-0 line-clamp-2 break-words leading-snug text-[14px] font-semibold">
               {tx.note || CAT_META[tx.cat].label}
             </span>
             {tx.recurrence && !tx.recurOf && (
@@ -461,7 +461,7 @@ function TxRow({ tx }: { tx: Tx }) {
               </span>
             )}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-content-muted">
+          <span className="mt-0.5 block break-words text-[11px] leading-snug text-content-muted">
             {isTransfer
               ? `${fromW?.name ?? 'Dompet'} → ${toW?.name ?? 'Dompet'} · ${fmtDate(tx.ts)}`
               : `${CAT_META[tx.cat].label}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
@@ -763,39 +763,42 @@ function BudgetRow({
         <Icon className="h-5 w-5" strokeWidth={2} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[13.5px] font-semibold">
-              {CAT_META[cat].label}
-            </span>
-            {over && (
-              <Badge className="h-5 shrink-0 border-transparent bg-clay/20 px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-content-danger hover:bg-clay/20">
-                Melebihi
-              </Badge>
-            )}
-            {warn && !over && (
-              <Badge className="h-5 shrink-0 border-transparent bg-gold/25 px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-warning hover:bg-gold/25">
-                Hampir batas
-              </Badge>
-            )}
+        {/* Label kategori memakai lebar penuh baris pertama; nominal
+            ikut bar progres di bawahnya agar label panjang (mis.
+            "Makan & Minum") tidak terpotong di layar sempit. */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate text-[13.5px] font-semibold">
+            {CAT_META[cat].label}
           </span>
+          {over && (
+            <Badge className="h-5 shrink-0 border-transparent bg-clay/20 px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-content-danger hover:bg-clay/20">
+              Melebihi
+            </Badge>
+          )}
+          {warn && !over && (
+            <Badge className="h-5 shrink-0 border-transparent bg-gold/25 px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-warning hover:bg-gold/25">
+              Hampir batas
+            </Badge>
+          )}
+        </div>
+        <div className="mt-1.5 flex items-center gap-2.5">
+          <div
+            className={`h-1.5 min-w-0 flex-1 overflow-hidden rounded-full ${
+              over ? 'bg-clay/20' : warn ? 'bg-gold/25' : 'bg-border'
+            }`}
+          >
+            <m.div
+              initial={{ width: '0%' }}
+              animate={{ width: `${Math.min(100, pct)}%` }}
+              transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+              className="h-full rounded-full"
+              style={{ backgroundColor: barColor }}
+            />
+          </div>
           <span className="shrink-0 text-[12px] tabular-nums text-content-secondary">
             {formatIDRShort(used)}{' '}
             <span className="text-content-muted">/ {formatIDRShort(limit)}</span>
           </span>
-        </div>
-        <div
-          className={`mt-1.5 h-1.5 overflow-hidden rounded-full ${
-            over ? 'bg-clay/20' : warn ? 'bg-gold/25' : 'bg-border'
-          }`}
-        >
-          <m.div
-            initial={{ width: '0%' }}
-            animate={{ width: `${Math.min(100, pct)}%` }}
-            transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-            className="h-full rounded-full"
-            style={{ backgroundColor: barColor }}
-          />
         </div>
         <p
           className={`mt-1 text-[11px] ${

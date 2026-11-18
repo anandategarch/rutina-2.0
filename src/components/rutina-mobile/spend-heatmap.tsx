@@ -154,7 +154,7 @@ export function SpendHeatmap() {
             {grid.marks.map((mk, w) => (
               <span
                 key={w}
-                className="h-3 text-[9px] font-bold uppercase leading-none text-content-muted"
+                className="h-3 w-max text-[9px] font-bold uppercase leading-none text-content-muted"
               >
                 {mk ?? ''}
               </span>

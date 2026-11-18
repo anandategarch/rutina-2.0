@@ -1215,7 +1215,7 @@ export default function StatsScreen() {
                         </p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-                        <p className="min-w-0 truncate text-[12px] font-semibold text-content-secondary">
+                        <p className="min-w-0 break-words text-[12px] font-semibold leading-snug text-content-secondary">
                           Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
                         </p>
                         <p className="flex shrink-0 items-center gap-1 text-[13px] font-bold tabular-nums text-success">
@@ -1269,10 +1269,10 @@ export default function StatsScreen() {
                         className="flex items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[12.5px] font-bold text-content-primary">
+                          <p className="break-words text-[12.5px] font-bold leading-snug text-content-primary">
                             {row.label}
                           </p>
-                          <p className="mt-0.5 truncate text-[11px] font-medium tabular-nums text-content-muted">
+                          <p className="mt-0.5 break-words text-[11px] font-medium leading-snug tabular-nums text-content-muted">
                             pekan lalu: {row.prev}
                           </p>
                         </div>

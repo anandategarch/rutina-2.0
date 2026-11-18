@@ -162,7 +162,7 @@ export function TaskRow({
         aria-label={`${habit.title} — ketuk untuk detail, tombol lingkaran untuk menandai selesai`}
         whileTap={{ scale: 0.985 }}
         className={
-          'relative z-10 flex cursor-pointer items-center gap-2 p-3.5 transition-colors duration-300 ' +
+          'relative z-10 flex cursor-pointer items-center gap-2 p-3 transition-colors duration-300 ' +
           (done ? 'bg-secondary' : 'bg-surface-primary')
         }
       >
@@ -200,10 +200,11 @@ export function TaskRow({
           </m.span>
         </m.button>
 
-        {/* Judul kebiasaan */}
+        {/* Judul kebiasaan — lebar penuh sisa, bungkus hingga 2 baris
+            (pil streak kompak + XP menempel di kanan tanpa menjepit). */}
         <span
           className={
-            'min-w-0 flex-1 truncate text-left text-[15px] font-medium transition-colors duration-300 ' +
+            'min-w-0 flex-1 text-left text-[15px] font-medium leading-snug break-words line-clamp-2 transition-colors duration-300 ' +
             (done
               ? 'text-content-muted line-through'
               : 'text-content-primary')
@@ -212,11 +213,16 @@ export function TaskRow({
           {habit.title}
         </span>
 
-        {/* Pil meta: streak nyata atau kategori */}
+        {/* Pil meta: streak nyata (kompak — angka + api, satuan "hari"
+            di title & sr-only agar baris tetap lega di layar sempit) atau kategori */}
         {streak > 0 ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-[11px] font-bold text-content-secondary">
-            <Flame className="h-3.5 w-3.5" />
-            {streak} hari
+          <span
+            title={`${streak} hari berturut-turut`}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-[11px] font-bold text-content-secondary"
+          >
+            <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+            {streak}
+            <span className="sr-only"> hari</span>
           </span>
         ) : habit.cat !== 'Kebiasaan' ? (
           <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-bold text-content-secondary">
@@ -275,7 +281,7 @@ export function TaskRow({
             transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
             className="relative z-10 overflow-hidden bg-surface-primary"
           >
-            <div className="border-t border-border px-3.5 pb-4 pt-3 text-left">
+            <div className="border-t border-border px-3 pb-4 pt-3 text-left">
               <p className="text-[13px] leading-relaxed text-content-secondary">
                 {habit.desc || 'Belum ada deskripsi untuk kebiasaan ini.'}
               </p>
