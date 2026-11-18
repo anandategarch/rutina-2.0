@@ -32,6 +32,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# database lokal & artefak DDL Turso (dihasilkan ulang via db:sql)
+db/*.db
+db/*.db-journal
+db/turso-schema.sql
 
 # vercel
 .vercel

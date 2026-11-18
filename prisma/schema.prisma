@@ -1,11 +1,24 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// =====================================================================
+// RUTINA 2.0 — Skema database (SQLite / Turso libsql)
+// ---------------------------------------------------------------------
+// Konvensi selaras dengan lapisan Zustand (src/components/rutina-mobile/
+// store.ts):
+//  - ID domain dibuat aplikasi (uuid) → String @id tanpa default.
+//  - Tanggal domain memakai string ISO "yyyy-mm-dd" (aman zona waktu
+//    lokal, identik util isoOf/todayISO di store).
+//  - Daftar (schedule hari, set latihan) disimpan sebagai JSON string —
+//    tipe primitif daftar tidak didukung SQLite.
+//  - Nominal uang disimpan Integer (Rupiah, tanpa sen).
+//
+// Deployment Vercel + Turso: klien memakai driver adapter
+// (@prisma/adapter-libsql) — lihat src/lib/db.ts. Sinkronisasi skema ke
+// Turso: `bun run db:push-turso` (membuat DDL via prisma migrate diff
+// lalu mengeksekusinya lewat @libsql/client).
+// =====================================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -13,20 +26,155 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/* ===== Domain Kebiasaan ===== */
+
+model Habit {
+  id          String     @id
+  title       String
+  desc        String
+  cat         String // HabitCat: Kebiasaan|Kerja|Kesehatan|Pribadi|Belajar
+  schedule    String // JSON: number[] — hari aktif 0=Minggu..6=Sabtu
+  weeklyTarget Int      @default(7)
+  reminder    String? // "HH:MM"
+  archived    Boolean    @default(false)
+  createdAt   String // ISO yyyy-mm-dd — batas hitung streak
+  logs        HabitLog[]
+
+  @@map("rutina_habits")
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// completions[tanggalISO][habitId] = true — satu baris per centang.
+model HabitLog {
+  id      String @id @default(cuid())
+  habitId String
+  date    String // ISO yyyy-mm-dd
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([date])
+
+  @@map("rutina_habit_logs")
+}
+
+/* ===== Domain Jurnal ===== */
+
+model JournalNote {
+  id      String  @id
+  title   String
+  body    String
+  date    String // ISO yyyy-mm-dd
+  pinned  Boolean @default(false)
+  tone    Int     @default(0)
+  folder  String // FolderKey: kerja|ide|bacaan|pribadi
+
+  @@index([folder])
+  @@index([date])
+
+  @@map("rutina_journal_notes")
+}
+
+/* ===== Domain Keuangan ===== */
+
+model Wallet {
+  id      String @id
+  name    String
+  initial Int    @default(0) // saldo awal (Rp)
+
+  @@map("rutina_wallets")
+}
+
+model Transaction {
+  id         String  @id
+  type       String // TxType: masuk|keluar|transfer
+  cat        String // FinCat
+  amount     Int // Rp
+  note       String  @default("")
+  ts         String // ISO yyyy-mm-dd
+  walletId   String? // dompet sumber (keluar/transfer) / tujuan (masuk)
+  toWalletId String? // dompet tujuan — khusus transfer
+  recurrence String? // mingguan|bulanan — templat berulang
+  recurOf    String? // ID templat asal — salinan otomatis
+
+  @@index([ts])
+  @@index([type])
+  @@index([walletId])
+
+  @@map("rutina_transactions")
+}
+
+/// Anggaran bulanan per kategori pengeluaran (Rp).
+model Budget {
+  cat    String @id // FinCat kunci pengeluaran
+  amount Int
+
+  @@map("rutina_budgets")
+}
+
+/// Target tabungan.
+model Goal {
+  id     String @id
+  name   String
+  target Int
+  saved  Int    @default(0)
+
+  @@map("rutina_goals")
+}
+
+/* ===== Domain Bugar — Latihan ===== */
+
+model WorkoutSession {
+  id       String  @id
+  kind     String // WorkoutKind: beban|jalan|lari
+  date     String // ISO yyyy-mm-dd
+  duration Int // menit
+  note     String  @default("")
+  sets     String  @default("[]") // JSON: WorkoutSet[] — khusus 'beban'
+  distance Float? // km — khusus kardio
+
+  @@index([date])
+
+  @@map("rutina_workout_sessions")
+}
+
+/* ===== Domain Bugar — Asupan ===== */
+
+model FoodEntry {
+  id       String  @id
+  date     String // ISO yyyy-mm-dd
+  name     String
+  cat      String // kategori master makanan
+  unit     String // satuan porsi master
+  portion  Float   @default(1)
+  meal     String // MealSlot: sarapan|makan siang|makan malam|camilan
+  kcal     Int
+  protein  Float?
+  carb     Float?
+  fat      Float?
+
+  @@index([date])
+
+  @@map("rutina_food_entries")
+}
+
+/* ===== Domain Bugar — Tubuh ===== */
+
+/// Satu catatan tubuh per tanggal (UPSERT harian).
+model BodyLog {
+  date   String  @id // ISO yyyy-mm-dd
+  water  Int     @default(0) // gelas
+  weight Float? // kg
+  sleepH Float? // jam tidur semalam
+  energy Int? // 1–5
+
+  @@map("rutina_body_logs")
+}
+
+/* ===== Pengaturan aplikasi (k-v) ===== */
+
+/// Preferensi pengguna: mood harian, dailyGoal, calorieTarget, dsb.
+model AppSetting {
+  key   String @id
+  value String // nilai terserialisasi (string/angka/JSON)
+
+  @@map("rutina_app_settings")
 }
