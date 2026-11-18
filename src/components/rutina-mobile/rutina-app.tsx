@@ -35,6 +35,7 @@ import { FoodSheet } from './fitness/food-sheet'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
+import KebiasaanScreen from './screens/kebiasaan'
 import KeuanganScreen from './screens/keuangan'
 import StatsScreen from './screens/stats'
 import ProfileScreen from './screens/profile'
@@ -42,14 +43,17 @@ import BugarScreen from './screens/bugar'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan).
-   Profil berada terakhir untuk arah transisi, tetapi TIDAK ada di
-   navigasi bawah — dibuka dari avatar header Beranda. */
+   Kebiasaan menggantikan Jurnal sebagai tab ke-4; layar Jurnal tetap
+   ada (dibuka lewat Quick Action Hub) namun bukan tab. Profil berada
+   terakhir untuk arah transisi, tetapi TIDAK ada di navigasi bawah —
+   dibuka dari avatar header Beranda. */
 const ORDER: Screen[] = [
   'beranda',
   'bugar',
   'keuangan',
-  'jurnal',
+  'kebiasaan',
   'statistik',
+  'jurnal',
   'profil',
 ]
 
@@ -194,6 +198,7 @@ export function RutinaApp() {
                   {screen === 'bugar' && <BugarScreen />}
                   {screen === 'jurnal' && <JournalScreen />}
                   {screen === 'keuangan' && <KeuanganScreen />}
+                  {screen === 'kebiasaan' && <KebiasaanScreen />}
                   {screen === 'statistik' && <StatsScreen />}
                   {screen === 'profil' && <ProfileScreen />}
                 </m.div>

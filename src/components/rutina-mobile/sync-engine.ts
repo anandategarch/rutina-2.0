@@ -359,3 +359,28 @@ export function useSyncEngine(): void {
 export function syncStatus(): { lastSyncedAt: number | null } {
   return { lastSyncedAt: readMeta()?.lastSyncedAt ?? null }
 }
+
+/** Tarik paksa snapshot server dan terapkan ke store — melewati negosiasi
+ *  stempel waktu (selalu server-menang). Dipakai tombol "Tarik ulang dari
+ *  cloud" di Profil, mis. setelah impor data Rutina 1.0 di sisi server.
+ *  lastEditAt di-nol-kan agar boot berikutnya tidak mengunggah ulang state
+ *  lama yang baru saja ditimpa. */
+export async function forcePull(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/state', { cache: 'no-store' })
+    if (!res.ok) return false
+    const remote = (await res.json()) as StateResponse
+    if (!remote?.initialized || !remote.state) return false
+    suppress = true
+    try {
+      applyServerState(remote.state)
+      patchMeta({ lastSyncedAt: Date.now(), lastEditAt: 0 })
+    } finally {
+      suppress = false
+    }
+    return true
+  } catch (error) {
+    console.warn('[sync] forcePull gagal:', error)
+    return false
+  }
+}

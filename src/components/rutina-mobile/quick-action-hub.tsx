@@ -18,6 +18,7 @@ import {
   Plus,
   Search,
   SearchX,
+  Sprout,
   Target,
   UtensilsCrossed,
   Wallet,
@@ -149,6 +150,7 @@ const NAV_ITEMS: {
   { key: 'nav-beranda', label: 'Buka Beranda', value: 'buka beranda utama home', icon: Home, screen: 'beranda' },
   { key: 'nav-bugar', label: 'Buka Bugar', value: 'buka bugar kebugaran fitness', icon: Dumbbell, screen: 'bugar' },
   { key: 'nav-keuangan', label: 'Buka Keuangan', value: 'buka keuangan finansial dompet saldo', icon: Wallet, screen: 'keuangan' },
+  { key: 'nav-kebiasaan', label: 'Buka Kebiasaan', value: 'buka kebiasaan habit kebun tanaman', icon: Sprout, screen: 'kebiasaan' },
   { key: 'nav-jurnal', label: 'Buka Jurnal', value: 'buka jurnal catatan notes', icon: BookOpen, screen: 'jurnal' },
   { key: 'nav-statistik', label: 'Buka Statistik', value: 'buka statistik ringkasan progres', icon: BarChart3, screen: 'statistik' },
 ]

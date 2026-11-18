@@ -3,10 +3,10 @@
 import * as m from 'motion/react-m'
 import {
   BarChart3,
-  BookOpen,
   CloudCheck,
   Dumbbell,
   Home,
+  Sprout,
   User,
   Wallet,
   type LucideIcon,
@@ -17,12 +17,14 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { useRutina, type Screen } from './store'
 
 /* Navigasi desktop — keenam layar (termasuk Profil: di desktop tidak ada
-   avatar header yang selalu terlihat, jadi Profil sah menjadi item nav). */
+   avatar header yang selalu terlihat, jadi Profil sah menjadi item nav).
+   Kebiasaan menggantikan Jurnal sebagai item ke-4; layar Jurnal tetap
+   dapat dibuka lewat Quick Action Hub. */
 const NAV_ITEMS: { id: Screen; label: string; icon: LucideIcon }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'bugar', label: 'Bugar', icon: Dumbbell },
   { id: 'keuangan', label: 'Keuangan', icon: Wallet },
-  { id: 'jurnal', label: 'Jurnal', icon: BookOpen },
+  { id: 'kebiasaan', label: 'Kebiasaan', icon: Sprout },
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
   { id: 'profil', label: 'Profil', icon: User },
 ]

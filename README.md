@@ -89,3 +89,20 @@ public/sw.js          — service worker offline shell
 
 Sinkronisasi skema ke Turso: `bun run db:push-turso` · Uji koneksi:
 `bun run db:smoke-turso`.
+
+## v2.2 — Tab Kebiasaan, Impor Data Rutina 1.0, PWA Install
+
+| Perubahan | Rincian |
+|---|---|
+| **Tab Kebiasaan** | Tab Jurnal diganti Kebiasaan (ikon Sprout) di navigasi bawah & bilah sisi desktop. Layar baru `screens/kebiasaan.tsx`: ringkasan (runtun terpanjang, selesai pekan ini, tanaman dewasa), Saran Coach (nudge "jangan bolong dua kali" + Goldilocks), Agenda hari ini, Taman Pertumbuhan, semua kebiasaan per kategori + arsip, CTA "Kebiasaan baru". Layar Jurnal tetap hidup via Quick Action Hub (Cmd/Ctrl+K → "Buka Jurnal"). |
+| **Impor data Rutina 1.0 dari Turso** | Akar masalah "data kebiasaan/keuangan tidak pernah ter-import": Rutina 2.0 hanya membaca tabel `rutina_*`, sementara data lama tersimpan di tabel lawas (`habits`, `habit_checkins`, `transactions`, `workspace_modules`) di database Turso yang sama. Skrip baru `bun run db:import-rutina1` (batch + retry, idempoten): 19 kebiasaan (Personal→Pribadi, Learning→Belajar, Health→Kesehatan; jadwal dari metadata), 73 check-in, 281 transaksi (kategori lama dipetakan ke FinCat 2.0 — `CAT_META` dipakai tanpa fallback), 4 dompet nyata + 279 transaksi ter-taut dompet, 3 tujuan tabungan, 2 templat transaksi berulang (bulanan), 21 mood + 21 body log (tidur/energi dari check-in; air ml→gelas & berat dari wellness). |
+| **Tarik ulang dari cloud** | Tombol baru di Profil → Data & Penyimpanan: `forcePull()` di sync-engine menarik snapshot server secara paksa (server-menang, lewati negosiasi stempel waktu) — alat pemulihan setelah impor di sisi server. |
+| **PWA Install** | Kartu "Aplikasi" baru di Profil: tombol Pasang (beforeinstallprompt — Chrome/Edge/Android), deteksi sudah-terpasang (display-mode standalone), dan panduan iOS (Bagikan → Tambahkan ke Layar Utama). Manifest + service worker offline shell sudah ada (`app/manifest.ts`, `public/sw.js`). |
+| **Ketahanan env sandbox** | Kredensial Turso kini juga di `.env.local` (prioritas lebih tinggi dari `.env` yang bisa ditimpa ulang platform) — dev server selalu tersambung ke cloud yang benar. |
+
+Menjalankan impor (sekali saja, aman diulang):
+
+```bash
+bun run db:import-rutina1   # baca tabel lawas → tulis rutina_* + re-stamp lastPushAt
+```
+

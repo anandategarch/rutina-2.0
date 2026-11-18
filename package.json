@@ -15,6 +15,7 @@
     "db:reset": "prisma migrate reset",
     "db:sql": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > db/turso-schema.sql",
     "db:push-turso": "bun run db:sql && bun scripts/push-turso.ts",
+    "db:import-rutina1": "bun scripts/import-rutina1.ts",
     "db:smoke-turso": "bun scripts/turso-smoke.ts"
   },
   "dependencies": {

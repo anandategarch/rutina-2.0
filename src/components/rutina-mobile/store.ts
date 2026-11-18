@@ -8,6 +8,7 @@ export type Screen =
   | 'bugar'
   | 'jurnal'
   | 'keuangan'
+  | 'kebiasaan'
   | 'statistik'
   | 'profil'
 export type FolderKey = 'kerja' | 'ide' | 'bacaan' | 'pribadi'
@@ -859,6 +860,7 @@ export const SCREEN_THEME: Record<Screen, { bg: string }> = {
   bugar: { bg: '#F5F3EE' },
   jurnal: { bg: '#F5F3EE' },
   keuangan: { bg: '#F5F3EE' },
+  kebiasaan: { bg: '#F5F3EE' },
   statistik: { bg: '#F5F3EE' },
   profil: { bg: '#F5F3EE' },
 }

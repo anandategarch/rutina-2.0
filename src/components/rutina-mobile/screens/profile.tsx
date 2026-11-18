@@ -8,6 +8,8 @@ import {
   Check,
   ChevronRight,
   Cloud,
+  CloudDownload,
+  Download,
   Fingerprint,
   Globe,
   HardDrive,
@@ -15,8 +17,10 @@ import {
   Info,
   Laugh,
   Leaf,
+  Loader2,
   Meh,
   Minus,
+  MonitorSmartphone,
   Pencil,
   Plus,
   RotateCcw,
@@ -78,7 +82,7 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import { motionTokens } from '@/lib/motion/tokens'
-import { syncStatus } from '../sync-engine'
+import { forcePull, syncStatus } from '../sync-engine'
 import {
   activeSinceISO,
   addDaysISO,
@@ -182,6 +186,87 @@ export default function ProfileScreen() {
     const timer = setInterval(refresh, 15_000)
     return () => clearInterval(timer)
   }, [])
+
+  /* Tarik paksa snapshot cloud (server-menang, lewati negosiasi stempel
+     waktu) — alat pemulihan eksplisit, mis. setelah impor data Rutina 1.0
+     di sisi server atau saat perangkat ini tertinggal. */
+  const [pulling, setPulling] = useState(false)
+  const handleForcePull = async () => {
+    if (pulling) return
+    setPulling(true)
+    const ok = await forcePull()
+    setPulling(false)
+    if (ok) {
+      setLastSyncedAt(syncStatus().lastSyncedAt)
+      toast.success('Data cloud dimuat', {
+        description: 'Snapshot terbaru dari Turso kini aktif di perangkat ini.',
+      })
+    } else {
+      toast.error('Gagal menarik data cloud', {
+        description: 'Periksa koneksi internet lalu coba lagi.',
+      })
+    }
+  }
+
+  /* PWA — tangkap tawaran instal dari browser (Chrome/Edge/Android).
+     iOS Safari tidak mengirim beforeinstallprompt → tombol tetap tampil
+     dan memberi panduan "Tambahkan ke Layar Utama" saat diketuk. */
+  const [installPrompt, setInstallPrompt] = useState<
+    (Event & {
+      prompt: () => Promise<void>
+      userChoice?: Promise<{ outcome: 'accepted' | 'dismissed' }>
+    }) | null
+  >(null)
+  const [appInstalled, setAppInstalled] = useState(false)
+  useEffect(() => {
+    /* Baca status "sudah terpasang" lewat fungsi bernama (bukan setState
+       langsung di tubuh efek — selaras pola refresh() di atas). */
+    const readInstalled = () => {
+      const standalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as Navigator & { standalone?: boolean })
+          .standalone === true
+      setAppInstalled(standalone)
+    }
+    readInstalled()
+    const onPrompt = (e: Event) => {
+      e.preventDefault()
+      setInstallPrompt(
+        e as Event & {
+          prompt: () => Promise<void>
+          userChoice?: Promise<{ outcome: 'accepted' | 'dismissed' }>
+        },
+      )
+    }
+    const onInstalled = () => {
+      setAppInstalled(true)
+      setInstallPrompt(null)
+    }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
+  }, [])
+  const handleInstall = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt()
+      const choice = await installPrompt.userChoice
+      if (choice?.outcome === 'accepted') {
+        toast.success('Rutina terpasang', {
+          description: 'Buka dari layar utama — bekerja penuh bahkan offline.',
+        })
+      }
+      setInstallPrompt(null)
+      return
+    }
+    toast.info('Cara memasang Rutina', {
+      description:
+        'Android/Chrome: menu ⋮ → "Pasang aplikasi". iPhone/iPad: tombol Bagikan → "Tambahkan ke Layar Utama".',
+      duration: 6000,
+    })
+  }
 
   /* Easter egg developer: teks versi di footer diketuk 5× (rentang antar
      ketukan ≤ 2 detik) → buka papan sistem desain. Terlihat sebagai teks
@@ -794,16 +879,30 @@ export default function ProfileScreen() {
             Mulai dari awal akan menghapus semuanya secara permanen, di
             perangkat maupun cloud.
           </p>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                type="button"
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-[13px] font-bold text-content-danger transition-all hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Mulai dari awal
-              </button>
-            </AlertDialogTrigger>
+          <div className="mt-3 grid gap-2">
+            <button
+              type="button"
+              onClick={() => void handleForcePull()}
+              disabled={pulling}
+              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-[13px] font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
+            >
+              {pulling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CloudDownload className="h-4 w-4" />
+              )}
+              {pulling ? 'Menarik data…' : 'Tarik ulang dari cloud'}
+            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-[13px] font-bold text-content-danger transition-all hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Mulai dari awal
+                </button>
+              </AlertDialogTrigger>
             <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border">
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-content-primary">
@@ -830,7 +929,57 @@ export default function ProfileScreen() {
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
+            </AlertDialog>
+          </div>
+        </m.section>
+
+        {/* Judul seksi: aplikasi (PWA) */}
+        <m.div variants={slideInRow} className="pt-2.5">
+          <RutinaSectionHeader title="Aplikasi" />
+        </m.div>
+
+        {/* Pasang aplikasi (PWA) — instal native dari browser */}
+        <m.section
+          variants={slideInRow}
+          className="rounded-[20px] border border-border bg-surface-primary p-5 shadow-soft"
+          aria-label="Pasang aplikasi"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+              <MonitorSmartphone className="h-4 w-4" />
+            </span>
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold text-content-primary">
+                Pasang di perangkat
+              </p>
+              <p className="text-[11px] font-medium text-content-muted">
+                Aplikasi mandiri (PWA) — layar penuh, ikon sendiri, tetap
+                bekerja offline
+              </p>
+            </div>
+          </div>
+          {appInstalled ? (
+            <p className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3.5 py-2.5 text-[11.5px] font-bold text-success">
+              <Check className="h-3.5 w-3.5 shrink-0" />
+              Sudah terpasang — kamu sedang menjalankan versi aplikasinya.
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleInstall()}
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <Download className="h-4 w-4" />
+                {installPrompt ? 'Pasang aplikasi' : 'Tambahkan ke Layar Utama'}
+              </button>
+              <p className="mt-2.5 text-[11px] leading-relaxed text-content-muted">
+                {installPrompt
+                  ? 'Browser sudah menawarkan instal — ketuk untuk memasang.'
+                  : 'Chrome/Edge/Android: buka menu browser → "Pasang aplikasi". iPhone/iPad: tombol Bagikan → "Tambahkan ke Layar Utama".'}
+              </p>
+            </>
+          )}
         </m.section>
 
         {/* Judul seksi: bantuan & FAQ */}

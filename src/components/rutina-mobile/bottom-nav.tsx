@@ -3,9 +3,9 @@
 import * as m from 'motion/react-m'
 import {
   BarChart3,
-  BookOpen,
   Dumbbell,
   Home,
+  Sprout,
   Wallet,
 } from 'lucide-react'
 import { useRutina, type Screen } from './store'
@@ -22,7 +22,7 @@ const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'bugar', label: 'Bugar', icon: Dumbbell },
   { id: 'keuangan', label: 'Keuangan', icon: Wallet },
-  { id: 'jurnal', label: 'Jurnal', icon: BookOpen },
+  { id: 'kebiasaan', label: 'Kebiasaan', icon: Sprout },
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
 ]
 
