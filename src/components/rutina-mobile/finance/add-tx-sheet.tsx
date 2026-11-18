@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
-import { useRutina, type FinCat, type TxType } from '../store'
+import { shortDateLabel, todayISO, useRutina, type FinCat, type TxType } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
 import { CAT_META, CATS_BY_TYPE } from './cats'
 import { formatIDR } from './utils'
@@ -157,7 +157,7 @@ export function AddTxSheet() {
                   Transaksi Baru
                 </h2>
                 <p className="mt-0.5 text-[13px] text-[#4A3B32]/70">
-                  Catat arus uang — jatuh tempo 20 Jun 2025.
+                  Catat arus uang — {shortDateLabel(todayISO())}.
                 </p>
               </div>
             </div>
