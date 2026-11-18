@@ -79,8 +79,14 @@ curl https://<proyek-anda>.vercel.app/api/health
 
 ## 6. Catatan keamanan
 
-- `.env` dan `db/custom.db` sudah **dihapus dari pelacakan git**
-  (`git rm --cached`) dan masuk `.gitignore`. Riwayat lama masih memuat
-  berkas tersebut — bila pernah ada kredensial sensitif, lakukan rotasi
-  token dan pertimbangkan pembersihan riwayat (git filter-repo).
+- `.env` dan `db/custom.db` sudah **dihapus dari seluruh riwayat git**
+  (git filter-branch + force push; commit lama tidak lagi memuat berkas
+  tersebut). File `.env` tetap hidup lokal saja dan tergolong `.gitignore`.
+- **PENTING — rotasi token:** token Turso sempat terekspos di riwayat git
+  publik sebelum pembersihan. Segera jalankan `turso db tokens invalidate
+  <token>` lalu `turso db tokens create habit-tracker-v2-anandategarch`
+  dan pasang token baru di dashboard Vercel serta `.env` lokal. Commit
+  lama bisa saja masih tersangga di cache GitHub selama beberapa waktu.
 - Semua kredensial produksi hanya hidup di dashboard Vercel.
+- `postinstall: prisma generate` sudah ada di `package.json` agar build
+  Vercel selalu memiliki Prisma Client yang ter-generate.
