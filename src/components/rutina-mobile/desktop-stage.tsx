@@ -31,6 +31,13 @@ import {
 
 import { RutinaApp } from './rutina-app'
 import { playfair } from './serif'
+import { formatIDRShort } from './finance/utils'
+import {
+  bestStreak,
+  dayCounts,
+  todayISO,
+  useRutina,
+} from './store'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -101,7 +108,7 @@ function FloatWidget({
           <span className="block text-[15px] font-bold leading-tight tabular-nums text-[#231F1E]">
             {value}
           </span>
-          <span className="block text-[10.5px] font-semibold text-[#4A3B32]/65">
+          <span className="block text-[11px] font-semibold text-[#4A3B32]/70">
             {label}
           </span>
         </span>
@@ -135,13 +142,6 @@ function FeatureRow({
     </motion.li>
   )
 }
-
-const AVATARS = [
-  { init: 'AP', bg: 'bg-[#749B58]' },
-  { init: 'BD', bg: 'bg-[#B25E3F]' },
-  { init: 'CR', bg: 'bg-[#C7A17A]' },
-  { init: 'DI', bg: 'bg-[#4A3B32]' },
-]
 
 /* ===== Panel brand (kiri) ===== */
 
@@ -193,27 +193,18 @@ function BrandPanel() {
           palet warna bumi.
         </motion.p>
 
-        {/* Bukti sosial */}
+        {/* Fakta jujur — tanpa angka pengguna fiktif */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.52, duration: 0.6, ease: EASE }}
-          className="mt-7 flex items-center gap-3"
+          className="mt-7"
         >
-          <div className="flex -space-x-2.5">
-            {AVATARS.map((a) => (
-              <span
-                key={a.init}
-                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#FAF9F6] text-[10px] font-bold text-[#FAF9F6] ${a.bg}`}
-              >
-                {a.init}
-              </span>
-            ))}
-          </div>
-          <p className="text-[12.5px] font-semibold text-[#4A3B32]/75">
-            <span className="font-bold text-[#231F1E]">12.400+</span> petualang
-            <br />
-            membangun rutinitasnya di sini
+          <p className="text-[13px] font-bold text-[#231F1E]">
+            Tanpa akun · tanpa iklan
+          </p>
+          <p className="mt-0.5 text-[12.5px] font-medium text-[#4A3B32]/75">
+            Data demo tersimpan lokal di perangkatmu.
           </p>
         </motion.div>
 
@@ -258,7 +249,7 @@ function BrandPanel() {
         transition={{ delay: 1.2, duration: 0.8 }}
         className="relative flex items-center justify-between"
       >
-        <p className="text-[10.5px] font-medium text-[#4A3B32]/55">
+        <p className="text-[11px] font-medium text-[#4A3B32]/60">
           © 2025 rutina.app — dibuat dengan sunyi &amp; kopi.
         </p>
         <div className="flex items-center gap-1.5" aria-hidden="true">
@@ -278,11 +269,28 @@ function BrandPanel() {
 /* ===== Rail widget melayang (tengah) ===== */
 
 function WidgetRail() {
+  /* Angka widget dihitung NYATA dari state aplikasi — sama dengan
+     yang tampil di dalam bingkai ponsel (satu sumber data). */
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
+  const txs = useRutina((s) => s.txs)
+
+  const today = todayISO()
+  const streak = bestStreak(habits, completions, today).streak
+  const weekMissions = dayCounts(completions, today, 7).reduce(
+    (a, b) => a + b.count,
+    0,
+  )
+  const saldo = txs.reduce(
+    (a, t) => a + (t.type === 'masuk' ? t.amount : -t.amount),
+    0,
+  )
+
   return (
     <div className="relative hidden w-[190px] shrink-0 flex-col items-center justify-center gap-6 lg:flex">
       <FloatWidget
         icon={Flame}
-        value="21 Hari"
+        value={`${streak} Hari`}
         label="Streak menyala"
         delay={0.55}
         tilt={-3}
@@ -290,15 +298,15 @@ function WidgetRail() {
       />
       <FloatWidget
         icon={Timer}
-        value="14,5 Jam"
-        label="Fokus pekan ini"
+        value={`${weekMissions} Misi`}
+        label="Misi pekan ini"
         delay={0.75}
         tilt={2.5}
         iconClass="bg-[#4A3B32]/10 text-[#4A3B32]"
       />
       <FloatWidget
         icon={Wallet}
-        value="Rp 8,3 jt"
+        value={formatIDRShort(saldo)}
         label="Saldo sehat"
         delay={0.95}
         tilt={-2}

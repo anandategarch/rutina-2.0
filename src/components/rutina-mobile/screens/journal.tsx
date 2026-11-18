@@ -11,7 +11,7 @@ import { playfair } from '../serif'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from '../store'
 
 /** Variasi latar kartu jurnal: putih, pistachio muda, warm sand —
-    semuanya kontras di atas kanvas matcha. */
+    semuanya kartu terang di atas kanvas Warm Sand yang seragam. */
 const NOTE_TONES = [
   'border border-[#4A3B321F] bg-white',
   'bg-[#E4EFE0]',
@@ -72,22 +72,22 @@ export default function JournalScreen() {
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#FAF9F6]"
+      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]"
     >
       {/* Header editorial — serif besar, gaya Clean Typography */}
       <motion.header style={{ y: titleY, opacity: titleOpacity }}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FAF9F6]/65">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#749B58]">
               <Feather className="h-3.5 w-3.5" />
               Catatan &amp; refleksi
             </p>
             <h1
               className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight`}
             >
-              Jurnal<span className="text-[#231F1E]/50">.</span>
+              Jurnal<span className="text-[#749B58]">.</span>
             </h1>
-            <p className="mt-2 text-xs font-medium text-[#FAF9F6]/75">
+            <p className="mt-2 text-xs font-medium text-[#4A3B32]/75">
               {notes.length} catatan • {pinnedCount} disematkan
             </p>
           </div>
@@ -96,30 +96,30 @@ export default function JournalScreen() {
             aria-label="Buat catatan baru"
             onClick={() => openCompose()}
             whileTap={{ scale: 0.9 }}
-            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FAF9F6] text-[#231F1E] shadow-[0_8px_20px_rgba(12,9,7,0.35)] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6]"
+            className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#231F1E] text-[#FAF9F6] shadow-soft transition-colors hover:bg-[#3A2E24] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
           >
             <Plus className="h-5 w-5" strokeWidth={2.5} />
           </motion.button>
         </div>
       </motion.header>
 
-      {/* Pencarian — kaca susu di atas kanvas hijau */}
+      {/* Pencarian — kartu putih di atas kanvas Warm Sand */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         className="relative mt-5"
       >
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#231F1E]/45" />
+        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4A3B32]/50" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari judul atau isi catatan…"
-          className="h-11 rounded-xl border-transparent bg-[#FAF9F6]/95 pl-10 text-sm text-[#231F1E] shadow-sm placeholder:text-[#4A3B32]/40 focus-visible:border-[#231F1E]/20 focus-visible:ring-[#231F1E]/15"
+          className="h-11 rounded-xl border-[#4A3B321F] bg-white pl-10 text-sm text-[#231F1E] shadow-soft placeholder:text-[#4A3B32]/50 focus-visible:border-[#749B58]/50 focus-visible:ring-[#749B58]/20"
         />
       </motion.div>
 
-      {/* Chip filter folder — pil kaca di atas hijau */}
+      {/* Chip filter folder — pil terang di atas Warm Sand */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -136,10 +136,10 @@ export default function JournalScreen() {
                 aria-pressed={active}
                 onClick={() => setJournalFilter(f.key)}
                 className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] ' +
+                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] ' +
                   (active
-                    ? 'bg-[#FAF9F6] text-[#231F1E] shadow-[0_4px_12px_rgba(35,31,30,0.2)]'
-                    : 'border border-[#FAF9F6]/40 bg-[#FAF9F6]/10 text-[#FAF9F6] backdrop-blur-sm hover:bg-[#FAF9F6]/20')
+                    ? 'bg-[#231F1E] text-[#FAF9F6] shadow-soft'
+                    : 'border border-[#4A3B321F] bg-white text-[#4A3B32] hover:bg-[#E4EFE0]')
                 }
               >
                 {f.label}
@@ -149,7 +149,7 @@ export default function JournalScreen() {
         </div>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#749B58] to-transparent"
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#FAF9F6] to-transparent"
         />
       </motion.div>
 
@@ -157,13 +157,13 @@ export default function JournalScreen() {
       <section className="mt-5" aria-label="Daftar catatan jurnal">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FAF9F6]/15">
-              <BookOpen className="h-6 w-6 text-[#FAF9F6]" />
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#E4EFE0]">
+              <BookOpen className="h-6 w-6 text-[#658A4C]" />
             </span>
-            <p className="mt-4 text-[15px] font-semibold text-[#FAF9F6]">
+            <p className="mt-4 text-[15px] font-semibold text-[#231F1E]">
               Tidak ada catatan
             </p>
-            <p className="mt-1 text-xs text-[#FAF9F6]/65">
+            <p className="mt-1 text-xs text-[#4A3B32]/70">
               Coba kata kunci lain atau buat catatan baru.
             </p>
           </div>
@@ -183,7 +183,7 @@ export default function JournalScreen() {
                   }
                 }}
                 whileTap={{ scale: 0.97 }}
-                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 shadow-ink transition-all duration-300 hover:-translate-y-0.5 hover:shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
+                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 shadow-ink transition-all duration-300 hover:-translate-y-0.5 hover:shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3
@@ -209,14 +209,14 @@ export default function JournalScreen() {
                     />
                   </button>
                 </div>
-                <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-[#231F1E]/65">
+                <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-[#231F1E]/75">
                   {n.body}
                 </p>
                 <div className="mt-3 flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/75">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/75">
                     {n.date}
                   </p>
-                  <span className="text-[10px] font-bold text-[#4A3B32]/55">
+                  <span className="text-[11px] font-bold text-[#4A3B32]/70">
                     {FOLDER_SHORT[n.folder]}
                   </span>
                 </div>

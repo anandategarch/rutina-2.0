@@ -4,17 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { animate, stagger } from 'animejs'
 import {
-  Bell,
   ChevronRight,
   Globe,
-  HelpCircle,
   Info,
   Leaf,
-  LogOut,
-  Moon,
   Sparkles,
   Target,
-  Volume2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -47,14 +42,19 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
-import { Switch } from '@/components/ui/switch'
 
 import { Counter } from '../counter'
-import { BlurFade, Marquee, SplitText } from '../motion-kit'
+import { BlurFade, SplitText } from '../motion-kit'
 import { playfair } from '../serif'
 import {
+  activeSinceISO,
+  bestStreak,
   computeLevel,
   computeXp,
+  doneCountOn,
+  fromISO,
+  habitsOn,
+  todayISO,
   useRutina,
   XP_TARGET,
 } from '../store'
@@ -74,7 +74,7 @@ const FAQ_ITEMS = [
   },
 ]
 
-/* Pita kata kunci — isi Marquee (pola magicui) di layar profil. */
+/* Chip kata kunci statis — tanpa animasi marquee (kejujuran interaksi). */
 const FOCUS_WORDS = [
   'Konsisten',
   'Fokus',
@@ -88,7 +88,8 @@ const FOCUS_WORDS = [
 
 export default function ProfileScreen() {
   const notes = useRutina((s) => s.notes)
-  const tasks = useRutina((s) => s.tasks)
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const setDailyGoal = useRutina((s) => s.setDailyGoal)
@@ -96,11 +97,26 @@ export default function ProfileScreen() {
 
   const rowsRef = useRef<HTMLDivElement>(null)
 
-  const doneCount = tasks.filter((t) => t.done).length
-  const pct = Math.round((doneCount / tasks.length) * 100)
+  /* Semua angka dihitung dari histori nyata — bukan demo statis. */
+  const today = todayISO()
+  const doneCount = doneCountOn(completions, today)
+  const scheduledToday = habitsOn(habits, today).length
+  const pct =
+    scheduledToday === 0 ? 0 : Math.round((doneCount / scheduledToday) * 100)
   const xp = computeXp(doneCount, bonusClaimed)
   const level = computeLevel(xp)
   const xpPct = Math.min(Math.round((xp / XP_TARGET) * 100), 100)
+
+  /* "Aktif sejak" — bulan aktivitas terawal dari completions. */
+  const activeSince = activeSinceISO(completions)
+  const memberBadge = activeSince
+    ? `Aktif sejak ${new Intl.DateTimeFormat('id-ID', {
+        month: 'long',
+        year: 'numeric',
+      }).format(fromISO(activeSince))}`
+    : 'Belum ada aktivitas'
+
+  const streak = bestStreak(habits, completions, today).streak
 
   /* anime.js — baris pengaturan masuk bergiliran saat layar dibuka */
   useEffect(() => {
@@ -122,7 +138,7 @@ export default function ProfileScreen() {
 
   const stats = [
     { label: 'Catatan', value: notes.length, percent: false },
-    { label: 'Streak (hari)', value: 21, percent: false },
+    { label: 'Streak (hari)', value: streak, percent: false },
     { label: 'Selesai', value: pct, percent: true },
   ]
 
@@ -130,15 +146,15 @@ export default function ProfileScreen() {
     <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
       {/* Header editorial */}
       <header>
-        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-[#FAF9F6]/70">
-          <Leaf className="h-3.5 w-3.5 text-[#FAF9F6]/85" />
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#B25E3F]">
+          <Leaf className="h-3.5 w-3.5 text-[#B25E3F]" />
           Akun & preferensi
         </p>
         <h1
-          className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-[#FAF9F6]`}
+          className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-[#231F1E]`}
         >
           <SplitText text="Profil" inView />
-          <span className="text-[#231F1E]/40">.</span>
+          <span className="text-[#B25E3F]">.</span>
         </h1>
       </header>
 
@@ -157,8 +173,8 @@ export default function ProfileScreen() {
         <h2 className="mt-3 text-lg font-bold tracking-tight text-[#231F1E]">
           Ananda
         </h2>
-        <p className="mt-0.5 text-xs font-medium text-[#4A3B32]/65">
-          ananda@rutina.app
+        <p className="mt-0.5 text-xs font-medium text-[#4A3B32]/70">
+          Profil lokal · data tersimpan di perangkat
         </p>
         <div className="mt-3 flex items-center gap-2">
           <Badge
@@ -172,14 +188,14 @@ export default function ProfileScreen() {
             variant="outline"
             className="rounded-full border-[#4A3B32]/20 bg-[#F5F3EE] px-3 py-1 text-[11px] font-bold text-[#4A3B32]"
           >
-            Anggota sejak Juni 2025
+            {memberBadge}
           </Badge>
         </div>
 
         {/* Progres XP menuju level berikutnya */}
         <div className="mt-5 w-full">
           <div className="flex items-baseline justify-between px-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/60">
+            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
               Progres Level
             </span>
             <span className="text-[11px] font-bold tabular-nums text-[#658A4C]">
@@ -191,7 +207,7 @@ export default function ProfileScreen() {
             className="mt-2 h-2.5 rounded-full bg-[#E4EFE0]"
             aria-label="Progres XP menuju level berikutnya"
           />
-          <p className="mt-2 text-[11px] font-medium text-[#4A3B32]/65">
+          <p className="mt-2 text-[11px] font-medium text-[#4A3B32]/70">
             {level >= 8
               ? 'Level maksimal tercapai — petualang sejati!'
               : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
@@ -221,33 +237,30 @@ export default function ProfileScreen() {
                 <span className="text-sm font-semibold text-[#231F1E]">%</span>
               ) : null}
             </p>
-            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/60">
+            <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/70">
               {s.label}
             </p>
           </motion.div>
         ))}
       </div>
 
-      {/* Pita kata kunci bergulir — pola Marquee magicui (23.3k ★),
-          tepi memudar agar terasa menyatu dengan kanvas. */}
+      {/* Chip kata kunci statis — tanpa marquee; ikon Leaf terracotta. */}
       <BlurFade delay={0.18} className="mt-4">
-        <div className="[mask-image:linear-gradient(to_right,transparent,black_14%,black_86%,transparent)]">
-          <Marquee duration={26} gap="0.75rem">
-            {FOCUS_WORDS.map((w) => (
-              <span
-                key={w}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#FAF9F6]/20 bg-[#FAF9F6]/10 px-3.5 py-1.5 text-[11px] font-bold text-[#FAF9F6]/85"
-              >
-                <Leaf className="h-3 w-3 text-[#D9B98C]" aria-hidden="true" />
-                {w}
-              </span>
-            ))}
-          </Marquee>
+        <div className="flex flex-wrap gap-2">
+          {FOCUS_WORDS.map((w) => (
+            <span
+              key={w}
+              className="flex items-center gap-1.5 rounded-full border border-[#4A3B32]/15 bg-white px-3.5 py-1.5 text-[11px] font-bold text-[#4A3B32]/80"
+            >
+              <Leaf className="h-3 w-3 text-[#B25E3F]" aria-hidden="true" />
+              {w}
+            </span>
+          ))}
         </div>
       </BlurFade>
 
-      {/* Pemisah halus di atas kanvas terracotta (shadcn Separator) */}
-      <Separator className="mt-5 bg-[#FAF9F6]/25" />
+      {/* Pemisah halus di atas kanvas Warm Sand (shadcn Separator) */}
+      <Separator className="mt-5 bg-[#4A3B32]/15" />
 
       {/* Pengaturan — anime.js stagger + shadcn lengkap */}
       <div ref={rowsRef} className="mt-5 space-y-3">
@@ -267,7 +280,7 @@ export default function ProfileScreen() {
               <p className="text-[14px] font-semibold text-[#231F1E]">
                 Target Misi Harian
               </p>
-              <p className="text-[11px] font-medium text-[#4A3B32]/60">
+              <p className="text-[11px] font-medium text-[#4A3B32]/70">
                 Berapa misi yang ingin kamu selesaikan tiap hari?
               </p>
             </div>
@@ -284,116 +297,66 @@ export default function ProfileScreen() {
             aria-label="Target misi harian"
             className="mt-4 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-[#749B58] [&_[data-slot=slider-thumb]]:border-[#749B58] [&_[data-slot=slider-thumb]]:bg-white"
           />
-          <div className="mt-2 flex justify-between text-[10px] font-bold text-[#4A3B32]/50">
+          <div className="mt-2 flex justify-between text-[11px] font-bold text-[#4A3B32]/70">
             <span>Santai (1)</span>
             <span>Seimbang (6)</span>
             <span>Produktif (12)</span>
           </div>
         </motion.section>
 
-        {/* Sakelar preferensi */}
+        {/* Pemilih bahasa — DropdownMenu radio (shadcn); English masih
+            disematkan "segera" — jujur soal ketersediaan. */}
         <div
           data-row
           className="overflow-hidden rounded-[20px] border border-[#4A3B3214] bg-white shadow-soft"
         >
-          <div className="divide-y divide-[#4A3B3214]">
-            <div className="flex min-h-[54px] items-center gap-3 px-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-                <Bell className="h-4 w-4" />
-              </span>
-              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-                Notifikasi
-              </span>
-              <Switch
-                defaultChecked
-                aria-label="Notifikasi"
-                onCheckedChange={(checked) =>
-                  toast(`Notifikasi ${checked ? 'diaktifkan' : 'dimatikan'}`)
-                }
-                className="data-[state=checked]:bg-[#749B58]"
-              />
-            </div>
-
-            <div className="flex min-h-[54px] items-center gap-3 px-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-                <Volume2 className="h-4 w-4" />
-              </span>
-              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-                Efek Suara
-              </span>
-              <Switch
-                aria-label="Efek suara"
-                onCheckedChange={(checked) =>
-                  toast(`Efek suara ${checked ? 'dinyalakan' : 'dimatikan'}`)
-                }
-                className="data-[state=checked]:bg-[#749B58]"
-              />
-            </div>
-
-            <div className="flex min-h-[54px] items-center gap-3 px-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-                <Moon className="h-4 w-4" />
-              </span>
-              <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-                Mode Gelap
-              </span>
-              <Switch
-                checked={false}
-                aria-label="Mode gelap"
-                onCheckedChange={() => toast('Mode gelap segera hadir')}
-                className="data-[state=checked]:bg-[#749B58]"
-              />
-            </div>
-
-            {/* Pemilih bahasa — DropdownMenu radio (shadcn) */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Pilih bahasa aplikasi"
-                  className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-                    <Globe className="h-4 w-4" />
-                  </span>
-                  <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-                    Bahasa
-                  </span>
-                  <span className="text-[13px] font-semibold text-[#4A3B32]/70">
-                    {lang === 'id' ? 'Indonesia' : 'English'}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                side="top"
-                className="mr-2 min-w-[190px] rounded-2xl border-[#4A3B321F]"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Pilih bahasa aplikasi"
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
               >
-                <DropdownMenuRadioGroup
-                  value={lang}
-                  onValueChange={(v) => {
-                    setLang(v)
-                    toast.success(
-                      v === 'id'
-                        ? 'Bahasa Indonesia sudah aktif'
-                        : 'English will be available soon',
-                    )
-                  }}
-                >
-                  <DropdownMenuRadioItem value="id" className="rounded-lg">
-                    Indonesia
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="en" disabled className="rounded-lg">
-                    English
-                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-[#4A3B32]/45">
-                      segera
-                    </span>
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
+                  <Globe className="h-4 w-4" />
+                </span>
+                <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+                  Bahasa
+                </span>
+                <span className="text-[13px] font-semibold text-[#4A3B32]/70">
+                  {lang === 'id' ? 'Indonesia' : 'English'}
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              side="top"
+              className="mr-2 min-w-[190px] rounded-2xl border-[#4A3B321F]"
+            >
+              <DropdownMenuRadioGroup
+                value={lang}
+                onValueChange={(v) => {
+                  setLang(v)
+                  toast.success(
+                    v === 'id'
+                      ? 'Bahasa Indonesia sudah aktif'
+                      : 'Bahasa Inggris segera tersedia',
+                  )
+                }}
+              >
+                <DropdownMenuRadioItem value="id" className="rounded-lg">
+                  Indonesia
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="en" disabled className="rounded-lg">
+                  English
+                  <span className="ml-auto text-[11px] font-semibold uppercase tracking-wide text-[#4A3B32]/70">
+                    segera
+                  </span>
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Pertanyaan umum (shadcn Accordion) */}
@@ -458,13 +421,13 @@ export default function ProfileScreen() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center gap-2">
-                <Badge className="rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="rounded-full bg-[#E4EFE0] text-[11px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
                   Earth Tone
                 </Badge>
-                <Badge className="rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="rounded-full bg-[#E4EFE0] text-[11px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
                   Gamified
                 </Badge>
-                <Badge className="rounded-full bg-[#E4EFE0] text-[10px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
+                <Badge className="rounded-full bg-[#E4EFE0] text-[11px] font-bold text-[#658A4C] hover:bg-[#E4EFE0]">
                   Editorial
                 </Badge>
               </div>
@@ -483,35 +446,9 @@ export default function ProfileScreen() {
           </Dialog>
         </motion.section>
 
-        {/* Pusat bantuan */}
-        <button
-          data-row
-          type="button"
-          onClick={() => toast('Pusat bantuan segera hadir')}
-          className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#4A3B3214] bg-white px-4 text-left shadow-soft transition-colors hover:bg-[#F5F3EE] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E4EFE0] text-[#4A3B32]">
-            <HelpCircle className="h-4 w-4" />
-          </span>
-          <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
-            Pusat Bantuan
-          </span>
-          <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
-        </button>
-
-        {/* Keluar */}
-        <button
-          data-row
-          type="button"
-          onClick={() => toast('Sampai jumpa lagi besok!')}
-          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#FAF9F6]/35 bg-[#FAF9F6]/15 text-[14px] font-semibold text-[#FAF9F6] backdrop-blur transition-colors hover:bg-[#FAF9F6]/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FAF9F6]"
-        >
-          <LogOut className="h-4 w-4" />
-          Keluar
-        </button>
       </div>
 
-      <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.18em] text-[#FAF9F6]/55">
+      <p className="mt-6 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/60">
         Earth Tone Edition — 2025
       </p>
     </div>

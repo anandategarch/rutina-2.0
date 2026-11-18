@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Laptop,
-  Nfc,
   Plane,
   PiggyBank,
   Plus,
@@ -128,7 +127,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
             {pct}
             <span className="text-[13px]">%</span>
           </p>
-          <p className="mt-1 text-[10.5px] uppercase tracking-[0.14em] text-[#4A3B32]/55">
+          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#4A3B32]/70">
             terkumpul
           </p>
         </div>
@@ -137,7 +136,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
       <p className="mt-3 truncate text-[14px] font-bold">{goal.name}</p>
       <p className="mt-0.5 text-[12px] tabular-nums text-[#4A3B32]/70">
         {formatIDRShort(goal.saved)}{' '}
-        <span className="text-[#4A3B32]/45">dari {formatIDRShort(goal.target)}</span>
+        <span className="text-[#4A3B32]/70">dari {formatIDRShort(goal.target)}</span>
       </p>
 
       {complete ? (
@@ -197,7 +196,7 @@ function TxRow({ tx }: { tx: Tx }) {
           <span className="block truncate text-[14px] font-semibold">
             {tx.note || CAT_META[tx.cat].label}
           </span>
-          <span className="mt-0.5 block text-[11px] text-[#4A3B32]/60">
+          <span className="mt-0.5 block text-[11px] text-[#4A3B32]/70">
             {CAT_META[tx.cat].label} · {fmtDate(tx.ts)}
           </span>
         </span>
@@ -231,7 +230,7 @@ function TxRow({ tx }: { tx: Tx }) {
             <div className="border-t border-[#4A3B32]/10 px-3.5 pb-3.5 pt-3">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-[#F5F3EE] px-2 py-2">
-                  <p className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/55">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
                     Kategori
                   </p>
                   <p className="mt-0.5 truncate text-[12px] font-bold">
@@ -239,13 +238,13 @@ function TxRow({ tx }: { tx: Tx }) {
                   </p>
                 </div>
                 <div className="rounded-xl bg-[#F5F3EE] px-2 py-2">
-                  <p className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/55">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
                     Tanggal
                   </p>
                   <p className="mt-0.5 text-[12px] font-bold">{fmtDate(tx.ts)}</p>
                 </div>
                 <div className="rounded-xl bg-[#F5F3EE] px-2 py-2">
-                  <p className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/55">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4A3B32]/70">
                     Arus
                   </p>
                   <p
@@ -312,15 +311,19 @@ function TxRow({ tx }: { tx: Tx }) {
   )
 }
 
-/* ===== Kartu saldo gaya kartu bank (pattern credit card) =====
-   Tilt 3D halus mengikuti kursor + sapuan kilau ShineBorder. */
+/* ===== Kartu saldo — dompet espresso, bukan kartu bank =====
+   Tanpa ikon NFC, chip, atau nomor kartu: tidak ada integrasi
+   finansial nyata di baliknya. Tilt 3D halus + sapuan kilau ShineBorder. */
 
 function SaldoCard({
   saldo,
+  txCount,
   saldoRef,
   onAdd,
 }: {
   saldo: number
+  /** Jumlah transaksi bulan berjalan — dari data nyata, bukan angka statis. */
+  txCount: number
   saldoRef: React.RefObject<HTMLSpanElement | null>
   onAdd: () => void
 }) {
@@ -346,7 +349,7 @@ function SaldoCard({
     <motion.div
       role="button"
       tabIndex={0}
-      aria-label={`Kartu saldo Rutina Vault, saldo ${formatIDR(saldo)}. Ketuk untuk menambah transaksi.`}
+      aria-label={`Dompet Rutina Vault, saldo ${formatIDR(saldo)}. Ketuk untuk menambah transaksi.`}
       onClick={onAdd}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -360,7 +363,7 @@ function SaldoCard({
       style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
       className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#31281F_0%,#423425_46%,#282019_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
     >
-      <ShineBorder borderWidth={1.5} duration={7} shineColor={['#D9B98C', '#A3C489']} />
+      <ShineBorder borderWidth={1.5} duration={12} shineColor={['#D9B98C', '#A3C489']} />
 
       {/* Cahaya emas lembut dari sudut kiri atas */}
       <div
@@ -368,59 +371,40 @@ function SaldoCard({
         className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-[#D9B98C]/12 blur-3xl"
       />
 
-      {/* Baris merek + NFC */}
-      <div className="relative z-10 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.26em] text-[#D9B98C]">
-          <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
-          Rutina Vault
-        </p>
-        <Nfc className="h-4 w-4 text-[#FAF9F6]/40" aria-hidden="true" />
-      </div>
+      {/* Baris merek */}
+      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-[#D9B98C]">
+        <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
+        Rutina Vault
+      </p>
 
-      {/* Chip + saldo */}
-      <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          {/* Chip emas bergaya SIM */}
-          <svg
-            viewBox="0 0 34 26"
-            aria-hidden="true"
-            className="h-[24px] w-[32px] rounded-[6px]"
+      {/* Saldo */}
+      <div className="relative z-10 mt-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#FAF9F6]/65">
+          Saldo Tersedia
+        </p>
+        <div className="mt-0.5 flex items-baseline gap-1">
+          <span className="text-[19px] font-bold text-[#D9B98C]">Rp</span>
+          <span
+            ref={saldoRef}
+            className="text-[31px] font-bold leading-none tabular-nums text-[#FAF9F6]"
           >
-            <rect width="34" height="26" rx="6" fill="#D9B98C" />
-            <path
-              d="M11 0v8H0M11 26v-8H0M23 0v8h11M23 26v-8h11M11 8h12v10H11z"
-              fill="none"
-              stroke="#A98650"
-              strokeWidth="1.4"
-            />
-          </svg>
-          <p className="mt-2.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[#FAF9F6]/50">
-            Saldo Tersedia
-          </p>
-          <div className="mt-0.5 flex items-baseline gap-1">
-            <span className="text-[19px] font-bold text-[#D9B98C]">Rp</span>
-            <span
-              ref={saldoRef}
-              className="text-[31px] font-bold leading-none tabular-nums text-[#FAF9F6]"
-            >
-              <Counter to={saldo} />
-            </span>
-          </div>
+            <Counter to={saldo} />
+          </span>
         </div>
       </div>
 
-      {/* Nomor samar + pemegang */}
+      {/* Transaksi bulan ini + pemegang */}
       <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
         <div>
-          <p className="text-[8.5px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/40">
-            Nomor Kartu
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/65">
+            Transaksi bulan ini
           </p>
-          <p className="mt-0.5 text-[13px] font-semibold tracking-[0.22em] text-[#FAF9F6]/85">
-            •••• •••• •••• 4821
+          <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-[#E9D5B8]">
+            {txCount}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[8.5px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/40">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#FAF9F6]/65">
             Pemegang
           </p>
           <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-[#E9D5B8]">
@@ -478,6 +462,12 @@ export default function KeuanganScreen() {
       txs.reduce((a, t) => a + (t.type === 'masuk' ? t.amount : -t.amount), 0),
     [txs],
   )
+  /* Jumlah transaksi bulan berjalan (demo: Juni 2025) — dihitung dari
+     data nyata untuk kartu saldo, bukan angka statis. */
+  const txCount = useMemo(
+    () => txs.filter((t) => t.ts.startsWith('2025-06')).length,
+    [txs],
+  )
   const spentTotal = useMemo(
     () => BUDGETS.reduce((a, b) => a + (spent[b.cat] ?? 0), 0),
     [spent],
@@ -507,11 +497,11 @@ export default function KeuanganScreen() {
   const pt = series[Math.min(active, series.length - 1)] ?? series[0]
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#FAF9F6]">
+    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]">
       {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
           masuk viewport — pengganti staggervariants statis. */}
       <div className="flex flex-col gap-5">
-        {/* ===== Kepala: kartu saldo gaya bank + FAB tambah ===== */}
+        {/* ===== Kepala: dompet saldo gelap + FAB tambah ===== */}
         <BlurFade>
           <div className="relative">
             <motion.button
@@ -523,27 +513,32 @@ export default function KeuanganScreen() {
             >
               <Plus className="h-5 w-5" strokeWidth={2.6} />
             </motion.button>
-            <SaldoCard saldo={saldo} saldoRef={saldoRef} onAdd={openTxSheet} />
+            <SaldoCard
+              saldo={saldo}
+              txCount={txCount}
+              saldoRef={saldoRef}
+              onAdd={openTxSheet}
+            />
           </div>
         </BlurFade>
 
         {/* ===== Chip totals per periode ===== */}
         <BlurFade delay={0.06} className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-2xl bg-[#A3C489]/15 px-3.5 py-3 shadow-ink">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/70">
+          <div className="rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-3 shadow-soft">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
               <ArrowUpRight className="h-3.5 w-3.5 text-[#A3C489]" />
               Masuk · periode ini
             </p>
-            <p className="mt-1 text-[17px] font-bold tabular-nums text-[#A3C489]">
+            <p className="mt-1 text-[17px] font-bold tabular-nums text-[#658A4C]">
               +{formatIDRShort(totals.masuk)}
             </p>
           </div>
-          <div className="rounded-2xl bg-[#E08A6D]/15 px-3.5 py-3 shadow-ink">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/70">
+          <div className="rounded-2xl border border-[#4A3B3214] bg-white px-3.5 py-3 shadow-soft">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
               <ArrowDownRight className="h-3.5 w-3.5 text-[#E08A6D]" />
               Keluar · periode ini
             </p>
-            <p className="mt-1 text-[17px] font-bold tabular-nums text-[#E08A6D]">
+            <p className="mt-1 text-[17px] font-bold tabular-nums text-[#C25F3D]">
               −{formatIDRShort(totals.keluar)}
             </p>
           </div>
@@ -552,13 +547,13 @@ export default function KeuanganScreen() {
         {/* ===== Arus kas: kontrol periode + grafik ===== */}
         <BlurFade
           delay={0.1}
-          className="rounded-[24px] border border-[#FAF9F6]/12 bg-[#FAF9F6]/[0.07] p-4 shadow-ink"
+          className="rounded-[24px] border border-[#4A3B3214] bg-white p-4 shadow-soft"
         >
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#E9D5B8]">
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
               Arus Kas
             </h2>
-            <span className="text-[11px] font-medium tabular-nums text-[#FAF9F6]/60">
+            <span className="text-[11px] font-medium tabular-nums text-[#4A3B32]/70">
               {PERIOD_SCOPE[finPeriod]}
             </span>
           </div>
@@ -567,7 +562,7 @@ export default function KeuanganScreen() {
           <div
             role="group"
             aria-label="Pilih periode"
-            className="mt-3 flex rounded-full bg-[#231F1E]/35 p-1"
+            className="mt-3 flex rounded-full bg-[#F5F3EE] p-1"
           >
             {PERIODS.map((p) => {
               const on = finPeriod === p.id
@@ -578,14 +573,14 @@ export default function KeuanganScreen() {
                   onClick={() => setFinPeriod(p.id)}
                   aria-pressed={on}
                   className={`relative z-10 h-8 flex-1 cursor-pointer rounded-full text-[12px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C] ${
-                    on ? 'text-[#4A3B32]' : 'text-[#FAF9F6]/60'
+                    on ? 'text-[#FAF9F6]' : 'text-[#4A3B32]/70'
                   }`}
                 >
                   {on && (
                     <motion.span
                       aria-hidden="true"
                       layoutId="fin-period"
-                      className="absolute inset-0 z-[-1] rounded-full bg-[#FAF9F6]"
+                      className="absolute inset-0 z-[-1] rounded-full bg-[#231F1E]"
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     />
                   )}
@@ -598,7 +593,7 @@ export default function KeuanganScreen() {
           {/* Legenda + nilai titik aktif */}
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/65">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
                 <span
                   aria-hidden="true"
                   className="h-2 w-2 rounded-full"
@@ -613,14 +608,14 @@ export default function KeuanganScreen() {
                       animate={{ y: 0, opacity: 1 }}
                       exit={{ y: -10, opacity: 0 }}
                       transition={{ duration: 0.18 }}
-                      className="font-bold tabular-nums text-[#A3C489]"
+                      className="font-bold tabular-nums text-[#658A4C]"
                     >
                       +{formatIDRShort(pt.masuk)}
                     </motion.span>
                   </AnimatePresence>
                 </span>
               </span>
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#FAF9F6]/65">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#4A3B32]/75">
                 <span
                   aria-hidden="true"
                   className="h-2 w-2 rounded-full"
@@ -635,7 +630,7 @@ export default function KeuanganScreen() {
                       animate={{ y: 0, opacity: 1 }}
                       exit={{ y: -10, opacity: 0 }}
                       transition={{ duration: 0.18 }}
-                      className="font-bold tabular-nums text-[#E08A6D]"
+                      className="font-bold tabular-nums text-[#C25F3D]"
                     >
                       −{formatIDRShort(pt.keluar)}
                     </motion.span>
@@ -643,7 +638,7 @@ export default function KeuanganScreen() {
                 </span>
               </span>
             </div>
-            <span className="text-[10.5px] text-[#FAF9F6]/45">ketuk titik</span>
+            <span className="text-[11px] text-[#4A3B32]/60">ketuk titik</span>
           </div>
 
           <div className="mx-auto mt-2 w-full max-w-[560px]">
@@ -656,7 +651,7 @@ export default function KeuanganScreen() {
           delay={0.06}
           className="relative rounded-[24px] bg-[#FAF9F6] p-4 text-[#231F1E] shadow-ink-deep"
         >
-          <ShineBorder borderWidth={1.5} duration={7} shineColor={['#D9B98C', '#A3C489']} />
+          <ShineBorder borderWidth={1.5} duration={12} shineColor={['#D9B98C', '#A3C489']} />
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
               Anggaran Juni
@@ -708,7 +703,7 @@ export default function KeuanganScreen() {
                       </span>
                       <span className="shrink-0 text-[12px] tabular-nums text-[#4A3B32]/80">
                         {formatIDRShort(used)}{' '}
-                        <span className="text-[#4A3B32]/45">
+                        <span className="text-[#4A3B32]/70">
                           / {formatIDRShort(b.limit)}
                         </span>
                       </span>
@@ -723,10 +718,10 @@ export default function KeuanganScreen() {
                       />
                     </div>
                     <p
-                      className={`mt-1 text-[10.5px] ${
+                      className={`mt-1 text-[11px] ${
                         over
                           ? 'font-bold text-[#B25E3F]'
-                          : 'text-[#4A3B32]/60'
+                          : 'text-[#4A3B32]/70'
                       }`}
                     >
                       {over
@@ -743,13 +738,13 @@ export default function KeuanganScreen() {
         {/* ===== Tujuan tabungan ===== */}
         <BlurFade delay={0.06}>
           <div className="flex items-center justify-between gap-3 px-0.5">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#E9D5B8]">
+            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
               Tujuan Tabungan
             </h2>
             <button
               type="button"
               onClick={openGoalDialog}
-              className="h-8 cursor-pointer rounded-full border border-[#FAF9F6]/25 px-3.5 text-[12px] font-bold text-[#FAF9F6] transition-all hover:bg-[#FAF9F6]/10 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
             >
               + Tujuan
             </button>
@@ -765,13 +760,13 @@ export default function KeuanganScreen() {
               <button
                 type="button"
                 onClick={openGoalDialog}
-                className="flex min-h-[178px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-[#FAF9F6]/30 px-3 py-4 text-[#FAF9F6]/70 transition-all hover:border-[#D9B98C]/60 hover:text-[#E9D5B8] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+                className="flex min-h-[178px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-[#4A3B32]/25 px-3 py-4 text-[#4A3B32]/70 transition-all hover:border-[#D9B98C] hover:text-[#4A3B32] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FAF9F6]/10">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F5F3EE]">
                   <Plus className="h-5 w-5" />
                 </span>
                 <span className="text-[12.5px] font-bold">Tujuan Baru</span>
-                <span className="text-center text-[10.5px] leading-tight opacity-70">
+                <span className="text-center text-[11px] leading-tight opacity-70">
                   tetapkan nama &amp; target
                 </span>
               </button>
@@ -779,7 +774,7 @@ export default function KeuanganScreen() {
             {/* Petunjuk geser — memudar di tepi kanan carousel */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[22px] bg-gradient-to-l from-[#4A3B32] to-transparent"
+              className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[22px] bg-gradient-to-l from-[#FAF9F6] to-transparent"
             />
           </div>
         </BlurFade>
@@ -788,17 +783,17 @@ export default function KeuanganScreen() {
         <BlurFade delay={0.06}>
           <div className="flex items-center justify-between gap-3 px-0.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#E9D5B8]">
+              <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-[#4A3B32]">
                 Transaksi
               </h2>
-              <Badge className="border-transparent bg-[#FAF9F6]/12 text-[#E9D5B8] hover:bg-[#FAF9F6]/12">
+              <Badge className="border-transparent bg-[#E4EFE0] text-[#658A4C] hover:bg-[#E4EFE0]">
                 {filtered.length}
               </Badge>
             </div>
             <button
               type="button"
               onClick={openTxSheet}
-              className="h-8 cursor-pointer rounded-full border border-[#FAF9F6]/25 px-3.5 text-[12px] font-bold text-[#FAF9F6] transition-all hover:bg-[#FAF9F6]/10 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
+              className="h-8 cursor-pointer rounded-full border border-[#4A3B32]/25 px-3.5 text-[12px] font-bold text-[#4A3B32] transition-all hover:bg-[#EAE5D9] active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
             >
               + Tambah
             </button>
@@ -816,13 +811,13 @@ export default function KeuanganScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.35, ease: EASE }}
-                  className="rounded-[20px] border-2 border-dashed border-[#FAF9F6]/25 px-6 py-9 text-center"
+                  className="rounded-[20px] border-2 border-dashed border-[#4A3B32]/25 px-6 py-9 text-center"
                 >
-                  <Wallet className="mx-auto h-6 w-6 text-[#FAF9F6]/50" />
-                  <p className="mt-2 text-[13px] font-semibold text-[#FAF9F6]/70">
+                  <Wallet className="mx-auto h-6 w-6 text-[#4A3B32]/60" />
+                  <p className="mt-2 text-[13px] font-semibold text-[#4A3B32]/75">
                     Belum ada transaksi
                   </p>
-                  <p className="mt-0.5 text-[11.5px] text-[#FAF9F6]/50">
+                  <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
                     pada periode {PERIOD_SCOPE[finPeriod].toLowerCase()}
                   </p>
                 </motion.div>
