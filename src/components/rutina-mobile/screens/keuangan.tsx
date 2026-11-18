@@ -83,6 +83,7 @@ import {
 } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
 /* ===== Konstanta gerak ===== */
 
@@ -454,7 +455,7 @@ function TxRow({ tx }: { tx: Tx }) {
             {tx.recurrence && !tx.recurOf && (
               <span
                 title={`Berulang ${tx.recurrence}`}
-                className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-success"
+                className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-module-accent/15 text-module-accent-strong"
               >
                 <Repeat className="h-2.5 w-2.5" strokeWidth={2.5} />
               </span>
@@ -1265,7 +1266,10 @@ export default function KeuanganScreen() {
         : 'text-content-secondary'
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
+    <div
+      data-module="finance"
+      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+    >
       {/* Subtab Keuangan — Radix Tabs: state aktif terkelola penuh,
           dukungan papan tombol otomatis (pengganti pil aria-pressed). */}
       <RutinaTabs value={finTab} onValueChange={(v) => setFinTab(v as FinTab)}>
@@ -1275,7 +1279,11 @@ export default function KeuanganScreen() {
           className="w-full border-transparent p-1"
         >
           {FIN_TABS.map((t) => (
-            <RutinaTabsTrigger key={t.id} value={t.id} className="flex-1 px-2">
+            <RutinaTabsTrigger
+              key={t.id}
+              value={t.id}
+              className="flex-1 px-2 data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
+            >
               {t.label}
             </RutinaTabsTrigger>
           ))}
@@ -1637,8 +1645,21 @@ export default function KeuanganScreen() {
           )}
         </BlurFade>
 
-        {/* ===== PETA PANAS PENGELUARAN — 12 pekan (audit #9) ===== */}
+        {/* ===== PETA PANAS + TEMUAN — pasangan bento desktop (wide 8 +
+              feature 4); urutan DOM dipertahankan, ponsel tetap bertumpuk.
+              (audit #9 & #10) ===== */}
         <BlurFade delay={0.14}>
+          <m.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: motionTokens.duration.enter,
+              delay: 0.13,
+              ease: EASE,
+            }}
+          >
+            <RutinaBentoGrid>
+              <RutinaBentoItem span="wide">
           <RutinaSectionHeader
             title="Peta Panas Pengeluaran"
             description="Total keluar harian · 12 pekan terakhir · tanpa transfer."
@@ -1646,10 +1667,8 @@ export default function KeuanganScreen() {
           <div className="mt-3">
             <SpendHeatmap />
           </div>
-        </BlurFade>
-
-        {/* ===== TEMUAN & REKOMENDASI — observasi bulan berjalan (audit #10) ===== */}
-        <BlurFade delay={0.18}>
+              </RutinaBentoItem>
+              <RutinaBentoItem span="feature">
           <RutinaSectionHeader
             title="Temuan & Rekomendasi"
             description="Observasi bulan ini — bukan kesimpulan sebab-akibat."
@@ -1700,6 +1719,9 @@ export default function KeuanganScreen() {
               ))}
             </ul>
           )}
+              </RutinaBentoItem>
+            </RutinaBentoGrid>
+          </m.div>
         </BlurFade>
           </>
         )}
@@ -1888,7 +1910,7 @@ export default function KeuanganScreen() {
                       className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gold/20 text-warning">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
                           <Wallet className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">

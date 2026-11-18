@@ -9,12 +9,13 @@ import { DesktopSidebar } from '@/components/rutina-mobile/desktop-sidebar'
 import { RutinaApp } from '@/components/rutina-mobile/rutina-app'
 import { useRutina, type Screen } from '@/components/rutina-mobile/store'
 
-/* Pintasan keyboard desktop: tombol 1-6 memindah layar sesuai urutan nav. */
+/* Pintasan keyboard desktop: tombol 1-6 memindah layar sesuai urutan nav
+   (Kebiasaan menggantikan Jurnal sebagai layar ke-4). */
 const SHORTCUT_SCREENS: readonly Screen[] = [
   'beranda',
   'bugar',
   'keuangan',
-  'jurnal',
+  'kebiasaan',
   'statistik',
   'profil',
 ] as const

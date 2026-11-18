@@ -82,6 +82,41 @@
   --hero-content-muted: rgb(250 249 246 / 68%);
   --hero-accent: var(--palette-gold);
 
+  /* Warna domain modul — Color System 2.0 (Earth-Tone Editorial Bento).
+     Identitas pendukung per modul; matcha tetap warna interaksi utama.
+     Peran: base = ikon/aksen/gradasi hero modul; strong = teks & aksen
+     dalam (kontras AA di atas soft); soft = latar tile/panel modul;
+     fg = teks di atas base. Kontras strong-vs-soft: bugar 5,42:1,
+     keuangan 4,68:1, jurnal 5,37:1, statistik 4,76:1 (WCAG AA). */
+  --module-bugar: #5f8a82; /* Eucalyptus Teal */
+  --module-bugar-strong: #41665f;
+  --module-bugar-soft: #e4efeb;
+  --module-bugar-fg: #ffffff;
+
+  --module-finance: #ac8148; /* Antique Bronze */
+  --module-finance-strong: #82602f;
+  --module-finance-soft: #f1e7d7;
+  --module-finance-fg: #ffffff;
+
+  --module-journal: #8c7a91; /* Dusty Mauve */
+  --module-journal-strong: #68596f;
+  --module-journal-soft: #eee8ef;
+  --module-journal-fg: #ffffff;
+
+  --module-stats: #71899a; /* Mineral Slate */
+  --module-stats-strong: #536b7c;
+  --module-stats-soft: #e7eef2;
+  --module-stats-fg: #ffffff;
+
+  /* Aksen modul kontekstual — default matcha (identitas global). Layar
+     menimpa lewat data-module (lihat blok [data-module] di bawah), maka
+     utilitas bg-module-accent / text-module-accent-strong otomatis mengikuti
+     domain layar aktif tanpa pemetaan per komponen. */
+  --module-accent: var(--palette-matcha);
+  --module-accent-strong: var(--palette-matcha-deep);
+  --module-accent-soft: var(--palette-mist);
+  --module-accent-fg: #ffffff;
+
   /* Status — nilai teks AMAN kontras (≥ 4,5:1) di atas permukaan terang.
      Gunakan untuk teks kecil bermakna (nominal, label status). */
   --success: #4f7440; /* matcha tua — teks berhasil/positif */
@@ -160,6 +195,37 @@
   --hero-content: var(--palette-parchment);
   --hero-content-muted: rgb(250 249 246 / 68%);
   --hero-accent: var(--palette-gold);
+
+  /* Warna domain modul — versi gelap: base diterangkan agar kontras di
+     atas permukaan arang; strong menjadi aksen teks terang; soft menjadi
+     permukaan gelap bertint domain (terbedakan dari surface-secondary). */
+  --module-bugar: #8fb8af;
+  --module-bugar-strong: #a9cdc5;
+  --module-bugar-soft: #283230;
+  --module-bugar-fg: #1c1817;
+
+  --module-finance: #c9a06a;
+  --module-finance-strong: #ddbc8c;
+  --module-finance-soft: #342d24;
+  --module-finance-fg: #1c1817;
+
+  --module-journal: #ad9db1;
+  --module-journal-strong: #c6b9ca;
+  --module-journal-soft: #312c36;
+  --module-journal-fg: #1c1817;
+
+  --module-stats: #9bafc0;
+  --module-stats-strong: #b9c9d6;
+  --module-stats-soft: #2a3138;
+  --module-stats-fg: #1c1817;
+
+  /* Default aksen kontekstual di kanvas gelap — pistachio (mode gelap
+     dari matcha); layar bermodule menimpa lewat data-module dan ikut
+     terbalik otomatis karena menunjuk var --module-*. */
+  --module-accent: var(--palette-pistachio);
+  --module-accent-strong: var(--palette-pistachio);
+  --module-accent-soft: #35302a;
+  --module-accent-fg: #1c1817;
 
   /* Status — versi terang untuk kanvas gelap */
   --success: var(--palette-pistachio);
@@ -243,6 +309,34 @@
   --color-hero-content: var(--hero-content);
   --color-hero-content-muted: var(--hero-content-muted);
   --color-hero-accent: var(--hero-accent);
+
+  /* Warna domain modul — utilitas: bg-module-bugar, text-module-finance-strong,
+     border-module-stats, dst. Dipakai HANYA untuk identitas modul; warna
+     status (success/warning/danger) & interaksi utama tetap semantic. */
+  --color-module-bugar: var(--module-bugar);
+  --color-module-bugar-strong: var(--module-bugar-strong);
+  --color-module-bugar-soft: var(--module-bugar-soft);
+  --color-module-bugar-fg: var(--module-bugar-fg);
+  --color-module-finance: var(--module-finance);
+  --color-module-finance-strong: var(--module-finance-strong);
+  --color-module-finance-soft: var(--module-finance-soft);
+  --color-module-finance-fg: var(--module-finance-fg);
+  --color-module-journal: var(--module-journal);
+  --color-module-journal-strong: var(--module-journal-strong);
+  --color-module-journal-soft: var(--module-journal-soft);
+  --color-module-journal-fg: var(--module-journal-fg);
+  --color-module-stats: var(--module-stats);
+  --color-module-stats-strong: var(--module-stats-strong);
+  --color-module-stats-soft: var(--module-stats-soft);
+  --color-module-stats-fg: var(--module-stats-fg);
+
+  /* Aksen kontekstual — mengikuti data-module layar aktif (default matcha).
+     Contoh: chip bg-module-accent/15 di layar Bugar otomatis eucalyptus,
+     di layar Keuangan otomatis bronze — kelas sama, warna domain berbeda. */
+  --color-module-accent: var(--module-accent);
+  --color-module-accent-strong: var(--module-accent-strong);
+  --color-module-accent-soft: var(--module-accent-soft);
+  --color-module-accent-fg: var(--module-accent-fg);
   --color-success: var(--success);
   --color-warning: var(--warning);
 
@@ -316,6 +410,35 @@
   .dark {
     color-scheme: dark;
   }
+
+  /* Pengikatan domain layar → aksen kontekstual. Cukup satu atribut
+     data-module pada akar layar; seluruh utilitas *-module-accent di
+     dalamnya mewarisi warna domain tersebut (lihat @theme inline). */
+  [data-module='bugar'] {
+    --module-accent: var(--module-bugar);
+    --module-accent-strong: var(--module-bugar-strong);
+    --module-accent-soft: var(--module-bugar-soft);
+    --module-accent-fg: var(--module-bugar-fg);
+  }
+  [data-module='finance'] {
+    --module-accent: var(--module-finance);
+    --module-accent-strong: var(--module-finance-strong);
+    --module-accent-soft: var(--module-finance-soft);
+    --module-accent-fg: var(--module-finance-fg);
+  }
+  [data-module='journal'] {
+    --module-accent: var(--module-journal);
+    --module-accent-strong: var(--module-journal-strong);
+    --module-accent-soft: var(--module-journal-soft);
+    --module-accent-fg: var(--module-journal-fg);
+  }
+  [data-module='stats'] {
+    --module-accent: var(--module-stats);
+    --module-accent-strong: var(--module-stats-strong);
+    --module-accent-soft: var(--module-stats-soft);
+    --module-accent-fg: var(--module-stats-fg);
+  }
+
   html {
     /* Hentikan scroll-chaining & permulaan pull-to-refresh di tepi aplikasi. */
     overscroll-behavior: none;

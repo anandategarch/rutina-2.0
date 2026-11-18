@@ -63,3 +63,4 @@ tool-results/
 
 # kredensial Vercel untuk salin-tempel manual (jangan commit)
 vercel-env.txt
+upload/

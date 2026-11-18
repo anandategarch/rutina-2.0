@@ -8,6 +8,8 @@ import { playfair } from './serif'
 /**
  * RutinaSectionHeader — judul standar setiap bagian layar.
  * Skala tipografi: section title 18–20px (spesifikasi design system).
+ * `accent` mewarnai titik & eyebrow dengan warna domain layar (token
+ * module-accent kontekstual) — identitas modul tanpa mengubah judul.
  */
 export interface RutinaSectionHeaderProps
   extends HTMLAttributes<HTMLDivElement> {
@@ -15,10 +17,12 @@ export interface RutinaSectionHeaderProps
   title: string
   /** Kicker kecil di atas judul (opsional) — label konteks 11–12px. */
   eyebrow?: string
-  /** Aksi di sisi kanan (tombol "Lihat semua", dsb.). */
+  /** Aksi di sisi kanan (tombol "Lihat semua", pemilih periode, dsb.). */
   action?: ReactNode
   /** Uraian singkat di bawah judul. */
   description?: string
+  /** Tampilkan titik aksen warna domain (pakai bersama data-module). */
+  accent?: boolean
 }
 
 export function RutinaSectionHeader({
@@ -26,6 +30,7 @@ export function RutinaSectionHeader({
   eyebrow,
   action,
   description,
+  accent = false,
   className,
   ...props
 }: RutinaSectionHeaderProps) {
@@ -39,7 +44,20 @@ export function RutinaSectionHeader({
     >
       <div className="min-w-0">
         {eyebrow && (
-          <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-content-muted">
+          <p
+            className={cn(
+              'mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em]',
+              accent
+                ? 'text-module-accent-strong'
+                : 'text-content-muted',
+            )}
+          >
+            {accent && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
+              />
+            )}
             {eyebrow}
           </p>
         )}

@@ -4,6 +4,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import type { HTMLAttributes } from 'react'
 
 import { cn } from '@/lib/utils'
+import { MODULE_SOFT_BG, type RutinaModule } from './rutina-module'
 
 /**
  * RutinaCard — komponen kartu standar dengan varian CVA.
@@ -15,6 +16,11 @@ import { cn } from '@/lib/utils'
  *
  * Varian & densitas dipilih lewat prop, semuanya mengacu token
  * semantic (bg-surface-primary, border-border-default, dst.).
+ *
+ * Aturan Bento: kartu biasa = parchment + hairline; variasi hierarki
+ * lewat UKURAN tile (RutinaBentoItem), bukan warna. Varian `module`
+ * memakai latar bertint domain (token module-*-soft) — maksimal satu
+ * dua tile per layar agar tidak ramai.
  */
 const cardVariants = cva('relative overflow-hidden', {
   variants: {
@@ -27,6 +33,12 @@ const cardVariants = cva('relative overflow-hidden', {
       dark: 'bg-surface-inverse text-content-inverse',
       /** Kartu brand — matcha penuh, teks putih. */
       brand: 'bg-action-primary text-action-primary-fg',
+      /** Hero espresso + emas (identitas global, tak terbalik dark). */
+      hero: 'bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] text-hero-content shadow-ink-deep',
+      /** Tile bertint domain modul — pasangkan prop `module`. */
+      module: '',
+      /** Kartu rata tanpa bingkai — di atas permukaan sunken. */
+      flat: 'bg-surface-sunken',
     },
     density: {
       compact: 'p-3',
@@ -49,18 +61,27 @@ const cardVariants = cva('relative overflow-hidden', {
 
 export interface RutinaCardProps
   extends HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {}
+    VariantProps<typeof cardVariants> {
+  /** Domain warna untuk varian `module` (latar bertint domain). */
+  module?: RutinaModule
+}
 
 export function RutinaCard({
   className,
   variant,
   density,
   radius,
+  module,
   ...props
 }: RutinaCardProps) {
   return (
     <div
-      className={cn(cardVariants({ variant, density, radius }), className)}
+      data-module={module}
+      className={cn(
+        cardVariants({ variant, density, radius }),
+        variant === 'module' && module && MODULE_SOFT_BG[module],
+        className,
+      )}
       {...props}
     />
   )

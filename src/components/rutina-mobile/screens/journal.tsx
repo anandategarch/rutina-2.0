@@ -63,7 +63,10 @@ export default function JournalScreen() {
   }, [notes, journalFilter, query])
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
+    <div
+      data-module="journal"
+      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+    >
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
       <m.header
         initial={{ opacity: 0, y: 12 }}
@@ -77,6 +80,7 @@ export default function JournalScreen() {
           eyebrow={longDateLabel(todayISO())}
           title="Jurnal"
           description={`${total} catatan · ${pinnedCount} disematkan`}
+          accent
         />
       </m.header>
 
@@ -144,7 +148,7 @@ export default function JournalScreen() {
                 className={
                   'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                   (active
-                    ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                    ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
                     : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
                 }
               >
@@ -214,8 +218,8 @@ export default function JournalScreen() {
               />
             ) : (
               <div className="flex flex-col items-center py-14 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-                  <BookOpen className="h-6 w-6 text-primary" />
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-module-accent/15">
+                  <BookOpen className="h-6 w-6 text-module-accent-strong" />
                 </span>
                 <p className="mt-4 text-[15px] font-semibold text-content-primary">
                   Tidak ada catatan yang cocok

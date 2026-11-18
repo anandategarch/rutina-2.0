@@ -106,3 +106,25 @@ Menjalankan impor (sekali saja, aman diulang):
 bun run db:import-rutina1   # baca tabel lawas → tulis rutina_* + re-stamp lastPushAt
 ```
 
+## v2.3 — Earth-Tone Editorial Bento (Color System 2.0)
+
+Sistem visual baru di atas fondasi yang ada (tanpa membongkar ulang): matcha tetap
+identitas global, tiap modul mendapat warna domain sendiri, dan komposisi desktop
+berubah dari tumpukan kartu menjadi bento grid + split-screen.
+
+| Perubahan | Rincian |
+|---|---|
+| **Color System 2.0** | Empat warna domain di `globals.css` (lapisan semantic, lengkap dark mode): **Eucalyptus Teal** `#5F8A82` untuk Bugar, **Antique Bronze** `#AC8148` untuk Keuangan, **Dusty Mauve** `#8C7A91` untuk Jurnal, **Mineral Slate** `#71899A` untuk Statistik — masing-masing base/strong/soft/fg. Kontras strong-vs-soft 4,68–5,42:1 (WCAG AA). Token baru `--module-*` + utilitas `bg-module-*`; shadcn semantic (`--primary` dsb.) tidak tersentuh. |
+| **Aksen kontekstual `module-accent`** | Cukup satu atribut `data-module="bugar\|finance\|journal\|stats"` pada akar layar — seluruh utilitas `bg-module-accent/15`, `text-module-accent-strong`, `bg-module-accent-soft` di dalamnya otomatis mengikuti warna domain layar itu (default matcha), terang & gelap. Warna status (success/warning/danger) tetap semantic — bronze tidak pernah berarti "pemasukan", eucalyptus tidak pernah menggantikan hijau berhasil. |
+| **Bento Foundation** | Komponen baru: `rutina-bento.tsx` (`RutinaBentoGrid` 12-kolom xl / 6-kolom sm / 1-kolom ponsel + `RutinaBentoItem` span hero/feature/wide/medium/stat/compact/full), `rutina-hero.tsx` (`RutinaHero` — eyebrow/headline/visual/aksi/info-sekunder, gradasi per modul + `heroActionClass` tombol kaca), `rutina-module.tsx` (tipe + shell + peta kelas eksplisit). `RutinaCard` kini punya varian `hero`/`module`/`flat`; `RutinaMetric` punya slot ikon + ukuran `sm` (tile stat); `RutinaSectionHeader` punya `accent`. |
+| **Beranda bento** | Desktop: hero progres (8 kolom) bersebelahan dengan kartu baru **"Insight hari ini"** (4 kolom — streak, misi pekan, saldo bersih); Agenda (8) + Pengingat & Saran Coach (4). Urutan ponsel dipertahankan. |
+| **Kebiasaan split-screen** | Desktop: daftar "Semua kebiasaan" (7 kolom) + **Panel Detail Kebiasaan** sticky (5 kolom): identitas & kategori, streak, selesai pekan ini, versi 2 menit, habit stacking ("Setelah"), hari jeda, riwayat 30 hari (titik), tombol sunting. Klik baris atau buka lewat keyboard memilih kebiasaan; ponsel tetap satu kolom. |
+| **Bugar & Keuangan** | `data-module` + aksen domain (tab aktif, chip ikon, eyebrow); bento hero latihan (8) + Coach Bugar (4); Peta Panas (8) + Temuan (4). Rutina Vault tetap hero espresso+emas (identitas merek); anggaran/saldo masuk-keluar tetap warna status. |
+| **Statistik & Jurnal** | Statistik: aksen slate (titik seksi, tab periode, chip mood terpilih) + 4 pasangan bento (Ringkasan+Wawasan, Kalender+Laporan, Pembanding+Bugar&Tubuh, Piala+Streak). Jurnal: sentuhan mauve pada eyebrow, chip folder aktif, empty state — kanvas menulis tetap parchment terang. |
+| **ContextRail adaptif** | Panel kanan desktop (xl+) kini berganti isi mengikuti layar aktif: Beranda/Profil/Jurnal = ringkasan pekan + berikutnya + tips; **Bugar** = kesiapan tubuh + rekor pribadi + hidrasi; **Keuangan** = ringkasan periode + anggaran + aktivitas terakhir; **Kebiasaan** = konsistensi + agenda + taman; **Statistik** = insight pekan + fokus. Ikon chip rail memakai peta eksplisit agar warna domain tetap benar di luar layarnya. |
+| **Pintasan 1–6** | Pintasan keyboard desktop mengikuti urutan tab baru (4 = Kebiasaan, 5 = Statistik, 6 = Profil). |
+
+Prinsip komposisi: ~70% permukaan netral parchment, 20% matcha, 10% aksen modul &
+status; hero berwarna maksimal satu per layar; gradien hanya di hero; variasi
+hierarki lewat ukuran tile, bukan warna kartu.
+

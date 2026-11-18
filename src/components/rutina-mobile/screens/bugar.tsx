@@ -64,6 +64,7 @@ import {
 import { BarbellToolsSheet } from '../fitness/barbell-tools'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
@@ -502,10 +503,13 @@ export default function BugarScreen() {
   }, [libQuery, libMuscle])
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
+    <div
+      data-module="bugar"
+      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+    >
       {/* Header editorial */}
       <header>
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-success">
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-module-accent-strong">
           <Dumbbell className="h-3.5 w-3.5" />
           Gerak &amp; kekuatan
         </p>
@@ -529,7 +533,11 @@ export default function BugarScreen() {
       <RutinaTabs value={tab} onValueChange={(v) => setTab(v as BugarTab)}>
         <RutinaTabsList aria-label="Bagian Bugar" className="mt-4 w-full">
           {BUGAR_TABS.map((t) => (
-            <RutinaTabsTrigger key={t.id} value={t.id} className="flex-1">
+            <RutinaTabsTrigger
+              key={t.id}
+              value={t.id}
+              className="flex-1 data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
+            >
               {t.label}
             </RutinaTabsTrigger>
           ))}
@@ -538,16 +546,33 @@ export default function BugarScreen() {
 
       {tab === 'latihan' && (
         <>
-          {/* Hero ringkasan pekan — angka dari histori nyata */}
+          {/* Komposisi bento desktop (xl): ringkasan pekan + pintasan sesi
+              (hero 8) berdampingan Coach Bugar (feature 4); di bawah xl
+              tetap bertumpuk mengikuti urutan DOM. */}
+          <m.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: motionTokens.duration.enter,
+              delay: 0.05,
+              ease: motionTokens.easing.standard,
+            }}
+            className="mt-4"
+          >
+            <RutinaBentoGrid>
+              <RutinaBentoItem span="hero">
+          {/* Hero ringkasan pekan — angka dari histori nyata; latar bertint
+              eucalyptus (identitas modul Bugar), teks module-accent-fg agar
+              ikut terbalik di mode gelap. */}
           <m.section
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
             aria-label="Ringkasan latihan pekan ini"
-            className="relative mt-4 overflow-hidden rounded-[24px] bg-primary p-6 text-primary-foreground shadow-leaf"
+            className="relative overflow-hidden rounded-[24px] bg-module-accent p-6 text-module-accent-fg shadow-leaf"
           >
         <div className="relative z-10">
-          <p className="text-[13px] font-medium text-primary-foreground/80">
+          <p className="text-[13px] font-medium text-module-accent-fg/80">
             Pekan ini
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3">
@@ -557,7 +582,7 @@ export default function BugarScreen() {
                   {week.sessions}
                 </span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-primary-foreground/75">
+              <p className="mt-1 text-[11px] font-medium text-module-accent-fg/75">
                 sesi latihan
               </p>
             </div>
@@ -566,9 +591,9 @@ export default function BugarScreen() {
                 <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums">
                   {week.minutes}
                 </span>
-                <span className="ml-0.5 text-sm font-medium text-primary-foreground/80">mnt</span>
+                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">mnt</span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-primary-foreground/75">
+              <p className="mt-1 text-[11px] font-medium text-module-accent-fg/75">
                 total durasi
               </p>
             </div>
@@ -579,9 +604,9 @@ export default function BugarScreen() {
                     ? `${(week.tonase / 1000).toFixed(1).replace('.', ',')}t`
                     : Math.round(week.tonase).toLocaleString('id-ID')}
                 </span>
-                <span className="ml-0.5 text-sm font-medium text-primary-foreground/80">kg</span>
+                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">kg</span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-primary-foreground/75">
+              <p className="mt-1 text-[11px] font-medium text-module-accent-fg/75">
                 tonase beban
               </p>
             </div>
@@ -593,14 +618,14 @@ export default function BugarScreen() {
               <p className="min-w-0 flex-1 truncate text-[12px] font-semibold">
                 Rekor e1RM: {topPr.name} ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
               </p>
-              <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary-foreground/75">
+              <span className="shrink-0 text-[11px] font-bold tabular-nums text-module-accent-fg/75">
                 {prs.length} gerakan
               </span>
             </div>
           )}
 
           {weekKcal > 0 && (
-            <p className="mt-2 text-[11px] font-medium text-primary-foreground/70">
+            <p className="mt-2 text-[11px] font-medium text-module-accent-fg/70">
               ≈ {weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini
               {weight == null && ' (asumsi 60 kg — timbang dirimu di tab Tubuh)'}
             </p>
@@ -628,13 +653,15 @@ export default function BugarScreen() {
       >
         Catat manual
       </button>
-
+              </RutinaBentoItem>
+              <RutinaBentoItem span="feature">
       {/* ===== Coach Bugar — kesiapan, deload, guard, alat ===== */}
-      <section className="mt-7" aria-label="Coach Bugar">
+      <section aria-label="Coach Bugar">
         <RutinaSectionHeader
           eyebrow="Saran latihan"
           title="Coach Bugar"
           description="Kesiapan, deload, dan alat bantu — dihitung dari data latihanmu sendiri."
+          accent
         />
         <div className="mt-3 space-y-2.5">
           {/* a. Kesiapan latihan — ringkas dari check-in hari ini */}
@@ -645,7 +672,7 @@ export default function BugarScreen() {
             className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-success">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
                 <Sparkles className="h-5 w-5" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
@@ -793,7 +820,7 @@ export default function BugarScreen() {
             onClick={() => setBarbellOpen(true)}
             className="flex w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary p-4 text-left shadow-soft transition-all hover:bg-surface-secondary/60 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-success">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
               <Calculator className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="min-w-0 flex-1">
@@ -811,6 +838,9 @@ export default function BugarScreen() {
           </button>
         </div>
       </section>
+              </RutinaBentoItem>
+            </RutinaBentoGrid>
+          </m.div>
 
       {/* ===== Program latihan ===== */}
       <section className="mt-7" aria-label="Program latihan">
