@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { motion, useScroll, useTransform } from 'motion/react'
-import { animate, stagger } from 'animejs'
+import { useRef, useState } from 'react'
+import { useScroll, useTransform } from 'motion/react'
+import * as m from 'motion/react-m'
 import { BookOpen, Feather, Pin, Plus, Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
+import { journalCard, journalList } from '@/lib/motion/variants'
 
 import { playfair } from '../serif'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from '../store'
@@ -32,7 +33,6 @@ export default function JournalScreen() {
   const togglePin = useRutina((s) => s.togglePin)
   const openReading = useRutina((s) => s.openReading)
 
-  const listRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   /* Parallax editorial: judul serif bergeser & memudar saat menggulir */
@@ -40,20 +40,12 @@ export default function JournalScreen() {
   const titleY = useTransform(scrollY, [0, 120], [0, -28])
   const titleOpacity = useTransform(scrollY, [0, 110], [1, 0.25])
 
-  // anime.js — orkestrasi masuk kartu jurnal saat filter/pencarian berubah
-  useEffect(() => {
-    if (!listRef.current) return
-    const anim = animate(listRef.current.querySelectorAll(':scope > article'), {
-      translateY: [16, 0],
-      opacity: [0, 1],
-      delay: stagger(50),
-      duration: 600,
-      ease: 'outExpo',
-    })
-    return () => {
-      anim.revert()
-    }
-  }, [journalFilter, query])
+  /* ANIMATION OWNERSHIP RULE — sebelumnya anime.js menulis translateY+opacity
+     pada <article> yang transform-nya juga dikendalikan Motion (whileTap).
+     Kini Motion memegang seluruh siklus hidup kartu: entrance (variants
+     journalList/journalCard dengan stagger) + umpan balik sentuh. Kartu yang
+     baru terpasang (hasil filter/pencarian) otomatis masuk dengan animasi;
+     kartu yang sudah ada tidak mengulang animasi saat mengetik. */
 
   const pinnedCount = notes.filter((n) => n.pinned).length
   const filtered = notes.filter(
@@ -75,7 +67,7 @@ export default function JournalScreen() {
       className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-[#231F1E]"
     >
       {/* Header editorial — serif besar, gaya Clean Typography */}
-      <motion.header style={{ y: titleY, opacity: titleOpacity }}>
+      <m.header style={{ y: titleY, opacity: titleOpacity }}>
         <div className="flex items-start justify-between">
           <div>
             <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-[#749B58]">
@@ -91,7 +83,7 @@ export default function JournalScreen() {
               {notes.length} catatan • {pinnedCount} disematkan
             </p>
           </div>
-          <motion.button
+          <m.button
             type="button"
             aria-label="Buat catatan baru"
             onClick={() => openCompose()}
@@ -99,12 +91,12 @@ export default function JournalScreen() {
             className="mt-1 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#231F1E] text-[#FAF9F6] shadow-soft transition-colors hover:bg-[#3A2E24] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
           >
             <Plus className="h-5 w-5" strokeWidth={2.5} />
-          </motion.button>
+          </m.button>
         </div>
-      </motion.header>
+      </m.header>
 
       {/* Pencarian — kartu putih di atas kanvas Warm Sand */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
@@ -117,10 +109,10 @@ export default function JournalScreen() {
           placeholder="Cari judul atau isi catatan…"
           className="h-11 rounded-xl border-[#4A3B321F] bg-white pl-10 text-sm text-[#231F1E] shadow-soft placeholder:text-[#4A3B32]/50 focus-visible:border-[#749B58]/50 focus-visible:ring-[#749B58]/20"
         />
-      </motion.div>
+      </m.div>
 
       {/* Chip filter folder — pil terang di atas Warm Sand */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
@@ -151,7 +143,7 @@ export default function JournalScreen() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#FAF9F6] to-transparent"
         />
-      </motion.div>
+      </m.div>
 
       {/* Masonry kartu catatan */}
       <section className="mt-5" aria-label="Daftar catatan jurnal">
@@ -168,10 +160,16 @@ export default function JournalScreen() {
             </p>
           </div>
         ) : (
-          <div ref={listRef} className="columns-2 gap-3 sm:columns-3 xl:columns-4">
+          <m.div
+            variants={journalList}
+            initial="hidden"
+            animate="show"
+            className="columns-2 gap-3 sm:columns-3 xl:columns-4"
+          >
             {sorted.map((n) => (
-              <motion.article
+              <m.article
                 key={n.id}
+                variants={journalCard}
                 role="button"
                 tabIndex={0}
                 aria-label={`Baca catatan: ${n.title}`}
@@ -183,7 +181,7 @@ export default function JournalScreen() {
                   }
                 }}
                 whileTap={{ scale: 0.97 }}
-                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 shadow-ink transition-all duration-300 hover:-translate-y-0.5 hover:shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
+                className={`mb-3 break-inside-avoid cursor-pointer rounded-[14px] p-4 shadow-ink transition-shadow duration-300 hover:shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58] [content-visibility:auto] [contain-intrinsic-size:auto_180px] ${NOTE_TONES[n.tone % 3]}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <h3
@@ -220,9 +218,9 @@ export default function JournalScreen() {
                     {FOLDER_SHORT[n.folder]}
                   </span>
                 </div>
-              </motion.article>
+              </m.article>
             ))}
-          </div>
+          </m.div>
         )}
       </section>
     </div>

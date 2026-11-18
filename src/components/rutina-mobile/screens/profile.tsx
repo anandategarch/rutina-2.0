@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { motion } from 'motion/react'
-import { animate, stagger } from 'animejs'
+import { useState } from 'react'
+import * as m from 'motion/react-m'
 import {
   ChevronRight,
   Globe,
   Info,
   Leaf,
+  Palette,
   Sparkles,
   Target,
 } from 'lucide-react'
@@ -45,6 +45,7 @@ import { Slider } from '@/components/ui/slider'
 
 import { Counter } from '../counter'
 import { BlurFade, SplitText } from '../motion-kit'
+import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import {
   activeSinceISO,
@@ -93,9 +94,8 @@ export default function ProfileScreen() {
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const setDailyGoal = useRutina((s) => s.setDailyGoal)
+  const openBoard = useRutina((s) => s.openBoard)
   const [lang, setLang] = useState('id')
-
-  const rowsRef = useRef<HTMLDivElement>(null)
 
   /* Semua angka dihitung dari histori nyata — bukan demo statis. */
   const today = todayISO()
@@ -118,23 +118,10 @@ export default function ProfileScreen() {
 
   const streak = bestStreak(habits, completions, today).streak
 
-  /* anime.js — baris pengaturan masuk bergiliran saat layar dibuka */
-  useEffect(() => {
-    if (!rowsRef.current) return
-    const anim = animate(
-      rowsRef.current.querySelectorAll('[data-row]'),
-      {
-        translateX: [-18, 0],
-        opacity: [0, 1],
-        delay: stagger(60),
-        duration: 560,
-        ease: 'outExpo',
-      },
-    )
-    return () => {
-      anim.revert()
-    }
-  }, [])
+  /* ANIMATION OWNERSHIP RULE — sebelumnya anime.js menulis translateX+opacity
+     pada [data-row] yang sebagian adalah motion.section dengan initial/animate
+     opacity sendiri (dua pemilik properti yang sama). Kini seluruh koreografi
+     baris dipegang Motion lewat variants staggerRows/slideInRow. */
 
   const stats = [
     { label: 'Catatan', value: notes.length, percent: false },
@@ -159,7 +146,7 @@ export default function ProfileScreen() {
       </header>
 
       {/* Kartu profil + progres level (shadcn Progress & Badge) */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -213,12 +200,12 @@ export default function ProfileScreen() {
               : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
           </p>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Baris statistik ringkas */}
       <div className="mt-3 grid grid-cols-3 gap-3">
         {stats.map((s, i) => (
-          <motion.div
+          <m.div
             key={s.label}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -240,7 +227,7 @@ export default function ProfileScreen() {
             <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#4A3B32]/70">
               {s.label}
             </p>
-          </motion.div>
+          </m.div>
         ))}
       </div>
 
@@ -262,13 +249,16 @@ export default function ProfileScreen() {
       {/* Pemisah halus di atas kanvas Warm Sand (shadcn Separator) */}
       <Separator className="mt-5 bg-[#4A3B32]/15" />
 
-      {/* Pengaturan — anime.js stagger + shadcn lengkap */}
-      <div ref={rowsRef} className="mt-5 space-y-3">
+      {/* Pengaturan — koreografi stagger Motion (satu pemilik animasi) */}
+      <m.div
+        variants={staggerRows}
+        initial="hidden"
+        animate="show"
+        className="mt-5 space-y-3"
+      >
         {/* Target harian (shadcn Slider) */}
-        <motion.section
-          data-row
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <m.section
+          variants={slideInRow}
           className="rounded-[20px] border border-[#4A3B3214] bg-white p-5 shadow-soft"
           aria-label="Target misi harian"
         >
@@ -302,12 +292,12 @@ export default function ProfileScreen() {
             <span>Seimbang (6)</span>
             <span>Produktif (12)</span>
           </div>
-        </motion.section>
+        </m.section>
 
         {/* Pemilih bahasa — DropdownMenu radio (shadcn); English masih
             disematkan "segera" — jujur soal ketersediaan. */}
-        <div
-          data-row
+        <m.div
+          variants={slideInRow}
           className="overflow-hidden rounded-[20px] border border-[#4A3B3214] bg-white shadow-soft"
         >
           <DropdownMenu>
@@ -357,13 +347,11 @@ export default function ProfileScreen() {
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </m.div>
 
         {/* Pertanyaan umum (shadcn Accordion) */}
-        <motion.section
-          data-row
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <m.section
+          variants={slideInRow}
           className="rounded-[20px] border border-[#4A3B3214] bg-white px-4 shadow-soft"
           aria-label="Pertanyaan umum"
         >
@@ -383,14 +371,30 @@ export default function ProfileScreen() {
               </AccordionItem>
             ))}
           </Accordion>
-        </motion.section>
+        </m.section>
+
+        {/* Papan sistem desain — spesifikasi visual Rutina 2.0 */}
+        <m.div variants={slideInRow}>
+          <button
+            type="button"
+            onClick={() => openBoard()}
+            className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-[20px] border border-[#749B58]/30 bg-[#E4EFE0] px-4 text-left shadow-soft transition-colors hover:bg-[#d9e8d2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#5E8347]">
+              <Palette className="h-4 w-4" />
+            </span>
+            <span className="flex-1 text-[14px] font-medium text-[#231F1E]">
+              Papan Sistem Desain
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[#658A4C]">
+              tokens
+            </span>
+            <ChevronRight className="h-4 w-4 text-[#4A3B32]/40" />
+          </button>
+        </m.div>
 
         {/* Tentang (shadcn Dialog) */}
-        <motion.section
-          data-row
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
+        <m.div variants={slideInRow}>
           <Dialog>
             <DialogTrigger asChild>
               <button
@@ -444,9 +448,9 @@ export default function ProfileScreen() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </motion.section>
+        </m.div>
 
-      </div>
+      </m.div>
 
       <p className="mt-6 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-[#4A3B32]/60">
         Earth Tone Edition — 2025

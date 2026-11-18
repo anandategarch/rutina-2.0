@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
-  motion,
-  MotionConfig,
   type Variants,
 } from 'motion/react'
+import * as m from 'motion/react-m'
 import {
   computeLevel,
   computeXp,
@@ -26,6 +25,7 @@ import { Splash } from './splash'
 import { AddTxSheet } from './finance/add-tx-sheet'
 import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
+import { DesignBoard } from './design-board'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
 import JournalScreen from './screens/journal'
@@ -70,7 +70,16 @@ export function RutinaApp() {
   const celebrating = useRutina((s) => s.celebrating)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const completions = useRutina((s) => s.completions)
+  const boardOpen = useRutina((s) => s.boardOpen)
+  const closeBoard = useRutina((s) => s.closeBoard)
   const [phase, setPhase] = useState<'splash' | 'app'>('splash')
+
+  /* Pulihkan state domain (persist) setelah mount — pola skipHydration
+     Next.js: render pertama memakai seed (identik dengan SSR), lalu
+     histori lokal pengguna mengambil alih tanpa hydration mismatch. */
+  useEffect(() => {
+    void useRutina.persist.rehydrate()
+  }, [])
 
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
      kanan, mundur (-1) bila ke kiri. */
@@ -97,8 +106,9 @@ export function RutinaApp() {
   }, [level])
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div className="relative flex h-full w-full flex-col overflow-hidden text-[#231F1E]">
+    /* MotionConfig reducedMotion="user" kini disediakan AppMotionProvider
+       (LazyMotion domMax) di app-frame — tidak perlu duplikat di sini. */
+    <div className="@container relative flex h-full w-full flex-col overflow-hidden text-[#231F1E]">
         <AnimatePresence>
           {phase === 'splash' && (
             <Splash key="splash" onDone={() => setPhase('app')} />
@@ -108,7 +118,7 @@ export function RutinaApp() {
         {phase === 'app' && (
           <>
             {/* Kanvas utama — warnanya ber-crossfade mengikuti tab aktif */}
-            <motion.div
+            <m.div
               aria-hidden="true"
               className="absolute inset-0"
               initial={false}
@@ -118,19 +128,19 @@ export function RutinaApp() {
 
             {/* Cahaya ambien — tiga blob lembut yang berganti warna per tab */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-              <motion.div
+              <m.div
                 className="absolute -left-24 -top-24 h-72 w-72 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: ambient[0] }}
                 transition={{ duration: 0.8 }}
               />
-              <motion.div
+              <m.div
                 className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: ambient[1] }}
                 transition={{ duration: 0.8, delay: 0.06 }}
               />
-              <motion.div
+              <m.div
                 className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: ambient[2] }}
@@ -141,7 +151,7 @@ export function RutinaApp() {
             {/* Area konten — kolom terpusat, layar penuh di perangkat kecil */}
             <div className="relative min-h-0 flex-1">
               <AnimatePresence mode="wait" initial={false} custom={dir}>
-                <motion.div
+                <m.div
                   key={screen}
                   custom={dir}
                   variants={slide}
@@ -156,7 +166,7 @@ export function RutinaApp() {
                   {screen === 'keuangan' && <KeuanganScreen />}
                   {screen === 'statistik' && <StatsScreen />}
                   {screen === 'profil' && <ProfileScreen />}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             </div>
 
@@ -167,10 +177,10 @@ export function RutinaApp() {
             <ContributeGoalSheet />
             <NewGoalDialog />
             <HabitSheet />
+            <DesignBoard open={boardOpen} onClose={closeBoard} />
             <CelebrationOverlay active={celebrating} />
           </>
         )}
       </div>
-    </MotionConfig>
   )
 }
