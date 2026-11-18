@@ -34,6 +34,10 @@ const HERO_GRADIENT: Record<RutinaModule | 'brand', string> = {
   journal:
     'bg-[linear-gradient(135deg,var(--module-journal-strong)_0%,var(--module-journal)_100%)]',
   stats: 'bg-[linear-gradient(135deg,var(--module-stats-strong)_0%,var(--module-stats)_100%)]',
+  kebiasaan:
+    'bg-[linear-gradient(135deg,var(--module-kebiasaan-strong)_0%,var(--module-kebiasaan)_100%)]',
+  profil:
+    'bg-[linear-gradient(135deg,var(--module-profil-strong)_0%,var(--module-profil)_100%)]',
 }
 
 export interface RutinaHeroProps

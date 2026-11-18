@@ -851,18 +851,76 @@ const SEED_GOALS: Goal[] = [
   { id: 'g-3', name: 'Liburan Akhir Tahun', target: 10_000_000, saved: 2_400_000 },
 ]
 
-/* ===== Tema layar — kanvas utama seragam Warm Sand =====
-   Orientasi pengguna tetap stabil antar tab: background konsisten,
-   identitas warna tiap tab hidup pada ikon, pil, dan kartu konten. */
+/* ===== Tema layar — "Ruang Warna" (v2.5) =====
+   Tiap layar adalah kamar dengan karakter sendiri: kanvas bernuansa warna
+   domain (sangat halus, ~3-5% tint di atas Warm Sand) + tiga cahaya ambien
+   yang ikut berganti per tab. Pergantian kanvas dianimasikan shell
+   (rutina-app) sehingga pindah tab terasa seperti berpindah ruangan —
+   bukan berganti aplikasi.
 
-export const SCREEN_THEME: Record<Screen, { bg: string }> = {
-  beranda: { bg: '#F5F3EE' },
-  bugar: { bg: '#F5F3EE' },
-  jurnal: { bg: '#F5F3EE' },
-  keuangan: { bg: '#F5F3EE' },
-  kebiasaan: { bg: '#F5F3EE' },
-  statistik: { bg: '#F5F3EE' },
-  profil: { bg: '#F5F3EE' },
+   Pemetaan identitas:
+     beranda   · Matcha (jangkar merek — warna interaksi global)
+     bugar     · Eucalyptus Teal   keuangan · Antique Bronze
+     kebiasaan · Rose Clay (tanah pot kebun) statistik · Mineral Slate
+     jurnal    · Dusty Mauve       profil    · Cocoa Gold
+
+   Kanvas gelap = espresso #1C1817 diberi tint domain setipis 2-4% agar
+   tetap tenang; cahaya ambien memakai base domain versi terang. */
+
+export interface ScreenTheme {
+  /** Warna kanvas utama — mode terang. */
+  bg: string
+  /** Warna kanvas utama — mode gelap. */
+  bgDark: string
+  /** Tiga cahaya ambien (kiri-atas · kanan-bawah · tengah) — mode terang. */
+  glow: readonly [string, string, string]
+  /** Tiga cahaya ambien — mode gelap. */
+  glowDark: readonly [string, string, string]
+}
+
+export const SCREEN_THEME: Record<Screen, ScreenTheme> = {
+  beranda: {
+    bg: '#F5F3EE',
+    bgDark: '#1C1817',
+    glow: ['rgba(228,239,224,0.55)', 'rgba(116,155,88,0.08)', 'rgba(234,229,217,0.45)'],
+    glowDark: ['rgba(163,196,137,0.07)', 'rgba(163,196,137,0.05)', 'rgba(58,46,36,0.5)'],
+  },
+  bugar: {
+    bg: '#EEF3F0',
+    bgDark: '#1A1E1C',
+    glow: ['rgba(228,239,235,0.6)', 'rgba(95,138,130,0.12)', 'rgba(143,184,175,0.1)'],
+    glowDark: ['rgba(143,184,175,0.07)', 'rgba(95,138,130,0.09)', 'rgba(40,50,48,0.55)'],
+  },
+  keuangan: {
+    bg: '#F4F0E7',
+    bgDark: '#1E1B16',
+    glow: ['rgba(241,231,215,0.6)', 'rgba(172,129,72,0.12)', 'rgba(217,185,140,0.14)'],
+    glowDark: ['rgba(201,160,106,0.07)', 'rgba(172,129,72,0.09)', 'rgba(52,45,36,0.55)'],
+  },
+  kebiasaan: {
+    bg: '#F6F0EB',
+    bgDark: '#211B17',
+    glow: ['rgba(246,233,227,0.6)', 'rgba(176,118,95,0.12)', 'rgba(217,142,107,0.12)'],
+    glowDark: ['rgba(207,155,133,0.07)', 'rgba(176,118,95,0.09)', 'rgba(51,39,35,0.55)'],
+  },
+  statistik: {
+    bg: '#F0F2F4',
+    bgDark: '#1A1C1E',
+    glow: ['rgba(231,238,242,0.6)', 'rgba(113,137,154,0.12)', 'rgba(155,201,214,0.1)'],
+    glowDark: ['rgba(155,175,192,0.07)', 'rgba(113,137,154,0.09)', 'rgba(42,49,56,0.55)'],
+  },
+  jurnal: {
+    bg: '#F3F1F3',
+    bgDark: '#1E1A1E',
+    glow: ['rgba(238,232,239,0.6)', 'rgba(140,122,145,0.12)', 'rgba(198,185,202,0.12)'],
+    glowDark: ['rgba(173,157,177,0.07)', 'rgba(140,122,145,0.09)', 'rgba(49,44,54,0.55)'],
+  },
+  profil: {
+    bg: '#F2EEE7',
+    bgDark: '#1B1714',
+    glow: ['rgba(242,235,226,0.6)', 'rgba(151,121,94,0.12)', 'rgba(217,185,140,0.12)'],
+    glowDark: ['rgba(191,169,141,0.07)', 'rgba(151,121,94,0.09)', 'rgba(46,40,34,0.55)'],
+  },
 }
 
 /* ===== Store ===== */

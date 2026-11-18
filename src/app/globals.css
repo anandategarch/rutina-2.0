@@ -108,6 +108,19 @@
   --module-stats-soft: #e7eef2;
   --module-stats-fg: #ffffff;
 
+  /* Ruang Warna — dua domain baru (v2.5): Kebiasaan Rose Clay (tanah pot
+     kebun kebiasaan) & Profil Cocoa Gold (kamar tenang preferensi).
+     Kontras strong-vs-soft: kebiasaan 5,3:1, profil 5,1:1 (WCAG AA). */
+  --module-kebiasaan: #b0765f; /* Rose Clay */
+  --module-kebiasaan-strong: #8a5642;
+  --module-kebiasaan-soft: #f6e9e3;
+  --module-kebiasaan-fg: #ffffff;
+
+  --module-profil: #97795e; /* Cocoa Gold */
+  --module-profil-strong: #6e5642;
+  --module-profil-soft: #f2ebe2;
+  --module-profil-fg: #ffffff;
+
   /* Aksen modul kontekstual — default matcha (identitas global). Layar
      menimpa lewat data-module (lihat blok [data-module] di bawah), maka
      utilitas bg-module-accent / text-module-accent-strong otomatis mengikuti
@@ -219,6 +232,16 @@
   --module-stats-soft: #2a3138;
   --module-stats-fg: #1c1817;
 
+  --module-kebiasaan: #cf9b85;
+  --module-kebiasaan-strong: #e3b8a4;
+  --module-kebiasaan-soft: #332723;
+  --module-kebiasaan-fg: #1c1817;
+
+  --module-profil: #bfa98d;
+  --module-profil-strong: #d6c4a8;
+  --module-profil-soft: #2e2822;
+  --module-profil-fg: #1c1817;
+
   /* Default aksen kontekstual di kanvas gelap — pistachio (mode gelap
      dari matcha); layar bermodule menimpa lewat data-module dan ikut
      terbalik otomatis karena menunjuk var --module-*. */
@@ -329,6 +352,14 @@
   --color-module-stats-strong: var(--module-stats-strong);
   --color-module-stats-soft: var(--module-stats-soft);
   --color-module-stats-fg: var(--module-stats-fg);
+  --color-module-kebiasaan: var(--module-kebiasaan);
+  --color-module-kebiasaan-strong: var(--module-kebiasaan-strong);
+  --color-module-kebiasaan-soft: var(--module-kebiasaan-soft);
+  --color-module-kebiasaan-fg: var(--module-kebiasaan-fg);
+  --color-module-profil: var(--module-profil);
+  --color-module-profil-strong: var(--module-profil-strong);
+  --color-module-profil-soft: var(--module-profil-soft);
+  --color-module-profil-fg: var(--module-profil-fg);
 
   /* Aksen kontekstual — mengikuti data-module layar aktif (default matcha).
      Contoh: chip bg-module-accent/15 di layar Bugar otomatis eucalyptus,
@@ -437,6 +468,18 @@
     --module-accent-strong: var(--module-stats-strong);
     --module-accent-soft: var(--module-stats-soft);
     --module-accent-fg: var(--module-stats-fg);
+  }
+  [data-module='kebiasaan'] {
+    --module-accent: var(--module-kebiasaan);
+    --module-accent-strong: var(--module-kebiasaan-strong);
+    --module-accent-soft: var(--module-kebiasaan-soft);
+    --module-accent-fg: var(--module-kebiasaan-fg);
+  }
+  [data-module='profil'] {
+    --module-accent: var(--module-profil);
+    --module-accent-strong: var(--module-profil-strong);
+    --module-accent-soft: var(--module-profil-soft);
+    --module-accent-fg: var(--module-profil-fg);
   }
 
   html {

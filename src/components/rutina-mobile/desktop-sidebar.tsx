@@ -19,7 +19,13 @@ import { useRutina, type Screen } from './store'
 /* Navigasi desktop — keenam layar (termasuk Profil: di desktop tidak ada
    avatar header yang selalu terlihat, jadi Profil sah menjadi item nav).
    Kebiasaan menggantikan Jurnal sebagai item ke-4; layar Jurnal tetap
-   dapat dibuka lewat Quick Action Hub. */
+   dapat dibuka lewat Quick Action Hub.
+
+   "Ruang Warna": pil & ikon item AKTIF memakai warna domain layar —
+   konsisten dengan tab bawah ponsel (pilih dari peta NAV_ACCENT di
+   bottom-nav agar satu sumber kebenaran). */
+import { NAV_ACCENT } from './bottom-nav'
+
 const NAV_ITEMS: { id: Screen; label: string; icon: LucideIcon }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'bugar', label: 'Bugar', icon: Dumbbell },
@@ -38,6 +44,8 @@ const NAV_ITEMS: { id: Screen; label: string; icon: LucideIcon }[] = [
 export function DesktopSidebar() {
   const screen = useRutina((s) => s.screen)
   const setScreen = useRutina((s) => s.setScreen)
+  /* Aksen ruangan aktif — pil & ikon mengikuti domain layar saat ini. */
+  const accent = NAV_ACCENT[screen]
 
   return (
     <m.nav
@@ -77,15 +85,15 @@ export function DesktopSidebar() {
                   <m.span
                     layoutId="nav-pill-desktop"
                     aria-hidden="true"
-                    className="absolute inset-0 rounded-xl bg-secondary"
+                    className="absolute inset-0 rounded-xl"
+                    style={{ backgroundColor: accent.pill }}
                     transition={motionTokens.spring.snappy}
                   />
                 )}
                 <item.icon
                   aria-hidden="true"
-                  className={`relative z-10 h-[18px] w-[18px] shrink-0 transition-colors ${
-                    active ? 'text-primary' : 'text-content-muted'
-                  }`}
+                  className="relative z-10 h-[18px] w-[18px] shrink-0 text-content-muted transition-colors"
+                  style={{ color: active ? accent.icon : undefined }}
                   strokeWidth={active ? 2.4 : 2}
                 />
                 <span

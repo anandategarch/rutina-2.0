@@ -516,7 +516,7 @@ export default function BugarScreen() {
         <h1
           className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight`}
         >
-          Bugar<span className="text-primary">.</span>
+          Bugar<span className="text-module-accent">.</span>
         </h1>
         <p className="mt-2 text-xs font-medium text-content-muted">
           {tab === 'latihan'

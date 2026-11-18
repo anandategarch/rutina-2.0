@@ -347,7 +347,10 @@ export default function ProfileScreen() {
   ]
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
+    <div
+      data-module="profil"
+      className="h-full overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+    >
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
       <m.button
         type="button"
@@ -363,17 +366,18 @@ export default function ProfileScreen() {
         Kembali
       </m.button>
 
-      {/* Header editorial */}
+      {/* Header editorial — eyebrow & titik memakai aksen Cocoa Gold
+          (identitas kamar preferensi; sebelumnya terracotta danger). */}
       <header className="mt-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-content-danger">
-          <Leaf className="h-3.5 w-3.5 text-content-danger" />
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-module-accent-strong">
+          <Leaf className="h-3.5 w-3.5 text-module-accent-strong" />
           Akun & preferensi
         </p>
         <h1
           className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-content-primary`}
         >
           <SplitText text="Profil" inView />
-          <span className="text-content-danger">.</span>
+          <span className="text-module-accent">.</span>
         </h1>
       </header>
 
@@ -708,15 +712,15 @@ export default function ProfileScreen() {
         )}
       </m.section>
 
-      {/* Chip kata kunci statis — tanpa marquee; ikon Leaf terracotta. */}
+      {/* Chip kata kunci statis — tanpa marquee; ikon Leaf Cocoa Gold. */}
       <BlurFade delay={0.18} className="mt-4">
         <div className="flex flex-wrap gap-2">
           {FOCUS_WORDS.map((w) => (
             <span
               key={w}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 py-1.5 text-[11px] font-bold text-content-secondary"
+              className="flex items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3.5 py-1.5 text-[11px] font-bold text-module-accent-strong"
             >
-              <Leaf className="h-3 w-3 text-content-danger" aria-hidden="true" />
+              <Leaf className="h-3 w-3 text-module-accent" aria-hidden="true" />
               {w}
             </span>
           ))}

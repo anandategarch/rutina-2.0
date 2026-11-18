@@ -370,8 +370,12 @@ export default function KebiasaanScreen() {
   const hasNoHabits = habits.length === 0
 
   return (
-    <div className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary">
-      {/* Kepala editorial tenang — tanggal panjang + ringkasan singkat */}
+    <div
+      data-module="kebiasaan"
+      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+    >
+      {/* Kepala editorial tenang — tanggal panjang + ringkasan singkat.
+          Titik & eyebrow memakai aksen Rose Clay (identitas kebun kebiasaan). */}
       <m.header
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -384,6 +388,7 @@ export default function KebiasaanScreen() {
           eyebrow={longDateLabel(today)}
           title="Kebiasaan"
           description={`${activeHabits.length} kebiasaan aktif · ${doneToday.length}/${scheduledToday.length} selesai hari ini`}
+          accent
         />
       </m.header>
 
@@ -575,7 +580,7 @@ export default function KebiasaanScreen() {
               action={
                 <span
                   aria-current="date"
-                  className="flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-[11px] font-bold text-content-secondary"
+                  className="flex h-9 items-center gap-1.5 rounded-full bg-module-accent/15 px-3 text-[11px] font-bold text-module-accent-strong"
                 >
                   <CalendarDays
                     aria-hidden="true"
@@ -635,7 +640,7 @@ export default function KebiasaanScreen() {
                       onClick={() => setShowDone((v) => !v)}
                       aria-expanded={showDone}
                       aria-controls="kebiasaan-done-panel"
-                      className="flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-primary/20 bg-secondary/50 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-module-accent/25 bg-module-accent-soft/60 px-3.5 py-2.5 text-left transition-colors hover:bg-module-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <Check className="h-4 w-4" strokeWidth={2.6} />

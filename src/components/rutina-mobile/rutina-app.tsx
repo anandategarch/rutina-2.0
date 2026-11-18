@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTheme } from 'next-themes'
 import {
   AnimatePresence,
   type Variants,
@@ -57,15 +58,6 @@ const ORDER: Screen[] = [
   'profil',
 ]
 
-/** Cahaya ambien lembut — SATU set netral (sand + matcha tipis) untuk semua
-   layar. Kanvas utama seragam Warm Sand; perpindahan tab tidak lagi
-   terasa seperti berpindah aplikasi. */
-const AMBIENT: [string, string, string] = [
-  'rgba(228,239,224,0.55)',
-  'rgba(116,155,88,0.08)',
-  'rgba(234,229,217,0.45)',
-]
-
 /* Variants transisi berarah — masuk dari sisi sesuai arah pindah tab. */
 const slide: Variants = {
   enter: (dir: number) => ({
@@ -119,9 +111,15 @@ export function RutinaApp() {
   const dir =
     ORDER.indexOf(screen) >= ORDER.indexOf(prevScreen) ? 1 : -1
 
-  /* Kanvas utama seragam Warm Sand untuk semua tab (SCREEN_THEME). */
+  /* "Ruang Warna" — kanvas & cahaya ambien tiap layar mengikuti identitas
+     domainnya (SCREEN_THEME): Bugar eucalyptus, Keuangan bronze, Kebiasaan
+     rose clay, Statistik slate, dst. Kanvas crossfade saat pindah tab;
+     mode gelap memakai varian espresso bertint domain. */
+  const { resolvedTheme } = useTheme()
+  const dark = resolvedTheme === 'dark'
   const theme = SCREEN_THEME[screen]
-  const ambient = AMBIENT
+  const canvas = dark ? theme.bgDark : theme.bg
+  const glow = dark ? theme.glowDark : theme.glow
 
   /* Momen naik level — konfeti + toast, dipusatkan di shell agar berlaku
      untuk semua layar (misi bisa dicentang dari Beranda maupun Statistik).
@@ -155,28 +153,28 @@ export function RutinaApp() {
               aria-hidden="true"
               className="absolute inset-0"
               initial={false}
-              animate={{ backgroundColor: theme.bg }}
+              animate={{ backgroundColor: canvas }}
               transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
             />
 
-            {/* Cahaya ambien — tiga blob lembut yang berganti warna per tab */}
+            {/* Cahaya ambien — tiga blob lembut bernuansa warna domain layar */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
               <m.div
                 className="absolute -left-24 -top-24 h-72 w-72 rounded-full blur-3xl"
                 initial={false}
-                animate={{ backgroundColor: ambient[0] }}
+                animate={{ backgroundColor: glow[0] }}
                 transition={{ duration: 0.8 }}
               />
               <m.div
                 className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full blur-3xl"
                 initial={false}
-                animate={{ backgroundColor: ambient[1] }}
+                animate={{ backgroundColor: glow[1] }}
                 transition={{ duration: 0.8, delay: 0.06 }}
               />
               <m.div
                 className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl"
                 initial={false}
-                animate={{ backgroundColor: ambient[2] }}
+                animate={{ backgroundColor: glow[2] }}
                 transition={{ duration: 0.8, delay: 0.1 }}
               />
             </div>

@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils'
  *
  * Color System 2.0 (Earth-Tone Editorial Bento): setiap modul punya warna
  * domain sendiri — Bugar Eucalyptus Teal, Keuangan Antique Bronze, Jurnal
- * Dusty Mauve, Statistik Mineral Slate. Beranda & Kebiasaan memakai identitas
- * matcha (default, tanpa module).
+ * Dusty Mauve, Statistik Mineral Slate, Kebiasaan Rose Clay, Profil Cocoa
+ * Gold. Beranda memakai identitas matcha (default, tanpa module).
  *
  * Shell ini hanya memasang atribut `data-module` pada akar wilayah; seluruh
  * utilitas kontekstual `*-module-accent` (bg-module-accent/15,
@@ -19,7 +19,13 @@ import { cn } from '@/lib/utils'
  * terang & gelap. Warna status (success/warning/danger) dan interaksi utama
  * tetap memakai token semantic agar maknanya konsisten lintas layar.
  */
-export type RutinaModule = 'bugar' | 'finance' | 'journal' | 'stats'
+export type RutinaModule =
+  | 'bugar'
+  | 'finance'
+  | 'journal'
+  | 'stats'
+  | 'kebiasaan'
+  | 'profil'
 
 export interface RutinaModuleShellProps
   extends HTMLAttributes<HTMLDivElement> {
@@ -43,6 +49,8 @@ export const MODULE_SOFT_BG: Record<RutinaModule, string> = {
   finance: 'bg-module-finance-soft',
   journal: 'bg-module-journal-soft',
   stats: 'bg-module-stats-soft',
+  kebiasaan: 'bg-module-kebiasaan-soft',
+  profil: 'bg-module-profil-soft',
 }
 
 export const MODULE_TEXT: Record<RutinaModule, string> = {
@@ -50,6 +58,8 @@ export const MODULE_TEXT: Record<RutinaModule, string> = {
   finance: 'text-module-finance-strong',
   journal: 'text-module-journal-strong',
   stats: 'text-module-stats-strong',
+  kebiasaan: 'text-module-kebiasaan-strong',
+  profil: 'text-module-profil-strong',
 }
 
 export const MODULE_TINT: Record<RutinaModule, string> = {
@@ -57,6 +67,8 @@ export const MODULE_TINT: Record<RutinaModule, string> = {
   finance: 'bg-module-finance/15 text-module-finance-strong',
   journal: 'bg-module-journal/15 text-module-journal-strong',
   stats: 'bg-module-stats/15 text-module-stats-strong',
+  kebiasaan: 'bg-module-kebiasaan/15 text-module-kebiasaan-strong',
+  profil: 'bg-module-profil/15 text-module-profil-strong',
 }
 
 export const MODULE_BORDER: Record<RutinaModule, string> = {
@@ -64,4 +76,6 @@ export const MODULE_BORDER: Record<RutinaModule, string> = {
   finance: 'border-module-finance/35',
   journal: 'border-module-journal/35',
   stats: 'border-module-stats/35',
+  kebiasaan: 'border-module-kebiasaan/35',
+  profil: 'border-module-profil/35',
 }

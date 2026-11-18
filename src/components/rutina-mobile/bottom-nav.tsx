@@ -18,6 +18,65 @@ import { CONTENT_W } from './layout-widths'
 
    Hanya untuk ponsel/tablet (di bawah lg): pada desktop navigasi berpindah
    ke bilah sisi (desktop-sidebar.tsx), tab bawah disembunyikan total. */
+
+/* ===== "Ruang Warna" — aksen identitas tiap tab =====
+   Struktur navigasi tetap konsisten (cangkang, pil, hierarki), namun pil
+   + ikon + label aktif mewarisi warna domain tab: pengguna selalu tahu
+   sedang berada di ruangan mana. Nilai via CSS var agar mode gelap ikut
+   otomatis (pistachio, eucalyptus terang, dst.).
+     icon  → base domain (grafis, ≥3:1)
+     label → strong domain (teks 11px, ≥4,5:1 vs soft)
+     pill  → soft domain (latar lembut) */
+interface NavAccent {
+  /** Warna ikon aktif — var CSS base domain. */
+  icon: string
+  /** Warna label aktif — var CSS strong domain. */
+  label: string
+  /** Latar pil aktif — var CSS soft domain. */
+  pill: string
+}
+
+/** Peta aksen layar — dipakai tab bawah & bilah sisi desktop (satu sumber). */
+export const NAV_ACCENT: Record<Screen, NavAccent> = {
+  beranda: {
+    icon: 'var(--palette-matcha)',
+    label: 'var(--success)',
+    pill: 'var(--palette-mist)',
+  },
+  bugar: {
+    icon: 'var(--module-bugar)',
+    label: 'var(--module-bugar-strong)',
+    pill: 'var(--module-bugar-soft)',
+  },
+  keuangan: {
+    icon: 'var(--module-finance)',
+    label: 'var(--module-finance-strong)',
+    pill: 'var(--module-finance-soft)',
+  },
+  kebiasaan: {
+    icon: 'var(--module-kebiasaan)',
+    label: 'var(--module-kebiasaan-strong)',
+    pill: 'var(--module-kebiasaan-soft)',
+  },
+  statistik: {
+    icon: 'var(--module-stats)',
+    label: 'var(--module-stats-strong)',
+    pill: 'var(--module-stats-soft)',
+  },
+  /* Layar non-tab (jurnal/profil) — navigasi disembunyikan shell;
+     entri di sini hanya agar Record<Screen,…> lengkap bagi TypeScript. */
+  jurnal: {
+    icon: 'var(--module-journal)',
+    label: 'var(--module-journal-strong)',
+    pill: 'var(--module-journal-soft)',
+  },
+  profil: {
+    icon: 'var(--module-profil)',
+    label: 'var(--module-profil-strong)',
+    pill: 'var(--module-profil-soft)',
+  },
+}
+
 const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'bugar', label: 'Bugar', icon: Dumbbell },
@@ -26,11 +85,6 @@ const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
 ]
 
-/**
- * Navigasi bawah KONSISTEN — cangkang, pil, dan warna aktif tidak berubah
- * antar tab agar orientasi pengguna tetap stabil. Identitas warna tiap
- * tab hidup pada konten layarnya (ikon, badge, grafik), bukan di navigasi.
- */
 export function BottomNav() {
   const screen = useRutina((s) => s.screen)
   const setScreen = useRutina((s) => s.setScreen)
@@ -38,6 +92,9 @@ export function BottomNav() {
   /* Saat berada di Profil (bukan tab), shell menyembunyikan navigasi —
      pil tidak pernah tampil tanpa tab aktif, orientasi tetap jujur. */
   const activeTab = TABS.some((t) => t.id === screen)
+  /* Aksen warna tab AKTIF — pil & teks mengikuti ruangan tempat pengguna
+     berada sekarang (bukan warna tombol yang dituju). */
+  const accent = NAV_ACCENT[screen]
 
   return (
     <nav
@@ -59,7 +116,8 @@ export function BottomNav() {
                 <m.span
                   layoutId="nav-pill"
                   aria-hidden="true"
-                  className="absolute inset-x-3 inset-y-[6px] rounded-full bg-secondary"
+                  className="absolute inset-x-3 inset-y-[6px] rounded-full"
+                  style={{ backgroundColor: accent.pill }}
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
@@ -70,16 +128,14 @@ export function BottomNav() {
                 transition={{ type: 'spring', stiffness: 500, damping: 26 }}
               >
                 <tab.icon
-                  className={`h-[19px] w-[19px] transition-colors duration-300 ${
-                    active ? 'text-primary' : 'text-content-muted'
-                  }`}
+                  className="h-[19px] w-[19px] text-content-muted transition-colors duration-300"
+                  style={{ color: active ? accent.icon : undefined }}
                   strokeWidth={active ? 2.4 : 2}
                 />
               </m.span>
               <span
-                className={`relative z-10 text-[11px] font-bold transition-colors duration-300 ${
-                  active ? 'text-success' : 'text-content-muted'
-                }`}
+                className="relative z-10 text-[11px] font-bold text-content-muted transition-colors duration-300"
+                style={{ color: active ? accent.label : undefined }}
               >
                 {tab.label}
               </span>

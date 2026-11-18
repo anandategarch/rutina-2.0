@@ -525,9 +525,7 @@ function RecentTxsCard() {
   )
 }
 
-/* ===== Kartu Kebiasaan — konsistensi, agenda, taman (identitas matcha) ===== */
-
-const MATCHA_TINT = 'bg-primary/15 text-success'
+/* ===== Kartu Kebiasaan — konsistensi, agenda, taman (identitas Rose Clay) ===== */
 
 function ConsistencyCard() {
   const habits = useRutina((s) => s.habits)
@@ -546,13 +544,13 @@ function ConsistencyCard() {
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
           icon={Flame}
-          iconClass={MATCHA_TINT}
+          iconClass={MODULE_TINT.kebiasaan}
           value={`${streak} hari`}
           label="Streak menyala"
         />
         <MetricRow
           icon={Timer}
-          iconClass={MATCHA_TINT}
+          iconClass={MODULE_TINT.kebiasaan}
           value={`${weekMissions} misi`}
           label="Selesai pekan ini"
         />
@@ -571,7 +569,7 @@ function GardenCard() {
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
           icon={Sprout}
-          iconClass={MATCHA_TINT}
+          iconClass={MODULE_TINT.kebiasaan}
           value={`${activeCount} kebiasaan`}
           label="Tumbuh di tamanmu"
         />
