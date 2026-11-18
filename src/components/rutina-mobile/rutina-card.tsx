@@ -21,8 +21,8 @@ const cardVariants = cva('relative overflow-hidden', {
     variant: {
       /** Kartu kertas di atas kanvas sand. */
       default: 'border border-border-default bg-surface-primary',
-      /** Kartu terangkat — bayangan card, latar putih bersih. */
-      elevated: 'border border-border-default bg-white shadow-card',
+      /** Kartu terangkat — bayangan card di atas permukaan utama. */
+      elevated: 'border border-border-default bg-surface-primary shadow-card',
       /** Kartu tinta — kanvas gelap espresso. */
       dark: 'bg-surface-inverse text-content-inverse',
       /** Kartu brand — matcha penuh, teks putih. */
@@ -43,7 +43,7 @@ const cardVariants = cva('relative overflow-hidden', {
   defaultVariants: {
     variant: 'default',
     density: 'comfortable',
-    radius: 'xl',
+    radius: 'lg',
   },
 })
 

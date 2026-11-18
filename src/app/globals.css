@@ -30,7 +30,9 @@
   --palette-espresso: #231f1e;
   --palette-espresso-soft: #3a2e24;
   --palette-cocoa: #4a3b32;
-  --palette-cocoa-muted: #766b62;
+  /* Cocoa-mud digelapkan dari #766b62 → lolos uji kontras WCAG AA
+     (≥ 4,5:1) di atas parchment MAUPUN linen untuk teks kecil. */
+  --palette-cocoa-muted: #6b6057;
   --palette-terracotta: #b25e3f;
   --palette-clay: #d98e6b;
   --palette-gold: #d9b98c;
@@ -70,6 +72,12 @@
   --action-primary: var(--palette-matcha);
   --action-primary-fg: #ffffff;
   --action-hover: var(--palette-matcha-deep);
+
+  /* Status — nilai teks AMAN kontras (≥ 4,5:1) di atas permukaan terang.
+     Gunakan untuk teks kecil bermakna (nominal, label status). */
+  --success: #4f7440; /* matcha tua — teks berhasil/positif */
+  --warning: #8a6a3b; /* gold tua — teks peringatan */
+  --content-danger: #9a4e33; /* terracotta tua — teks risiko/gagal */
 
   /* --- Pemetaan semantic shadcn/ui (satu sumber kebenaran) --- */
   --primary: var(--action-primary);
@@ -136,6 +144,11 @@
   --action-primary-fg: var(--palette-espresso);
   --action-hover: #b3d49b;
 
+  /* Status — versi terang untuk kanvas gelap */
+  --success: var(--palette-pistachio);
+  --warning: var(--palette-gold);
+  --content-danger: var(--palette-clay);
+
   --primary: var(--action-primary);
   --primary-foreground: var(--action-primary-fg);
   --secondary: #35302a;
@@ -174,17 +187,24 @@
    `@theme inline` menautkan utilitas langsung ke var() sehingga
    pergantian tema (terang/gelap) otomatis mengalir tanpa duplikasi. */
 @theme inline {
-  /* Primitive — utilitas bg-matcha, text-espresso, dst. tetap hidup */
+  /* Primitive — utilitas bg-matcha, text-espresso, dst. tetap hidup.
+     Pemakaian primitive dibatasi elemen dekoratif/ilustrasi; komponen
+     fungsional wajib memakai token semantic. */
   --color-matcha: var(--palette-matcha);
   --color-matcha-deep: var(--palette-matcha-deep);
+  --color-matcha-ink: var(--palette-matcha-ink);
   --color-pistachio: var(--palette-pistachio);
   --color-mist: var(--palette-mist);
   --color-sand: var(--palette-sand);
   --color-parchment: var(--palette-parchment);
   --color-espresso: var(--palette-espresso);
+  --color-espresso-soft: var(--palette-espresso-soft);
   --color-cocoa: var(--palette-cocoa);
+  --color-cocoa-muted: var(--palette-cocoa-muted);
   --color-terracotta: var(--palette-terracotta);
   --color-clay: var(--palette-clay);
+  --color-gold: var(--palette-gold);
+  --color-linen: var(--palette-linen);
 
   /* Semantic — utilitas tata kelola: bg-surface-primary, dsb. */
   --color-surface-primary: var(--surface-primary);
@@ -195,8 +215,14 @@
   --color-content-secondary: var(--content-secondary);
   --color-content-muted: var(--content-muted);
   --color-content-inverse: var(--content-inverse);
+  --color-content-danger: var(--content-danger);
   --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
   --color-action-primary: var(--action-primary);
+  --color-action-primary-fg: var(--action-primary-fg);
+  --color-action-hover: var(--action-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 
   /* Pemetaan shadcn/ui */
   --color-background: var(--background);

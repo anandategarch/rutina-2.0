@@ -22,10 +22,12 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        /* Target sentuh mobile: utama 48px, biasa 44px (WCAG 2.5.5);
+           36px hanya untuk kontrol sekunder yang jarang dipakai. */
+        default: "h-11 px-5 py-2 has-[>svg]:px-4",
+        sm: "h-9 gap-1.5 rounded-md px-3.5 has-[>svg]:px-3",
+        lg: "h-12 px-6 has-[>svg]:px-4",
+        icon: "size-11",
       },
     },
     defaultVariants: {
