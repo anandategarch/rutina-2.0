@@ -10,17 +10,6 @@ export type Screen =
   | 'profil'
 export type FolderKey = 'kerja' | 'ide' | 'bacaan' | 'pribadi'
 
-export interface Task {
-  id: string
-  title: string
-  cat?: string
-  streak?: number
-  done: boolean
-  desc: string
-  /** Riwayat 14 hari terakhir untuk detail tugas. */
-  history: boolean[]
-}
-
 export interface Note {
   id: string
   title: string
@@ -31,12 +20,17 @@ export interface Note {
   folder: FolderKey
 }
 
-export const FOLDERS: { key: FolderKey; label: string; count: number }[] = [
-  { key: 'kerja', label: 'Kerja', count: 12 },
-  { key: 'ide', label: 'Ide & Gagasan', count: 8 },
-  { key: 'bacaan', label: 'Bacaan', count: 5 },
-  { key: 'pribadi', label: 'Pribadi', count: 9 },
+export const FOLDERS: { key: FolderKey; label: string }[] = [
+  { key: 'kerja', label: 'Kerja' },
+  { key: 'ide', label: 'Ide & Gagasan' },
+  { key: 'bacaan', label: 'Bacaan' },
+  { key: 'pribadi', label: 'Pribadi' },
 ]
+
+/** Jumlah catatan nyata per folder — dihitung dari data, bukan angka statis. */
+export function folderCount(notes: Note[], key: FolderKey): number {
+  return notes.filter((n) => n.folder === key).length
+}
 
 /** Label pendek folder untuk chip filter jurnal. */
 export const FOLDER_SHORT: Record<FolderKey, string> = {
@@ -47,15 +41,6 @@ export const FOLDER_SHORT: Record<FolderKey, string> = {
 }
 
 export const DAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
-/** Jam fokus Senin–Minggu; total 14,5 jam. */
-export const FOCUS = [1.5, 2.2, 1.8, 2.0, 2.4, 2.0, 2.6]
-/** Agregat fokus 4 pekan (untuk tab "Bulan" di Statistik). */
-export const FOCUS_MONTH = [
-  { label: 'P1', value: 11.2 },
-  { label: 'P2', value: 12.8 },
-  { label: 'P3', value: 13.5 },
-  { label: 'P4', value: 14.5 },
-]
 
 export const MOODS = ['Ceria', 'Baik', 'Biasa', 'Lelah']
 
@@ -77,6 +62,456 @@ export function computeXp(doneCount: number, bonusClaimed: boolean): number {
 export function computeLevel(xp: number): number {
   return xp >= XP_TARGET ? 8 : 7
 }
+
+/* ===== Domain Kebiasaan — histori penyelesaian nyata ===== */
+
+export type HabitCat = 'Kebiasaan' | 'Kerja' | 'Kesehatan' | 'Pribadi' | 'Belajar'
+
+export const HABIT_CATS: HabitCat[] = [
+  'Kebiasaan',
+  'Kerja',
+  'Kesehatan',
+  'Pribadi',
+  'Belajar',
+]
+
+export const HABIT_CAT_COLORS: Record<HabitCat, string> = {
+  Kebiasaan: '#A3C489',
+  Kerja: '#749B58',
+  Kesehatan: '#D98E6B',
+  Pribadi: '#8C7B6B',
+  Belajar: '#C7A17A',
+}
+
+/** Label hari singkat, indeks 0 = Minggu … 6 = Sabtu (urutan Date#getDay). */
+export const WEEKDAY_MIN = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+export interface Habit {
+  id: string
+  title: string
+  desc: string
+  cat: HabitCat
+  /** Hari aktif dalam sepekan (0=Minggu..6=Sabtu). Kosong = setiap hari. */
+  schedule: number[]
+  /** Target frekuensi penyelesaian per pekan. */
+  weeklyTarget: number
+  /** Jam pengingat format "HH:MM", atau null bila tanpa pengingat. */
+  reminder: string | null
+  archived: boolean
+  /** Tanggal ISO mulai kebiasaan dijalankan (batas hitung streak). */
+  createdAt: string
+}
+
+/** Input formulir kebiasaan baru / hasil suntingan. */
+export interface HabitInput {
+  title: string
+  desc: string
+  cat: HabitCat
+  schedule: number[]
+  weeklyTarget: number
+  reminder: string | null
+}
+
+/** completions[tanggalISO][habitId] = true — sumber tunggal histori. */
+export type Completions = Record<string, Record<string, boolean>>
+
+/* --- Utilitas tanggal (ISO yyyy-mm-dd, aman zona waktu lokal) --- */
+
+export function isoOf(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+export function todayISO(): string {
+  return isoOf(new Date())
+}
+
+export function fromISO(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, (m ?? 1) - 1, d ?? 1)
+}
+
+export function addDaysISO(iso: string, n: number): string {
+  const d = fromISO(iso)
+  d.setDate(d.getDate() + n)
+  return isoOf(d)
+}
+
+/** Label panjang bahasa Indonesia: "Senin, 16 Juni 2025". */
+export function longDateLabel(iso: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(fromISO(iso))
+}
+
+/** Label ringkas: "Sen, 16 Jun". */
+export function shortDateLabel(iso: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(fromISO(iso))
+}
+
+/* --- Derivasi murni di atas Completions --- */
+
+/** Apakah kebiasaan terjadwal pada tanggal tersebut (menghormati jadwal). */
+export function scheduledOn(h: Habit, dateISO: string): boolean {
+  if (h.archived) return false
+  if (h.schedule.length === 0) return true
+  return h.schedule.includes(fromISO(dateISO).getDay())
+}
+
+/** Apakah kebiasaan selesai pada tanggal tersebut. */
+export function isDoneOn(
+  c: Completions,
+  dateISO: string,
+  habitId: string,
+): boolean {
+  return c[dateISO]?.[habitId] === true
+}
+
+/** Daftar kebiasaan aktif yang terjadwal pada sebuah tanggal. */
+export function habitsOn(habits: Habit[], dateISO: string): Habit[] {
+  return habits.filter((h) => scheduledOn(h, dateISO))
+}
+
+/** Jumlah kebiasaan selesai pada sebuah tanggal. */
+export function doneCountOn(c: Completions, dateISO: string): number {
+  return Object.values(c[dateISO] ?? {}).filter(Boolean).length
+}
+
+/** Streak aktif sebuah kebiasaan — hari terjadwal berturut yang selesai,
+ *  dihitung mundur dari hari ini. Hari ini yang belum selesai tidak
+ *  memutus streak (grace hingga akhir hari). */
+export function habitStreak(
+  h: Habit,
+  c: Completions,
+  today: string,
+): number {
+  let streak = 0
+  let cursor = today
+  if (scheduledOn(h, cursor) && !isDoneOn(c, cursor, h.id)) {
+    cursor = addDaysISO(cursor, -1)
+  }
+  for (let i = 0; i < 400; i++) {
+    if (cursor < h.createdAt) break
+    if (scheduledOn(h, cursor)) {
+      if (isDoneOn(c, cursor, h.id)) streak++
+      else break
+    }
+    cursor = addDaysISO(cursor, -1)
+  }
+  return streak
+}
+
+/** Rekor streak terpanjang sebuah kebiasaan sepanjang histori. */
+export function longestStreak(
+  h: Habit,
+  c: Completions,
+  today: string,
+): number {
+  let best = 0
+  let run = 0
+  let cursor = today
+  for (let i = 0; i < 400; i++) {
+    if (cursor < h.createdAt) break
+    if (scheduledOn(h, cursor)) {
+      if (isDoneOn(c, cursor, h.id)) {
+        run++
+        best = Math.max(best, run)
+      } else {
+        run = 0
+      }
+    }
+    cursor = addDaysISO(cursor, -1)
+  }
+  return best
+}
+
+/** Streak terpanjang & rekor dari seluruh kebiasaan aktif. */
+export function bestStreak(
+  habits: Habit[],
+  c: Completions,
+  today: string,
+): { habit: Habit | null; streak: number; record: number } {
+  let habit: Habit | null = null
+  let streak = 0
+  let record = 0
+  for (const h of habits) {
+    if (h.archived) continue
+    const s = habitStreak(h, c, today)
+    const l = longestStreak(h, c, today)
+    if (s > streak) {
+      streak = s
+      habit = h
+    }
+    record = Math.max(record, l)
+  }
+  return { habit, streak, record }
+}
+
+export interface DayCount {
+  date: string
+  label: string
+  count: number
+}
+
+/** Aktivitas N hari terakhir diakhiri hari ini (label = hari singkat). */
+export function dayCounts(
+  c: Completions,
+  today: string,
+  days: number,
+): DayCount[] {
+  const out: DayCount[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const iso = addDaysISO(today, -i)
+    out.push({
+      date: iso,
+      label: WEEKDAY_MIN[fromISO(iso).getDay()],
+      count: doneCountOn(c, iso),
+    })
+  }
+  return out
+}
+
+/** Agregat empat pekan terakhir (P1 terlama → P4 pekan berjalan). */
+export function weekCounts(
+  c: Completions,
+  today: string,
+): { label: string; value: number }[] {
+  const out: { label: string; value: number }[] = []
+  for (let w = 3; w >= 0; w--) {
+    let sum = 0
+    for (let d = 0; d < 7; d++) {
+      sum += doneCountOn(c, addDaysISO(today, -(w * 7 + d)))
+    }
+    out.push({ label: `P${4 - w}`, value: sum })
+  }
+  return out
+}
+
+/** Rasio penyelesaian harian (persen) N hari terakhir — dasar grafik tren.
+ *  v = selesai / terjadwal × 100 (0 bila tidak ada kebiasaan terjadwal). */
+export function rateSeries(
+  habits: Habit[],
+  c: Completions,
+  today: string,
+  days: number,
+): { d: number; v: number }[] {
+  const out: { d: number; v: number }[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const iso = addDaysISO(today, -i)
+    const total = habitsOn(habits, iso).length
+    const done = habitsOn(habits, iso).filter((h) =>
+      isDoneOn(c, iso, h.id),
+    ).length
+    out.push({
+      d: days - i,
+      v: total === 0 ? 0 : Math.round((done / total) * 100),
+    })
+  }
+  return out
+}
+
+/** Tanggal aktivitas terawal dari histori (untuk "aktif sejak"). */
+export function activeSinceISO(c: Completions): string | null {
+  const dates = Object.keys(c).sort()
+  return dates[0] ?? null
+}
+
+/** Ringkasan jadwal untuk ditampilkan: "Setiap hari", "Sen, Rab, Jum", dst. */
+export function scheduleLabel(h: Habit): string {
+  const sorted = [...h.schedule].sort((a, b) => a - b)
+  const all = [0, 1, 2, 3, 4, 5, 6]
+  const same = (a: number[], b: number[]) =>
+    a.length === b.length && a.every((v, i) => v === b[i])
+  if (sorted.length === 0 || same(sorted, all)) return 'Setiap hari'
+  if (same(sorted, [1, 2, 3, 4, 5])) return 'Hari kerja'
+  if (same(sorted, [0, 6])) return 'Akhir pekan'
+  return sorted.map((d) => WEEKDAY_MIN[d]).join(', ')
+}
+
+/* --- Data demo kebiasaan --- */
+
+/** Panjang histori demo: 84 hari (12 pekan) agar heatmap konsistensi penuh. */
+export const HISTORY_DAYS = 84
+
+/**
+ * Pola demo deterministik per kebiasaan (true = selesai), `back` = jumlah
+ * hari mundur dari hari ini. Dirancang agar streak awal bersumber data
+ * nyata: Meditasi 5 hari, Baca 12 hari, Kosakata 21 hari.
+ */
+function seedDone(id: string, back: number): boolean {
+  switch (id) {
+    case 'h1':
+      return back <= 4 ? true : back % 6 !== 5
+    case 'h2':
+      return back === 0 ? false : back <= 3 ? true : back % 5 !== 4
+    case 'h3':
+      return back <= 11 ? true : back % 4 !== 3
+    case 'h4':
+      return back === 0 ? false : back % 2 === 1
+    case 'h5':
+      return back === 0 ? false : back <= 21 ? true : back % 3 !== 2
+    case 'h6':
+      return back === 0 ? false : back % 14 !== 13
+    default:
+      return false
+  }
+}
+
+function buildSeedCompletions(habits: Habit[]): Completions {
+  const c: Completions = {}
+  const today = todayISO()
+  for (let back = HISTORY_DAYS; back >= 0; back--) {
+    const iso = addDaysISO(today, -back)
+    const day: Record<string, boolean> = {}
+    for (const h of habits) {
+      /* Hormati jadwal: kebiasaan hari-kerja/akhir-pekan hanya terisi
+         pada hari terjadwalnya. */
+      const scheduled =
+        h.schedule.length === 0 ||
+        h.schedule.includes(fromISO(iso).getDay())
+      if (scheduled && seedDone(h.id, back)) day[h.id] = true
+    }
+    if (Object.keys(day).length > 0) c[iso] = day
+  }
+  return c
+}
+
+const SEED_START = addDaysISO(todayISO(), -HISTORY_DAYS)
+
+const SEED_HABITS: Habit[] = [
+  {
+    id: 'h1',
+    title: 'Meditasi 10 menit',
+    desc: 'Duduk dengan punggung tegak, tarik napas 4 hitungan, tahan 4, hembuskan 6. Tutup sesi dengan tiga tarikan napas dalam dan ucapkan satu niat untuk hari ini.',
+    cat: 'Kebiasaan',
+    schedule: [],
+    weeklyTarget: 7,
+    reminder: '06:00',
+    archived: false,
+    createdAt: SEED_START,
+  },
+  {
+    id: 'h2',
+    title: 'Review laporan mingguan',
+    desc: 'Bandingkan angka pekan ini dengan target bulanan, tandai tiga temuan utama, lalu siapkan poin pembahasan untuk rapat Senin.',
+    cat: 'Kerja',
+    schedule: [1, 2, 3, 4, 5],
+    weeklyTarget: 5,
+    reminder: '09:00',
+    archived: false,
+    createdAt: SEED_START,
+  },
+  {
+    id: 'h3',
+    title: 'Baca 20 halaman buku',
+    desc: 'Lanjutkan bab tentang disiplin atomik. Catat satu kutipan yang paling relevan dengan pekan ini di jurnal bacaan.',
+    cat: 'Belajar',
+    schedule: [],
+    weeklyTarget: 7,
+    reminder: '21:00',
+    archived: false,
+    createdAt: SEED_START,
+  },
+  {
+    id: 'h4',
+    title: 'Jalan pagi 30 menit',
+    desc: 'Putaran kompleks dua kali sambil mendengarkan podcast. Jaga tempo ringan — ini jalan santai, bukan lomba.',
+    cat: 'Kesehatan',
+    schedule: [],
+    weeklyTarget: 4,
+    reminder: null,
+    archived: false,
+    createdAt: SEED_START,
+  },
+  {
+    id: 'h5',
+    title: 'Belajar kosakata baru',
+    desc: 'Lima kosakata baru lengkap dengan contoh kalimat, lalu ulangi kosakata kemarin lewat kartu acak sampai lancar.',
+    cat: 'Belajar',
+    schedule: [],
+    weeklyTarget: 7,
+    reminder: '19:30',
+    archived: false,
+    createdAt: SEED_START,
+  },
+  {
+    id: 'h6',
+    title: 'Rapikan meja kerja',
+    desc: 'Kosongkan meja dari kertas berserakan, lap layar laptop, dan kembalikan setiap barang ke tempatnya masing-masing.',
+    cat: 'Pribadi',
+    schedule: [0, 6],
+    weeklyTarget: 2,
+    reminder: null,
+    archived: false,
+    createdAt: SEED_START,
+  },
+]
+
+const SEED_NOTES: Note[] = [
+  {
+    id: 'n1',
+    title: 'Ritual Pagi yang Tenang',
+    body: 'Bangun jam 5.30 tanpa langsung membuka ponsel. Air putih, peregangan singkat, lalu menulis tiga hal yang disyukuri.',
+    date: '15 Jun',
+    pinned: true,
+    tone: 1,
+    folder: 'pribadi',
+  },
+  {
+    id: 'n2',
+    title: 'Ide Fitur Rutina 2.0',
+    body: 'Mode fokus dengan timer pomodoro, laporan mingguan yang bisa diekspor, dan widget streak di layar utama.',
+    date: '13 Jun',
+    pinned: false,
+    tone: 0,
+    folder: 'ide',
+  },
+  {
+    id: 'n3',
+    title: 'Refleksi: Pekan ke-3',
+    body: 'Konsistensi mulai terasa. Meditasi jadi lebih mudah dan otak tidak lagi menolak saat bangun pagi.',
+    date: '12 Jun',
+    pinned: false,
+    tone: 2,
+    folder: 'pribadi',
+  },
+  {
+    id: 'n4',
+    title: 'Bahan Bacaan Bulan Ini',
+    body: 'Atomic Habits (ulang bab 3), Deep Work, dan artikel tentang kebiasaan digital minimalis.',
+    date: '10 Jun',
+    pinned: false,
+    tone: 1,
+    folder: 'bacaan',
+  },
+  {
+    id: 'n5',
+    title: 'Yang Aku Syukuri Hari Ini',
+    body: 'Es kopi di warung pojok, obrolan singkat dengan Ibu, dan hujan sore yang tepat waktu.',
+    date: '9 Jun',
+    pinned: true,
+    tone: 0,
+    folder: 'pribadi',
+  },
+  {
+    id: 'n6',
+    title: 'Rencana Proyek Desain',
+    body: 'Kumpulkan referensi moodboard earth tone, sketsa tiga arah layout, lalu uji kontras warna.',
+    date: '7 Jun',
+    pinned: false,
+    tone: 2,
+    folder: 'kerja',
+  },
+]
 
 /* ===== Domain Keuangan ===== */
 
@@ -157,130 +592,21 @@ const SEED_GOALS: Goal[] = [
   { id: 'g-3', name: 'Liburan Akhir Tahun', target: 10_000_000, saved: 2_400_000 },
 ]
 
-/* ===== Tema per layar — kanvas & aksen berbeda di tiap tab =====
-   Empat kombinasi warna earth tone yang saling melengkapi:
-   Warm Sand (dasar), Matcha (aksen hijau), Deep Espresso (gelap),
-   dan Terracotta (aksen hangat) — mengikuti aturan 60-30-10. */
+/* ===== Tema layar — kanvas utama seragam Warm Sand =====
+   Orientasi pengguna tetap stabil antar tab: background konsisten,
+   identitas warna tiap tab hidup pada ikon, pil, dan kartu konten. */
 
 export const SCREEN_THEME: Record<Screen, { bg: string }> = {
-  beranda: { bg: '#F5F3EE' },
-  jurnal: { bg: '#749B58' },
-  keuangan: { bg: '#4A3B32' },
-  statistik: { bg: '#231F1E' },
-  profil: { bg: '#B25E3F' },
+  beranda: { bg: '#FAF9F6' },
+  jurnal: { bg: '#FAF9F6' },
+  keuangan: { bg: '#FAF9F6' },
+  statistik: { bg: '#FAF9F6' },
+  profil: { bg: '#FAF9F6' },
 }
 
-/** Riwayat 14 hari deterministik per tugas (aman untuk SSR). */
-const hist = (seed: number): boolean[] =>
-  Array.from({ length: 14 }, (_, j) => (seed * 7 + j * 3) % 4 !== 0)
+/* ===== Store ===== */
 
-const SEED_TASKS: Task[] = [
-  {
-    id: 't1',
-    title: 'Meditasi 10 menit',
-    streak: 5,
-    done: true,
-    desc: 'Duduk dengan punggung tegak, tarik napas 4 hitungan, tahan 4, hembuskan 6. Tutup sesi dengan tiga tarikan napas dalam dan ucapkan satu niat untuk hari ini.',
-    history: hist(1),
-  },
-  {
-    id: 't2',
-    title: 'Review laporan mingguan',
-    cat: 'Kerja',
-    done: false,
-    desc: 'Bandingkan angka pekan ini dengan target bulanan, tandai tiga temuan utama, lalu siapkan poin pembahasan untuk rapat Senin.',
-    history: hist(2),
-  },
-  {
-    id: 't3',
-    title: 'Baca 20 halaman buku',
-    streak: 12,
-    done: true,
-    desc: 'Lanjutkan bab tentang disiplin atomik. Catat satu kutipan yang paling relevan dengan pekan ini di jurnal bacaan.',
-    history: hist(3),
-  },
-  {
-    id: 't4',
-    title: 'Jalan pagi 30 menit',
-    cat: 'Kesehatan',
-    done: false,
-    desc: 'Putaran kompleks dua kali sambil mendengarkan podcast. Jaga tempo ringan — ini jalan santai, bukan lomba.',
-    history: hist(4),
-  },
-  {
-    id: 't5',
-    title: 'Belajar kosakata baru',
-    streak: 21,
-    done: false,
-    desc: 'Lima kosakata baru lengkap dengan contoh kalimat, lalu ulangi kosakata kemarin lewat kartu acak sampai lancar.',
-    history: hist(5),
-  },
-  {
-    id: 't6',
-    title: 'Rapikan meja kerja',
-    cat: 'Pribadi',
-    done: false,
-    desc: 'Kosongkan meja dari kertas berserakan, lap layar laptop, dan kembalikan setiap barang ke tempatnya masing-masing.',
-    history: hist(6),
-  },
-]
-
-const SEED_NOTES: Note[] = [
-  {
-    id: 'n1',
-    title: 'Ritual Pagi yang Tenang',
-    body: 'Bangun jam 5.30 tanpa langsung membuka ponsel. Air putih, peregangan singkat, lalu menulis tiga hal yang disyukuri.',
-    date: '15 Jun',
-    pinned: true,
-    tone: 1,
-    folder: 'pribadi',
-  },
-  {
-    id: 'n2',
-    title: 'Ide Fitur Rutina 2.0',
-    body: 'Mode fokus dengan timer pomodoro, laporan mingguan yang bisa diekspor, dan widget streak di layar utama.',
-    date: '13 Jun',
-    pinned: false,
-    tone: 0,
-    folder: 'ide',
-  },
-  {
-    id: 'n3',
-    title: 'Refleksi: Pekan ke-3',
-    body: 'Konsistensi mulai terasa. Meditasi jadi lebih mudah dan otak tidak lagi menolak saat bangun pagi.',
-    date: '12 Jun',
-    pinned: false,
-    tone: 2,
-    folder: 'pribadi',
-  },
-  {
-    id: 'n4',
-    title: 'Bahan Bacaan Bulan Ini',
-    body: 'Atomic Habits (ulang bab 3), Deep Work, dan artikel tentang kebiasaan digital minimalis.',
-    date: '10 Jun',
-    pinned: false,
-    tone: 1,
-    folder: 'bacaan',
-  },
-  {
-    id: 'n5',
-    title: 'Yang Aku Syukuri Hari Ini',
-    body: 'Es kopi di warung pojok, obrolan singkat dengan Ibu, dan hujan sore yang tepat waktu.',
-    date: '9 Jun',
-    pinned: true,
-    tone: 0,
-    folder: 'pribadi',
-  },
-  {
-    id: 'n6',
-    title: 'Rencana Proyek Desain',
-    body: 'Kumpulkan referensi moodboard earth tone, sketsa tiga arah layout, lalu uji kontras warna.',
-    date: '7 Jun',
-    pinned: false,
-    tone: 2,
-    folder: 'kerja',
-  },
-]
+export type HabitSheetMode = 'closed' | 'create' | 'edit'
 
 interface RutinaState {
   screen: Screen
@@ -288,7 +614,13 @@ interface RutinaState {
   journalFilter: FolderKey | 'semua'
   composeOpen: boolean
   composeFolder: FolderKey
-  tasks: Task[]
+  /* Kebiasaan & histori */
+  habits: Habit[]
+  completions: Completions
+  /** Tanggal yang sedang dilihat di kalender Beranda (ISO). */
+  selectedDate: string
+  habitSheetMode: HabitSheetMode
+  habitSheetId: string | null
   notes: Note[]
   quoteSaved: boolean
   mood: string | null
@@ -322,7 +654,16 @@ interface RutinaState {
   openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
   closeCompose: () => void
-  toggleTask: (id: string) => void
+  /* Aksi kebiasaan */
+  setSelectedDate: (iso: string) => void
+  toggleHabit: (id: string, dateISO: string) => void
+  addHabit: (input: HabitInput) => void
+  updateHabit: (id: string, patch: Partial<HabitInput>) => void
+  setHabitArchived: (id: string, archived: boolean) => void
+  deleteHabit: (id: string) => void
+  openHabitCreate: () => void
+  openHabitEdit: (id: string) => void
+  closeHabitSheet: () => void
   addNote: (input: { title: string; body: string; folder: FolderKey }) => void
   togglePin: (id: string) => void
   deleteNote: (id: string) => void
@@ -342,7 +683,11 @@ export const useRutina = create<RutinaState>((set, get) => ({
   journalFilter: 'semua',
   composeOpen: false,
   composeFolder: 'pribadi',
-  tasks: SEED_TASKS,
+  habits: SEED_HABITS,
+  completions: buildSeedCompletions(SEED_HABITS),
+  selectedDate: todayISO(),
+  habitSheetMode: 'closed',
+  habitSheetId: null,
   notes: SEED_NOTES,
   quoteSaved: false,
   mood: null,
@@ -350,7 +695,7 @@ export const useRutina = create<RutinaState>((set, get) => ({
   readingNoteId: null,
   celebrating: false,
   bonusClaimed: false,
-  dailyGoal: 6,
+  dailyGoal: 4,
 
   /* Keuangan */
   txs: SEED_TXS,
@@ -428,10 +773,88 @@ export const useRutina = create<RutinaState>((set, get) => ({
 
   closeCompose: () => set({ composeOpen: false }),
 
-  toggleTask: (id) =>
+  /* --- Aksi kebiasaan --- */
+
+  setSelectedDate: (iso) => set({ selectedDate: iso }),
+
+  /** Tandai selesai / batalkan untuk TANGGAL tertentu — histori nyata.
+   *  Tanggal masa depan ditolak (belum terjadi). */
+  toggleHabit: (id, dateISO) => {
+    if (dateISO > todayISO()) return
+    set((s) => {
+      const day = { ...(s.completions[dateISO] ?? {}) }
+      if (day[id]) {
+        delete day[id]
+      } else {
+        day[id] = true
+      }
+      const completions = { ...s.completions, [dateISO]: day }
+      /* Buang objek hari yang kosong agar histori tetap bersih. */
+      if (Object.keys(day).length === 0) delete completions[dateISO]
+      return { completions }
+    })
+  },
+
+  addHabit: (input) =>
     set((s) => ({
-      tasks: s.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+      habits: [
+        ...s.habits,
+        {
+          id: `habit-${Date.now()}`,
+          title: input.title.trim(),
+          desc: input.desc.trim(),
+          cat: input.cat,
+          schedule: [...input.schedule].sort((a, b) => a - b),
+          weeklyTarget: input.weeklyTarget,
+          reminder: input.reminder,
+          archived: false,
+          createdAt: todayISO(),
+        },
+      ],
     })),
+
+  updateHabit: (id, patch) =>
+    set((s) => ({
+      habits: s.habits.map((h) => {
+        if (h.id !== id) return h
+        const next = { ...h, ...patch }
+        if (patch.schedule) {
+          next.schedule = [...patch.schedule].sort((a, b) => a - b)
+        }
+        if (patch.title !== undefined) next.title = patch.title.trim()
+        if (patch.desc !== undefined) next.desc = patch.desc.trim()
+        return next
+      }),
+    })),
+
+  setHabitArchived: (id, archived) =>
+    set((s) => ({
+      habits: s.habits.map((h) => (h.id === id ? { ...h, archived } : h)),
+    })),
+
+  deleteHabit: (id) =>
+    set((s) => {
+      /* Bersihkan seluruh jejak histori kebiasaan yang dihapus. */
+      const completions: Completions = {}
+      for (const [date, day] of Object.entries(s.completions)) {
+        const { [id]: _removed, ...rest } = day
+        if (Object.keys(rest).length > 0) completions[date] = rest
+      }
+      return {
+        habits: s.habits.filter((h) => h.id !== id),
+        completions,
+        expandedTaskId: s.expandedTaskId === id ? null : s.expandedTaskId,
+        habitSheetId: s.habitSheetId === id ? null : s.habitSheetId,
+        habitSheetMode:
+          s.habitSheetId === id ? 'closed' : s.habitSheetMode,
+      }
+    }),
+
+  openHabitCreate: () => set({ habitSheetMode: 'create', habitSheetId: null }),
+
+  openHabitEdit: (id) => set({ habitSheetMode: 'edit', habitSheetId: id }),
+
+  closeHabitSheet: () => set({ habitSheetMode: 'closed', habitSheetId: null }),
 
   addNote: ({ title, body, folder }) =>
     set((s) => ({
