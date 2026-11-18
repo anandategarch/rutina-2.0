@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 import { Check } from 'lucide-react'
 
 import { useRutina } from './store'
@@ -47,7 +47,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
           proporsional di layar lebar (mode layar penuh). */}
       <div className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}>
         {PIECES.map((p, i) => (
-          <motion.span
+          <m.span
             key={i}
             className="absolute top-0"
             style={{
@@ -68,7 +68,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
         ))}
 
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <motion.div
+          <m.div
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.1 }}
@@ -80,7 +80,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
             <p className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.18em] text-[#4A3B32]">
               Hari yang sempurna
             </p>
-          </motion.div>
+          </m.div>
         </div>
       </div>
     </div>

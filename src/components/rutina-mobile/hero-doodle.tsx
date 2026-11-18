@@ -1,11 +1,11 @@
 'use client'
 
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 
 /** Ilustrasi garis minimalis: matahari, bukit, dan tunas — sama dengan gaya Kartu Harian. */
 export function HeroDoodle() {
   return (
-    <motion.svg
+    <m.svg
       viewBox="0 0 140 140"
       aria-hidden="true"
       animate={{ y: [0, -6, 0] }}
@@ -24,6 +24,6 @@ export function HeroDoodle() {
       <path d="M26 122v-10" />
       <path d="M26 112c-8-1-12-6-12-13 8 1 12 6 12 13z" />
       <path d="M26 112c8-1 12-6 12-13-8 1-12 6-12 13z" />
-    </motion.svg>
+    </m.svg>
   )
 }

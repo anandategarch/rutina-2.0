@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
-  motion,
   useDragControls,
 } from 'motion/react'
+import * as m from 'motion/react-m'
 import {
   Archive,
   ArchiveRestore,
@@ -169,7 +169,7 @@ export function HabitSheet() {
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="backdrop"
             aria-hidden="true"
             onClick={closeHabitSheet}
@@ -179,7 +179,7 @@ export function HabitSheet() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           />
-          <motion.div
+          <m.div
             key="panel"
             ref={panelRef}
             role="dialog"
@@ -399,7 +399,7 @@ export function HabitSheet() {
                   />
                 </span>
                 {reminderOn && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
@@ -418,7 +418,7 @@ export function HabitSheet() {
                       Pengingat dicatat pada jadwal kebiasaan — tanpa notifikasi
                       sistem di mode demo.
                     </p>
-                  </motion.div>
+                  </m.div>
                 )}
               </div>
             </div>
@@ -520,7 +520,7 @@ export function HabitSheet() {
                 </AlertDialog>
               </div>
             )}
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

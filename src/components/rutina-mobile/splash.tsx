@@ -1,14 +1,21 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
-import { motion } from 'motion/react'
-import { createTimeline, stagger } from 'animejs'
+import * as m from 'motion/react-m'
+import { createScope, createTimeline, stagger } from 'animejs'
 
 /**
  * Layar pembuka — logo tunas digambar garis demi garis (anime.js timeline),
  * lalu wordmark & tagline muncul bertahap. Bisa diketuk untuk melewati.
+ *
+ * Lifecycle: seluruh timeline hidup dalam anime `createScope` — saat
+ * komponen unmount (termasuk saat dilewati lebih awal) scope.revert()
+ * menghentikan & membersihkan setiap instance agar tidak ada animation
+ * tick pada node yang sudah terlepas. Media query reduced-motion membuat
+ * seluruh durasi nol: konten langsung tampil, timer selesai lebih cepat.
  */
 export function Splash({ onDone }: { onDone: () => void }) {
+  const rootRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const tagRef = useRef<HTMLParagraphElement>(null)
@@ -23,7 +30,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const svg = svgRef.current
     const title = titleRef.current
-    if (!svg || !title) return
+    if (!svg || !title || !rootRef.current) return
 
     // Siapkan garis: hitung panjang total tiap path/circle lalu sembunyikan
     const strokes = svg.querySelectorAll('path, circle')
@@ -35,42 +42,60 @@ export function Splash({ onDone }: { onDone: () => void }) {
       styled.style.strokeDashoffset = `${len}`
     })
 
-    const tl = createTimeline({ defaults: { ease: 'outExpo' } })
-    tl.add(svg, { opacity: [0, 1], duration: 300 }, 0)
-    tl.add(
-      strokes,
-      { strokeDashoffset: 0, duration: 850, delay: stagger(90) },
-      150,
-    )
-    tl.add(
-      title.querySelectorAll('[data-char]'),
-      {
-        translateY: [28, 0],
-        opacity: [0, 1],
-        duration: 650,
-        delay: stagger(45),
+    /* Scope anime.js: selector dibatasi dalam root, revert() otomatis saat
+       unmount, dan mediaQueries menghormati prefers-reduced-motion. */
+    const scope = createScope({
+      root: rootRef,
+      mediaQueries: {
+        reduceMotion: '(prefers-reduced-motion: reduce)',
       },
-      550,
-    )
-    if (tagRef.current) {
-      tl.add(
-        tagRef.current,
-        { opacity: [0, 1], translateY: [10, 0], duration: 550 },
-        1150,
-      )
-    }
+    }).add((self) => {
+      const rm = self?.matches?.reduceMotion ?? false
+      const dur = (ms: number) => (rm ? 1 : ms)
 
-    const timer = setTimeout(finish, 2600)
+      const tl = createTimeline({ defaults: { ease: 'outExpo' } })
+      tl.add(svg, { opacity: [0, 1], duration: dur(300) }, 0)
+      tl.add(
+        strokes,
+        {
+          strokeDashoffset: 0,
+          duration: dur(850),
+          delay: rm ? 0 : stagger(90),
+        },
+        rm ? 0 : 150,
+      )
+      tl.add(
+        title.querySelectorAll('[data-char]'),
+        {
+          translateY: [28, 0],
+          opacity: [0, 1],
+          duration: dur(650),
+          delay: rm ? 0 : stagger(45),
+        },
+        rm ? 0 : 550,
+      )
+      if (tagRef.current) {
+        tl.add(
+          tagRef.current,
+          { opacity: [0, 1], translateY: [10, 0], duration: dur(550) },
+          rm ? 0 : 1150,
+        )
+      }
+    })
+
+    const timer = setTimeout(finish, matchMedia('(prefers-reduced-motion: reduce)').matches ? 500 : 2600)
     return () => {
       clearTimeout(timer)
-      // Tidak memanggil tl.revert() agar konten tetap terlihat selama
-      // animasi keluar; seluruh pohon komponen di-unmount segera setelahnya.
+      /* revert() pada unmount akhir — aman: AnimatePresence telah
+         menyelesaikan animasi keluar sebelum cleanup dijalankan. */
+      scope.revert()
     }
   }, [finish])
 
   return (
-    <motion.div
+    <m.div
       key="splash"
+      ref={rootRef}
       exit={{ opacity: 0, scale: 1.06 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       onClick={finish}
@@ -127,6 +152,6 @@ export function Splash({ onDone }: { onDone: () => void }) {
       <p className="absolute bottom-8 text-[9px] font-bold uppercase tracking-[0.28em] text-[#FAF9F6]/50">
         Earth Tone Edition
       </p>
-    </motion.div>
+    </m.div>
   )
 }

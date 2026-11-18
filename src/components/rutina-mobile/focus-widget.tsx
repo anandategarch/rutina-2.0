@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { motion, useInView } from 'motion/react'
+import { useInView } from 'motion/react'
+import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
 import { Counter } from './counter'
@@ -24,6 +25,9 @@ export function FocusWidget() {
   const total = week.reduce((a, b) => a + b.count, 0)
   const max = Math.max(...week.map((d) => d.count), 1)
 
+  /* SATU observer untuk dua tujuan: `inView` yang sama memicu animasi
+     batang anime.js DAN entrance kartu Motion — sebelumnya useInView dan
+     whileInView membuat dua IntersectionObserver pada elemen yang sama. */
   useEffect(() => {
     if (!inView || !ref.current) return
     const anim = animate(ref.current.querySelectorAll('[data-mini-bar]'), {
@@ -38,11 +42,10 @@ export function FocusWidget() {
   }, [inView])
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-20px' }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       aria-label={`Misi selesai pekan ini, total ${total} misi`}
       className="flex flex-col rounded-[16px] border border-[#4A3B321F] bg-white p-4 shadow-soft"
@@ -91,6 +94,6 @@ export function FocusWidget() {
           )
         })}
       </div>
-    </motion.div>
+    </m.div>
   )
 }

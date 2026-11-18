@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { AnimatePresence, motion, useDragControls } from 'motion/react'
+import { AnimatePresence, useDragControls } from 'motion/react'
+import * as m from 'motion/react-m'
 import { Pin, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -55,7 +56,7 @@ export function ReadingSheet() {
     <AnimatePresence>
       {note && (
         <>
-          <motion.div
+          <m.div
             key="backdrop"
             aria-hidden="true"
             onClick={closeReading}
@@ -65,7 +66,7 @@ export function ReadingSheet() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           />
-          <motion.div
+          <m.div
             key="panel"
             ref={panelRef}
             role="dialog"
@@ -183,7 +184,7 @@ export function ReadingSheet() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

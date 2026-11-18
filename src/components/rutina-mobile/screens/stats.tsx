@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion, useInView } from 'motion/react'
+import { useInView } from 'motion/react'
+import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 import {
   BatteryLow,
@@ -242,7 +243,7 @@ export default function StatsScreen() {
           className="mt-5 flex flex-col items-center"
           aria-label="Progres level pemain"
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.55, ease: EASE }}
@@ -264,7 +265,7 @@ export default function StatsScreen() {
                 strokeOpacity="0.12"
                 strokeWidth="13"
               />
-              <motion.circle
+              <m.circle
                 cx="100"
                 cy="100"
                 r={R}
@@ -302,7 +303,7 @@ export default function StatsScreen() {
                 <Counter to={xp} /> XP
               </span>
             </div>
-          </motion.div>
+          </m.div>
 
           <p className="mt-3 text-center text-[11px] font-medium text-[#4A3B32]/75">
             {level >= 8
@@ -312,7 +313,7 @@ export default function StatsScreen() {
         </section>
 
         {/* Grafik misi selesai dengan pemilih periode (shadcn Tabs) */}
-        <motion.section
+        <m.section
           ref={chartRef}
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -405,14 +406,14 @@ export default function StatsScreen() {
                   ? `Pekan berjalan turun ${p3 - p4} misi dibanding pekan lalu.`
                   : 'Pekan berjalan setara dengan pekan lalu.'}
           </p>
-        </motion.section>
+        </m.section>
 
         {/* Ringkasan pekan */}
         <section className="mt-6" aria-label="Ringkasan pekan">
           <SectionTitle title="Ringkasan Pekan" />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {/* Suasana hati */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
@@ -453,10 +454,10 @@ export default function StatsScreen() {
                   ? `Kamu merasa ${mood.toLowerCase()} hari ini`
                   : 'Bagaimana perasaanmu?'}
               </p>
-            </motion.div>
+            </m.div>
 
             {/* Streak terpanjang */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
@@ -482,7 +483,7 @@ export default function StatsScreen() {
                       : 'Belum ada kebiasaan berjalan'}
                   </p>
                 </div>
-                <motion.span
+                <m.span
                   aria-hidden="true"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#749B58]/20"
                   animate={{ scale: [1, 1.08, 1] }}
@@ -493,15 +494,15 @@ export default function StatsScreen() {
                   }}
                 >
                   <Flame className="h-5 w-5 text-[#A3C489]" />
-                </motion.span>
+                </m.span>
               </div>
               <p className="mt-auto pt-3 text-[11px] font-medium text-[#F5F3EE]/70">
                 Rekor pribadi: {best.record} hari
               </p>
-            </motion.div>
+            </m.div>
 
             {/* Ring penyelesaian misi */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
@@ -522,7 +523,7 @@ export default function StatsScreen() {
                     stroke="#231F1E"
                     strokeWidth="9"
                   />
-                  <motion.circle
+                  <m.circle
                     cx="48"
                     cy="48"
                     r="42"
@@ -559,7 +560,7 @@ export default function StatsScreen() {
                   Tiap misi bernilai {XP_PER_TASK} XP — terus jaga ritmenya.
                 </p>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         </section>
 
@@ -568,7 +569,7 @@ export default function StatsScreen() {
           <SectionTitle title="Wawasan & Analitik" hint="30 hari terakhir" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Donut distribusi kategori */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
@@ -628,10 +629,10 @@ export default function StatsScreen() {
                   ))}
                 </ul>
               </div>
-            </motion.div>
+            </m.div>
 
             {/* Grafik area tren penyelesaian */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
@@ -718,7 +719,7 @@ export default function StatsScreen() {
               <p className="mt-2 text-[11px] font-medium text-[#F5F3EE]/70">
                 Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
               </p>
-            </motion.div>
+            </m.div>
           </div>
         </section>
 
@@ -729,7 +730,7 @@ export default function StatsScreen() {
         </div>
 
         {/* Lencana dengan Tooltip */}
-        <motion.section
+        <m.section
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-24px' }}
@@ -802,10 +803,10 @@ export default function StatsScreen() {
               </Tooltip>
             ))}
           </div>
-        </motion.section>
+        </m.section>
 
         {/* Streak berjalan */}
-        <motion.section
+        <m.section
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-24px' }}
@@ -814,7 +815,7 @@ export default function StatsScreen() {
           aria-label="Streak berjalan"
         >
           <div className="flex items-center gap-4 rounded-[20px] border border-[#4A3B3214] bg-[#4A3B32] p-4 shadow-soft">
-            <motion.span
+            <m.span
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#749B58]/20"
               animate={{ scale: [1, 1.08, 1] }}
               transition={{
@@ -824,7 +825,7 @@ export default function StatsScreen() {
               }}
             >
               <Flame className="h-6 w-6 text-[#A3C489]" />
-            </motion.span>
+            </m.span>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F5F3EE]/70">
                 Streak Berjalan
@@ -848,7 +849,7 @@ export default function StatsScreen() {
               </p>
             </div>
           </div>
-        </motion.section>
+        </m.section>
       </div>
     </TooltipProvider>
   )

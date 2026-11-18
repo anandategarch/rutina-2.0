@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion, useInView } from 'motion/react'
+import { useInView } from 'motion/react'
+import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
 import { dayCounts, todayISO, useRutina } from './store'
@@ -52,7 +53,7 @@ export default function Heatmap() {
   const selCount = selEntry?.count ?? 0
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
@@ -126,6 +127,6 @@ export default function Heatmap() {
           Banyak
         </span>
       </div>
-    </motion.div>
+    </m.div>
   )
 }

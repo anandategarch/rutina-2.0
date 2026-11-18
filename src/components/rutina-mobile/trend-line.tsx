@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { motion, useInView } from 'motion/react'
+import { useInView } from 'motion/react'
+import * as m from 'motion/react-m'
 import { animate } from 'animejs'
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
@@ -106,7 +107,7 @@ export default function TrendLine() {
         : 'stabil seperti pekan lalu'
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-24px' }}
@@ -146,7 +147,7 @@ export default function TrendLine() {
             <stop offset="100%" stopColor="#A3C489" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <motion.path
+        <m.path
           d={AREA_PATH}
           fill="url(#activityGrad)"
           initial={{ opacity: 0 }}
@@ -163,7 +164,7 @@ export default function TrendLine() {
           strokeLinecap="round"
         />
         {POINTS.map((p, i) => (
-          <motion.circle
+          <m.circle
             key={i}
             cx={p.x}
             cy={p.y}
@@ -199,6 +200,6 @@ export default function TrendLine() {
       <p className="mt-3 text-[11px] font-medium text-[#F5F3EE]/70">
         Rata-rata {fmt1(avg)} misi/hari pekan ini — {compareLabel}.
       </p>
-    </motion.div>
+    </m.div>
   )
 }

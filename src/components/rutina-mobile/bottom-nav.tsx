@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 import { BarChart3, BookOpen, Home, User, Wallet } from 'lucide-react'
 import { useRutina, type Screen } from './store'
 import { CONTENT_W } from './layout-widths'
@@ -39,14 +39,14 @@ export function BottomNav() {
               className="relative flex h-[58px] cursor-pointer flex-col items-center justify-center gap-0.5 transition-transform duration-150 active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
             >
               {active && (
-                <motion.span
+                <m.span
                   layoutId="nav-pill"
                   aria-hidden="true"
                   className="absolute inset-x-3 inset-y-[6px] rounded-full bg-[#E4EFE0]"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
-              <motion.span
+              <m.span
                 aria-hidden="true"
                 className="relative z-10 flex"
                 animate={{ y: active ? -1 : 0, scale: active ? 1.08 : 1 }}
@@ -58,7 +58,7 @@ export function BottomNav() {
                   }`}
                   strokeWidth={active ? 2.4 : 2}
                 />
-              </motion.span>
+              </m.span>
               <span
                 className={`relative z-10 text-[11px] font-bold transition-colors duration-300 ${
                   active ? 'text-[#658A4C]' : 'text-[#4A3B32]/60'

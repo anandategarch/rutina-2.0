@@ -13,12 +13,16 @@
 
 import { useRef, type CSSProperties, type ReactNode } from 'react'
 import {
-  motion,
   useInView,
   type Variants,
 } from 'motion/react'
+import * as m from 'motion/react-m'
 
 import { cn } from '@/lib/utils'
+
+/* Tipe margin useInView (template literal) — tidak diekspor publik,
+   jadi diturunkan dari signature fungsi. */
+type InViewMargin = NonNullable<Parameters<typeof useInView>[1]>['margin']
 
 /* ------------------------------------------------------------------ */
 /* BlurFade — reveal blur-ke-fokus saat elemen masuk viewport.         */
@@ -38,7 +42,7 @@ interface BlurFadeProps {
   /** Aktifkan pemicu scroll (sekali jalan). */
   inView?: boolean
   /** Margin root useInView. */
-  inViewMargin?: string
+  inViewMargin?: InViewMargin
   /** Kekuatan blur awal. */
   blur?: string
 }
@@ -70,7 +74,7 @@ export function BlurFade({
   const visible = { [axis]: 0, opacity: 1, filter: 'blur(0px)' } as const
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       initial={hidden}
       animate={show ? visible : hidden}
@@ -78,7 +82,7 @@ export function BlurFade({
       className={className}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -125,7 +129,9 @@ export function ShineBorder({
         } as CSSProperties
       }
       className={cn(
-        'pointer-events-none absolute inset-0 size-full rounded-[inherit] will-change-[background-position] motion-safe:animate-shine',
+        /* Tanpa will-change — hindari promosi lapisan permanen untuk
+           animasi kecil berulang; biarkan komposit menilai sendiri. */
+        'pointer-events-none absolute inset-0 size-full rounded-[inherit] motion-safe:animate-shine',
         className,
       )}
     />
@@ -173,7 +179,7 @@ export function SplitText({
   const show = !inView || inViewResult
 
   return (
-    <motion.span
+    <m.span
       ref={ref}
       variants={letterParent}
       initial="hidden"
@@ -182,21 +188,26 @@ export function SplitText({
       aria-label={text}
     >
       {text.split('').map((c, i) => (
-        <motion.span
+        <m.span
           key={i}
           variants={letter}
           className={cn('inline-block will-change-transform', letterClassName)}
         >
           {c === ' ' ? '\u00A0' : c}
-        </motion.span>
+        </m.span>
       ))}
-    </motion.span>
+    </m.span>
   )
 }
 
 /* ------------------------------------------------------------------ */
 /* Spotlight — sorotan radial mengikuti kursor/sentuhan di dalam       */
 /* kartu. Sumber: cult-ui "SpotlightCard" (7.5k ★) & magicui Spotlight */
+/*                                                                     */
+/* Perf: bounds diukur SEKALI saat pointerenter (cache di ref), lalu   */
+/* pointermove hanya menulis CSS variables — tanpa getBoundingClientRect */
+/* per gerakan. Efek visual tetap terbatas pada perangkat hover        */
+/* (group-hover), sehingga perangkat sentuh tidak memicu apa pun.      */
 /* ------------------------------------------------------------------ */
 
 interface SpotlightProps {
@@ -215,19 +226,35 @@ export function Spotlight({
   size = 220,
 }: SpotlightProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const boundsRef = useRef<{ left: number; top: number } | null>(null)
 
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onEnter = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = ref.current
     if (!el) return
     const r = el.getBoundingClientRect()
+    boundsRef.current = { left: r.left, top: r.top }
     el.style.setProperty('--spot-x', `${e.clientX - r.left}px`)
     el.style.setProperty('--spot-y', `${e.clientY - r.top}px`)
+  }
+
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current
+    const b = boundsRef.current
+    if (!el || !b) return
+    el.style.setProperty('--spot-x', `${e.clientX - b.left}px`)
+    el.style.setProperty('--spot-y', `${e.clientY - b.top}px`)
+  }
+
+  const onLeave = () => {
+    boundsRef.current = null
   }
 
   return (
     <div
       ref={ref}
+      onPointerEnter={onEnter}
       onPointerMove={onMove}
+      onPointerLeave={onLeave}
       className={cn('group/spot relative overflow-hidden rounded-[inherit]', className)}
     >
       <div

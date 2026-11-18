@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { useScroll, useTransform } from 'motion/react'
+import * as m from 'motion/react-m'
 import { animate } from 'animejs'
 import {
   Archive,
@@ -288,7 +289,7 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
           strokeOpacity="0.25"
           strokeWidth="8"
         />
-        <motion.circle
+        <m.circle
           cx="48"
           cy="48"
           r="40"
@@ -440,7 +441,7 @@ export default function HomeScreen() {
       <DateStrip />
 
       {/* 1 — Hero: ringkasan harian + cincin target + progres XP */}
-      <motion.section
+      <m.section
         style={{ y: heroY, opacity: heroOpacity }}
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
@@ -479,7 +480,7 @@ export default function HomeScreen() {
           </div>
 
           <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#FAF9F6]/25">
-            <motion.div
+            <m.div
               initial={false}
               className="h-full rounded-full bg-[#FAF9F6]"
               animate={{ width: `${pct}%` }}
@@ -494,7 +495,7 @@ export default function HomeScreen() {
               <Counter to={xp} /> XP
             </span>
             <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#FAF9F6]/20">
-              <motion.span
+              <m.span
                 initial={false}
                 className="block h-full rounded-full bg-gradient-to-r from-[#A3C489] to-[#FAF9F6]"
                 animate={{ width: `${xpProgress * 100}%` }}
@@ -515,10 +516,10 @@ export default function HomeScreen() {
             Catatan Baru
           </Button>
         </div>
-      </motion.section>
+      </m.section>
 
       {/* 2 — Bonus harian (klaim XP) */}
-      <motion.section
+      <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
@@ -539,7 +540,7 @@ export default function HomeScreen() {
               : 'border-dashed border-[#749B58]/45 bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(116,155,88,0.18)]')
           }
         >
-          <motion.span
+          <m.span
             aria-hidden="true"
             className={
               'flex h-11 w-11 shrink-0 items-center justify-center rounded-full ' +
@@ -563,7 +564,7 @@ export default function HomeScreen() {
                 <Gift className="h-5 w-5" strokeWidth={1.9} />
               )}
             </span>
-          </motion.span>
+          </m.span>
           <span className="min-w-0 flex-1">
             <span className="block text-[14px] font-bold text-[#231F1E]">
               {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
@@ -580,7 +581,7 @@ export default function HomeScreen() {
             </span>
           )}
         </button>
-      </motion.section>
+      </m.section>
 
       {/* 2.5 — Kartu stempel pekan (pola punch card, histori nyata) */}
       <PunchCard />
@@ -627,7 +628,7 @@ export default function HomeScreen() {
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {dayHabits.map((h: Habit, i) => (
-            <motion.div
+            <m.div
               key={h.id}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -650,7 +651,7 @@ export default function HomeScreen() {
                 onExpand={() => toggleExpandedTask(h.id)}
                 onEdit={() => openHabitEdit(h.id)}
               />
-            </motion.div>
+            </m.div>
           ))}
         </div>
 
@@ -689,17 +690,17 @@ export default function HomeScreen() {
                 <Archive className="h-3.5 w-3.5" />
                 Arsip · {archivedHabits.length} kebiasaan
               </span>
-              <motion.span
+              <m.span
                 aria-hidden="true"
                 animate={{ rotate: showArchive ? 180 : 0 }}
                 transition={{ duration: 0.25 }}
                 className="text-[#4A3B32]/50"
               >
                 <ChevronDown className="h-4 w-4" />
-              </motion.span>
+              </m.span>
             </button>
             {showArchive && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
@@ -742,7 +743,7 @@ export default function HomeScreen() {
                     </button>
                   </div>
                 ))}
-              </motion.div>
+              </m.div>
             )}
           </div>
         )}
@@ -776,7 +777,7 @@ export default function HomeScreen() {
                     : 'Pribadi'
             const count = folderCount(notes, key)
             return (
-              <motion.div
+              <m.div
                 key={key}
                 role="button"
                 tabIndex={0}
@@ -824,14 +825,14 @@ export default function HomeScreen() {
                     {count} Catatan
                   </span>
                 </span>
-              </motion.div>
+              </m.div>
             )
           })}
         </div>
       </section>
 
       {/* 6 — Kartu Kutipan & Pengingat (pembatas visual) */}
-      <motion.section
+      <m.section
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
@@ -870,7 +871,7 @@ export default function HomeScreen() {
             {quoteSaved ? 'Tersimpan di Jurnal' : 'Simpan ke Jurnal'}
           </Button>
         </div>
-      </motion.section>
+      </m.section>
     </div>
   )
 }

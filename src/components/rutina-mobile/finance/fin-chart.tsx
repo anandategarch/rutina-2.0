@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 import { EXPENSE, INCOME } from './cats'
 import type { PeriodPoint } from './utils'
 
@@ -63,7 +63,7 @@ export function FinChart({
                 className="relative flex items-end justify-center gap-[3px]"
                 style={{ height: TRACK_H }}
               >
-                <motion.span
+                <m.span
                   aria-hidden="true"
                   initial={{ height: BAR_MIN }}
                   animate={{ height: h(p.masuk) }}
@@ -78,7 +78,7 @@ export function FinChart({
                     isOn ? 'opacity-100' : 'opacity-45'
                   }`}
                 />
-                <motion.span
+                <m.span
                   aria-hidden="true"
                   initial={{ height: BAR_MIN }}
                   animate={{ height: h(p.keluar) }}
@@ -103,7 +103,7 @@ export function FinChart({
               >
                 {p.label}
                 {isOn && (
-                  <motion.span
+                  <m.span
                     aria-hidden="true"
                     layoutId="fin-underline"
                     className="absolute bottom-0 h-[3px] w-5 rounded-full bg-[#D9B98C]"

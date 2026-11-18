@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, useDragControls } from 'motion/react'
+import { AnimatePresence, useDragControls } from 'motion/react'
+import * as m from 'motion/react-m'
 import { CheckCircle2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -82,7 +83,7 @@ export function ContributeGoalSheet() {
     <AnimatePresence>
       {open && goal && (
         <>
-          <motion.div
+          <m.div
             key="backdrop"
             aria-hidden="true"
             onClick={closeGoalSheet}
@@ -92,7 +93,7 @@ export function ContributeGoalSheet() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           />
-          <motion.div
+          <m.div
             key="panel"
             ref={panelRef}
             role="dialog"
@@ -196,7 +197,7 @@ export function ContributeGoalSheet() {
                     </span>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#4A3B32]/10">
-                    <motion.div
+                    <m.div
                       className="h-full rounded-full bg-gradient-to-r from-[#749B58] to-[#A3C489]"
                       initial={false}
                       animate={{ width: `${afterPct}%` }}
@@ -229,7 +230,7 @@ export function ContributeGoalSheet() {
                 </Button>
               )}
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

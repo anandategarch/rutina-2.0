@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion, useDragControls } from 'motion/react'
+import { AnimatePresence, useDragControls } from 'motion/react'
+import * as m from 'motion/react-m'
 import { PenLine } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -72,7 +73,7 @@ export function ComposeSheet() {
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="backdrop"
             aria-hidden="true"
             onClick={closeCompose}
@@ -82,7 +83,7 @@ export function ComposeSheet() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           />
-          <motion.div
+          <m.div
             key="panel"
             ref={panelRef}
             role="dialog"
@@ -194,7 +195,7 @@ export function ComposeSheet() {
                 Simpan
               </Button>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

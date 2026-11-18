@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 import { BadgeCheck, Leaf, Sparkles } from 'lucide-react'
 
 import {
@@ -61,7 +61,7 @@ export function PunchCard() {
   const perfect = stampedCount === 7
 
   return (
-    <motion.section
+    <m.section
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
@@ -90,7 +90,7 @@ export function PunchCard() {
           </p>
         </div>
         {perfect && (
-          <motion.span
+          <m.span
             initial={{ scale: 0.5, rotate: -8, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 16 }}
@@ -98,7 +98,7 @@ export function PunchCard() {
           >
             <Sparkles className="h-3 w-3" />
             Sempurna
-          </motion.span>
+          </m.span>
         )}
       </div>
 
@@ -114,7 +114,7 @@ export function PunchCard() {
         {days.map((d, i) => (
           <div key={d.key} className="flex flex-col items-center gap-1.5">
             {/* Lubang: stempel = lingkaran berisi daun; kosong = putus-putus */}
-            <motion.div
+            <m.div
               aria-hidden="true"
               initial={false}
               animate={
@@ -140,7 +140,7 @@ export function PunchCard() {
               ) : (
                 <Leaf className="h-4 w-4 text-[#4A3B32]/15" strokeWidth={2} />
               )}
-            </motion.div>
+            </m.div>
             <span
               className={
                 'text-[10px] font-bold uppercase leading-tight tracking-tight ' +
@@ -156,6 +156,6 @@ export function PunchCard() {
           </div>
         ))}
       </div>
-    </motion.section>
+    </m.section>
   )
 }

@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
-  motion,
   useDragControls,
   type Variants,
 } from 'motion/react'
+import * as m from 'motion/react-m'
 import { Delete } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -111,7 +111,7 @@ export function AddTxSheet() {
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="backdrop"
             aria-hidden="true"
             onClick={closeTxSheet}
@@ -121,7 +121,7 @@ export function AddTxSheet() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           />
-          <motion.div
+          <m.div
             key="panel"
             ref={panelRef}
             role="dialog"
@@ -185,7 +185,7 @@ export function AddTxSheet() {
                     }`}
                   >
                     {on && (
-                      <motion.span
+                      <m.span
                         aria-hidden="true"
                         layoutId="tx-type-pill"
                         className="absolute inset-0 z-[-1] rounded-full bg-white shadow-[0_2px_10px_rgba(74,59,50,0.16)]"
@@ -218,7 +218,7 @@ export function AddTxSheet() {
                 Kategori
               </span>
               <AnimatePresence mode="wait" custom={gridDir} initial={false}>
-                <motion.div
+                <m.div
                   key={type}
                   custom={gridDir}
                   variants={gridSwap}
@@ -256,7 +256,7 @@ export function AddTxSheet() {
                       </button>
                     )
                   })}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             </div>
 
@@ -282,7 +282,7 @@ export function AddTxSheet() {
             <div className="mt-4 grid grid-cols-3 gap-2">
               {KEYS.map((k) =>
                 k === 'back' ? (
-                  <motion.button
+                  <m.button
                     key={k}
                     type="button"
                     onClick={() => press(k)}
@@ -291,9 +291,9 @@ export function AddTxSheet() {
                     className="flex h-11 cursor-pointer items-center justify-center rounded-2xl bg-[#EAE5D9] text-[#4A3B32] transition-colors hover:bg-[#E4EFE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#749B58]"
                   >
                     <Delete className="h-5 w-5" />
-                  </motion.button>
+                  </m.button>
                 ) : (
-                  <motion.button
+                  <m.button
                     key={k}
                     type="button"
                     onClick={() => press(k)}
@@ -305,7 +305,7 @@ export function AddTxSheet() {
                     }`}
                   >
                     {k}
-                  </motion.button>
+                  </m.button>
                 ),
               )}
             </div>
@@ -329,7 +329,7 @@ export function AddTxSheet() {
                 Simpan Transaksi
               </Button>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

@@ -16,7 +16,7 @@
  */
 
 import type { ComponentType, ReactNode } from 'react'
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 import {
   BarChart3,
   BookOpen,
@@ -54,14 +54,14 @@ function Word({
 }) {
   return (
     <span className="-mb-1 block overflow-hidden pb-1">
-      <motion.span
+      <m.span
         className={`block ${className}`}
         initial={{ y: '112%' }}
         animate={{ y: '0%' }}
         transition={{ delay, duration: 0.85, ease: EASE }}
       >
         {children}
-      </motion.span>
+      </m.span>
     </span>
   )
 }
@@ -83,13 +83,13 @@ function FloatWidget({
   iconClass: string
 }) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 24, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay, type: 'spring', stiffness: 220, damping: 18 }}
       style={{ rotate: tilt }}
     >
-      <motion.div
+      <m.div
         animate={{ y: [0, -8, 0] }}
         transition={{
           duration: 3.6 + delay,
@@ -112,8 +112,8 @@ function FloatWidget({
             {label}
           </span>
         </span>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   )
 }
 
@@ -128,7 +128,7 @@ function FeatureRow({
   delay: number
 }) {
   return (
-    <motion.li
+    <m.li
       initial={{ opacity: 0, x: -14 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay, duration: 0.5, ease: EASE }}
@@ -139,7 +139,7 @@ function FeatureRow({
       </span>
       <Icon className="h-4 w-4 shrink-0 text-[#4A3B32]/45" strokeWidth={2} />
       {children}
-    </motion.li>
+    </m.li>
   )
 }
 
@@ -156,7 +156,7 @@ function BrandPanel() {
       </div>
 
       {/* Kepala panel */}
-      <motion.header
+      <m.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: EASE }}
@@ -169,7 +169,7 @@ function BrandPanel() {
           <Leaf className="h-3 w-3" />
           Earth Tone Edition
         </span>
-      </motion.header>
+      </m.header>
 
       {/* Cerita utama */}
       <div className="relative">
@@ -182,7 +182,7 @@ function BrandPanel() {
           </Word>
         </h1>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6, ease: EASE }}
@@ -191,10 +191,10 @@ function BrandPanel() {
           Rutina menyatukan misi harian, jurnal refleksi, keuangan, dan
           analitik dalam satu petualangan XP — dirancang tenang dengan
           palet warna bumi.
-        </motion.p>
+        </m.p>
 
         {/* Fakta jujur — tanpa angka pengguna fiktif */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.52, duration: 0.6, ease: EASE }}
@@ -206,7 +206,7 @@ function BrandPanel() {
           <p className="mt-0.5 text-[12.5px] font-medium text-[#4A3B32]/75">
             Data demo tersimpan lokal di perangkatmu.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Daftar fitur — satu per tab aplikasi */}
         <ul className="mt-8 space-y-3">
@@ -225,25 +225,25 @@ function BrandPanel() {
         </ul>
 
         {/* Ajakan mencoba */}
-        <motion.p
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.05, duration: 0.6 }}
           className="mt-9 flex items-center gap-2 text-[13px] font-bold text-[#5E8347]"
         >
           Coba langsung di sebelah
-          <motion.span
+          <m.span
             animate={{ x: [0, 6, 0] }}
             transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
             aria-hidden="true"
           >
             →
-          </motion.span>
-        </motion.p>
+          </m.span>
+        </m.p>
       </div>
 
       {/* Kaki panel — palet lima tab */}
-      <motion.footer
+      <m.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 0.8 }}
@@ -261,7 +261,7 @@ function BrandPanel() {
             />
           ))}
         </div>
-      </motion.footer>
+      </m.footer>
     </aside>
   )
 }

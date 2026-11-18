@@ -3,10 +3,10 @@
 import { useRef } from 'react'
 import {
   AnimatePresence,
-  motion,
   useMotionValue,
   useTransform,
 } from 'motion/react'
+import * as m from 'motion/react-m'
 import {
   Bell,
   CalendarDays,
@@ -70,7 +70,7 @@ export function TaskRow({
   const hintL = useTransform(x, [-60, -10], [0, 1])
 
   return (
-    <motion.div
+    <m.div
       layout
       className={
         'relative overflow-hidden rounded-[16px] border transition-colors duration-300 ' +
@@ -79,36 +79,36 @@ export function TaskRow({
       }
     >
       {/* Lapisan isi (absolut, di belakang konten) */}
-      <motion.div
+      <m.div
         aria-hidden="true"
         style={{ scaleX: fillR }}
         className="absolute inset-0 origin-left bg-[#E4EFE0]"
       />
-      <motion.div
+      <m.div
         aria-hidden="true"
         style={{ scaleX: fillL }}
         className="absolute inset-0 origin-right bg-[#EAE5D9]"
       />
 
       {/* Ikon petunjuk (di belakang konten, muncul di tepi saat menggeser) */}
-      <motion.span
+      <m.span
         aria-hidden="true"
         style={{ opacity: hintR }}
         className="absolute left-3.5 top-1/2 z-0 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#749B58] text-white"
       >
         <Check className="h-4 w-4" strokeWidth={3} />
-      </motion.span>
-      <motion.span
+      </m.span>
+      <m.span
         aria-hidden="true"
         style={{ opacity: hintL }}
         className="absolute right-3.5 top-1/2 z-0 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#4A3B32]/15 text-[#4A3B32]"
       >
         <Undo2 className="h-4 w-4" />
-      </motion.span>
+      </m.span>
 
       {/* Baris konten yang bisa digeser — klik di mana pun (kecuali centang)
           membuka detail kebiasaan. */}
-      <motion.div
+      <m.div
         style={{ x }}
         drag={readOnly ? false : 'x'}
         dragDirectionLock
@@ -147,7 +147,7 @@ export function TaskRow({
         }
       >
         {/* Tombol lingkaran centang — area kontrol terpisah, target sentuh 32px */}
-        <motion.button
+        <m.button
           type="button"
           disabled={readOnly}
           onClick={(e) => {
@@ -168,7 +168,7 @@ export function TaskRow({
                 : 'border-[#4A3B3240] text-transparent hover:border-[#749B58]/60')
           }
         >
-          <motion.span
+          <m.span
             key={String(done)}
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -177,8 +177,8 @@ export function TaskRow({
             className="flex"
           >
             <Check className="h-4 w-4" strokeWidth={3} />
-          </motion.span>
-        </motion.button>
+          </m.span>
+        </m.button>
 
         {/* Judul kebiasaan */}
         <span
@@ -219,18 +219,18 @@ export function TaskRow({
         )}
 
         {/* Chevron detail */}
-        <motion.span
+        <m.span
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
           className="shrink-0 text-[#4A3B32]/40"
         >
           <ChevronDown className="h-4 w-4" />
-        </motion.span>
+        </m.span>
 
         {/* XP pop — mengambang naik saat kebiasaan baru selesai */}
         <AnimatePresence>
           {done && typeof xp === 'number' && !readOnly && (
-            <motion.span
+            <m.span
               key="xp-pop"
               aria-hidden="true"
               initial={{ opacity: 0, y: 6 }}
@@ -240,15 +240,15 @@ export function TaskRow({
               className="pointer-events-none absolute right-12 top-1/2 text-[11px] font-bold text-[#658A4C]"
             >
               +{xp} XP
-            </motion.span>
+            </m.span>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
 
       {/* Detail yang bisa dibuka-tutup */}
       <AnimatePresence initial={false}>
         {expanded && (
-          <motion.section
+          <m.section
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -350,9 +350,9 @@ export function TaskRow({
                 )}
               </div>
             </div>
-          </motion.section>
+          </m.section>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   )
 }

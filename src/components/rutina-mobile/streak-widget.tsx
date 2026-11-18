@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'motion/react'
+import * as m from 'motion/react-m'
 import { Flame } from 'lucide-react'
 
 import { Counter } from './counter'
@@ -19,7 +19,7 @@ export function StreakWidget() {
   const streak = best.streak
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-20px' }}
@@ -56,6 +56,6 @@ export function StreakWidget() {
           <Flame className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </span>
       </div>
-    </motion.div>
+    </m.div>
   )
 }
