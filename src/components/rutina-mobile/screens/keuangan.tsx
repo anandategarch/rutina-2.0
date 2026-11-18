@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { animate } from 'animejs'
 import {
   AnimatePresence,
-  motion,
   useSpring,
   type Variants,
 } from 'motion/react'
+import * as m from 'motion/react-m'
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -54,7 +54,7 @@ import {
   fmtDate,
   formatIDR,
   formatIDRShort,
-  PERIOD_SCOPE,
+  periodScope,
   spentByCat,
 } from '../finance/utils'
 
@@ -86,7 +86,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
 
   return (
     <Spotlight className="w-[188px] shrink-0 snap-start rounded-[22px]">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: EASE, delay: index * 0.07 }}
@@ -104,7 +104,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
               strokeOpacity="0.14"
               strokeWidth="5"
             />
-            <motion.circle
+            <m.circle
               cx="28"
               cy="28"
               r={R}
@@ -152,7 +152,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
           Tambah
         </button>
       )}
-      </motion.div>
+      </m.div>
     </Spotlight>
   )
 }
@@ -167,7 +167,7 @@ function TxRow({ tx }: { tx: Tx }) {
   const Icon = CAT_META[tx.cat].icon
 
   return (
-    <motion.div
+    <m.div
       layout
       initial={{ opacity: 0, y: 16, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -175,7 +175,7 @@ function TxRow({ tx }: { tx: Tx }) {
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       className="overflow-hidden rounded-[16px] bg-[#FAF9F6] text-[#231F1E] shadow-ink"
     >
-      <motion.button
+      <m.button
         type="button"
         whileTap={{ scale: 0.99 }}
         onClick={() => toggleExpandedTx(tx.id)}
@@ -208,19 +208,19 @@ function TxRow({ tx }: { tx: Tx }) {
           {income ? '+' : '−'}
           {formatIDR(tx.amount)}
         </span>
-        <motion.span
+        <m.span
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.25 }}
           className="shrink-0 text-[#4A3B32]/40"
         >
           <ChevronDown className="h-4 w-4" />
-        </motion.span>
-      </motion.button>
+        </m.span>
+      </m.button>
 
       <AnimatePresence initial={false}>
         {expanded && (
-          <motion.section
+          <m.section
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -304,10 +304,10 @@ function TxRow({ tx }: { tx: Tx }) {
                 </Button>
               </div>
             </div>
-          </motion.section>
+          </m.section>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -346,7 +346,7 @@ function SaldoCard({
   }
 
   return (
-    <motion.div
+    <m.div
       role="button"
       tabIndex={0}
       aria-label={`Dompet Rutina Vault, saldo ${formatIDR(saldo)}. Ketuk untuk menambah transaksi.`}
@@ -412,7 +412,7 @@ function SaldoCard({
           </p>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   )
 }
 
@@ -504,7 +504,7 @@ export default function KeuanganScreen() {
         {/* ===== Kepala: dompet saldo gelap + FAB tambah ===== */}
         <BlurFade>
           <div className="relative">
-            <motion.button
+            <m.button
               type="button"
               onClick={openTxSheet}
               whileTap={{ scale: 0.88 }}
@@ -512,7 +512,7 @@ export default function KeuanganScreen() {
               className="absolute -top-3 right-4 z-20 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-[#D9B98C] text-[#4A3B32] shadow-gold transition-colors hover:bg-[#E9D5B8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D9B98C]"
             >
               <Plus className="h-5 w-5" strokeWidth={2.6} />
-            </motion.button>
+            </m.button>
             <SaldoCard
               saldo={saldo}
               txCount={txCount}
@@ -554,7 +554,7 @@ export default function KeuanganScreen() {
               Arus Kas
             </h2>
             <span className="text-[11px] font-medium tabular-nums text-[#4A3B32]/70">
-              {PERIOD_SCOPE[finPeriod]}
+              {periodScope(finPeriod)}
             </span>
           </div>
 
@@ -577,7 +577,7 @@ export default function KeuanganScreen() {
                   }`}
                 >
                   {on && (
-                    <motion.span
+                    <m.span
                       aria-hidden="true"
                       layoutId="fin-period"
                       className="absolute inset-0 z-[-1] rounded-full bg-[#231F1E]"
@@ -602,7 +602,7 @@ export default function KeuanganScreen() {
                 Masuk
                 <span className="relative ml-0.5 inline-flex overflow-hidden">
                   <AnimatePresence mode="wait" initial={false}>
-                    <motion.span
+                    <m.span
                       key={`${finPeriod}-${active}-m`}
                       initial={{ y: 10, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
@@ -611,7 +611,7 @@ export default function KeuanganScreen() {
                       className="font-bold tabular-nums text-[#658A4C]"
                     >
                       +{formatIDRShort(pt.masuk)}
-                    </motion.span>
+                    </m.span>
                   </AnimatePresence>
                 </span>
               </span>
@@ -624,7 +624,7 @@ export default function KeuanganScreen() {
                 Keluar
                 <span className="relative ml-0.5 inline-flex overflow-hidden">
                   <AnimatePresence mode="wait" initial={false}>
-                    <motion.span
+                    <m.span
                       key={`${finPeriod}-${active}-k`}
                       initial={{ y: 10, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
@@ -633,7 +633,7 @@ export default function KeuanganScreen() {
                       className="font-bold tabular-nums text-[#C25F3D]"
                     >
                       −{formatIDRShort(pt.keluar)}
-                    </motion.span>
+                    </m.span>
                   </AnimatePresence>
                 </span>
               </span>
@@ -664,7 +664,7 @@ export default function KeuanganScreen() {
           {/* Batang total */}
           <div className="mt-3">
             <div className="h-2.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
-              <motion.div
+              <m.div
                 initial={{ width: '0%' }}
                 animate={{ width: `${totalPct}%` }}
                 transition={{ type: 'spring', stiffness: 110, damping: 21 }}
@@ -678,7 +678,7 @@ export default function KeuanganScreen() {
           </div>
 
           {/* Baris per kategori — stagger mandiri (varian diorkestrasi lokal) */}
-          <motion.div
+          <m.div
             variants={rowStagger}
             initial="hidden"
             animate="show"
@@ -692,7 +692,7 @@ export default function KeuanganScreen() {
               const Icon = CAT_META[b.cat].icon
               const barColor = over ? '#B25E3F' : warn ? '#C7A17A' : '#749B58'
               return (
-                <motion.div key={b.cat} variants={rowItem} className="flex items-center gap-3">
+                <m.div key={b.cat} variants={rowItem} className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4A3B32]/8 text-[#4A3B32]/85">
                     <Icon className="h-5 w-5" strokeWidth={2} />
                   </span>
@@ -709,7 +709,7 @@ export default function KeuanganScreen() {
                       </span>
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#4A3B32]/10">
-                      <motion.div
+                      <m.div
                         initial={{ width: '0%' }}
                         animate={{ width: `${Math.min(100, pct)}%` }}
                         transition={{ type: 'spring', stiffness: 110, damping: 21 }}
@@ -729,10 +729,10 @@ export default function KeuanganScreen() {
                         : `Sisa ${formatIDRShort(b.limit - used)} bulan ini`}
                     </p>
                   </div>
-                </motion.div>
+                </m.div>
               )
             })}
-          </motion.div>
+          </m.div>
         </BlurFade>
 
         {/* ===== Tujuan tabungan ===== */}
@@ -805,7 +805,7 @@ export default function KeuanganScreen() {
                 <TxRow key={tx.id} tx={tx} />
               ))}
               {filtered.length === 0 && (
-                <motion.div
+                <m.div
                   key="fin-empty"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -818,9 +818,9 @@ export default function KeuanganScreen() {
                     Belum ada transaksi
                   </p>
                   <p className="mt-0.5 text-[11.5px] text-[#4A3B32]/60">
-                    pada periode {PERIOD_SCOPE[finPeriod].toLowerCase()}
+                    pada periode {periodScope(finPeriod).toLowerCase()}
                   </p>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </div>

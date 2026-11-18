@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 /* ===== Tipe & data demo (deterministik, tanpa Math.random) ===== */
 
@@ -547,11 +548,15 @@ export interface Goal {
   saved: number
 }
 
-/** "Hari ini" versi demo — transaksi baru dicap tanggal ini
- *  agar selalu masuk ke pekan berjalan (16–22 Jun). */
-export const TODAY_FIN = '2025-06-20'
+/** "Hari ini" finansial — SELALU tanggal nyata saat transaksi dibuat.
+ *  (Sebelumnya konstanta demo 2025-06-20 yang membuat data baru berjarak
+ *  berbulan-bulan dari hari aktual; lihat finance/utils.ts untuk jendela
+ *  periode yang kini juga dihitung relatif terhadap hari ini.) */
+export function todayFinISO(): string {
+  return todayISO()
+}
 
-/** Anggaran bulanan per kategori (Juni) — statis, hanya dibaca. */
+/** Anggaran bulanan per kategori — statis, hanya dibaca. */
 export const BUDGETS: { cat: FinCat; limit: number }[] = [
   { cat: 'makan', limit: 750_000 },
   { cat: 'transport', limit: 400_000 },
@@ -561,30 +566,37 @@ export const BUDGETS: { cat: FinCat; limit: number }[] = [
   { cat: 'kesehatan', limit: 200_000 },
 ]
 
-const SEED_TXS: Tx[] = [
-  // Pemasukan
-  { id: 'f-in-1', type: 'masuk', cat: 'gaji', amount: 8_500_000, note: 'Gaji bulan Juni', ts: '2025-06-01' },
-  { id: 'f-in-2', type: 'masuk', cat: 'proyek', amount: 1_250_000, note: 'Desain logo klien', ts: '2025-06-14' },
-  { id: 'f-in-3', type: 'masuk', cat: 'bonus', amount: 300_000, note: 'Referral proyek', ts: '2025-06-20' },
-  // Pengeluaran — P1 & P2
-  { id: 'f-ex-1', type: 'keluar', cat: 'makan', amount: 45_000, note: 'Sarapan oatmeal & kopi', ts: '2025-06-02' },
-  { id: 'f-ex-2', type: 'keluar', cat: 'transport', amount: 25_000, note: 'Ojek ke kantor', ts: '2025-06-03' },
-  { id: 'f-ex-3', type: 'keluar', cat: 'hiburan', amount: 54_000, note: 'Langganan streaming', ts: '2025-06-04' },
-  { id: 'f-ex-4', type: 'keluar', cat: 'tagihan', amount: 350_000, note: 'Token listrik', ts: '2025-06-05' },
-  { id: 'f-ex-5', type: 'keluar', cat: 'belanja', amount: 425_000, note: 'Belanja mingguan', ts: '2025-06-06' },
-  { id: 'f-ex-6', type: 'keluar', cat: 'makan', amount: 128_000, note: 'Makan malam keluarga', ts: '2025-06-08' },
-  { id: 'f-ex-7', type: 'keluar', cat: 'kesehatan', amount: 75_000, note: 'Vitamin & suplemen', ts: '2025-06-09' },
-  { id: 'f-ex-8', type: 'keluar', cat: 'transport', amount: 60_000, note: 'Isi bensin', ts: '2025-06-10' },
-  { id: 'f-ex-9', type: 'keluar', cat: 'makan', amount: 32_000, note: 'Nasi goreng bangka', ts: '2025-06-11' },
-  { id: 'f-ex-10', type: 'keluar', cat: 'hiburan', amount: 120_000, note: 'Tiket bioskop', ts: '2025-06-12' },
-  { id: 'f-ex-11', type: 'keluar', cat: 'belanja', amount: 189_000, note: 'Buku & alat tulis', ts: '2025-06-13' },
-  // Pengeluaran — pekan berjalan (P3)
-  { id: 'f-ex-12', type: 'keluar', cat: 'makan', amount: 52_000, note: 'Kopi & roti pagi', ts: '2025-06-16' },
-  { id: 'f-ex-13', type: 'keluar', cat: 'transport', amount: 18_000, note: 'KRL ke kantor', ts: '2025-06-17' },
-  { id: 'f-ex-14', type: 'keluar', cat: 'makan', amount: 65_000, note: 'Makan siang tim', ts: '2025-06-18' },
-  { id: 'f-ex-15', type: 'keluar', cat: 'hiburan', amount: 45_000, note: 'Arcade sore', ts: '2025-06-19' },
-  { id: 'f-ex-16', type: 'keluar', cat: 'makan', amount: 38_000, note: 'Es kopi sore', ts: '2025-06-20' },
-]
+const SEED_TXS: Tx[] = (() => {
+  /* Tanggal relatif terhadap HARI INI — data demo selalu segar: pekan
+     berjalan selalu terisi, filter periode tidak pernah kedaluwarsa. */
+  const t = todayISO()
+  const d = (back: number) => addDaysISO(t, -back)
+  const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(fromISO(t))
+  return [
+    // Pemasukan — gaji di awal bulan berjalan, sisanya relatif pekan ini
+    { id: 'f-in-1', type: 'masuk', cat: 'gaji', amount: 8_500_000, note: `Gaji bulan ${monthName}`, ts: t.slice(0, 8) + '01' },
+    { id: 'f-in-2', type: 'masuk', cat: 'proyek', amount: 1_250_000, note: 'Desain logo klien', ts: d(6) },
+    { id: 'f-in-3', type: 'masuk', cat: 'bonus', amount: 300_000, note: 'Referral proyek', ts: t },
+    // Pengeluaran — pekan-pekan sebelumnya
+    { id: 'f-ex-1', type: 'keluar', cat: 'makan', amount: 45_000, note: 'Sarapan oatmeal & kopi', ts: d(18) },
+    { id: 'f-ex-2', type: 'keluar', cat: 'transport', amount: 25_000, note: 'Ojek ke kantor', ts: d(17) },
+    { id: 'f-ex-3', type: 'keluar', cat: 'hiburan', amount: 54_000, note: 'Langganan streaming', ts: d(16) },
+    { id: 'f-ex-4', type: 'keluar', cat: 'tagihan', amount: 350_000, note: 'Token listrik', ts: d(15) },
+    { id: 'f-ex-5', type: 'keluar', cat: 'belanja', amount: 425_000, note: 'Belanja mingguan', ts: d(14) },
+    { id: 'f-ex-6', type: 'keluar', cat: 'makan', amount: 128_000, note: 'Makan malam keluarga', ts: d(12) },
+    { id: 'f-ex-7', type: 'keluar', cat: 'kesehatan', amount: 75_000, note: 'Vitamin & suplemen', ts: d(11) },
+    { id: 'f-ex-8', type: 'keluar', cat: 'transport', amount: 60_000, note: 'Isi bensin', ts: d(10) },
+    { id: 'f-ex-9', type: 'keluar', cat: 'makan', amount: 32_000, note: 'Nasi goreng bangka', ts: d(9) },
+    { id: 'f-ex-10', type: 'keluar', cat: 'hiburan', amount: 120_000, note: 'Tiket bioskop', ts: d(8) },
+    { id: 'f-ex-11', type: 'keluar', cat: 'belanja', amount: 189_000, note: 'Buku & alat tulis', ts: d(7) },
+    // Pengeluaran — pekan berjalan
+    { id: 'f-ex-12', type: 'keluar', cat: 'makan', amount: 52_000, note: 'Kopi & roti pagi', ts: d(4) },
+    { id: 'f-ex-13', type: 'keluar', cat: 'transport', amount: 18_000, note: 'KRL ke kantor', ts: d(3) },
+    { id: 'f-ex-14', type: 'keluar', cat: 'makan', amount: 65_000, note: 'Makan siang tim', ts: d(2) },
+    { id: 'f-ex-15', type: 'keluar', cat: 'hiburan', amount: 45_000, note: 'Arcade sore', ts: d(1) },
+    { id: 'f-ex-16', type: 'keluar', cat: 'makan', amount: 38_000, note: 'Es kopi sore', ts: t },
+  ]
+})()
 
 const SEED_GOALS: Goal[] = [
   { id: 'g-1', name: 'Dana Darurat', target: 20_000_000, saved: 13_500_000 },
@@ -637,6 +649,10 @@ interface RutinaState {
   goalSheetId: string | null
   goalDialogOpen: boolean
   expandedTxId: string | null
+  /* Papan sistem desain — overlay spesifikasi visual (UI state, tak dipersist) */
+  boardOpen: boolean
+  openBoard: () => void
+  closeBoard: () => void
   setScreen: (screen: Screen) => void
   setFinPeriod: (p: FinPeriod) => void
   openTxSheet: () => void
@@ -677,7 +693,9 @@ interface RutinaState {
   setDailyGoal: (n: number) => void
 }
 
-export const useRutina = create<RutinaState>((set, get) => ({
+export const useRutina = create<RutinaState>()(
+  persist(
+    (set, get) => ({
   screen: 'beranda',
   prevScreen: 'beranda',
   journalFilter: 'semua',
@@ -705,6 +723,11 @@ export const useRutina = create<RutinaState>((set, get) => ({
   goalSheetId: null,
   goalDialogOpen: false,
   expandedTxId: null,
+  boardOpen: false,
+
+  openBoard: () => set({ boardOpen: true }),
+
+  closeBoard: () => set({ boardOpen: false }),
 
   setScreen: (screen) =>
     set((s) => ({ screen, prevScreen: s.screen })),
@@ -724,7 +747,7 @@ export const useRutina = create<RutinaState>((set, get) => ({
           cat,
           amount,
           note: note.trim(),
-          ts: TODAY_FIN,
+          ts: todayFinISO(),
         },
         ...s.txs,
       ],
@@ -923,4 +946,30 @@ export const useRutina = create<RutinaState>((set, get) => ({
   },
 
   setDailyGoal: (dailyGoal) => set({ dailyGoal }),
-}))
+    }),
+    {
+      /* Persistensi lokal — histori pengguna nyata & permanen di perangkat,
+         selaras dengan janji "data tersimpan di perangkat" pada FAQ Profil. */
+      name: 'rutina-2.0-store',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      /* Rehidrasi manual pasca-mount (pola aman Next.js SSR): HTML server
+         dirender dari seed, lalu state tersimpan dipulihkan di klien —
+         bebas hydration mismatch. RutinaApp memanggil rehydrate(). */
+      skipHydration: true,
+      /* Hanya state domain yang dipersist — state UI sesaat (tab aktif,
+         sheet terbuka, item terkembangi) selalu mulai segar. */
+      partialize: (s) => ({
+        habits: s.habits,
+        completions: s.completions,
+        notes: s.notes,
+        txs: s.txs,
+        goals: s.goals,
+        dailyGoal: s.dailyGoal,
+        mood: s.mood,
+        bonusClaimed: s.bonusClaimed,
+        quoteSaved: s.quoteSaved,
+      }),
+    },
+  ),
+)
