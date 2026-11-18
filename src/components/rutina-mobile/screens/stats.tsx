@@ -5,7 +5,9 @@ import { useInView } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 import {
+  Activity,
   BatteryLow,
+  Dumbbell,
   Flame,
   Laugh,
   Medal,
@@ -16,6 +18,7 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
+  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -36,6 +39,7 @@ import {
   MOODS,
   XP_PER_TASK,
   XP_TARGET,
+  addDaysISO,
   bestStreak,
   computeLevel,
   computeXp,
@@ -50,6 +54,12 @@ import {
   type HabitCat,
 } from '../store'
 import TrendLine from '../trend-line'
+import {
+  cardioSummary,
+  prBoard,
+  tonaseOf,
+  weightSeries,
+} from '../fitness/fit-utils'
 
 import {
   Area,
@@ -110,6 +120,9 @@ export default function StatsScreen() {
   const mood = useRutina((s) => s.mood)
   const setMood = useRutina((s) => s.setMood)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  const workouts = useRutina((s) => s.workouts)
+  const foodEntries = useRutina((s) => s.foodEntries)
+  const bodyLogs = useRutina((s) => s.bodyLogs)
 
   const today = todayISO()
 
@@ -134,6 +147,46 @@ export default function StatsScreen() {
   /* Streak terbaik & rekor dari seluruh kebiasaan aktif. */
   const best = bestStreak(habits, completions, today)
   const activeHabits = habits.filter((h) => !h.archived)
+
+  /* ===== Statistik lintas modul Bugar — semua dari data nyata ===== */
+
+  /* Latihan: sesi & tonase 30 hari, PR terbaik, kardio. */
+  const since30 = addDaysISO(today, -30)
+  const recent = workouts.filter((w) => w.date >= since30)
+  const fitSessions = recent.length
+  const fitTonase = recent.reduce((a, w) => a + tonaseOf(w), 0)
+  const topPr = prBoard(workouts)[0]
+  const cardio = cardioSummary(workouts)
+  /* Asupan: rata-rata kkal/hari dari 7 hari tercatat terakhir. */
+  const kcalByDay = new Map<string, number>()
+  for (const f of foodEntries) {
+    kcalByDay.set(f.date, (kcalByDay.get(f.date) ?? 0) + f.kcal)
+  }
+  const last7Kcal = [...kcalByDay.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .slice(0, 7)
+  const avgKcal =
+    last7Kcal.length > 0
+      ? Math.round(
+          last7Kcal.reduce((a, [, k]) => a + k, 0) / last7Kcal.length,
+        )
+      : 0
+  /* Tubuh: rata-rata tidur/energi/hidrasi 7 hari + delta berat. */
+  const last7Logs = Object.entries(bodyLogs)
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .slice(0, 7)
+  const avgOf = (pick: (v: { sleepH?: number; energy?: number; water: number }) => number | undefined) => {
+    const vals = last7Logs.map(([, v]) => pick(v)).filter((x): x is number => x != null)
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+  }
+  const avgSleep = avgOf((v) => v.sleepH)
+  const avgEnergy = avgOf((v) => v.energy)
+  const avgWater = avgOf((v) => v.water)
+  const wSeries = weightSeries(bodyLogs)
+  const weightDelta =
+    wSeries.length >= 2
+      ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
+      : null
 
   /* Grafik misi selesai: 7 hari terakhir atau 4 pekan (P4 = berjalan). */
   const weekData = dayCounts(completions, today, 7)
@@ -728,6 +781,168 @@ export default function StatsScreen() {
           <Heatmap />
           <TrendLine />
         </div>
+
+        {/* ===== Bugar & Tubuh — statistik lintas modul ===== */}
+        <section className="mt-6" aria-label="Statistik bugar dan tubuh">
+          <SectionTitle title="Bugar & Tubuh" hint="data modul Bugar" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {/* Latihan */}
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, ease: EASE }}
+              className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
+            >
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+                <Dumbbell className="h-3.5 w-3.5 text-[#A3C489]" />
+                Latihan · 30 hari
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[24px] font-semibold leading-none tabular-nums text-[#F5F3EE]">
+                    {fitSessions}
+                  </p>
+                  <p className="mt-1 text-[10.5px] font-bold uppercase tracking-wide text-[#F5F3EE]/60">
+                    sesi
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[24px] font-semibold leading-none tabular-nums text-[#F5F3EE]">
+                    {fitTonase >= 1000
+                      ? `${(fitTonase / 1000).toFixed(1).replace('.', ',')}t`
+                      : Math.round(fitTonase).toLocaleString('id-ID')}
+                  </p>
+                  <p className="mt-1 text-[10.5px] font-bold uppercase tracking-wide text-[#F5F3EE]/60">
+                    kg tonase
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1.5 border-t border-[#F5F3EE]/10 pt-3">
+                {topPr ? (
+                  <p className="text-[11.5px] font-medium text-[#F5F3EE]/80">
+                    PR e1RM: <span className="font-bold">{topPr.name}</span>{' '}
+                    ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
+                  </p>
+                ) : (
+                  <p className="text-[11.5px] font-medium text-[#F5F3EE]/60">
+                    Belum ada PR — catat sesi beban pertamamu.
+                  </p>
+                )}
+                <p className="text-[11.5px] font-medium tabular-nums text-[#F5F3EE]/80">
+                  Kardio: {cardio.km.toFixed(1).replace('.', ',')} km
+                  {cardio.sessions > 0 &&
+                    ` dari ${cardio.sessions} sesi jalan/lari`}
+                </p>
+              </div>
+            </m.div>
+
+            {/* Asupan */}
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+              className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
+            >
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+                <UtensilsCrossed className="h-3.5 w-3.5 text-[#C7A17A]" />
+                Asupan · 7 hari
+              </p>
+              {avgKcal > 0 ? (
+                <>
+                  <p className="mt-3 flex items-baseline gap-1">
+                    <span className="text-[32px] font-semibold leading-none tabular-nums text-[#F5F3EE]">
+                      {avgKcal.toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-[12px] font-semibold text-[#F5F3EE]/70">
+                      kkal/hari
+                    </span>
+                  </p>
+                  <p className="mt-1.5 text-[11px] font-medium text-[#F5F3EE]/60">
+                    rata-rata dari {last7Kcal.length} hari tercatat
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-[11.5px] font-medium leading-relaxed text-[#F5F3EE]/60">
+                  Belum ada jurnal makan — isi di tab Bugar › Asupan untuk
+                  melihat neraca kalori.
+                </p>
+              )}
+            </m.div>
+
+            {/* Tubuh */}
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, delay: 0.12, ease: EASE }}
+              className="rounded-[16px] border border-[#4A3B3214] bg-[#4A3B32] p-5 shadow-soft"
+            >
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5F3EE]/70">
+                <Activity className="h-3.5 w-3.5 text-[#D9B98C]" />
+                Tubuh · 7 hari
+              </p>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="font-medium text-[#F5F3EE]/75">
+                    Tidur rata-rata
+                  </span>
+                  <span className="font-bold tabular-nums text-[#F5F3EE]">
+                    {avgSleep != null
+                      ? `${avgSleep.toFixed(1).replace('.', ',')} jam`
+                      : '–'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="font-medium text-[#F5F3EE]/75">
+                    Energi rata-rata
+                  </span>
+                  <span className="font-bold tabular-nums text-[#F5F3EE]">
+                    {avgEnergy != null
+                      ? `${avgEnergy.toFixed(1).replace('.', ',')}/5`
+                      : '–'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="font-medium text-[#F5F3EE]/75">
+                    Hidrasi rata-rata
+                  </span>
+                  <span className="font-bold tabular-nums text-[#F5F3EE]">
+                    {avgWater != null
+                      ? `${avgWater.toFixed(1).replace('.', ',')}/8 gelas`
+                      : '–'}
+                  </span>
+                </div>
+                {weightDelta != null && (
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="font-medium text-[#F5F3EE]/75">
+                      Berat badan
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 font-bold tabular-nums ${
+                        weightDelta <= 0 ? 'text-[#A3C489]' : 'text-[#E9D5B8]'
+                      }`}
+                    >
+                      {weightDelta <= 0 ? (
+                        <TrendingDown className="h-3 w-3" />
+                      ) : (
+                        <TrendingUp className="h-3 w-3" />
+                      )}
+                      {Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg
+                    </span>
+                  </div>
+                )}
+                {avgSleep == null && avgEnergy == null && (
+                  <p className="text-[11.5px] font-medium leading-relaxed text-[#F5F3EE]/60">
+                    Isi check-in harian di Bugar › Tubuh untuk memantau
+                    pemulihan.
+                  </p>
+                )}
+              </div>
+            </m.div>
+          </div>
+        </section>
 
         {/* Lencana dengan Tooltip */}
         <m.section
