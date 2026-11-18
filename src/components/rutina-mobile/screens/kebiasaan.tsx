@@ -10,11 +10,14 @@ import {
   Check,
   ChevronDown,
   Flame,
+  Link2,
   Pencil,
   Plus,
+  Snowflake,
   Sparkles,
   Sprout,
   Target,
+  Timer,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -80,6 +83,172 @@ function byTime(a: Habit, b: Habit): number {
   return ra === rb ? a.title.localeCompare(b.title) : ra < rb ? -1 : 1
 }
 
+/* ===== Panel Detail Kebiasaan — kolom kanan split-screen desktop ===== */
+
+/**
+ * Panel detail kebiasaan terpilih (hanya desktop xl+): identitas kategori,
+ * metrik cerdas (runtun, capaian pekan, versi 2 menit, susun kebiasaan,
+ * hari jeda), riwayat 30 hari, dan aksi sunting.
+ *
+ * Kebiasaan diterima sebagai PROP — semua penutupan (closure) di dalamnya
+ * hanya menangkap prop, bukan nilai turunan state induk, sehingga aman
+ * bagi React Compiler (pola penutupan over prop sama dengan TaskRow).
+ */
+function HabitDetailPanel({
+  habit,
+  habits,
+  completions,
+  today,
+  onEdit,
+}: {
+  habit: Habit
+  habits: Habit[]
+  completions: Completions
+  today: string
+  onEdit: (id: string) => void
+}) {
+  /* Metrik inti — dihitung dari histori nyata; dipakai di JSX saja. */
+  const streak = habitStreak(habit, completions, today)
+  const weekDone = weekDoneCount(completions, habit.id, today)
+
+  /* Riwayat 30 hari terakhir, tua ke baru. */
+  const history: boolean[] = []
+  for (let i = 29; i >= 0; i--) {
+    history.push(isDoneOn(completions, addDaysISO(today, -i), habit.id))
+  }
+
+  /* Susun kebiasaan — kebiasaan pemicu (bila dipasang). */
+  const afterHabit = habit.afterId
+    ? habits.find((x) => x.id === habit.afterId)
+    : undefined
+
+  return (
+    <m.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: motionTokens.duration.enter,
+        delay: 0.1,
+        ease: motionTokens.easing.standard,
+      }}
+    >
+      <RutinaCard variant="elevated" density="spacious" radius="2xl">
+        <RutinaSectionHeader
+          title={habit.title}
+          eyebrow="Detail kebiasaan"
+          accent
+        />
+
+        {/* Baris identitas — titik warna kategori + labelnya */}
+        <p className="mt-2 flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: HABIT_CAT_COLORS[habit.cat] }}
+          />
+          <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
+            {habit.cat}
+          </span>
+        </p>
+
+        {/* Metrik kebiasaan — angka kunci + wawasan cerdas bila ada */}
+        <div className="mt-5 space-y-4">
+          <RutinaMetric
+            label="Streak saat ini"
+            value={streak}
+            unit="hari"
+            trend={streak > 0 ? 'up' : 'neutral'}
+            caption="hari terjadwal berturut"
+            icon={Flame}
+            iconClassName="bg-primary/15 text-success"
+            size="sm"
+          />
+          <RutinaMetric
+            label="Selesai pekan ini"
+            value={weekDone}
+            unit="kali"
+            caption={`dari ${habit.weeklyTarget} target pekanan`}
+            icon={Check}
+            iconClassName="bg-secondary text-content-secondary"
+            size="sm"
+          />
+          {habit.mini && (
+            <RutinaMetric
+              label="Versi 2 menit"
+              value={
+                <span className="inline-block max-w-[240px] truncate align-baseline">
+                  {habit.mini}
+                </span>
+              }
+              caption="bentuk terkecil untuk mulai"
+              icon={Timer}
+              iconClassName="bg-primary/15 text-success"
+              size="sm"
+            />
+          )}
+          {afterHabit && (
+            <RutinaMetric
+              label="Setelah"
+              value={
+                <span className="inline-block max-w-[240px] truncate align-baseline">
+                  {afterHabit.title}
+                </span>
+              }
+              caption="susun kebiasaan"
+              icon={Link2}
+              iconClassName="bg-espresso/10 text-espresso"
+              size="sm"
+            />
+          )}
+          {habit.restDays.length > 0 && (
+            <RutinaMetric
+              label="Hari jeda"
+              value={habit.restDays.length}
+              unit="hari"
+              caption="jeda runtun aman terjadwal"
+              icon={Snowflake}
+              iconClassName="bg-surface-secondary text-content-secondary"
+              size="sm"
+            />
+          )}
+        </div>
+
+        {/* Riwayat 30 hari terakhir — satu titik per hari */}
+        <div className="mt-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+            30 hari terakhir
+          </p>
+          <div
+            aria-label="Riwayat 30 hari terakhir"
+            className="mt-2 flex flex-wrap gap-1"
+          >
+            {history.map((done, i) => (
+              <span
+                key={i}
+                aria-hidden="true"
+                className={
+                  'h-2.5 w-2.5 rounded-full ' +
+                  (done ? 'bg-primary' : 'bg-surface-sunken')
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Aksi — membuka sheet sunting yang sama dengan tombol Edit baris */}
+        <button
+          type="button"
+          onClick={() => onEdit(habit.id)}
+          className="mt-6 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-4 text-[13px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <Pencil className="h-4 w-4" strokeWidth={2.4} />
+          Sunting kebiasaan
+        </button>
+      </RutinaCard>
+    </m.div>
+  )
+}
+
 /* ===== Layar Kebiasaan — Pusat Habit Intelligence ===== */
 
 export default function KebiasaanScreen() {
@@ -94,6 +263,8 @@ export default function KebiasaanScreen() {
 
   const [showDone, setShowDone] = useState(false)
   const [showArchive, setShowArchive] = useState(false)
+  /* Kebiasaan terpilih untuk Panel Detail (split-screen desktop). */
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const today = todayISO()
 
@@ -183,6 +354,18 @@ export default function KebiasaanScreen() {
       })).filter((g) => g.items.length > 0),
     [activeHabits],
   )
+
+  /* Kebiasaan efektif untuk panel detail: id terpilih bila masih aktif,
+     jatuh ke baris pertama daftar sebagai bawaan. Dihitung langsung saat
+     render (React Compiler menangani memoisasinya) dan HANYA dipakai di
+     JSX — nilai turunan state yang masuk ke closure memicu pembatalan
+     memoisasi (pelajaran Task 2 pada handler kemarin). */
+  const selectedHabit =
+    (selectedId !== null
+      ? activeHabits.find((h) => h.id === selectedId)
+      : undefined) ??
+    catGroups[0]?.items[0] ??
+    null
 
   const hasNoHabits = habits.length === 0
 
@@ -529,47 +712,94 @@ export default function KebiasaanScreen() {
                 />
               </div>
             ) : (
-              <m.div
-                variants={journalList}
-                initial="hidden"
-                animate="show"
-                className="mt-4 space-y-5"
-              >
-                {catGroups.map((g) => (
-                  <m.div key={g.cat} variants={journalCard}>
-                    <div className="mb-2.5 flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: HABIT_CAT_COLORS[g.cat] }}
-                      />
-                      <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
-                        {g.cat}
-                      </h3>
-                      <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
-                        {g.items.length}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      {g.items.map((h) => (
-                        <TaskRow
-                          key={h.id}
-                          habit={h}
-                          done={isDoneOn(completions, today, h.id)}
-                          streak={habitStreak(h, completions, today)}
-                          recent={recentDays(completions, h.id, today)}
-                          weekDone={weekDoneCount(completions, h.id, today)}
-                          expanded={expandedTaskId === h.id}
-                          xp={XP_PER_TASK}
-                          onToggle={() => toggleHabit(h.id, today)}
-                          onExpand={() => toggleExpandedTask(h.id)}
-                          onEdit={() => openHabitEdit(h.id)}
-                        />
-                      ))}
-                    </div>
+              /* Split-screen desktop (xl+): daftar terkelompok di kiri,
+                 panel detail menempel di kanan. Di bawah xl susunan tetap
+                 satu kolom — panel tersembunyi total. */
+              <div className="xl:grid xl:grid-cols-12 xl:gap-5">
+                {/* Kolom kiri — daftar terkelompok per kategori (tak berubah) */}
+                <div className="min-w-0 xl:col-span-7">
+                  <m.div
+                    variants={journalList}
+                    initial="hidden"
+                    animate="show"
+                    className="mt-4 space-y-5"
+                  >
+                    {catGroups.map((g) => (
+                      <m.div key={g.cat} variants={journalCard}>
+                        <div className="mb-2.5 flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: HABIT_CAT_COLORS[g.cat] }}
+                          />
+                          <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                            {g.cat}
+                          </h3>
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
+                            {g.items.length}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                          {g.items.map((h) => (
+                            /* Pembungkus pemilihan: klik di mana pun pada kartu
+                               memilih kebiasaan untuk panel detail. Tombol
+                               centang TaskRow sudah stopPropagation sehingga
+                               perilaku tandai-selesai tak terganggu; cincin
+                               aksen hanya tampil di xl+. */
+                            <div
+                              key={h.id}
+                              onClick={() => setSelectedId(h.id)}
+                              className={
+                                'rounded-[16px] transition-shadow duration-300 xl:ring-2 ' +
+                                (selectedHabit?.id === h.id
+                                  ? 'xl:ring-primary/60'
+                                  : 'xl:ring-transparent')
+                              }
+                            >
+                              <TaskRow
+                                habit={h}
+                                done={isDoneOn(completions, today, h.id)}
+                                streak={habitStreak(h, completions, today)}
+                                recent={recentDays(completions, h.id, today)}
+                                weekDone={weekDoneCount(completions, h.id, today)}
+                                expanded={expandedTaskId === h.id}
+                                xp={XP_PER_TASK}
+                                onToggle={() => toggleHabit(h.id, today)}
+                                onExpand={() => {
+                                  toggleExpandedTask(h.id)
+                                  /* Pemilihan ikut terpasang lewat pintasan
+                                     keyboard TaskRow (Enter/Spasi). */
+                                  setSelectedId(h.id)
+                                }}
+                                onEdit={() => openHabitEdit(h.id)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </m.div>
+                    ))}
                   </m.div>
-                ))}
-              </m.div>
+                </div>
+
+                {/* Kolom kanan — Panel Detail Kebiasaan (hanya desktop xl+).
+                   self-start + max-h agar penempatan menempel tidak meluber:
+                   panel menggulir sendiri bila kontennya lebih tinggi. */}
+                {selectedHabit && (
+                  <aside
+                    aria-label="Detail kebiasaan terpilih"
+                    className="hidden self-start xl:sticky xl:top-0 xl:col-span-5 xl:mt-4 xl:block xl:max-h-[calc(100dvh-12rem)] xl:overflow-y-auto no-scrollbar"
+                  >
+                    <HabitDetailPanel
+                      key={selectedHabit.id}
+                      habit={selectedHabit}
+                      habits={habits}
+                      completions={completions}
+                      today={today}
+                      onEdit={openHabitEdit}
+                    />
+                  </aside>
+                )}
+              </div>
             )}
 
             {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
