@@ -6,7 +6,6 @@
  *
  * • BlurFade     — magicuidesign/magicui (23.3k ★)
  * • ShineBorder  — magicuidesign/magicui (23.3k ★)
- * • Marquee      — magicuidesign/magicui (23.3k ★)
  * • SplitText    — ibelick/motion-primitives "TextEffect" (7k ★)
  *
  * Referensi sumber asli dicantumkan di tiap komponen.
@@ -130,62 +129,6 @@ export function ShineBorder({
         className,
       )}
     />
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Marquee — strip konten bergulir tanpa henti.                        */
-/* Sumber: magicui (apps/www/registry/magicui/marquee.tsx)             */
-/* ------------------------------------------------------------------ */
-
-interface MarqueeProps {
-  children: ReactNode
-  className?: string
-  /** Kecepatan putaran (detik). */
-  duration?: number
-  /** Jarak antar item (px). */
-  gap?: string
-  /** Berhenti saat kursor menempel. */
-  pauseOnHover?: boolean
-  /** Arah terbalik (kanan ke kiri). */
-  reverse?: boolean
-}
-
-export function Marquee({
-  children,
-  className,
-  duration = 30,
-  gap = '1rem',
-  pauseOnHover = true,
-  reverse = false,
-}: MarqueeProps) {
-  return (
-    <div
-      className={cn('group flex w-full overflow-hidden', className)}
-      style={
-        {
-          ['--marquee-duration' as string]: `${duration}s`,
-          ['--marquee-gap' as string]: gap,
-          gap,
-        } as CSSProperties
-      }
-    >
-      {[0, 1].map((copy) => (
-        <div
-          key={copy}
-          aria-hidden={copy === 1}
-          className={cn(
-            'flex shrink-0 flex-row items-center justify-around motion-safe:animate-marquee',
-            reverse && '[animation-direction:reverse]',
-            pauseOnHover &&
-              'group-hover:[animation-play-state:paused] motion-reduce:[animation-play-state:paused]',
-          )}
-          style={{ gap }}
-        >
-          {children}
-        </div>
-      ))}
-    </div>
   )
 }
 
