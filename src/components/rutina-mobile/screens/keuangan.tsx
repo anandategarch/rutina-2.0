@@ -917,7 +917,10 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
   const txs = useRutina((s) => s.txs)
   const wallets = useRutina((s) => s.wallets)
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<MutasiFilter>('semua')
+  /* Filter mutasi di uiPrefs — bertahan saat berpindah layar; teks
+     pencarian tetap sesaat (di-reset wajar tiap kunjungan). */
+  const filter = useRutina((s) => s.uiPrefs.mutasiFilter)
+  const setFilter = useRutina((s) => s.setUiPref)
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
 
   const q = query.trim().toLowerCase()
@@ -934,6 +937,24 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
     [txs, filter, q],
   )
   const ledgerGroups = useMemo(() => groupByDay(filtered), [filtered])
+  /* Batas render ledger (audit performa v2.13): 60 transaksi terbaru
+     dirender dulu (kelompok hari dipotong pada batas, tidak pernah
+     setengah hilang); histori ribuan baris dimuat bertahal bertahap. */
+  const [ledgerBudget, setLedgerBudget] = useState(60)
+  const visibleGroups = useMemo(() => {
+    const out: typeof ledgerGroups = []
+    let used = 0
+    for (const g of ledgerGroups) {
+      if (used >= ledgerBudget) break
+      out.push(g)
+      used += g.txs.length
+    }
+    return out
+  }, [ledgerGroups, ledgerBudget])
+  const ledgerHiddenCount = useMemo(
+    () => filtered.length - visibleGroups.reduce((a, g) => a + g.txs.length, 0),
+    [filtered, visibleGroups],
+  )
   const selectedTx = useMemo(
     () =>
       selectedTxId ? (txs.find((t) => t.id === selectedTxId) ?? null) : null,
@@ -993,7 +1014,7 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
                       key={f.id}
                       type="button"
                       aria-pressed={active}
-                      onClick={() => setFilter(f.id)}
+                      onClick={() => setFilter({ mutasiFilter: f.id })}
                       className={`h-8 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
                         active
                           ? 'border-module-accent/40 bg-module-accent/15 text-module-accent-strong'
@@ -1026,7 +1047,8 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
                     </p>
                   </div>
                 ) : (
-                  ledgerGroups.map((g) => (
+                  <>
+                  {visibleGroups.map((g) => (
                     <section key={g.date} aria-label={`Mutasi ${fmtDate(g.date)}`}>
                       <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 border-b border-border bg-surface-primary/95 px-4 py-2 backdrop-blur-sm">
                         <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
@@ -1057,7 +1079,20 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
                         ))}
                       </div>
                     </section>
-                  ))
+                  ))}
+                  {ledgerHiddenCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setLedgerBudget((n) => n + 60)}
+                      className="mt-2 w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    >
+                      Tampilkan {Math.min(60, ledgerHiddenCount)} transaksi lagi
+                      {ledgerHiddenCount > 60
+                        ? ` (${ledgerHiddenCount} tersisa)`
+                        : ''}
+                    </button>
+                  )}
+                  </>
                 )}
               </div>
             </div>
@@ -1529,11 +1564,12 @@ export default function KeuanganScreen() {
   const openWalletDialog = useRutina((s) => s.openWalletDialog)
   const setBudget = useRutina((s) => s.setBudget)
 
-  const [finTab, setFinTab] = useState<FinTab>('ringkasan')
-  /* "Semua" hanya hidup lokal; tiga periode store tetap tersinkron. */
-  const [period, setPeriod] = useState<ChartPeriod>(
-    finPeriod === 'tahun' ? 'bulan' : finPeriod,
-  )
+  /* Tab & periode grafik di uiPrefs — bertahan saat berpindah layar.
+     "Semua" hanya hidup lokal (chartPeriod); tiga periode store tetap
+     tersinkron via finPeriod untuk Context Rail. */
+  const finTab = useRutina((s) => s.uiPrefs.finTab)
+  const period = useRutina((s) => s.uiPrefs.chartPeriod)
+  const setUiPref = useRutina((s) => s.setUiPref)
   /* Titik pilihan pengguna — diingat per periode. Bila belum memilih
      (atau periode berganti), jatuh ke titik "hari ini" yang diderivasi
      murni dari data: tanpa efek, tanpa setState saat render. */
@@ -1543,7 +1579,7 @@ export default function KeuanganScreen() {
 
   const changePeriod = (p: string) => {
     const next = p as ChartPeriod
-    setPeriod(next)
+    setUiPref({ chartPeriod: next })
     if (next !== 'semua') setFinPeriod(next)
   }
 
@@ -1824,7 +1860,7 @@ export default function KeuanganScreen() {
 
       {/* Subtab Keuangan — Radix Tabs: state aktif terkelola penuh,
           dukungan papan tombol otomatis (pengganti pil aria-pressed). */}
-      <RutinaTabs value={finTab} onValueChange={(v) => setFinTab(v as FinTab)}>
+      <RutinaTabs value={finTab} onValueChange={(v) => setUiPref({ finTab: v as FinTab })}>
         <RutinaTabsList
           variant="segment"
           aria-label="Bagian Keuangan"
@@ -2074,7 +2110,7 @@ export default function KeuanganScreen() {
             <SectionTitle
               title="Anggaran"
               action={
-                <PillAction onClick={() => setFinTab('anggaran')} label="Kelola anggaran">
+                <PillAction onClick={() => setUiPref({ finTab: 'anggaran' })} label="Kelola anggaran">
                   Kelola
                 </PillAction>
               }
@@ -2086,7 +2122,7 @@ export default function KeuanganScreen() {
                 title="Belum ada anggaran"
                 description="Atur batas belanjamu per kategori supaya pengeluaran lebih mudah dikendalikan."
                 action={
-                  <PillAction onClick={() => setFinTab('anggaran')} label="Atur anggaran">
+                  <PillAction onClick={() => setUiPref({ finTab: 'anggaran' })} label="Atur anggaran">
                     Atur Anggaran
                   </PillAction>
                 }
@@ -2117,7 +2153,7 @@ export default function KeuanganScreen() {
                 {budgetRows.length > topBudgets.length && (
                   <button
                     type="button"
-                    onClick={() => setFinTab('anggaran')}
+                    onClick={() => setUiPref({ finTab: 'anggaran' })}
                     className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                   >
                     +{budgetRows.length - topBudgets.length} kategori lagi
@@ -2192,7 +2228,7 @@ export default function KeuanganScreen() {
           <SectionTitle
             title="Aktivitas Terbaru"
             action={
-              <PillAction onClick={() => setFinTab('mutasi')} label="Lihat semua mutasi">
+              <PillAction onClick={() => setUiPref({ finTab: 'mutasi' })} label="Lihat semua mutasi">
                 Lihat Semua
               </PillAction>
             }

@@ -63,13 +63,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
@@ -163,7 +156,6 @@ export default function ProfileScreen() {
   const identityText = useRutina((s) => s.identityText)
   const setIdentityText = useRutina((s) => s.setIdentityText)
   const moodLogs = useRutina((s) => s.moodLogs)
-  const [lang, setLang] = useState('id')
 
   /* Draf penyuntingan Suara Identitas (audit #23) — draf terpisah agar
      teks tersimpan tetap utuh selama menyunting; dibatasi 600 karakter
@@ -812,59 +804,27 @@ export default function ProfileScreen() {
           </div>
         </m.section>
 
-        {/* Pemilih bahasa — DropdownMenu radio (shadcn); English masih
-            disematkan "segera" — jujur soal ketersediaan. */}
+        {/* Bahasa — preferensi saat ini ditampilkan sebagai informasi
+            statis (review v2.13): menu interaktif dengan pilihan yang
+            belum benar-benar berfungsi memberi kesan ada pengaturan
+            yang bisa diubah. Menu dikembalikan saat multi-bahasa
+            benar-benar tersedia. */}
         <m.div
           variants={slideInRow}
-          className="overflow-hidden rounded-[20px] border border-border bg-surface-primary shadow-soft"
+          className="flex min-h-[54px] items-center gap-3 rounded-[20px] border border-border bg-surface-primary px-4 shadow-soft"
         >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Pilih bahasa aplikasi"
-                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 px-4 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-                  <Globe className="h-4 w-4" />
-                </span>
-                <span className="flex-1 text-body font-medium text-content-primary">
-                  Bahasa
-                </span>
-                <span className="text-note font-semibold text-content-muted">
-                  {lang === 'id' ? 'Indonesia' : 'English'}
-                </span>
-                <ChevronRight className="h-4 w-4 text-content-muted" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              side="top"
-              className="mr-2 min-w-[190px] rounded-2xl border-border"
-            >
-              <DropdownMenuRadioGroup
-                value={lang}
-                onValueChange={(v) => {
-                  setLang(v)
-                  toast.success(
-                    v === 'id'
-                      ? 'Bahasa Indonesia sudah aktif'
-                      : 'Bahasa Inggris segera tersedia',
-                  )
-                }}
-              >
-                <DropdownMenuRadioItem value="id" className="rounded-lg">
-                  Indonesia
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="en" disabled className="rounded-lg">
-                  English
-                  <span className="ml-auto text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
-                    segera
-                  </span>
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+            <Globe aria-hidden="true" className="h-4 w-4" />
+          </span>
+          <span className="flex-1 text-body font-medium text-content-primary">
+            Bahasa
+          </span>
+          <span className="flex items-center gap-1.5 text-note font-semibold text-content-muted">
+            Indonesia
+            <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
+              aktif
+            </span>
+          </span>
         </m.div>
 
         {/* Judul seksi: data & penyimpanan */}

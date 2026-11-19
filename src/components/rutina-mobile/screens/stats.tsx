@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
   BatteryLow,
   CalendarDays,
+  ChevronDown,
   Dumbbell,
   Flame,
   Laugh,
@@ -27,6 +28,11 @@ import {
 import { toast } from 'sonner'
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Tooltip,
   TooltipContent,
@@ -177,7 +183,9 @@ export default function StatsScreen() {
 
   const today = todayISO()
 
-  const [period, setPeriod] = useState<'pekan' | 'bulan'>('pekan')
+  /* Periode ringkasan di uiPrefs — bertahan saat berpindah layar. */
+  const period = useRutina((s) => s.uiPrefs.statsPeriod)
+  const setPeriod = useRutina((s) => s.setUiPref)
 
   /* ===== Kalender Aktivitas & Laporan Bulanan (audit #7 & #8) =====
      Satu state bulan dipakai bersama: kalender menavigasi, laporan
@@ -655,6 +663,36 @@ export default function StatsScreen() {
           </span>
         </section>
 
+        {/* Pintasan seksi (review Statistik v2.13): halaman observatorium
+            panjang — chip melompat mulus ke seksi yang dituju tanpa
+            menggulir manual. scrollIntoView bekerja pada wadah gulir
+            terdekat (root layar ini). */}
+        <nav
+          aria-label="Pintasan seksi Statistik"
+          className="mt-[var(--layout-gap)] flex flex-wrap gap-1.5"
+        >
+          {[
+            { id: 'stats-tren', label: 'Tren' },
+            { id: 'stats-kalender', label: 'Kalender' },
+            { id: 'stats-laporan', label: 'Laporan' },
+            { id: 'stats-bugar', label: 'Bugar' },
+            { id: 'stats-piala', label: 'Piala' },
+          ].map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById(s.id)
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+              className="h-8 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {s.label}
+            </button>
+          ))}
+        </nav>
+
         {/* Tumpukan seksi utama — ritme antar-bagian memakai token layout
             observatory (var(--layout-gap)) agar seluruh layar berbagi satu
             denyut laboratorium data yang seragam. */}
@@ -787,7 +825,9 @@ export default function StatsScreen() {
               </p>
               <Tabs
                 value={period}
-                onValueChange={(v) => setPeriod(v as 'pekan' | 'bulan')}
+                onValueChange={(v) =>
+                  setPeriod({ statsPeriod: v as 'pekan' | 'bulan' })
+                }
               >
                 <TabsList className="h-[52px] w-full rounded-full bg-surface-inverse p-1">
                   <TabsTrigger
@@ -896,7 +936,7 @@ export default function StatsScreen() {
             karena tumpang tindih dengan grafik batang Misi Selesai — jumlah
             misi yang sama tak perlu digambar dua kali; area chart dipindah
             ke sini berpasangan dengan heatmap sebagai satu seksi tren.) */}
-        <section aria-label="Tren dan konsistensi" className="@container">
+        <section id="stats-tren" aria-label="Tren dan konsistensi" className="@container scroll-mt-3">
           <SectionTitle title="Tren & Konsistensi" hint="% selesai per hari · 30 hari" />
           <div className="mt-3 grid grid-cols-1 gap-3 @[36rem]:grid-cols-2">
             {/* Grafik area tren penyelesaian */}
@@ -1130,11 +1170,13 @@ export default function StatsScreen() {
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
             {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
             <m.section
+              id="stats-kalender"
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
               aria-label="Kalender aktivitas bulanan"
+              className="scroll-mt-3"
             >
               <RutinaSectionHeader
                 title="Kalender Aktivitas"
@@ -1190,18 +1232,39 @@ export default function StatsScreen() {
               />
             )}
 
-            {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8) ===== */}
-            <m.section
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              aria-label="Laporan bulanan"
-            >
-              <RutinaSectionHeader
-                title="Laporan Bulanan"
-                description={monthLabel(viewYm)}
-              />
+            {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8).
+                Dilipat secara default (review Statistik v2.13): laporan
+                jarang dibuka tiap kunjungan — ringkasan singkat tampil di
+                pemicu, detail penuh dibuka bila dibutuhkan. ===== */}
+            <div id="stats-laporan" className="scroll-mt-3">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Laporan bulanan ${monthLabel(viewYm)}${monthReport.hasActivity ? `, konsistensi ${monthReport.pct} persen` : ''} — buka untuk detail`}
+                  className="group flex w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+                    <CalendarDays aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-body font-semibold text-content-primary">
+                      Laporan Bulanan
+                    </span>
+                    <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                      {monthLabel(viewYm)}
+                      {monthReport.hasActivity
+                        ? ` · konsistensi ${monthReport.pct}%`
+                        : ''}
+                    </span>
+                  </span>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
               <RutinaCard radius="2xl" density="comfortable" className="mt-3">
                 {monthReport.hasActivity ? (
                   <div className="space-y-5">
@@ -1363,7 +1426,9 @@ export default function StatsScreen() {
                   />
                 )}
               </RutinaCard>
-            </m.section>
+              </CollapsibleContent>
+            </Collapsible>
+            </div>
           </RutinaBentoItem>
         </RutinaBentoGrid>
 
@@ -1476,7 +1541,7 @@ export default function StatsScreen() {
 
           <RutinaBentoItem span="medium">
             {/* ===== Bugar & Tubuh — statistik lintas modul ===== */}
-            <section aria-label="Statistik bugar dan tubuh" className="@container">
+            <section id="stats-bugar" aria-label="Statistik bugar dan tubuh" className="@container scroll-mt-3">
               <SectionTitle title="Bugar & Tubuh" hint="data modul Bugar" />
               <div className="grid grid-cols-1 gap-3 @[28rem]:grid-cols-3">
                 {/* Latihan */}
@@ -1639,23 +1704,38 @@ export default function StatsScreen() {
           </RutinaBentoItem>
         </RutinaBentoGrid>
 
-        {/* ===== Piala & Lencana — lebar penuh =====
+        {/* ===== Piala & Lencana — lebar penuh, dilipat default
             (audit visualisasi v2.12: kartu Streak Berjalan dihapus —
-            streak & rekor sudah terbaca di KPI utama; lencana melebar
-            4 kolom di ruang kerja lega.) */}
-        <m.section
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-24px' }}
-          transition={motionTokens.preset.data}
-          aria-label="Piala dan lencana"
-          className="@container"
-        >
-          <SectionTitle
-            title="Piala & Lencana"
-            hint={`${unlockedCount}/4 terbuka`}
-          />
-          <div className="grid grid-cols-2 gap-2.5 @[36rem]:grid-cols-4">
+            streak & rekor sudah terbaca di KPI utama. Review v2.13:
+            koleksi lencana jarang dibuka tiap kunjungan — hitungan
+            terbuka tampil di pemicu, kisi dibuka bila diminati.) ===== */}
+        <div id="stats-piala" className="@container scroll-mt-3">
+        <Collapsible defaultOpen={false}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Piala dan lencana, ${unlockedCount} dari 4 terbuka — buka untuk melihat koleksi`}
+              className="group flex w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/25 text-warning">
+                <Trophy aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-body font-semibold text-content-primary">
+                  Piala &amp; Lencana
+                </span>
+                <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                  {unlockedCount}/4 terbuka
+                </span>
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+          <div className="mt-3 grid grid-cols-2 gap-2.5 @[36rem]:grid-cols-4">
                 {badges.map((b) => (
                   <Tooltip key={b.name}>
                     <TooltipTrigger asChild>
@@ -1710,7 +1790,9 @@ export default function StatsScreen() {
                   </Tooltip>
                 ))}
               </div>
-            </m.section>
+          </CollapsibleContent>
+        </Collapsible>
+        </div>
 
         </div>
 

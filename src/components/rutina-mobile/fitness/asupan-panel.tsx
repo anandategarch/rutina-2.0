@@ -18,6 +18,17 @@ import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
   addDaysISO,
   MEAL_SLOTS,
   todayISO,
@@ -119,17 +130,49 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
           kkal
         </span>
       </span>
-      <button
-        type="button"
-        aria-label={`Hapus ${entry.name}`}
-        onClick={() => {
-          deleteFoodEntry(entry.id)
-          toast(`${entry.name} dihapus dari jurnal.`)
-        }}
-        className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-destructive/10 hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {/* Konfirmasi hapus — AlertDialog mencegah salah ketuk pada jurnal
+          makan; pola sama dengan transaksi, catatan, dan kebiasaan. */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Hapus ${entry.name}`}
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-destructive/10 hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border p-6 sm:max-w-[320px]">
+          <AlertDialogHeader>
+            <div className="mb-1 flex justify-center">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-content-danger">
+                <Trash2 className="h-5 w-5" />
+              </span>
+            </div>
+            <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
+              Hapus dari jurnal makan?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-note leading-relaxed text-content-muted">
+              {entry.name} ({fmt(entry.kcal)} kkal) akan dihapus dan tidak
+              dapat dikembalikan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
+            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border text-note font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary">
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteFoodEntry(entry.id)
+                toast(`${entry.name} dihapus dari jurnal.`)
+              }}
+              className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+            >
+              Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </m.div>
   )
 }
@@ -175,7 +218,13 @@ export function AsupanPanel() {
         .reduce((a, e) => a + e.kcal, 0),
     )
     const max = Math.max(...kcalByDay, calorieTarget)
-    return { days, kcalByDay, max }
+    /* Rata-rata hanya hari tercatat — hari kosong tidak menyeret turun
+       ringkasan nonvisual (jujur: 0 kkal = tidak mencatat). */
+    const logged = kcalByDay.filter((k) => k > 0)
+    const avg = logged.length
+      ? logged.reduce((a, k) => a + k, 0) / logged.length
+      : 0
+    return { days, kcalByDay, max, avg }
   }, [foodEntries, today, calorieTarget])
 
   const remaining = allowance - sum.kcal
@@ -536,8 +585,18 @@ export function AsupanPanel() {
                 {fmt(calorieTarget)}
               </span>
             </div>
-            {/* Batang harian — ketuk untuk memilih */}
-            <div className="flex h-32 items-end gap-1.5">
+            {/* Batang harian — ketuk untuk memilih. role="group" karena
+                berisi tombol; ringkasan nonvisual untuk pembaca layar. */}
+            <div
+              className="flex h-32 items-end gap-1.5"
+              role="group"
+              aria-label="Kalori tercatat tujuh hari terakhir"
+            >
+              <p className="sr-only">
+                Rata-rata {fmt(week.avg)} kkal per hari, target{' '}
+                {fmt(calorieTarget)} kkal. Rincian per hari tersedia pada tiap
+                kolom berikut.
+              </p>
               {week.days.map((d, i) => {
                 const kcal = week.kcalByDay[i]
                 const h =

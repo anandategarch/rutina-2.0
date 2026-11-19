@@ -186,12 +186,15 @@ export default function JournalScreen() {
               {pinned.length > 0 ? 'Catatan lain' : 'Catatan'} ·{' '}
               {rest.length}
             </SectionLabel>
+            {/* Batas awal 30 kartu — jurnal panjang (ratusan catatan)
+                dimuat bertahap agar render pertama tetap ringan. */}
             <NoteList
               items={rest}
               noteMoods={noteMoods}
               onOpen={openReading}
               onEdit={openCanvas}
               onTogglePin={togglePin}
+              initialLimit={30}
             />
           </div>
         )}
@@ -253,6 +256,9 @@ interface NoteListProps {
   onOpen: (id: string) => void
   onEdit: (note: Note) => void
   onTogglePin: (id: string) => void
+  /** Batas awal render — sisanya dimuat bertahap (audit performa v2.13);
+   *  default tanpa batas untuk daftar kecil (mis. sematan). */
+  initialLimit?: number
 }
 
 function NoteList({
@@ -261,7 +267,11 @@ function NoteList({
   onOpen,
   onEdit,
   onTogglePin,
+  initialLimit,
 }: NoteListProps) {
+  const [limit, setLimit] = useState(initialLimit ?? items.length)
+  const visible = items.slice(0, limit)
+  const hidden = items.length - visible.length
   return (
     <m.div
       variants={journalList}
@@ -269,7 +279,7 @@ function NoteList({
       animate="show"
       className="space-y-3"
     >
-      {items.map((n) => (
+      {visible.map((n) => (
         <NoteCard
           key={n.id}
           note={n}
@@ -279,6 +289,16 @@ function NoteList({
           onTogglePin={() => onTogglePin(n.id)}
         />
       ))}
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setLimit((n) => n + (initialLimit ?? hidden))}
+          className="w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          Tampilkan {Math.min(initialLimit ?? hidden, hidden)} catatan lagi
+          {hidden > (initialLimit ?? hidden) ? ` (${hidden} tersisa)` : ''}
+        </button>
+      )}
     </m.div>
   )
 }

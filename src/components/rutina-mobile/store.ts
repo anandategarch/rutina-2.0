@@ -646,6 +646,33 @@ export type FinCat =
 
 export type FinPeriod = 'minggu' | 'bulan' | 'tahun'
 
+/* ===== Preferensi UI lintas-layar (v2.13) =====
+   Tab sub, periode grafik, dan filter yang penting diinguat saat
+   pengguna berpindah layar — komponen layar dilepas oleh AnimatePresence
+   sehingga useState lokal hilang. Disimpan di store (bukan useState)
+   dan dipersist ke localStorage, namun TIDAK ikut disinkronkan ke
+   server: ini preferensi perangkat, bukan data domain (lihat
+   DOMAIN_KEYS di sync-engine). */
+export type BugarTab = 'latihan' | 'asupan' | 'tubuh'
+export type FinTab = 'ringkasan' | 'mutasi' | 'anggaran' | 'dompet'
+export type ChartPeriod = FinPeriod | 'semua'
+export type MutasiFilter = TxType | 'semua'
+export type StatsPeriod = 'pekan' | 'bulan'
+
+export interface UiPrefs {
+  /** Subtab aktif layar Bugar. */
+  bugarTab: BugarTab
+  /** Tab aktif layar Keuangan. */
+  finTab: FinTab
+  /** Periode grafik arus kas (termasuk mode "semua" yang hanya lokal). */
+  chartPeriod: ChartPeriod
+  /** Filter daftar mutasi Keuangan. */
+  mutasiFilter: MutasiFilter
+  /** Periode ringkasan layar Statistik. */
+  statsPeriod: StatsPeriod
+}
+
+
 /** Jadwal transaksi berulang — salinan berikutnya tercatat otomatis
  *  saat jadwalnya tiba (materializeRecurring). */
 export type Recurrence = 'mingguan' | 'bulanan'
@@ -997,6 +1024,9 @@ interface RutinaState {
   closeBoard: () => void
   setScreen: (screen: Screen) => void
   setFinPeriod: (p: FinPeriod) => void
+  /* Preferensi UI lintas-layar — dipersist lokal, tak disinkronkan */
+  uiPrefs: UiPrefs
+  setUiPref: (patch: Partial<UiPrefs>) => void
   openTxSheet: () => void
   closeTxSheet: () => void
   addTx: (input: {
@@ -1149,6 +1179,19 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({ screen, prevScreen: s.screen })),
 
   setFinPeriod: (finPeriod) => set({ finPeriod }),
+
+  /* Preferensi UI — merge dangkal; tidak memicu push sinkronisasi
+     (bukan bagian DOMAIN_KEYS). */
+  uiPrefs: {
+    bugarTab: 'latihan',
+    finTab: 'ringkasan',
+    chartPeriod: 'bulan',
+    mutasiFilter: 'semua',
+    statsPeriod: 'pekan',
+  },
+
+  setUiPref: (patch) =>
+    set((s) => ({ uiPrefs: { ...s.uiPrefs, ...patch } })),
 
   openTxSheet: () => set({ txSheetOpen: true }),
 
@@ -1675,6 +1718,8 @@ export const useRutina = create<RutinaState>()(
         bonusClaimed: s.bonusClaimed,
         quoteSaved: s.quoteSaved,
         quoteSavedDate: s.quoteSavedDate,
+        /* Preferensi perangkat — ikut persist lokal, tidak disinkronkan */
+        uiPrefs: s.uiPrefs,
       }),
     },
   ),

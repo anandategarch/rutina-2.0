@@ -2,7 +2,30 @@
 
 Dokumen ini merangkum semua yang perlu disiapkan agar Rutina 2.0 berjalan
 di Vercel dengan database Turso (libSQL), termasuk arsitektur
-sinkronisasi data dan daftar lengkap API routes.
+sinkronisasi data, gerbang mutu build, dan daftar lengkap API routes.
+
+## 0. Gerbang mutu sebelum deploy (sejak v2.13)
+
+Build kini **menggagalkan diri sendiri** bila ada error tipe atau lint —
+`next.config.ts` memakai `typescript.ignoreBuildErrors: false` dan
+`eslint.ignoreDuringBuilds: false`. Jalankan verifikasi lengkap sebelum push:
+
+```bash
+bun run verify
+# = tsc --noEmit → eslint . → bun test (75 tes / 4 suite)
+```
+
+| Perintah | Fungsi |
+| --- | --- |
+| `bun run typecheck` | `tsc --noEmit` — error tipe tertangkap tanpa build |
+| `bun run lint` | ESLint seluruh proyek |
+| `bun run test` | 75 pengujian otomatis: perhitungan keuangan/kebugaran/XP-streak + skema sinkronisasi (lihat `tests/`) |
+| `bun run verify` | Ketiganya berurutan — gerbang pra-push/pre-deploy |
+
+> **Pengujian sinkronisasi:** `tests/sync-schema.test.ts` memvalidasi kontrak
+> wire klien ↔ `/api/state` (snapshot valid + default Zod, penolakan muatan
+> sampah, pulang-pergi JSON). Uji koneksi database nyata tetap memakai
+> `bun run db:smoke-turso` (butuh kredensial).
 
 ## 1. Arsitektur
 
@@ -89,7 +112,9 @@ Skrip yang sama bekerja dari mesin lokal maupun CI — hanya butuh
 
 ## 4. Deploy ke Vercel
 
-1. Push repositori ke GitHub (`rutina-2.0`).
+1. Push repositori ke GitHub (`rutina-2.0`) — pastikan `bun run verify`
+   lulus lebih dulu (lihat bagian 0; Vercel menjalankan `next build` yang
+   kini aktif memeriksa TypeScript & ESLint).
 2. Di Vercel: **Add New → Project → Import** repositori `rutina-2.0`.
    - Framework Preset: **Next.js** (terdeteksi otomatis)
    - Build Command: `next build` (bawaan; `package.json` → `build`)
@@ -164,8 +189,12 @@ sampah. Respons seragam `{ ok: true, ... }` / `{ ok: false, error }`.
 
 ## 8. Checklist pasca-deploy
 
+- [ ] `bun run verify` lulus lokal (typecheck + lint + 75 tes).
 - [ ] `DATABASE_AUTH_TOKEN` di Vercel = token baru (bukan token 1 hari).
 - [ ] `GET /api/health` → `connected: true, backend: turso`.
 - [ ] Buka aplikasi di ponsel → tab Profil → chip waktu sinkron terisi.
 - [ ] Centang satu misi → muat ulang di perangkat lain → tetap tercentang
       (verifikasi sinkronisasi lintas perangkat).
+- [ ] (Performa data besar) Buka tab Mutasi dengan histori panjang —
+      daftar dirender bertahap (60 transaksi awal, tombol "tampilkan
+      lagi"), tanpa jank gulir.

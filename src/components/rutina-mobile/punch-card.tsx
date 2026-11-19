@@ -28,10 +28,18 @@ interface PunchDay {
   isToday: boolean
 }
 
-function buildPunchWeek(
+export interface PunchWeekInfo {
+  days: PunchDay[]
+  stampedCount: number
+}
+
+/** Hitung minggu stempel dari histori penyelesaian — diekspor agar
+ *  ringkasan "X dari 7 hari" dapat dipakai pemicu lipatan di Beranda
+ *  tanpa menghitung ulang logika yang sama. */
+export function punchWeekInfo(
   completions: Parameters<typeof doneCountOn>[0],
   goal: number,
-): { days: PunchDay[]; stampedCount: number } {
+): PunchWeekInfo {
   const today = todayISO()
   const days: PunchDay[] = []
   let stampedCount = 0
@@ -49,6 +57,13 @@ function buildPunchWeek(
     })
   }
   return { days, stampedCount }
+}
+
+function buildPunchWeek(
+  completions: Parameters<typeof doneCountOn>[0],
+  goal: number,
+): { days: PunchDay[]; stampedCount: number } {
+  return punchWeekInfo(completions, goal)
 }
 
 export function PunchCard() {

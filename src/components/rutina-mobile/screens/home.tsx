@@ -34,9 +34,14 @@ import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
-import { PunchCard } from '../punch-card'
+import { PunchCard, punchWeekInfo } from '../punch-card'
 import { TaskRow } from '../task-row'
 import { FocusWidget } from '../focus-widget'
 import { StreakWidget } from '../streak-widget'
@@ -158,6 +163,62 @@ const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
   ide: Lightbulb,
   bacaan: BookOpen,
   pribadi: Heart,
+}
+
+/* ===== Punch card terlipat — progres lanjutan (review Beranda v2.13).
+   Pemicu selalu menampilkan ringkasan "X dari 7 hari tuntas"; detail
+   lubang stempel dibuka bila pengguna ingin melihat. State lipatan
+   sesaat per kunjungan (default tertutup) — bukan preferensi penting. */
+function FoldedPunchCard() {
+  const completions = useRutina((s) => s.completions)
+  const dailyGoal = useRutina((s) => s.dailyGoal)
+  const { stampedCount } = useMemo(
+    () => punchWeekInfo(completions, Math.max(dailyGoal, 1)),
+    [completions, dailyGoal],
+  )
+  return (
+    <Collapsible defaultOpen={false}>
+      <div className="overflow-hidden rounded-[20px] border-2 border-dashed border-primary/35 bg-surface-primary shadow-card">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Kartu stempel pekan: ${stampedCount} dari 7 hari tuntas — buka untuk melihat detail`}
+            className="group flex w-full cursor-pointer items-center gap-3 p-3.5 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <Flame className="h-[18px] w-[18px]" strokeWidth={2.1} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-body font-semibold text-content-primary">
+                Kartu Stempel Pekan
+              </span>
+              <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                {stampedCount} dari 7 hari tuntas
+                {stampedCount === 7 ? ' — pekan sempurna!' : ''}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5">
+              {stampedCount === 7 && (
+                <span className="rounded-full bg-primary px-2.5 py-1 text-eyebrow font-semibold text-primary-foreground shadow-leaf">
+                  Sempurna
+                </span>
+              )}
+              <ChevronDown
+                aria-hidden="true"
+                className="h-4 w-4 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+              />
+            </span>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          {/* mt-3 internal PunchCard dinetralkan oleh pembungkus */}
+          <div className="border-t border-primary/15 p-5 [&>section]:mt-0 [&>section]:rounded-none [&>section]:border-0">
+            <PunchCard />
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  )
 }
 
 /* Tanggal & sapaan live — nilai khusus klien yang aman dari hydration:
@@ -568,19 +629,33 @@ export default function HomeScreen() {
             <p className="min-w-0 truncate text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
               {dateBadge}
             </p>
-            <m.button
-              type="button"
-              onClick={() => setScreen('profil')}
-              aria-label="Buka profil dan pengaturan"
-              whileTap={{ scale: 0.92 }}
-              className="shrink-0 cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
-                <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
-                  AN
-                </AvatarFallback>
-              </Avatar>
-            </m.button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {/* Pintu Jurnal yang selalu terlihat — review navigasi v2.13:
+                  sebelumnya Jurnal hanya bisa dibuka lewat Quick Action Hub;
+                  kini satu ketuk dari header Beranda (mobile & desktop). */}
+              <m.button
+                type="button"
+                onClick={() => setScreen('jurnal')}
+                aria-label="Buka Jurnal — catatan dan tulisan"
+                whileTap={{ scale: 0.92 }}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary/70 text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <BookOpen className="h-4 w-4" strokeWidth={2} />
+              </m.button>
+              <m.button
+                type="button"
+                onClick={() => setScreen('profil')}
+                aria-label="Buka profil dan pengaturan"
+                whileTap={{ scale: 0.92 }}
+                className="cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
+                  <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
+                    AN
+                  </AvatarFallback>
+                </Avatar>
+              </m.button>
+            </div>
           </div>
           <h1
             className={`${playfair.className} mt-2.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
@@ -738,7 +813,10 @@ export default function HomeScreen() {
       <DateStrip />
 
       {/* 2 — Komposisi bento agenda: daftar misi (tile lebar) + kolom
-          pengingat & saran coach (tile sempit) pada xl; urutan DOM sama. */}
+          pengingat & saran coach (tile sempit) pada xl; urutan DOM sama.
+          Bila tidak ada pengingat & saran (semua misi sehat), tile samping
+          kosong → agenda melebar penuh agar tak ada kolom mati
+          (audit responsif v2.13). */}
       <m.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
@@ -749,7 +827,14 @@ export default function HomeScreen() {
         }}
       >
         <RutinaBentoGrid>
-          <RutinaBentoItem span="wide">
+          <RutinaBentoItem
+            span="wide"
+            className={
+              missedList.length === 0 && coachTips.length === 0
+                ? '@[52rem]:col-span-12'
+                : undefined
+            }
+          >
             <section aria-label="Agenda hari ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
@@ -1126,32 +1211,10 @@ export default function HomeScreen() {
         </RutinaBentoGrid>
       </m.div>
 
-      {/* 3 — Baris bento arus kas (5) + insight pekan (7): satu baris
-          komposisi ruang kerja lebar (≥52rem), ponsel menumpuk finance → insight pekan.
-          mt-8 internal HomeFinanceCard dinetralkan agar tepi atas kedua
-          tile sejajar. */}
-      <RutinaBentoGrid>
-        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5 [&>section]:mt-0">
-          {/* Ringkasan finansial harian (audit #11) */}
-          <HomeFinanceCard />
-        </RutinaBentoItem>
-
-        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
-          {/* Insight pekan: aktivitas & streak berdampingan */}
-          <section aria-label="Insight pekan ini">
-            <RutinaSectionHeader
-              title="Insight pekan"
-              description="Aktivitas misi & konsistensi terpanjang"
-            />
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FocusWidget />
-              <StreakWidget />
-            </div>
-          </section>
-        </RutinaBentoItem>
-      </RutinaBentoGrid>
-
-      {/* 4 — Bonus konsistensi (klaim XP harian) */}
+      {/* 3 — Bonus konsistensi (klaim XP harian) — TINGKAT "PERLU
+          PERHATIAN": aksi kecil yang menunggu pengguna, diletakkan
+          langsung setelah agenda agar terlihat tanpa menggulir jauh,
+          namun tetap satu baris ringkas (review Beranda v2.13). */}
       <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1217,83 +1280,102 @@ export default function HomeScreen() {
         </button>
       </m.section>
 
-      {/* 5 — Kartu stempel pekan (pola punch card, histori nyata) */}
-      <PunchCard />
+      {/* 4 — Baris bento arus kas (5) + insight pekan (7): satu baris
+          komposisi ruang kerja lebar (≥52rem), ponsel menumpuk finance → insight pekan.
+          mt-8 internal HomeFinanceCard dinetralkan agar tepi atas kedua
+          tile sejajar. */}
+      <RutinaBentoGrid>
+        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5 [&>section]:mt-0">
+          {/* Ringkasan finansial harian (audit #11) */}
+          <HomeFinanceCard />
+        </RutinaBentoItem>
 
-      {/* 6 — Kartu Kategori / Folder (jumlah dihitung nyata) */}
-      <section aria-label="Koleksi folder catatan">
-        <RutinaSectionHeader
-          title="Koleksi"
-          description={`${FOLDERS.length} folder catatan`}
-          action={
-            <button
+        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
+          {/* Insight pekan: aktivitas & streak berdampingan */}
+          <section aria-label="Insight pekan ini">
+            <RutinaSectionHeader
+              title="Insight pekan"
+              description="Aktivitas misi & konsistensi terpanjang"
+            />
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FocusWidget />
+              <StreakWidget />
+            </div>
+          </section>
+        </RutinaBentoItem>
+      </RutinaBentoGrid>
+
+      {/* 5 — Kartu stempel pekan — TINGKAT "AKTIVITAS TAMBAHAN": dilipat
+          (review Beranda v2.13: punch card adalah progres lanjutan, bukan
+          fokus utama; ringkasan "X dari 7" selalu terlihat di pemicu,
+          detail lubang dibuka bila diminati). */}
+      <FoldedPunchCard />
+
+      {/* 6 — Pintu Jurnal & catatan — menggantikan kisi folder penuh:
+          kini satu kartu ringkas (review v2.13: "koleksi folder lebih
+          cocok menjadi pintu masuk Jurnal"); kisi folder lengkap ada
+          di layar Jurnal. */}
+      <m.section
+        initial={{ opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-20px' }}
+        transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+        aria-label="Jurnal dan catatan"
+        className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
+      >
+        <div className="flex items-center gap-3.5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+            <BookOpen className="h-5 w-5" strokeWidth={1.9} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-body font-semibold text-content-primary">
+              Jurnal &amp; Catatan
+            </p>
+            <p className="mt-0.5 truncate text-meta font-medium text-content-muted">
+              {notes.length} catatan di {FOLDERS.length} folder
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
               type="button"
+              variant="outline"
               onClick={() => openCompose()}
               aria-label="Buat catatan baru"
-              className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="h-9 rounded-full border-border px-4 text-meta font-bold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
               Catatan
-            </button>
-          }
-        />
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {FOLDERS.map(({ key, label }, i) => {
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setScreen('jurnal')}
+              className="h-9 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft hover:bg-action-hover"
+            >
+              Buka
+            </Button>
+          </div>
+        </div>
+        {/* Chip folder ringkas — hitungan nyata per kategori */}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {FOLDERS.map(({ key, label }) => {
             const Icon = FOLDER_ICONS[key]
             const count = folderCount(notes, key)
             return (
-              <m.div
+              <button
                 key={key}
-                initial={{ opacity: 0, y: 14 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-20px' }}
-                transition={{
-                  duration: 0.45,
-                  delay: i * 0.05,
-                  ease: motionTokens.easing.standard,
-                }}
-                whileHover={{ y: -3 }}
-                /* Tanpa whileTap: Motion menyuntikkan tabindex pada div
-                   non-interaktif — umpan balik ketuk kini di tombol buka. */
-                className="relative flex aspect-square flex-col justify-between rounded-[20px] bg-surface-primary p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-pop"
+                type="button"
+                onClick={() => openFolder(key)}
+                aria-label={`Buka folder ${label} di Jurnal, ${count} catatan`}
+                className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3 text-meta font-semibold text-content-secondary transition-colors hover:border-primary/35 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                {/* Satu tombol buka folder selebar kartu (z-0) — kontrol
-                    interaktif tidak bersarang di dalam kontrol lain. */}
-                <button
-                  type="button"
-                  aria-label={`Buka folder ${label}, ${count} catatan`}
-                  onClick={() => openFolder(key)}
-                  className="absolute inset-0 z-0 cursor-pointer rounded-[20px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                />
-                <div className="pointer-events-none relative z-10 flex items-start justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-content-secondary">
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Buat catatan baru di folder ${label}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openCompose(key)
-                    }}
-                    className="pointer-events-auto relative z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-secondary/70 text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={2.5} />
-                  </button>
-                </div>
-                <span className="pointer-events-none relative z-10">
-                  <span className="block text-section font-semibold leading-tight text-content-primary">
-                    {label}
-                  </span>
-                  <span className="mt-0.5 block text-xs font-medium text-content-muted">
-                    {count} Catatan
-                  </span>
-                </span>
-              </m.div>
+                <Icon aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
+                {label}
+                <span className="tabular-nums text-content-muted">{count}</span>
+              </button>
             )
           })}
         </div>
-      </section>
+      </m.section>
 
       {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap
           kebiasaan, berendam di permukaan kebun (garden-surface) sebagai

@@ -57,6 +57,11 @@ export function FinChart({
   const { bar: BAR_W, gap: BAR_GAP } = barMetrics(points.length)
   const every = labelEvery(points.length)
 
+  /* Ringkasan nonvisual — total masuk/keluar/selisih seluruh deret;
+     pembaca layar mendapat gambaran umum tanpa menelusuri tiap kolom. */
+  const totalIn = points.reduce((a, p) => a + p.masuk, 0)
+  const totalOut = points.reduce((a, p) => a + p.keluar, 0)
+
   return (
     <div
       className="relative select-none"
@@ -64,6 +69,14 @@ export function FinChart({
       role="group"
       aria-label="Grafik arus kas per periode — geser menyamping untuk histori panjang"
     >
+      <p className="sr-only">
+        Ringkasan arus kas deret ini: total masuk
+        {' '}
+        {totalIn.toLocaleString('id-ID')}, total keluar{' '}
+        {totalOut.toLocaleString('id-ID')}, selisih{' '}
+        {(totalIn - totalOut).toLocaleString('id-ID')}
+        {' '}rupiah. Rincian per periode tersedia pada tiap kolom berikut.
+      </p>
       {/* Wadah geser — histori panjang (mode "Semua") melebar mengikuti
           jumlah kolom, bukan mengecilkan batang; ponsel menggeser
           horizontal. Garis bantu & garis dasar ikut melebar bersama

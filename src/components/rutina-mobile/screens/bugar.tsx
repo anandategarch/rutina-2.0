@@ -24,11 +24,23 @@ import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
   addDaysISO,
   longDateLabel,
   shortDateLabel,
   todayISO,
   useRutina,
+  type BugarTab,
   type Workout,
 } from '../store'
 import { BlurFade } from '../motion-kit'
@@ -69,7 +81,6 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
-type BugarTab = 'latihan' | 'asupan' | 'tubuh'
 const BUGAR_TABS: { id: BugarTab; label: string }[] = [
   { id: 'latihan', label: 'Latihan' },
   { id: 'asupan', label: 'Asupan' },
@@ -323,17 +334,50 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                deleteWorkout(w.id)
-                toast('Sesi dihapus dari riwayat.')
-              }}
-              className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-meta font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Hapus sesi
-            </button>
+            {/* Konfirmasi hapus sesi — sesi latihan berisi banyak set
+                dan tidak dapat dikembalikan; AlertDialog mencegah salah
+                ketuk, pola sama dengan hapus transaksi/catatan. */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-meta font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Hapus sesi
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border p-6 sm:max-w-[320px]">
+                <AlertDialogHeader>
+                  <div className="mb-1 flex justify-center">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-content-danger">
+                      <Trash2 className="h-5 w-5" />
+                    </span>
+                  </div>
+                  <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
+                    Hapus sesi latihan?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center text-note leading-relaxed text-content-muted">
+                    Sesi {shortDateLabel(w.date)} dengan {w.sets.length} set
+                    akan dihapus permanen dari riwayat dan papan rekor.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
+                  <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border text-note font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary">
+                    Batal
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      deleteWorkout(w.id)
+                      toast('Sesi dihapus dari riwayat.')
+                    }}
+                    className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+                  >
+                    Ya, Hapus
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </m.div>
         )}
       </AnimatePresence>
@@ -522,11 +566,8 @@ function TonaseStrip() {
           membaca nilai di header. Tumbuh lewat scaleY (transform-only). */}
       <div
         className="mt-3 flex gap-1.5"
-        role="img"
-        aria-label={TONASE_DAY_NAMES.map(
-          (n, i) =>
-            `${n} ${Math.round(values[i]).toLocaleString('id-ID')} kg`,
-        ).join(', ')}
+        role="group"
+        aria-label="Tonase latihan tujuh hari terakhir, dalam kilogram"
       >
         {days.map((d, i) => {
           const v = values[i]
@@ -635,7 +676,10 @@ export default function BugarScreen() {
   const endDeload = useRutina((s) => s.endDeload)
   const openCheckIn = useCheckInSheet((s) => s.openCheckIn)
 
-  const [tab, setTab] = useState<BugarTab>('latihan')
+  /* Subtab aktif disimpan di uiPrefs (store) — bertahan saat berpindah
+     layar, tak di-reset oleh AnimatePresence yang melepas komponen. */
+  const tab = useRutina((s) => s.uiPrefs.bugarTab)
+  const setTab = useRutina((s) => s.setUiPref)
   const [libQuery, setLibQuery] = useState('')
   const [libMuscle, setLibMuscle] = useState<string>('Semua')
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
@@ -699,6 +743,13 @@ export default function BugarScreen() {
 
   const strengthCount = workouts.filter((w) => w.kind === 'beban').length
 
+  /* Batas render riwayat (audit performa v2.13): histori bertambah tanpa
+     batas — 15 sesi terbaru dirender dulu, sisanya dimuat bertahap agar
+     daftar panjang (ratusan sesi) tidak menghentikan gulir. */
+  const [historyLimit, setHistoryLimit] = useState(15)
+  const historySlice = workouts.slice(0, historyLimit)
+  const historyHidden = workouts.length - historySlice.length
+
   const filteredLib = useMemo(() => {
     const q = libQuery.trim().toLowerCase()
     return EX_LIB.filter(
@@ -740,7 +791,10 @@ export default function BugarScreen() {
       </header>
 
       {/* Subtab — Radix Tabs: pil aktif via data-state=active + dukungan keyboard */}
-      <RutinaTabs value={tab} onValueChange={(v) => setTab(v as BugarTab)}>
+      <RutinaTabs
+        value={tab}
+        onValueChange={(v) => setTab({ bugarTab: v as BugarTab })}
+      >
         <RutinaTabsList aria-label="Bagian Bugar" className="mt-4 w-full">
           {BUGAR_TABS.map((t) => (
             <RutinaTabsTrigger
@@ -1114,9 +1168,20 @@ export default function BugarScreen() {
 
         <div className="mt-3 max-h-[430px] space-y-2.5 overflow-y-auto no-scrollbar pr-1">
           <AnimatePresence initial={false} mode="popLayout">
-            {workouts.map((w, i) => (
+            {historySlice.map((w, i) => (
               <WorkoutRow key={w.id} w={w} index={i} />
             ))}
+            {historyHidden > 0 && (
+              <button
+                key="wo-more"
+                type="button"
+                onClick={() => setHistoryLimit((n) => n + 15)}
+                className="w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Tampilkan {Math.min(15, historyHidden)} sesi lagi
+                {historyHidden > 15 ? ` (${historyHidden} tersisa)` : ''}
+              </button>
+            )}
             {workouts.length === 0 && (
               <m.div
                 key="wo-empty"

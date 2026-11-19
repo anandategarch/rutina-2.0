@@ -20,6 +20,7 @@ import {
   SearchX,
   Sprout,
   Target,
+  UserRound,
   UtensilsCrossed,
   Wallet,
   type LucideIcon,
@@ -139,7 +140,9 @@ const PRIMARY_ACTIONS: HubAction[] = [
   },
 ]
 
-/* Item navigasi — melengkapi grup "Aksi" saat mencari. */
+/* Item navigasi — melengkapi grup "Aksi" saat mencari. Profil & Jurnal
+   ikut terdaftar: keduanya bukan tab bawah, jadi hub menjadi akses global
+   yang konsisten dari layar mana pun (rekomendasi review navigasi v2.13). */
 const NAV_ITEMS: {
   key: string
   label: string
@@ -153,6 +156,7 @@ const NAV_ITEMS: {
   { key: 'nav-kebiasaan', label: 'Buka Kebiasaan', value: 'buka kebiasaan habit kebun tanaman', icon: Sprout, screen: 'kebiasaan' },
   { key: 'nav-jurnal', label: 'Buka Jurnal', value: 'buka jurnal catatan notes', icon: BookOpen, screen: 'jurnal' },
   { key: 'nav-statistik', label: 'Buka Statistik', value: 'buka statistik ringkasan progres', icon: BarChart3, screen: 'statistik' },
+  { key: 'nav-profil', label: 'Buka Profil & Pengaturan', value: 'buka profil pengaturan settings preferensi akun', icon: UserRound, screen: 'profil' },
 ]
 
 /** Ikon + nada warna nominal per arah arus — selaras layar Keuangan. */

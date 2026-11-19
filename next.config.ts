@@ -2,9 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  /* config options here */
+  /* Pemeriksaan TypeScript & ESLint AKTIF saat build — error tipe
+     menggagalkan build (v2.13: guardrail mutakhir sebelum deploy).
+     `bun run typecheck` untuk cek cepat tanpa build. */
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
   },
   reactStrictMode: false,
   devIndicators: false,

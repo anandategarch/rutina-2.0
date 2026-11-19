@@ -163,7 +163,7 @@ export function TaskRow({
         aria-label={`${habit.title} — ketuk untuk detail, tombol lingkaran untuk menandai selesai`}
         whileTap={{ scale: 0.985 }}
         className={
-          'relative z-10 flex cursor-pointer items-center gap-2 p-3 transition-colors duration-300 ' +
+          'relative z-10 flex flex-wrap cursor-pointer items-center gap-2 p-3 transition-colors duration-300 ' +
           (done ? 'bg-secondary' : 'bg-surface-primary')
         }
       >
@@ -201,11 +201,13 @@ export function TaskRow({
           </m.span>
         </m.button>
 
-        {/* Judul kebiasaan — lebar penuh sisa, bungkus hingga 2 baris
-            (pil streak kompak + XP menempel di kanan tanpa menjepit). */}
+        {/* Judul kebiasaan — flex-1 dengan basis minimum 9rem: di kartu
+            lebar judul memenuhi sisa baris; di kartu sempit (kisi 2 kolom
+            desktop, lihat audit responsif v2.13) grup pil menurun ke
+            baris kedua alih-alih menjepit judul menjadi ±24px. */}
         <span
           className={
-            'min-w-0 flex-1 text-left text-section font-medium leading-snug break-words line-clamp-2 transition-colors duration-300 ' +
+            'min-w-0 flex-1 basis-36 text-left text-section font-medium leading-snug break-words line-clamp-2 transition-colors duration-300 ' +
             (done
               ? 'text-content-muted line-through'
               : 'text-content-primary')
@@ -214,6 +216,9 @@ export function TaskRow({
           {habit.title}
         </span>
 
+        {/* Grup pil meta (streak/kategori, XP, chevron) — satu unit yang
+            utuh: muat di baris judul bila lega, menurun rapi bila sempit. */}
+        <span className="ml-auto flex shrink-0 items-center gap-1.5">
         {/* Pil meta: streak nyata (kompak — angka + api, satuan "hari"
             di title & sr-only agar baris tetap lega di layar sempit) atau kategori */}
         {streak > 0 ? (
@@ -253,6 +258,7 @@ export function TaskRow({
         >
           <ChevronDown className="h-4 w-4" />
         </m.span>
+        </span>
 
         {/* XP pop — mengambang naik saat kebiasaan baru selesai */}
         <AnimatePresence>

@@ -5,6 +5,31 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+## v2.13 — Hardening & Review Frontend: Konfirmasi Hapus, UIPrefs, Beranda 3 Tingkat
+
+Iterasi pengerasan kualitas dari review frontend eksternal + audit rekayasa:
+aksi destruktif kini selalu berkonfirmasi, pemeriksaan tipe aktif saat build,
+75 pengujian otomatis untuk perhitungan & sinkronisasi, dan Beranda
+direorganisasi ke tiga tingkat informasi.
+
+| Perbaikan | Rincian |
+|---|---|
+| **Konfirmasi hapus menyeluruh** | Sisa dua jalur hapus tanpa konfirmasi ditutup: entri jurnal makan (`FoodRow`) dan sesi latihan (`WorkoutRow`) kini memakai AlertDialog (pola sama dengan transaksi/catatan/kebiasaan) — mencegah salah ketuk pada data yang tidak dapat dikembalikan. |
+| **TypeScript & ESLint aktif saat build** | `ignoreBuildErrors: false` + `ignoreDuringBuilds: false` di `next.config.ts` — error tipe/lint kini menggagalkan build (guardrail deploy). Skrip baru: `bun run typecheck`, `bun run test`, `bun run verify` (typecheck + lint + test berurutan). |
+| **75 pengujian otomatis** | `tests/` — 4 suite bun-test: `calc-finance` (format Rupiah, arus kas bulanan, saldo dompet, transfer netral, deret grafik), `calc-fitness` (e1RM Epley, tonase, double progression, plateau/deload, pemuat piring IWF, kesiapan), `calc-store` (XP/level, streak sadar-jeda & grace, kartu stempel, util tanggal), `sync-schema` (snapshot valid + default, penolakan muatan sampah, pulang-pergi JSON, batas pertahanan). |
+| **Beranda 3 tingkat informasi** | **(1) Hari ini:** hero progres + kalender + agenda. **(2) Perlu perhatian:** bonus harian dipindah tepat setelah agenda. **(3) Aktivitas tambahan:** arus kas & insight pekan, kartu stempel **terlipat** (ringkasan "X dari 7" di pemicu), pintu **Jurnal & Catatan** ringkas menggantikan kisi folder penuh, taman, refleksi. |
+| **Navigasi: Profil & Jurnal selalu terjangkau** | Header Beranda kini punya tombol Jurnal (di samping avatar); Quick Action Hub menambah "Buka Profil & Pengaturan" — dari layar mana pun, tanpa menambah tab keenam. |
+| **uiPrefs — preferensi lintas layar** | Tab Bugar, tab & periode grafik Keuangan, filter mutasi, dan periode Statistik disimpan di store (`uiPrefs`, dipersist lokal, TIDAK disinkronkan) — tidak lagi ter-reset saat berpindah tab karena AnimatePresence melepas komponen layar. |
+| **Aksesibilitas grafik** | TonaseStrip `role="img"` → `role="group"` bernama (berisi 7 tombol interaktif); grafik kalori 7-hari mendapat grup + ringkasan sr-only (rata-rata vs target); FinChart mendapat ringkasan nonvisual total masuk/keluar/selisih. |
+| **Statistik: pintasan & lipatan** | Chip navigasi seksi (Tren · Kalender · Laporan · Bugar · Piala) di kepala halaman; Laporan Bulanan & Piala dan Lencana kini dilipat default dengan ringkasan di pemicu — beban visual halaman pertama berkurang tanpa menghilangkan konten. |
+| **Perbaikan responsif desktop** | Bug nyata dari audit visual: judul kebiasaan TaskRow terpotong ±24px di kisi 2-kolom desktop (chip shrink-0 menjepit). Kini grup pil menurun ke baris kedua saat kartu sempit (judul basis-36); kartu agenda melebar 12-kolom saat tile samping (nudge/coach) kosong — kolom mati hilang. Terverifikasi 320/390/768/1440px tanpa overflow. |
+| **Performa data besar** | Mutasi merender 60 transaksi terbaru (muat bertahap +60), Jurnal 30 kartu (+30), Riwayat Bugar 15 sesi (+15) — daftar ribuan baris tidak lagi dirender sekaligus; derivasi berat tetap ter-memoisasi. |
+| **Bahasa jujur** | Pemilih bahasa interaktif (English "segera") diganti info statis "Indonesia · aktif" — tidak ada kesan pengaturan yang belum benar-benar berfungsi. |
+
+Verifikasi browser menyeluruh (agent-browser): navigasi Jurnal/Profil, persistensi
+tab lintas layar, dialog hapus, pintasan seksi, lipatan, dan responsivitas
+320–1440px — tanpa error konsol.
+
 ## v2.4 — Audit UI/UX Mobile: Nol Teks Terpotong
 
 Sapuan audit menyeluruh di viewport ponsel **390px & 360px** (semua tab, layar
