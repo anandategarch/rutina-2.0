@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Smartphone,
   Sparkles,
+  Tag,
   TrendingUp,
   TriangleAlert,
   Users,
@@ -35,13 +36,17 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import type { FinCat, TxType } from '../store'
+import type { CustomCat, FinCat, Tx, TxType } from '../store'
 
 /** Nama tampilan + ikon lucide untuk tiap kategori transaksi.
  *  Blok "Impor Rutina 1.0" (v2.15) mempertahankan label persis seperti
  *  aplikasi lama — termasuk ejaan khas pengguna ("Cathering",
  *  "Loundry") — agar data hasil impor Turso terasa seperti milik
- *  sendiri, bukan hasil terjemahan. */
+ *  sendiri, bukan hasil terjemahan.
+ *
+ *  v2.17: SATU SISTEM KATEGORI — kategori bawaan 2.0 dan impor 1.0
+ *  hidup berdampingan dalam satu daftar tanpa penanda asal; kategori
+ *  buatan pengguna (CustomCat) menyatu lewat catMetaOf(). */
 export const CAT_META: Record<FinCat, { label: string; icon: LucideIcon }> = {
   /* ===== Bawaan 2.0 ===== */
   makan: { label: 'Makan & Minum', icon: UtensilsCrossed },
@@ -82,19 +87,25 @@ export const CAT_META: Record<FinCat, { label: string; icon: LucideIcon }> = {
   penghasilan: { label: 'Penghasilan', icon: CircleDollarSign },
 }
 
-/** Kategori bawaan 2.0 — urutan pada pemilih di lembar tambah transaksi. */
+/** Slug → label seluruh kategori bawaan — dipakai validasi anti-duplikat
+ *  kategori buatan (store.addCustomCat). Tipe longgar (string) agar
+ *  bisa dipetakan tanpa cast. */
+export const CATS_UNIFIED_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(CAT_META).map(([slug, meta]) => [slug, meta.label]),
+)
+
+/** Kategori bawaan 2.0 — default lembar transaksi & urutan pertama. */
 export const PRIMARY_CATS_BY_TYPE: Record<TxType, FinCat[]> = {
   keluar: ['makan', 'transport', 'belanja', 'hiburan', 'tagihan', 'kesehatan', 'lainnya'],
   masuk: ['gaji', 'bonus', 'proyek', 'lainnya'],
   transfer: [],
 }
 
-/** Kategori hasil impor Rutina 1.0 (Turso) — v2.15.
- *  Daftar ini adalah kategori asli yang benar-benar dipakai pengguna di
- *  aplikasi lama (disarikan dari tabel `transactions` + templat berulang
- *  `workspace_modules.finance.recurring`). Ditampilkan terpisah di UI
- *  dengan penanda "Dari Rutina 1.0". */
-export const LEGACY_CATS_BY_TYPE: Record<TxType, FinCat[]> = {
+/** Kategori hasil impor Rutina 1.0 (Turso) — v2.15. Daftar asli yang
+ *  benar-benar dipakai pengguna di aplikasi lama (tabel `transactions`
+ *  + templat berulang). v2.17: tidak lagi ditampilkan TERPISAH —
+ *  menyatu di CATS_BY_TYPE tanpa penanda asal. */
+const LEGACY_CATS_BY_TYPE: Record<TxType, FinCat[]> = {
   keluar: [
     'kopi',
     'makanan-berat',
@@ -123,18 +134,97 @@ export const LEGACY_CATS_BY_TYPE: Record<TxType, FinCat[]> = {
   transfer: [],
 }
 
-/** Seluruh kategori yang bisa dipilih per arus — bawaan + impor 1.0.
- *  Elemen pertama tiap daftar selalu kategori bawaan (default lembar
- *  tambah transaksi saat berganti arah). */
+/** SATU DAFTAR KATEGORI per arus (v2.17): bawaan 2.0 di depan sebagai
+ *  default, menyusul kategori Rutina 1.0 diurutkan abjad — tanpa
+ *  penanda asal, tanpa duplikat. Kategori buatan pengguna digabungkan
+ *  saat runtime lewat allCatsOf(). */
 export const CATS_BY_TYPE: Record<TxType, FinCat[]> = {
-  keluar: [...PRIMARY_CATS_BY_TYPE.keluar, ...LEGACY_CATS_BY_TYPE.keluar],
+  keluar: [
+    ...PRIMARY_CATS_BY_TYPE.keluar,
+    ...LEGACY_CATS_BY_TYPE.keluar,
+  ],
   masuk: [...PRIMARY_CATS_BY_TYPE.masuk, ...LEGACY_CATS_BY_TYPE.masuk],
   transfer: [],
 }
 
-/** Kategori pengeluaran yang bisa dianggarkan — bawaan + subkategori
- *  impor 1.0 yang paling sering dikendalikan pengguna di aplikasi lama
- *  (makanan, bensin/parkir, cicilan tagihan, kebersihan pakaian). */
+/** Subkategori bawaan (v2.17) — rincian opsional DI BAWAH kategori
+ *  induk; hanya untuk kategori bawaan 2.0 dan sengaja tidak menabrak
+ *  nama kategori impor 1.0 yang sudah berdiri sendiri (mis. Bensin,
+ *  Parkir, Tagihan Air). Kategori buatan bisa punya subkategori
+ *  sendiri lewat CustomCat.parentKey. */
+export const BUILT_IN_SUBCATS: Partial<Record<FinCat, string[]>> = {
+  makan: ['Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan'],
+  transport: ['Ojek Online', 'KRL/MRT', 'Bus', 'Taksi'],
+  belanja: ['Kebutuhan Rumah', 'Pakaian', 'Elektronik', 'Hadiah'],
+  hiburan: ['Streaming', 'Game', 'Bioskop', 'Buku'],
+  tagihan: ['Internet', 'Langganan', 'Sewa'],
+  kesehatan: ['Obat', 'Dokter', 'Vitamin', 'Lab'],
+}
+
+/** Ikon kategori buatan & fallback (slug tak dikenal). */
+export const CUSTOM_CAT_ICON = Tag
+
+export interface CatMeta {
+  label: string
+  icon: LucideIcon
+}
+
+/** Meta kategori AMAN untuk slug apa pun (v2.17): kategori bawaan →
+ *  CAT_META; kategori buatan → nama pengguna + ikon tag; slug asing
+ *  (mis. data luar) → label kapitalisasi. UI tidak lagi perlu
+ *  CAT_META[cat] langsung yang bisa melempar undefined. */
+export function catMetaOf(cat: string, customCats: CustomCat[] = []): CatMeta {
+  const builtin = (CAT_META as Record<string, CatMeta | undefined>)[cat]
+  if (builtin) return builtin
+  const custom = customCats.find((c) => c.id === cat)
+  if (custom) return { label: custom.name, icon: CUSTOM_CAT_ICON }
+  const pretty = cat
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+  return { label: pretty, icon: CUSTOM_CAT_ICON }
+}
+
+/** Seluruh kategori utama untuk satu arus — bawaan + buatan (v2.17). */
+export function allCatsOf(type: TxType, customCats: CustomCat[]): string[] {
+  const custom = customCats
+    .filter((c) => c.type === type && !c.parentKey)
+    .map((c) => c.id)
+  return [...CATS_BY_TYPE[type], ...custom]
+}
+
+/** Subkategori yang tersedia untuk satu kategori: bawaan (curated)
+ *  + buatan dengan parentKey kategori tersebut. */
+export function subcatsOf(cat: string, customCats: CustomCat[]): string[] {
+  const builtin = (BUILT_IN_SUBCATS as Record<string, string[] | undefined>)[cat] ?? []
+  const custom = customCats
+    .filter((c) => c.parentKey === cat)
+    .map((c) => c.name)
+  return [...builtin, ...custom]
+}
+
+/** Kategori yang sering dipakai (v2.17) — dihitung dari frekuensi
+ *  transaksi nyata arus tersebut; dipakai bagian "Sering dipakai"
+ *  pemilih kategori. */
+export function frequentCats(
+  txs: Tx[],
+  type: TxType,
+  limit = 6,
+): { cat: string; count: number }[] {
+  const counts = new Map<string, number>()
+  for (const t of txs) {
+    if (t.type !== type) continue
+    counts.set(t.cat, (counts.get(t.cat) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .map(([cat, count]) => ({ cat, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}
+
+/** Kategori pengeluaran yang bisa dianggarkan — bawaan + impor 1.0
+ *  yang paling sering dikendalikan + kategori buatan arus keluar
+ *  (digabung saat runtime oleh layar anggaran). */
 export const BUDGETABLE_CATS: FinCat[] = [
   'makan',
   'transport',

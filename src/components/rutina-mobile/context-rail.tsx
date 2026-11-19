@@ -28,7 +28,7 @@ import {
 
 import { motionTokens } from '@/lib/motion/tokens'
 
-import { CAT_META } from './finance/cats'
+import { useCatMeta } from './finance/use-cat-meta'
 import { formatIDRShort, monthFlow, monthSpendByCat } from './finance/utils'
 import { prBoard } from './fitness/fit-utils'
 import { MODULE_TEXT, MODULE_TINT } from './rutina-module'
@@ -437,6 +437,8 @@ function PeriodCard() {
 }
 
 function BudgetCard() {
+const catMeta = useCatMeta()
+
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
   const wallets = useRutina((s) => s.wallets)
@@ -459,7 +461,7 @@ function BudgetCard() {
             iconClass={MODULE_TINT.finance}
             value={`${Math.min(100, Math.round((top.used / Math.max(1, top.limit)) * 100))}%`}
             valueClass={MODULE_TEXT.finance}
-            label={`${CAT_META[top.cat].label} terpakai`}
+            label={`${catMeta(top.cat).label} terpakai`}
           />
           <MetricRow
             icon={Wallet}
@@ -483,6 +485,8 @@ function BudgetCard() {
 }
 
 function RecentTxsCard() {
+const catMeta = useCatMeta()
+
   const txs = useRutina((s) => s.txs)
   const recent = [...txs].sort((a, b) => (a.ts < b.ts ? 1 : -1)).slice(0, 3)
 
@@ -509,7 +513,7 @@ function RecentTxsCard() {
                 valueClass={
                   isIn ? 'text-success' : isOut ? 'text-content-danger' : undefined
                 }
-                label={t.note || CAT_META[t.cat].label}
+                label={t.note || catMeta(t.cat).label}
               />
             )
           })}

@@ -7,6 +7,7 @@ import {
   type TxWire,
   type WorkoutWire,
   type FoodEntryWire,
+  type CustomCatWire,
 } from '@/lib/sync-schema'
 
 /* =====================================================================
@@ -71,6 +72,7 @@ export async function readFullState(): Promise<FullStateResult> {
     bodyLogs,
     moodLogs,
     settings,
+    customCats,
   ] = await Promise.all([
     db.habit.findMany(),
     db.habitLog.findMany(),
@@ -84,6 +86,7 @@ export async function readFullState(): Promise<FullStateResult> {
     db.bodyLog.findMany(),
     db.moodLog.findMany(),
     db.appSetting.findMany(),
+    db.finCategory.findMany(),
   ])
 
   const settingsMap = new Map(settings.map((s) => [s.key, s.value]))
@@ -159,6 +162,7 @@ export async function readFullState(): Promise<FullStateResult> {
     toWalletId: t.toWalletId ?? null,
     recurrence: (t.recurrence as TxWire['recurrence']) ?? null,
     recurOf: t.recurOf ?? null,
+    subcat: t.subcat || null,
   }))
 
   const workoutWires: WorkoutWire[] = workouts.map((w) => ({
@@ -169,7 +173,17 @@ export async function readFullState(): Promise<FullStateResult> {
     note: w.note,
     sets: parseSets(w.sets),
     distance: w.distance ?? null,
+    kcal: w.kcal ?? null,
   }))
+
+  const customCatWires: CustomCatWire[] = customCats
+    .filter((c) => !c.archived)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type as CustomCatWire['type'],
+      parentKey: c.parentKey ?? null,
+    }))
 
   const foodWires: FoodEntryWire[] = foods.map((f) => ({
     id: f.id,
@@ -204,6 +218,7 @@ export async function readFullState(): Promise<FullStateResult> {
     })),
     wallets: wallets.map((w) => ({ id: w.id, name: w.name, initial: w.initial })),
     budgets: Object.fromEntries(budgets.map((b) => [b.cat, b.amount])),
+    customCats: customCatWires,
     workouts: workoutWires,
     foodEntries: foodWires,
     calorieTarget: Number(settingsMap.get(SYNC_SETTING_KEYS.calorieTarget) ?? 2000),
@@ -234,6 +249,7 @@ export interface WriteCounts {
   workouts: number
   foodEntries: number
   bodyLogs: number
+  customCats: number
 }
 
 export async function writeFullState(state: SyncState): Promise<WriteCounts> {
@@ -297,6 +313,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     db.foodEntry.deleteMany(),
     db.bodyLog.deleteMany(),
     db.moodLog.deleteMany(),
+    db.finCategory.deleteMany(),
     ...(state.habits.length
       ? [
           db.habit.createMany({
@@ -358,11 +375,25 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               toWalletId: t.toWalletId ?? null,
               recurrence: t.recurrence ?? null,
               recurOf: t.recurOf ?? null,
+              subcat: t.subcat ?? '',
             })),
           }),
         ]
       : []),
     ...(budgetRows.length ? [db.budget.createMany({ data: budgetRows })] : []),
+    ...(state.customCats.length
+      ? [
+          db.finCategory.createMany({
+            data: state.customCats.map((c) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+              parentKey: c.parentKey ?? null,
+              archived: false,
+            })),
+          }),
+        ]
+      : []),
     ...(state.goals.length
       ? [
           db.goal.createMany({
@@ -386,6 +417,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               note: w.note,
               sets: JSON.stringify(w.sets),
               distance: w.distance ?? null,
+              kcal: w.kcal ?? null,
             })),
           }),
         ]
@@ -433,6 +465,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     workouts: state.workouts.length,
     foodEntries: state.foodEntries.length,
     bodyLogs: bodyLogRows.length,
+    customCats: state.customCats.length,
   }
 }
 
@@ -451,6 +484,7 @@ export async function resetAllData(): Promise<void> {
     db.foodEntry.deleteMany(),
     db.bodyLog.deleteMany(),
     db.moodLog.deleteMany(),
+    db.finCategory.deleteMany(),
     db.appSetting.deleteMany(),
   ])
 }

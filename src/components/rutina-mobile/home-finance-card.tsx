@@ -11,11 +11,11 @@ import {
 } from 'lucide-react'
 
 import { motionTokens } from '@/lib/motion/tokens'
-import { CAT_META } from './finance/cats'
+import { useCatMeta } from './finance/use-cat-meta'
 import { formatIDR, formatIDRShort } from './finance/utils'
 import { RutinaCard } from './rutina-card'
 import { RutinaSectionHeader } from './rutina-section-header'
-import { todayISO, useRutina, type FinCat } from './store'
+import { todayISO, useRutina } from './store'
 
 /**
  * Kartu "Arus Kas Hari Ini" — ringkasan finansial harian di Beranda
@@ -24,6 +24,7 @@ import { todayISO, useRutina, type FinCat } from './store'
  * Transfer antar-dompet dikecualikan dari seluruh angka (bukan arus kas).
  */
 export function HomeFinanceCard() {
+  const catMeta = useCatMeta()
   const txs = useRutina((s) => s.txs)
   const setScreen = useRutina((s) => s.setScreen)
 
@@ -46,7 +47,7 @@ export function HomeFinanceCard() {
 
   /* Top 3 kategori pengeluaran hari ini. */
   const topCats = useMemo(() => {
-    const byCat = new Map<FinCat, number>()
+    const byCat = new Map<string, number>()
     for (const t of todayTxs) {
       if (t.type !== 'keluar') continue
       byCat.set(t.cat, (byCat.get(t.cat) ?? 0) + t.amount)
@@ -146,7 +147,7 @@ export function HomeFinanceCard() {
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {topCats.map(([cat, amt]) => {
-                    const Icon = CAT_META[cat].icon
+                    const Icon = catMeta(cat).icon
                     return (
                       <span
                         key={cat}
@@ -157,7 +158,7 @@ export function HomeFinanceCard() {
                           className="h-3.5 w-3.5 shrink-0 text-content-muted"
                         />
                         <span className="truncate">
-                          {CAT_META[cat].label} · {formatIDRShort(amt)}
+                          {catMeta(cat).label} · {formatIDRShort(amt)}
                         </span>
                       </span>
                     )
@@ -174,13 +175,13 @@ export function HomeFinanceCard() {
               <div className="mt-0.5">
                 {visibleTxs.map((t) => {
                   const income = t.type === 'masuk'
-                  const Icon = CAT_META[t.cat].icon
+                  const Icon = catMeta(t.cat).icon
                   return (
                     <button
                       key={t.id}
                       type="button"
                       onClick={() => setScreen('keuangan')}
-                      aria-label={`${t.note || CAT_META[t.cat].label}, ${income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(t.amount)} — buka tab Keuangan`}
+                      aria-label={`${t.note || catMeta(t.cat).label}, ${income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(t.amount)} — buka tab Keuangan`}
                       className="flex w-full cursor-pointer items-center gap-3 border-b border-border py-2.5 text-left transition-colors last:border-b-0 hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
                     >
                       <span
@@ -199,10 +200,10 @@ export function HomeFinanceCard() {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block min-w-0 line-clamp-2 break-words leading-snug text-note font-semibold text-content-primary">
-                          {t.note || CAT_META[t.cat].label}
+                          {t.note || catMeta(t.cat).label}
                         </span>
                         <span className="mt-0.5 block break-words text-eyebrow font-medium leading-snug text-content-muted">
-                          {CAT_META[t.cat].label} ·{' '}
+                          {catMeta(t.cat).label} ·{' '}
                           {income ? 'Masuk' : 'Keluar'}
                         </span>
                       </span>

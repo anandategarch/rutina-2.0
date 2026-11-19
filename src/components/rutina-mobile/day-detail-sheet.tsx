@@ -22,7 +22,7 @@ import {
 import { motionTokens } from '@/lib/motion/tokens'
 import { cn } from '@/lib/utils'
 
-import { CAT_META } from './finance/cats'
+import { useCatMeta } from './finance/use-cat-meta'
 import { formatIDR, formatIDRShort } from './finance/utils'
 import { tonaseOf } from './fitness/fit-utils'
 import { RutinaCard } from './rutina-card'
@@ -39,6 +39,7 @@ import {
   useRutina,
   type Note,
   type Tx,
+  type WorkoutKind,
 } from './store'
 
 /**
@@ -118,7 +119,7 @@ interface DayData {
   masuk: number
   keluar: number
   dayWorkouts: {
-    kind: 'beban' | 'jalan' | 'lari'
+    kind: WorkoutKind
     sets: number
     tonase: number
     distance?: number
@@ -230,6 +231,7 @@ function DayDetailBody({
   shown: string
   listClassName: string
 }) {
+  const catMeta = useCatMeta()
   const data = useDayData(shown)
 
   return (
@@ -351,10 +353,10 @@ function DayDetailBody({
                           className="flex items-center gap-2.5 rounded-2xl bg-surface-sunken px-3 py-2"
                         >
                           <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
-                            {tx.note || CAT_META[tx.cat].label}
+                            {tx.note || catMeta(tx.cat).label}
                           </span>
                           <span className="shrink-0 rounded-full bg-surface-primary px-2 py-0.5 text-chart-label font-semibold text-content-muted">
-                            {CAT_META[tx.cat].label}
+                            {catMeta(tx.cat).label}{tx.subcat ? ` · ${tx.subcat}` : ''}
                           </span>
                           <span
                             className={`shrink-0 text-meta font-bold tabular-nums ${
@@ -408,9 +410,11 @@ function DayDetailBody({
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-note font-semibold text-content-primary">
-                              {isStrength
-                                ? `Beban · ${w.sets} set`
-                                : `${w.kind === 'jalan' ? 'Jalan' : 'Lari'}${km ? ` · ${km} km` : ''}`}
+                              {w.kind === 'beban'
+                                ? `Barbel · ${w.sets} set`
+                                : w.kind === 'badminton'
+                                  ? 'Badminton'
+                                  : `${w.kind === 'jalan' ? 'Jalan' : w.kind === 'lari' ? 'Lari' : 'Lari + Jalan'}${km ? ` · ${km} km` : ''}`}
                             </span>
                             <span className="mt-0.5 block text-eyebrow font-medium tabular-nums text-content-muted">
                               {isStrength

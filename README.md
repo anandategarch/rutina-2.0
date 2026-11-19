@@ -5,6 +5,24 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+## v2.17 — Bugar: Pusat Catatan Aktivitas & Keuangan: Satu Sistem Kategori
+
+Bugar dikembangkan menjadi pusat catatan aktivitas & progres — bukan aplikasi
+pelacak yang menyaingi smartwatch: hasil lari/jalan, badminton, dan barbel 5 kg
+digabung dalam satu tempat. Keuangan menyatukan seluruh kategori (bawaan 2.0 +
+impor 1.0 + buatan) tanpa penanda asal.
+
+| Fitur | Rincian |
+|---|---|
+| **Empat jenis aktivitas** | Kind baru `lari-jalan` (kombinasi tetap SATU catatan, pace dari total waktu & jarak) dan `badminton` (durasi + kalori + chip kondisi Santai/Sedang/Intens — tanpa jarak/pace yang dipaksakan). Lembar "Catat Aktivitas" tiga mode dengan pace otomatis & kalori smartwatch opsional. |
+| **Kalori dari smartwatch** | `WorkoutSession.kcal` opsional — angka jam tangan pengguna menang mutlak; tanpa itu estimasi MET dilabeli "taksiran". Rutina tidak mengklaim mengukur kalori sendiri. |
+| **Ringkasan Aktivitas** | Hero pekan baru: lari & jalan (km), badminton (jam), latihan barbel (sesi), hari aktif — ditambah grafik Perkembangan Jarak (8 sesi kardio terakhir) dan detail lari berjangkar jarak (hero "Jarak tempuh" + durasi + pace + kalori). |
+| **Riwayat Olahraga terfilter** | Filter jenis (Semua/Lari & Jalan/Badminton/Barbel) + rentang tanggal (30/90 hari/semua), bertahan saat berpindah layar; baris barbel menampilkan total repetisi + volume — kemajuan 5 kg terlihat dari repetisi/set, bukan hanya beban. |
+| **Nama gerakan Indonesia** | 31 gerakan EX_LIB kini tampil "Angkat barbel ke arah dada (Barbell Curl)" — bahasa Indonesia utama, istilah Inggris keterangan kecil; pencarian pustaka mengenal keduanya. |
+| **Satu sistem kategori** | Label "Dari Rutina 1.0" dihapus — kategori bawaan + impor 1.0 + buatan pengguna dalam SATU daftar. Kategori buatan (model `FinCategory`) bisa ditambah dari pemilih dengan validasi anti-duplikat, ikut sinkron cloud & anggaran. |
+| **Dropdown kategori & subkategori** | Form transaksi kini menampilkan hanya kategori terpilih; pemilih (bottom sheet) berisi pencarian, kategori sering dipakai (frekuensi nyata), daftar bisa diluas, subkategori setelah induk dipilih, dan tombol tambah kategori. Subkategori tampil di mutasi, detail, dan lembar hari. |
+| **138 pengujian otomatis** | +35 tes: invarian kategori terpadu & subkategori anti-tabrakan, `catMetaOf` fallback aman, jenis aktivitas + ringkasan + kalori smartwatch + filter riwayat + idName Indonesia, validasi wire v2.17. Terverifikasi E2E di browser (catat 3 jenis aktivitas, filter, dropdown, tambah kategori, sinkron cloud, responsif 390/1280px). |
+
 ## v2.16 — Deep Audit Menyeluruh (5 Agent Paralel) & Perbaikan Prioritas
 
 Lima auditor paralel memeriksa seluruh basis kode (kualitas, keamanan,

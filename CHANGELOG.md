@@ -3,6 +3,89 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.17] — Bugar: Pusat Catatan Aktivitas & Keuangan: Satu Sistem Kategori
+
+Dua redesain arah pengguna. **Bugar** kini PUSAT CATATAN aktivitas &
+progres — bukan pelacak olahraga yang menyaingi smartwatch: hasil lari,
+jalan, badminton, dan barbel 5 kg digabung dalam satu tempat dengan
+ringkasan mingguan per jenis. **Keuangan** menyatukan kategori bawaan
+2.0, hasil impor Rutina 1.0, dan kategori buatan pengguna ke SATU
+daftar tanpa penanda asal, dengan pemilih dropdown + subkategori.
+
+### Bugar — empat jenis aktivitas (WorkoutKind +2)
+- **Kind baru `lari-jalan` & `badminton`**: kombinasi lari+jalan tetap
+  SATU catatan (pace dihitung dari total waktu & jarak); badminton
+  cukup durasi + kalori + kondisi bermain — tanpa metrik jarak/pace
+  yang dipaksakan.
+- **Kalori dari smartwatch** (`WorkoutSession.kcal`, opsional): angka
+  jam tangan pengguna menang mutlak; tanpa itu Rutina menaksir via MET
+  (dilabeli "taksiran") — tidak mengklaim sebagai pengukuran sendiri.
+- **Lembar "Catat Aktivitas"** tiga mode: Lari & Jalan (Jalan/Lari/
+  Lari + Jalan + jarak + durasi + pace otomatis + kalori), Badminton
+  (chip Santai/Sedang/Intens), Barbel (blok gerakan–beban–repetisi–set).
+- **Ringkasan Aktivitas** hero baru: lari & jalan (km), badminton
+  (jam), latihan barbel (sesi), hari aktif — angka dari histori nyata.
+- **Riwayat Olahraga** dengan filter jenis (Semua/Lari & Jalan/
+  Badminton/Barbel) + rentang tanggal (30/90 hari/semua); filter
+  bertahan saat berpindah layar (uiPrefs.woFilter/woRange).
+- **Grafik Perkembangan Jarak** — batang kompak 8 sesi kardio terakhir
+  (hanya bila ≥3 sesi; satu grafik, halaman tidak penuh grafik).
+- **Detail lari**: jarak jadi angka utama (hero "Jarak tempuh") +
+  durasi + pace + kalori; detail barbel menampilkan total repetisi,
+  volume, e1RM; detail badminton ringkas.
+- **Nama gerakan bahasa Indonesia utama** — 31 gerakan EX_LIB kini
+  punya `idName` ("Angkat barbel ke arah dada", "Dorong barbel ke
+  atas", "Tarik barbel ke arah perut", "Turunkan dan angkat barbel",
+  "Dorong barbel sambil berbaring", "Jongkok sambil memegang
+  barbel", dst.); istilah Inggris jadi keterangan kecil. Pencarian
+  pustaka mengenal kedua nama.
+- **Kemajuan 5 kg bukan hanya beban**: baris barbel menampilkan total
+  repetisi + volume (tonase) berdampingan e1RM — alat tetap 5 kg,
+  kemajuan terlihat dari repetisi/set/konsistensi.
+
+### Keuangan — satu sistem kategori (v2.17)
+- **Hilangkan penanda asal**: blok "Dari Rutina 1.0" dihapus dari
+  lembar transaksi — kategori bawaan 2.0 + impor 1.0 tampil dalam
+  SATU daftar; tidak ada label "kategori lama/baru".
+- **Pemilih kategori dropdown** (`CatPickerSheet`) menggantikan kisi
+  25 kategori: (1) kolom pencarian, (2) kategori sering dipakai (dari
+  frekuensi transaksi nyata), (3) daftar lengkap yang bisa diluas,
+  (4) subkategori muncul setelah induk dipilih, (5) tombol tambah
+  kategori. Form transaksi tetap pendek — hanya kategori terpilih.
+- **Subkategori opsional**: kategori utama 2.0 punya subkategori
+  bawaan terkurasi (mis. Makan & Minum → Sarapan/Makan Siang/Makan
+  Malam/Camilan) yang sengaja tidak menabrak nama kategori impor 1.0
+  berdiri sendiri; transaksi menyimpan `subcat` dan menampilkannya di
+  baris mutasi, detail, serta lembar hari.
+- **Kategori buatan pengguna** (model `FinCategory`, tabel
+  `rutina_fin_categories`): bisa ditambah dari pemilih (validasi
+  anti-duplikat case-insensitive terhadap semua label bawaan), ikut
+  disinkronkan penuh lewat /api/state, ikut anggaran (pool "belum
+  dianggarkan"), dan tampil dengan nama + ikon tag pengguna.
+- **`catMetaOf` + `useCatMeta`**: lookup meta aman untuk slug apa pun
+  (bawaan / buatan / asing) — seluruh UI (mutasi, beranda, statistik,
+  context rail, detail hari) dimigrasi dari `CAT_META[cat]` langsung.
+
+### Teknis
+- Prisma: `WorkoutSession.kcal Int?`, `Transaction.subcat @default("")`,
+  model `FinCategory`; wire schema + sync server + engine + REST route
+  (`/api/workouts`, `/api/transactions`) mengikuti.
+- Store: `Tx.cat` dilebarkan ke `string` (jujur menampung id kategori
+  buatan), `customCats` + aksi `addCustomCat`/`removeCustomCat`,
+  `activitySummary`, `filterWorkouts`, `cardioSeries` (urut tanggal
+  sendiri — pola audit T5-e) di fit-utils.
+- Tes: 138 lulus (+35 baru) — registry kategori terpadu (invarian
+  tanpa label asal, subkategori anti-tabrakan, catMetaOf fallback,
+  allCatsOf/subcatsOf/frequentCats), jenis aktivitas + ringkasan +
+  kalori smartwatch + filter riwayat + idName, dan validasi wire v2.17
+  (kind baru, kcal, subcat, customCats).
+- Terverifikasi end-to-end di browser: catat lari 4,25 km (pace
+  otomatis, kalori smartwatch), badminton 60 mnt (chip kondisi),
+  barbel 5 kg × 12 (tonase + e1RM), filter riwayat, dropdown kategori
+  + subkategori + tambah kategori "Kebun", transaksi kategori buatan,
+  sinkronisasi cloud (customCats + kind baru + subcat terlihat di
+  /api/state), responsif 390px & 1280px tanpa cacat visual.
+
 ## [2.16] — Deep Audit Menyeluruh (5 Agent Paralel) & Perbaikan Prioritas
 
 Deep audit seluruh basis kode oleh lima auditor paralel — kualitas kode

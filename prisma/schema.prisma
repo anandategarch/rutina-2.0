@@ -97,12 +97,29 @@ model Transaction {
   toWalletId String? // dompet tujuan — khusus transfer
   recurrence String? // mingguan|bulanan — templat berulang
   recurOf    String? // ID templat asal — salinan otomatis
+  subcat     String  @default("") // subkategori opsional (v2.17)
 
   @@index([ts])
   @@index([type])
   @@index([walletId])
 
   @@map("rutina_transactions")
+}
+
+/// Kategori keuangan buatan pengguna — satu sistem kategori terpadu
+/// bersama kategori bawaan + impor Rutina 1.0 (v2.17). Baris tanpa
+/// parentKey adalah kategori utama; parentKey mengacu slug FinCat
+/// bawaan atau id kategori buatan lain (subkategori).
+model FinCategory {
+  id        String  @id // fcat-<ts>
+  name      String // nama tampilan (unik per arus)
+  type      String // 'keluar' | 'masuk'
+  parentKey String? // kunci induk — null = kategori utama
+  archived  Boolean @default(false)
+
+  @@index([type])
+
+  @@map("rutina_fin_categories")
 }
 
 /// Anggaran bulanan per kategori pengeluaran (Rp).
@@ -125,14 +142,17 @@ model Goal {
 
 /* ===== Domain Bugar — Latihan ===== */
 
+/// kind: beban | jalan | lari | lari-jalan | badminton (v2.17:
+/// empat jenis aktivitas — pusat catatan, bukan pelacak GPS).
 model WorkoutSession {
   id       String  @id
-  kind     String // WorkoutKind: beban|jalan|lari
+  kind     String // WorkoutKind
   date     String // ISO yyyy-mm-dd
   duration Int // menit
   note     String  @default("")
   sets     String  @default("[]") // JSON: WorkoutSet[] — khusus 'beban'
-  distance Float? // km — khusus kardio
+  distance Float? // km — khusus kardio (jalan/lari/lari-jalan)
+  kcal     Int? // kalori dari smartwatch (opsional — v2.17)
 
   @@index([date])
 

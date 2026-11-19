@@ -11,8 +11,39 @@ import {
   todayISO,
   type BodyLogs,
   type Workout,
+  type WorkoutKind,
   type WorkoutSet,
+  type WoFilter,
+  type WoRange,
 } from '../store'
+
+/* ===== Jenis aktivitas (v2.17) ===== */
+
+/** Label tampilan per jenis aktivitas — dipakai riwayat, lembar catat,
+ *  dan detail hari. */
+export const KIND_LABEL: Record<WorkoutKind, string> = {
+  beban: 'Barbel di rumah',
+  jalan: 'Jalan',
+  lari: 'Lari',
+  'lari-jalan': 'Lari + Jalan',
+  badminton: 'Badminton',
+}
+
+/** Apakah jenis ini kardio berjarak (jalan/lari/lari-jalan)? */
+export function isCardioKind(kind: WorkoutKind): boolean {
+  return kind === 'jalan' || kind === 'lari' || kind === 'lari-jalan'
+}
+
+/** Label ringkas satu sesi — "Lari · 4,3 km" / "Badminton" /
+ *  "Barbel di rumah · 4 gerakan". */
+export function workoutTitle(w: Workout): string {
+  if (isCardioKind(w.kind)) {
+    const km = w.distance != null ? ` · ${w.distance.toFixed(2).replace('.', ',')} km` : ''
+    return `${KIND_LABEL[w.kind]}${km}`
+  }
+  if (w.kind === 'badminton') return 'Badminton'
+  return `Barbel di rumah · ${new Set(w.sets.map((s) => s.exercise)).size} gerakan`
+}
 
 /* ===== e1RM (Epley) ===== */
 
@@ -27,6 +58,18 @@ export function e1rmOf(weight: number, reps: number): number {
 export function tonaseOf(w: Workout): number {
   if (w.kind !== 'beban') return 0
   return w.sets.reduce((a, s) => a + s.weight * s.reps, 0)
+}
+
+/** Total repetisi sesi beban — kemajuan 5 kg juga terlihat dari
+ *  repetisi & set, bukan hanya beban (v2.17). */
+export function totalRepsOf(w: Workout): number {
+  if (w.kind !== 'beban') return 0
+  return w.sets.reduce((a, s) => a + s.reps, 0)
+}
+
+/** Total volume (kg) sesi beban — Σ beban × repetisi, alias tonase. */
+export function volumeOf(w: Workout): number {
+  return tonaseOf(w)
 }
 
 /** e1RM terbaik dalam satu sesi beban. */
@@ -151,6 +194,68 @@ export function weekSummary(workouts: Workout[]): WeekSummary {
   }
 }
 
+/* ===== Ringkasan Aktivitas (v2.17) ===== */
+
+export interface ActivitySummary {
+  /** Total km lari & jalan pekan ini (gabungan, termasuk kombinasi). */
+  runKm: number
+  /** Jumlah sesi lari & jalan pekan ini. */
+  runSessions: number
+  /** Total jam bermain badminton pekan ini. */
+  badmintonHours: number
+  /** Jumlah sesi badminton pekan ini. */
+  badmintonSessions: number
+  /** Jumlah sesi barbel pekan ini. */
+  strengthSessions: number
+  /** Jumlah hari dengan aktivitas apa pun pekan ini. */
+  activeDays: number
+  /** Total menit semua aktivitas pekan ini. */
+  minutes: number
+  /** Tonase total sesi beban pekan ini. */
+  tonase: number
+}
+
+/** Ringkasan aktivitas pekan berjalan (Senin–Minggu) — angka hero
+ *  "Aktivitas minggu ini" layar Bugar. */
+export function activitySummary(workouts: Workout[]): ActivitySummary {
+  const { start, end } = weekRange()
+  const inWeek = workouts.filter((w) => w.date >= start && w.date <= end)
+  const run = inWeek.filter((w) => isCardioKind(w.kind))
+  const bad = inWeek.filter((w) => w.kind === 'badminton')
+  const str = inWeek.filter((w) => w.kind === 'beban')
+  return {
+    runKm: run.reduce((a, w) => a + (w.distance ?? 0), 0),
+    runSessions: run.length,
+    badmintonHours: bad.reduce((a, w) => a + (w.duration || 0), 0) / 60,
+    badmintonSessions: bad.length,
+    strengthSessions: str.length,
+    activeDays: new Set(inWeek.map((w) => w.date)).size,
+    minutes: inWeek.reduce((a, w) => a + (w.duration || 0), 0),
+    tonase: inWeek.reduce((a, w) => a + tonaseOf(w), 0),
+  }
+}
+
+/** Filter riwayat aktivitas: jenis + rentang tanggal (v2.17).
+ *  Rentang '30'/'90' = hari ke belakang dari hari ini; 'semua' tanpa batas. */
+export function filterWorkouts(
+  workouts: Workout[],
+  filter: WoFilter,
+  range: WoRange,
+  today: string = todayISO(),
+): Workout[] {
+  return workouts.filter((w) => {
+    if (filter === 'kardio' && !isCardioKind(w.kind)) return false
+    if (filter === 'badminton' && w.kind !== 'badminton') return false
+    if (filter === 'beban' && w.kind !== 'beban') return false
+    if (range !== 'semua') {
+      const days = Number(range)
+      const from = addDaysISO(today, -(days - 1))
+      if (w.date < from || w.date > today) return false
+    }
+    return true
+  })
+}
+
 /* ===== Kardio ===== */
 
 export interface CardioSummary {
@@ -160,14 +265,37 @@ export interface CardioSummary {
   farthest: number
 }
 
-/** Rekap jalan/lari lintas histori. */
+/** Rekap jalan/lari/lari-jalan lintas histori. */
 export function cardioSummary(workouts: Workout[]): CardioSummary {
-  const cardio = workouts.filter((w) => w.kind !== 'beban')
+  const cardio = workouts.filter((w) => isCardioKind(w.kind))
   return {
     sessions: cardio.length,
     km: cardio.reduce((a, w) => a + (w.distance ?? 0), 0),
     farthest: cardio.reduce((a, w) => Math.max(a, w.distance ?? 0), 0),
   }
+}
+
+/** Deret sesi kardio terbaru (terbaru-dulu) — untuk grafik
+ *  perkembangan jarak per sesi (v2.17). Diurutkan sendiri per tanggal
+ *  agar aman untuk masukan dengan urutan apa pun (pola exStatOf). */
+export function cardioSeries(
+  workouts: Workout[],
+  limit = 8,
+): { date: string; km: number; kind: WorkoutKind }[] {
+  return workouts
+    .filter((w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+    .slice(0, limit)
+    .map((w) => ({ date: w.date, km: w.distance ?? 0, kind: w.kind }))
+}
+
+/** Durasi terformat "38:20"-style (jam:menit atau menit:detik ringkas):
+ *  menit penuh ditampilkan apa adanya; dipakai detail lari. */
+export function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} mnt`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m === 0 ? `${h} jam` : `${h} jam ${m} mnt`
 }
 
 /* ===== Tubuh & pemulihan ===== */
@@ -191,16 +319,21 @@ export function weightSeries(logs: BodyLogs): { date: string; kg: number }[] {
 }
 
 /** Faktor MET per jenis latihan — estimasi pembakaran energi.
-    kcal ≈ MET × berat (kg) × durasi (jam). */
-const KCAL_MET: Record<Workout['kind'], number> = {
+    kcal ≈ MET × berat (kg) × durasi (jam). Kombinasi lari+jalan di
+    tengah dua kecepatan; badminton santai-aktif ±5,5 MET. */
+const KCAL_MET: Record<WorkoutKind, number> = {
   beban: 5,
   jalan: 4.3,
   lari: 8.3,
+  'lari-jalan': 6.3,
+  badminton: 5.5,
 }
 
-/** Estimasi kalori terbakar dari satu sesi — memakai berat tercatat
-    pengguna (fallback 60 kg bila belum menimbang). */
+/** Kalori satu sesi — angka SMARTWATCH pengguna (w.kcal) menang
+    mutlak bila diisi; Rutina tidak mengklaim mengukur kalori, hanya
+    menaksir via MET sebagai fallback (v2.17). */
 export function kcalOf(w: Workout, bodyWeight: number | null): number {
+  if (w.kcal != null && w.kcal > 0) return w.kcal
   const met = KCAL_MET[w.kind] ?? 5
   return Math.round(met * (bodyWeight ?? 60) * ((w.duration || 0) / 60))
 }

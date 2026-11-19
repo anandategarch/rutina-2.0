@@ -58,6 +58,7 @@ export async function POST(req: Request) {
         note: input.note,
         sets: JSON.stringify(input.sets),
         distance: input.distance ?? null,
+        kcal: input.kcal ?? null,
       },
     })
     return ok({ workout: { ...workout, sets: JSON.parse(workout.sets) } }, 201)

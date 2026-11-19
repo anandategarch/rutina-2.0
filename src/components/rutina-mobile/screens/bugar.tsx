@@ -18,6 +18,7 @@ import {
   TrendingDown,
   Trash2,
   Trophy,
+  Volleyball,
   Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -42,29 +43,39 @@ import {
   useRutina,
   type BugarTab,
   type Workout,
+  type WoFilter,
+  type WoRange,
 } from '../store'
 import { BlurFade } from '../motion-kit'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import {
+  activitySummary,
   bestE1rmIn,
   cardioGuard,
+  cardioSeries,
   cardioSummary,
   deloadActive,
   detectPlateau,
+  durationLabel,
   e1rmOf,
+  filterWorkouts,
+  isCardioKind,
   kcalOf,
+  KIND_LABEL,
   latestWeight,
   prBoard,
   readinessOf,
   tonaseOf,
+  totalRepsOf,
   weekRange,
-  weekSummary,
+  workoutTitle,
 } from '../fitness/fit-utils'
 import {
   EX_LEVELS,
   EX_LIB,
   MUSCLE_GROUPS,
   PROG_DB,
+  exerciseLabel,
   type Program,
 } from '../fitness/data'
 import { AsupanPanel } from '../fitness/asupan-panel'
@@ -85,6 +96,21 @@ const BUGAR_TABS: { id: BugarTab; label: string }[] = [
   { id: 'latihan', label: 'Latihan' },
   { id: 'asupan', label: 'Asupan' },
   { id: 'tubuh', label: 'Tubuh' },
+]
+
+/* Filter riwayat aktivitas — jenis (v2.17). */
+const WO_FILTERS: { id: WoFilter; label: string }[] = [
+  { id: 'semua', label: 'Semua' },
+  { id: 'kardio', label: 'Lari & Jalan' },
+  { id: 'badminton', label: 'Badminton' },
+  { id: 'beban', label: 'Barbel' },
+]
+
+/* Rentang tanggal riwayat (v2.17). */
+const WO_RANGES: { id: WoRange; label: string }[] = [
+  { id: '30', label: '30 hari' },
+  { id: '90', label: '90 hari' },
+  { id: 'semua', label: 'Semua' },
 ]
 
 /* ===== Kartu program ===== */
@@ -170,7 +196,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                         className="flex items-center justify-between gap-2 text-note"
                       >
                         <span className="min-w-0 flex-1 truncate font-medium text-content-secondary/90">
-                          {e.name}
+                          {/* Nama Indonesia utama, istilah Inggris
+                              sebagai keterangan kecil (v2.17). */}
+                          {exerciseLabel(e.name)}
+                          <span className="text-content-muted/60"> · {e.name}</span>
                         </span>
                         <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold tabular-nums text-success">
                           {e.sets}×{e.reps}
@@ -207,20 +236,42 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
   )
 }
 
-/* ===== Baris riwayat sesi ===== */
+/* ===== Baris riwayat aktivitas — semua jenis olahraga (v2.17) ===== */
 
-function WorkoutRow({ w, index }: { w: Workout; index: number }) {
+/** Ikon + warna chip per jenis aktivitas. */
+function kindVisual(w: Workout): { Icon: typeof Dumbbell; cls: string } {
+  if (w.kind === 'badminton')
+    return { Icon: Volleyball, cls: 'bg-module-accent/15 text-module-accent-strong' }
+  if (w.kind === 'beban')
+    return { Icon: Dumbbell, cls: 'bg-secondary text-success' }
+  return { Icon: Footprints, cls: 'bg-destructive/10 text-content-danger' }
+}
+
+function WorkoutRow({
+  w,
+  index,
+  bodyWeight,
+}: {
+  w: Workout
+  index: number
+  bodyWeight: number | null
+}) {
   const deleteWorkout = useRutina((s) => s.deleteWorkout)
   const [expanded, setExpanded] = useState(false)
   const isStrength = w.kind === 'beban'
+  const isCardio = isCardioKind(w.kind)
   const tonase = tonaseOf(w)
+  const reps = totalRepsOf(w)
   const best = bestE1rmIn(w)
+  const kcal = kcalOf(w, bodyWeight)
+  const { Icon, cls } = kindVisual(w)
   const pace =
-    w.kind !== 'beban' && (w.distance ?? 0) > 0 && w.duration > 0
+    isCardio && (w.distance ?? 0) > 0 && w.duration > 0
       ? `${Math.floor((w.duration * 60) / w.distance! / 60)}'${String(
           Math.round(((w.duration * 60) / w.distance!) % 60),
         ).padStart(2, '0')}"`
       : null
+  const uniqueMoves = new Set(w.sets.map((s) => s.exercise)).size
 
   return (
     <m.div
@@ -241,21 +292,13 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
         className="flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-            isStrength ? 'bg-secondary text-success' : 'bg-destructive/10 text-content-danger'
-          }`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cls}`}
         >
-          {isStrength ? (
-            <Dumbbell className="h-4.5 w-4.5" />
-          ) : (
-            <Footprints className="h-4.5 w-4.5" />
-          )}
+          <Icon className="h-4.5 w-4.5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-body font-semibold text-content-primary">
-            {isStrength
-              ? `Beban · ${w.sets.length} set`
-              : `${w.kind === 'jalan' ? 'Jalan' : 'Lari'} · ${w.distance?.toFixed(1).replace('.', ',')} km`}
+            {workoutTitle(w)}
             <span className="font-medium text-content-muted">
               {' '}
               — {shortDateLabel(w.date)}
@@ -263,8 +306,10 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
           </span>
           <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
             {isStrength
-              ? `${Math.round(tonase).toLocaleString('id-ID')} kg tonase · e1RM ≈ ${best.toFixed(1).replace('.', ',')} kg`
-              : `${w.duration} mnt${pace ? ` · pace ${pace}/km` : ''}`}
+              ? `${Math.round(tonase).toLocaleString('id-ID')} kg tonase · ${reps} repetisi`
+              : isCardio
+                ? `${durationLabel(w.duration)}${pace ? ` · pace ${pace}/km` : ''}${w.kcal ? ` · ${w.kcal} kkal` : ''}`
+                : `${durationLabel(w.duration)}${w.kcal ? ` · ${w.kcal} kkal` : ''}`}
           </span>
         </span>
         <m.span
@@ -288,7 +333,44 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-xl bg-surface-sunken p-3">
-              {isStrength ? (
+              {isCardio ? (
+                /* Detail lari & jalan — jarak jadi angka utama
+                   (v2.17: sesuai rancangan detail lari). */
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                      Jarak tempuh
+                    </p>
+                    <p className="mt-0.5 text-kpi font-bold leading-none tabular-nums text-content-primary">
+                      {(w.distance ?? 0).toFixed(2).replace('.', ',')}
+                      <span className="ml-1 text-sm font-semibold text-content-muted">km</span>
+                    </p>
+                  </div>
+                  <dl className="shrink-0 space-y-1 text-right">
+                    <div className="flex items-baseline justify-end gap-1.5">
+                      <dt className="text-eyebrow text-content-muted">Durasi</dt>
+                      <dd className="text-note font-bold tabular-nums text-content-secondary">
+                        {durationLabel(w.duration)}
+                      </dd>
+                    </div>
+                    {pace && (
+                      <div className="flex items-baseline justify-end gap-1.5">
+                        <dt className="text-eyebrow text-content-muted">Pace</dt>
+                        <dd className="text-note font-bold tabular-nums text-content-secondary">
+                          {pace}/km
+                        </dd>
+                      </div>
+                    )}
+                    <div className="flex items-baseline justify-end gap-1.5">
+                      <dt className="text-eyebrow text-content-muted">Kalori</dt>
+                      <dd className="text-note font-bold tabular-nums text-content-secondary">
+                        {w.kcal ?? kcal} kkal
+                        {!w.kcal && <span className="font-normal text-content-muted"> (taksiran)</span>}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              ) : isStrength ? (
                 <ul className="space-y-1.5">
                   {[...w.sets]
                     .reduce<{ exercise: string; weight: number; reps: number; count: number }[]>(
@@ -314,19 +396,41 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                         className="flex items-center justify-between gap-2 text-note"
                       >
                         <span className="min-w-0 flex-1 truncate font-semibold text-content-secondary">
-                          {g.exercise}
+                          {exerciseLabel(g.exercise)}
                         </span>
                         <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold tabular-nums text-success">
                           {g.weight.toString().replace('.', ',')} kg × {g.reps} ({g.count} set)
                         </span>
                       </li>
                     ))}
+                  <li className="flex items-center justify-between gap-2 border-t border-border pt-1.5 text-meta text-content-muted">
+                    <span>{uniqueMoves} gerakan · e1RM ≈ {best.toFixed(1).replace('.', ',')} kg</span>
+                    <span className="tabular-nums">
+                      {reps} repetisi · {Math.round(tonase).toLocaleString('id-ID')} kg volume
+                    </span>
+                  </li>
                 </ul>
               ) : (
-                <p className="text-note font-medium text-content-muted">
-                  {w.kind === 'jalan' ? 'Jalan santai' : 'Lari'}{' '}
-                  {w.distance?.toFixed(1).replace('.', ',')} km selama {w.duration} menit.
-                </p>
+                /* Detail badminton — praktis: durasi, kalori, kondisi. */
+                <dl className="space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-eyebrow text-content-muted">Durasi bermain</dt>
+                    <dd className="text-note font-bold tabular-nums text-content-secondary">
+                      {durationLabel(w.duration)}
+                    </dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-eyebrow text-content-muted">Kalori</dt>
+                    <dd className="text-note font-bold tabular-nums text-content-secondary">
+                      {w.kcal ?? kcal} kkal
+                      {!w.kcal && <span className="font-normal text-content-muted"> (taksiran)</span>}
+                    </dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <dt className="text-eyebrow text-content-muted">Jenis</dt>
+                    <dd className="text-note font-bold text-content-secondary">Badminton</dd>
+                  </div>
+                </dl>
               )}
               {w.note && (
                 <p className="mt-2 border-t border-border pt-2 text-meta italic text-content-muted">
@@ -344,7 +448,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                   className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-meta font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Hapus sesi
+                  Hapus aktivitas
                 </button>
               </AlertDialogTrigger>
               <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border p-6 sm:max-w-[320px]">
@@ -355,11 +459,16 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                     </span>
                   </div>
                   <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
-                    Hapus sesi latihan?
+                    Hapus aktivitas ini?
                   </AlertDialogTitle>
                   <AlertDialogDescription className="text-center text-note leading-relaxed text-content-muted">
-                    Sesi {shortDateLabel(w.date)} dengan {w.sets.length} set
-                    akan dihapus permanen dari riwayat dan papan rekor.
+                    {KIND_LABEL[w.kind]} {shortDateLabel(w.date)}
+                    {isStrength
+                      ? ` dengan ${w.sets.length} set`
+                      : w.kind === 'badminton'
+                        ? ` selama ${w.duration} menit`
+                        : ` sejauh ${(w.distance ?? 0).toFixed(2).replace('.', ',')} km`}{' '}
+                    akan dihapus permanen dari riwayat.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
@@ -369,7 +478,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                   <AlertDialogAction
                     onClick={() => {
                       deleteWorkout(w.id)
-                      toast('Sesi dihapus dari riwayat.')
+                      toast('Aktivitas dihapus dari riwayat.')
                     }}
                     className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
                   >
@@ -406,10 +515,10 @@ function ExerciseCard({ name }: { name: string }) {
       >
         <span className="min-w-0 flex-1">
           <span className="block text-body font-semibold text-content-primary">
-            {ex.name}
+            {ex.idName}
           </span>
           <span className="mt-0.5 block truncate text-eyebrow font-medium text-content-muted">
-            {ex.muscle} · {EX_LEVELS[ex.level]} · {ex.equipment}
+            {ex.name} · {ex.muscle} · {EX_LEVELS[ex.level]}
           </span>
         </span>
         <m.span
@@ -686,7 +795,7 @@ export default function BugarScreen() {
   const [barbellOpen, setBarbellOpen] = useState(false)
   const reducedMotion = useReducedMotion()
 
-  const week = useMemo(() => weekSummary(workouts), [workouts])
+  const week = useMemo(() => activitySummary(workouts), [workouts])
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
   const prs = useMemo(() => prBoard(workouts), [workouts])
   const topPr = prs[0]
@@ -743,12 +852,31 @@ export default function BugarScreen() {
 
   const strengthCount = workouts.filter((w) => w.kind === 'beban').length
 
+  /* Riwayat aktivitas — filter jenis + rentang tanggal dari uiPrefs
+     (v2.17); bertahan saat berpindah layar. */
+  const woFilter = useRutina((s) => s.uiPrefs.woFilter)
+  const woRange = useRutina((s) => s.uiPrefs.woRange)
+  const filteredWorkouts = useMemo(
+    () =>
+      filterWorkouts(
+        workouts,
+        woFilter,
+        woRange,
+      ),
+    [workouts, woFilter, woRange],
+  )
+  /* Deret jarak sesi kardio terakhir — grafik perkembangan (v2.17). */
+  const distSeries = useMemo(
+    () => [...cardioSeries(workouts, 8)].reverse(),
+    [workouts],
+  )
+
   /* Batas render riwayat (audit performa v2.13): histori bertambah tanpa
      batas — 15 sesi terbaru dirender dulu, sisanya dimuat bertahap agar
      daftar panjang (ratusan sesi) tidak menghentikan gulir. */
   const [historyLimit, setHistoryLimit] = useState(15)
-  const historySlice = workouts.slice(0, historyLimit)
-  const historyHidden = workouts.length - historySlice.length
+  const historySlice = filteredWorkouts.slice(0, historyLimit)
+  const historyHidden = filteredWorkouts.length - historySlice.length
 
   const filteredLib = useMemo(() => {
     const q = libQuery.trim().toLowerCase()
@@ -757,10 +885,11 @@ export default function BugarScreen() {
         (libMuscle === 'Semua' || e.muscle === libMuscle) &&
         (q === '' ||
           e.name.toLowerCase().includes(q) ||
+          e.idName.toLowerCase().includes(q) ||
           e.detail.toLowerCase().includes(q)),
     )
       .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => a.idName.localeCompare(b.idName))
   }, [libQuery, libMuscle])
 
   return (
@@ -781,9 +910,9 @@ export default function BugarScreen() {
         </h1>
         <p className="mt-2 text-body font-medium text-content-muted">
           {tab === 'latihan'
-            ? week.sessions > 0
-              ? `${week.sessions} sesi pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
-              : 'Latihan beban & kardio — catat sesi pertamamu'
+            ? week.runSessions + week.badmintonSessions + week.strengthSessions > 0
+              ? `${week.runSessions + week.badmintonSessions + week.strengthSessions} aktivitas pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
+              : 'Pusat catatan aktivitas — lari, jalan, badminton, barbel'
             : tab === 'asupan'
               ? 'Asupan & neraca kalori dari master 179 makanan Indonesia'
               : 'Hidrasi, berat badan, tidur & kesiapan latihan'}
@@ -850,44 +979,70 @@ export default function BugarScreen() {
           >
         <div className="relative z-10">
           <p className="text-note font-medium text-module-accent-fg/80">
-            Pekan ini
+            Aktivitas minggu ini
           </p>
-          <div className="mt-3 grid grid-cols-3 gap-3">
+          {/* Empat jenis aktivitas dalam satu ringkasan (v2.17) —
+              lari & jalan (km), badminton (jam), barbel (sesi), hari
+              aktif. Angka dari histori nyata, bukan target. */}
+          <div className="mt-3 grid grid-cols-2 gap-3 @[24rem]:grid-cols-4">
             <div>
               <p className="flex items-baseline">
-                <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums">
-                  {week.sessions}
+                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
+                  {week.runKm > 0 ? week.runKm.toFixed(1).replace('.', ',') : 0}
                 </span>
+                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">km</span>
               </p>
               <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                sesi latihan
+                lari &amp; jalan{week.runSessions > 0 ? ` · ${week.runSessions}×` : ''}
               </p>
             </div>
             <div>
               <p className="flex items-baseline">
-                <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums">
-                  {week.minutes}
+                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
+                  {week.badmintonHours > 0
+                    ? week.badmintonHours.toFixed(1).replace('.', ',')
+                    : 0}
                 </span>
-                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">mnt</span>
+                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">jam</span>
               </p>
               <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                total durasi
+                badminton{week.badmintonSessions > 0 ? ` · ${week.badmintonSessions}×` : ''}
               </p>
             </div>
             <div>
               <p className="flex items-baseline">
-                <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums">
-                  {week.tonase >= 1000
-                    ? `${(week.tonase / 1000).toFixed(1).replace('.', ',')}t`
-                    : Math.round(week.tonase).toLocaleString('id-ID')}
+                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
+                  {week.strengthSessions}
                 </span>
-                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">kg</span>
+                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">
+                  {week.strengthSessions === 1 ? 'sesi' : 'sesi'}
+                </span>
               </p>
               <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                tonase beban
+                latihan barbel
+              </p>
+            </div>
+            <div>
+              <p className="flex items-baseline">
+                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
+                  {week.activeDays}
+                </span>
+                <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">
+                  {week.activeDays === 1 ? 'hari' : 'hari'}
+                </span>
+              </p>
+              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
+                hari aktif
               </p>
             </div>
           </div>
+          {week.minutes > 0 && (
+            <p className="mt-2.5 text-eyebrow font-medium text-module-accent-fg/80">
+              Total {Math.round(week.minutes / 60 * 10) / 10 === 0 ? `${week.minutes} menit` : `${(week.minutes / 60).toFixed(1).replace('.', ',')} jam`} bergerak pekan ini
+              {week.tonase > 0 &&
+                ` · ${Math.round(week.tonase).toLocaleString('id-ID')} kg tonase barbel`}
+            </p>
+          )}
 
           {topPr && (
             <div className="mt-4 flex items-center gap-2 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
@@ -910,7 +1065,7 @@ export default function BugarScreen() {
         </div>
       </m.section>
 
-      {/* Tombol mulai sesi imersif + pintasan catat manual */}
+      {/* Tombol mulai sesi imersif + pintasan catat aktivitas (v2.17) */}
       <m.button
         type="button"
         onClick={() => setSessionPickerOpen(true)}
@@ -921,14 +1076,15 @@ export default function BugarScreen() {
         className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Play className="h-5 w-5" strokeWidth={2.5} />
-        Mulai Sesi Latihan
+        Mulai Sesi Barbel
       </m.button>
       <button
         type="button"
         onClick={() => openWorkoutSheet()}
         className="mx-auto mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-note font-semibold text-content-muted underline-offset-4 transition-colors hover:text-content-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        Catat manual
+        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+        Catat aktivitas lain — lari, jalan, badminton, barbel
       </button>
               </RutinaBentoItem>
               <RutinaBentoItem span="feature">
@@ -1148,28 +1304,137 @@ export default function BugarScreen() {
         </div>
       </section>
 
-      {/* ===== Riwayat sesi — pasangan kanan (5) ===== */}
-      <section aria-label="Riwayat latihan" className="@[52rem]:col-span-5">
+      {/* ===== Riwayat olahraga — semua jenis, filter + rentang (v2.17) ===== */}
+      <section aria-label="Riwayat olahraga" className="@[52rem]:col-span-5">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
             <h2 className="text-section font-semibold tracking-tight text-content-secondary">
-              Riwayat
+              Riwayat Olahraga
             </h2>
             <span className="rounded-full bg-secondary px-2 py-0.5 text-eyebrow font-semibold text-success">
-              {workouts.length}
+              {filteredWorkouts.length}
             </span>
           </div>
           <span className="text-eyebrow font-medium text-content-muted">
             {cardio.km > 0
               ? `${cardio.km.toFixed(1).replace('.', ',')} km kardio`
-              : `${strengthCount} sesi beban`}
+              : `${strengthCount} sesi barbel`}
           </span>
         </div>
+
+        {/* Filter jenis aktivitas — Semua / Lari & Jalan / Badminton / Barbel */}
+        <div
+          role="group"
+          aria-label="Filter jenis aktivitas"
+          className="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1"
+        >
+          {WO_FILTERS.map((f) => {
+            const on = woFilter === f.id
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => {
+                  setTab({ woFilter: f.id })
+                  setHistoryLimit(15)
+                }}
+                aria-pressed={on}
+                className={
+                  'h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                  (on
+                    ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                    : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                }
+              >
+                {f.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Rentang tanggal — 30 hari / 90 hari / semua */}
+        <div
+          role="group"
+          aria-label="Rentang tanggal riwayat"
+          className="mt-2 flex gap-2"
+        >
+          {WO_RANGES.map((r) => {
+            const on = woRange === r.id
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => {
+                  setTab({ woRange: r.id })
+                  setHistoryLimit(15)
+                }}
+                aria-pressed={on}
+                className={`h-8 flex-1 cursor-pointer rounded-xl text-eyebrow font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  on
+                    ? 'bg-primary text-primary-foreground shadow-soft'
+                    : 'border border-border bg-surface-sunken text-content-muted'
+                }`}
+              >
+                {r.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Grafik perkembangan jarak — khusus sesi kardio ≥ 3
+            (v2.17); kompak, satu grafik saja agar halaman tidak penuh. */}
+        {distSeries.length >= 3 && (woFilter === 'semua' || woFilter === 'kardio') && (
+          <m.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+            className="mt-3 rounded-[18px] border border-border bg-surface-primary p-4 shadow-soft"
+            role="img"
+            aria-label={`Grafik perkembangan jarak ${distSeries.length} sesi kardio terakhir: ${distSeries
+              .map((d) => `${d.km.toFixed(1).replace('.', ',')} km`)
+              .join(', ')}`}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
+                Perkembangan Jarak
+              </h3>
+              <span className="text-eyebrow font-medium text-content-muted">
+                {distSeries.length} sesi terakhir
+              </span>
+            </div>
+            <div className="mt-3 flex h-20 items-end gap-1.5">
+              {(() => {
+                const max = Math.max(...distSeries.map((d) => d.km), 0.1)
+                return distSeries.map((d, i) => (
+                  <m.div
+                    key={`${d.date}-${i}`}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${Math.max(8, (d.km / max) * 100)}%` }}
+                    transition={{
+                      duration: 0.5,
+                      delay: i * 0.05,
+                      ease: motionTokens.easing.standard,
+                    }}
+                    className="min-w-0 flex-1 rounded-t-md bg-module-accent/70"
+                    title={`${shortDateLabel(d.date)} · ${d.km.toFixed(2).replace('.', ',')} km`}
+                  />
+                ))
+              })()}
+            </div>
+            <div className="mt-1.5 flex justify-between text-chart-label font-medium text-content-muted">
+              <span>{shortDateLabel(distSeries[0]!.date)}</span>
+              <span>
+                terjauh {Math.max(...distSeries.map((d) => d.km)).toFixed(2).replace('.', ',')} km
+              </span>
+              <span>{shortDateLabel(distSeries[distSeries.length - 1]!.date)}</span>
+            </div>
+          </m.div>
+        )}
 
         <div className="mt-3 max-h-[430px] space-y-2.5 overflow-y-auto no-scrollbar pr-1">
           <AnimatePresence initial={false} mode="popLayout">
             {historySlice.map((w, i) => (
-              <WorkoutRow key={w.id} w={w} index={i} />
+              <WorkoutRow key={w.id} w={w} index={i} bodyWeight={weight} />
             ))}
             {historyHidden > 0 && (
               <button
@@ -1178,9 +1443,27 @@ export default function BugarScreen() {
                 onClick={() => setHistoryLimit((n) => n + 15)}
                 className="w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                Tampilkan {Math.min(15, historyHidden)} sesi lagi
+                Tampilkan {Math.min(15, historyHidden)} aktivitas lagi
                 {historyHidden > 15 ? ` (${historyHidden} tersisa)` : ''}
               </button>
+            )}
+            {filteredWorkouts.length === 0 && workouts.length > 0 && (
+              <m.div
+                key="wo-nofilter"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+                className="rounded-[20px] border-2 border-dashed border-border px-6 py-8 text-center"
+              >
+                <Search className="mx-auto h-5 w-5 text-content-muted" />
+                <p className="mt-2 text-note font-semibold text-content-muted">
+                  Tidak ada aktivitas pada filter ini
+                </p>
+                <p className="mt-0.5 text-meta text-content-muted">
+                  Coba ganti jenis aktivitas atau perluas rentang tanggal.
+                </p>
+              </m.div>
             )}
             {workouts.length === 0 && (
               <m.div
@@ -1193,10 +1476,10 @@ export default function BugarScreen() {
               >
                 <Dumbbell className="mx-auto h-6 w-6 text-content-muted" />
                 <p className="mt-2 text-note font-semibold text-content-muted">
-                  Belum ada sesi tercatat
+                  Belum ada aktivitas tercatat
                 </p>
                 <p className="mt-0.5 text-meta text-content-muted">
-                  Mulai dari program di atas atau catat manual.
+                  Catat lari, jalan, badminton, atau latihan barbel pertamamu.
                 </p>
               </m.div>
             )}

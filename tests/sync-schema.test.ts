@@ -165,6 +165,38 @@ describe('penolakan muatan tidak valid', () => {
     const manySets = Array.from({ length: 61 }, () => ({ exercise: 'Squat', weight: 10, reps: 1 }))
     expect(workoutSchema.safeParse({ ...w, sets: manySets }).success).toBe(false)
   })
+  test('v2.17: kind lari-jalan & badminton + kcal smartwatch diterima', () => {
+    const base = validState().workouts[0]
+    expect(workoutSchema.safeParse({ ...base, kind: 'lari-jalan', kcal: 280 }).success).toBe(true)
+    expect(workoutSchema.safeParse({ ...base, kind: 'badminton', kcal: 410, distance: null }).success).toBe(true)
+    expect(workoutSchema.safeParse({ ...base, kcal: -5 }).success).toBe(false)
+  })
+
+  test('v2.17: tx subkategori opsional (maks 60 karakter)', () => {
+    const base = validState()
+    expect(txSchema.safeParse({ ...base.txs[0], subcat: 'Sarapan' }).success).toBe(true)
+    expect(txSchema.safeParse({ ...base.txs[0], subcat: null }).success).toBe(true)
+    expect(txSchema.safeParse({ ...base.txs[0], subcat: 'x'.repeat(61) }).success).toBe(false)
+  })
+
+  test('v2.17: customCats — kategori buatan tervalidasi', () => {
+    const base = validState()
+    const ok = syncStateSchema.safeParse({
+      ...base,
+      customCats: [
+        { id: 'fcat-1', name: 'Kebun', type: 'keluar', parentKey: null },
+        { id: 'fcat-2', name: 'Freelance', type: 'masuk' },
+      ],
+    })
+    expect(ok.success).toBe(true)
+    /* tipe transfer tidak sah untuk kategori. */
+    const bad = syncStateSchema.safeParse({
+      ...base,
+      customCats: [{ id: 'fcat-3', name: 'X', type: 'transfer' }],
+    })
+    expect(bad.success).toBe(false)
+  })
+
 
   test('completions: kunci tanggal harus ISO', () => {
     expect(completionsSchema.safeParse({ '18 Juni': { 'h-1': true } }).success).toBe(false)

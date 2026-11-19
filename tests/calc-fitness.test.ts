@@ -28,7 +28,16 @@ import {
   plateLoader,
   rmTable,
   warmupLadder,
+  KIND_LABEL,
+  isCardioKind,
+  activitySummary,
+  cardioSeries,
+  durationLabel,
+  filterWorkouts,
+  totalRepsOf,
+  workoutTitle,
 } from '../src/components/rutina-mobile/fitness/fit-utils'
+import { exerciseLabel, EX_LIB } from '../src/components/rutina-mobile/fitness/data'
 import { todayISO, addDaysISO, type BodyLogs, type Workout, type WorkoutSet } from '../src/components/rutina-mobile/store'
 
 /* ---- Fixture builder ---- */
@@ -321,5 +330,158 @@ describe('alat barbel', () => {
     /* Bar 20 = 40% dari 50 → langkah 40% dilompati. */
     const ladder = warmupLadder(50, 20)
     expect(ladder.some((s) => s.label === '40%')).toBe(false)
+  })
+})
+
+
+/* ===== v2.17 — empat jenis aktivitas: pusat catatan, bukan pelacak ===== */
+
+describe('Jenis aktivitas & label (v2.17)', () => {
+  test('KIND_LABEL meliputi lima kind tanpa kosong', () => {
+    const kinds = ['beban', 'jalan', 'lari', 'lari-jalan', 'badminton'] as const
+    for (const k of kinds) {
+      expect(KIND_LABEL[k].length).toBeGreaterThan(0)
+    }
+    expect(KIND_LABEL['lari-jalan']).toBe('Lari + Jalan')
+  })
+
+  test('isCardioKind: jalan/lari/lari-jalan ya; beban/badminton tidak', () => {
+    expect(isCardioKind('jalan')).toBe(true)
+    expect(isCardioKind('lari')).toBe(true)
+    expect(isCardioKind('lari-jalan')).toBe(true)
+    expect(isCardioKind('beban')).toBe(false)
+    expect(isCardioKind('badminton')).toBe(false)
+  })
+
+  test('workoutTitle: kardio menyertakan km, badminton polos, beban hitung gerakan', () => {
+    expect(workoutTitle(cardio('2025-06-02', 'lari', 4.25, 38))).toContain('4,25 km')
+    expect(workoutTitle(cardio('2025-06-02', 'lari-jalan', 3, 40))).toBe('Lari + Jalan · 3,00 km')
+    expect(
+      workoutTitle({
+        id: 'b1', kind: 'badminton', date: '2025-06-03', duration: 60, note: '', sets: [],
+      }),
+    ).toBe('Badminton')
+    expect(
+      workoutTitle(beban('2025-06-04', [set('Barbell Curl', 5, 12), set('Barbell Curl', 5, 12), set('Floor Press', 5, 10)])),
+    ).toBe('Barbel di rumah · 2 gerakan')
+  })
+
+  test('durationLabel ringkas: menit & jam', () => {
+    expect(durationLabel(45)).toBe('45 mnt')
+    expect(durationLabel(60)).toBe('1 jam')
+    expect(durationLabel(90)).toBe('1 jam 30 mnt')
+  })
+})
+
+describe('Ringkasan Aktivitas pekan berjalan (v2.17)', () => {
+  test('metrik per jenis: km lari-jalan, jam badminton, sesi barbel, hari aktif', () => {
+    const today = todayISO()
+    const dow = (new Date(today + 'T00:00:00').getDay() + 6) % 7
+    const mon = addDaysISO(today, -dow)
+    const wk = [
+      cardio(mon, 'lari', 4.25, 38),
+      { id: 'b1', kind: 'badminton', date: addDaysISO(mon, 1), duration: 90, note: '', sets: [] },
+      beban(addDaysISO(mon, 2), [set('Barbell Curl', 5, 12)], 30),
+      beban(addDaysISO(mon, 2), [set('Floor Press', 5, 10)], 25),
+      /* Pekan lalu — tidak dihitung. */
+      cardio(addDaysISO(mon, -2), 'jalan', 10, 120),
+    ]
+    const sum = activitySummary(wk)
+    expect(sum.runKm).toBeCloseTo(4.25, 10)
+    expect(sum.runSessions).toBe(1)
+    expect(sum.badmintonHours).toBeCloseTo(1.5, 10)
+    expect(sum.badmintonSessions).toBe(1)
+    expect(sum.strengthSessions).toBe(2)
+    expect(sum.activeDays).toBe(3)
+    expect(sum.minutes).toBe(38 + 90 + 30 + 25)
+  })
+
+  test('pekan kosong tetap valid (semua nol)', () => {
+    const sum = activitySummary([])
+    expect(sum.runKm).toBe(0)
+    expect(sum.activeDays).toBe(0)
+  })
+})
+
+describe('Kalori — angka smartwatch menang atas estimasi (v2.17)', () => {
+  test('w.kcal terisi → dipakai apa adanya', () => {
+    const w: Workout = {
+      id: 'k1', kind: 'lari', date: todayISO(), duration: 38, note: '', sets: [], distance: 4.25, kcal: 280,
+    }
+    expect(kcalOf(w, 70)).toBe(280)
+  })
+
+  test('tanpa w.kcal → estimasi MET (berat 60 fallback)', () => {
+    const w: Workout = {
+      id: 'k2', kind: 'lari', date: todayISO(), duration: 60, note: '', sets: [], distance: 8,
+    }
+    /* MET lari 8,3 × 60 kg × 1 jam = 498. */
+    expect(kcalOf(w, null)).toBe(498)
+  })
+
+  test('MET tersedia untuk kind baru (kombinasi & badminton)', () => {
+    const combo: Workout = {
+      id: 'k3', kind: 'lari-jalan', date: todayISO(), duration: 60, note: '', sets: [], distance: 6,
+    }
+    expect(kcalOf(combo, 60)).toBe(Math.round(6.3 * 60))
+    const bad: Workout = {
+      id: 'k4', kind: 'badminton', date: todayISO(), duration: 60, note: '', sets: [],
+    }
+    expect(kcalOf(bad, 60)).toBe(Math.round(5.5 * 60))
+  })
+})
+
+describe('Riwayat aktivitas — filter jenis + rentang (v2.17)', () => {
+  const today = todayISO()
+  const data: Workout[] = [
+    cardio(today, 'lari', 5, 30),
+    { id: 'b1', kind: 'badminton', date: today, duration: 60, note: '', sets: [] },
+    beban(today, [set('Bench', 40, 5)]),
+    cardio(addDaysISO(today, -40), 'jalan', 3, 40),
+    cardio(addDaysISO(today, -10), 'lari-jalan', 6, 60),
+    beban(addDaysISO(today, -100), [set('Bench', 20, 5)]),
+  ]
+
+  test('filter beban hanya sesi barbel', () => {
+    expect(filterWorkouts(data, 'beban', 'semua').every((w) => w.kind === 'beban')).toBe(true)
+    expect(filterWorkouts(data, 'beban', 'semua').length).toBe(2)
+  })
+
+  test('rentang 30 hari memangkas histori lama; 90 lebih longgar', () => {
+    const in30 = filterWorkouts(data, 'semua', '30')
+    expect(in30.some((w) => w.distance === 3)).toBe(false)
+    expect(in30.some((w) => w.distance === 6)).toBe(true)
+    const in90 = filterWorkouts(data, 'semua', '90')
+    expect(in90.some((w) => w.distance === 3)).toBe(true)
+    expect(in90.some((w) => w.sets.length > 0 && w.date === addDaysISO(today, -100))).toBe(false)
+  })
+
+  test('cardioSeries: sesi kardio berjarak terbaru-dulu, terbatas limit', () => {
+    const series = cardioSeries(data, 2)
+    expect(series.length).toBe(2)
+    expect(series[0].km).toBe(5)
+    expect(series[1].km).toBe(6)
+  })
+
+  test('totalRepsOf menjumlahkan repetisi sesi beban', () => {
+    expect(totalRepsOf(beban('2025-06-01', [set('Curl', 5, 12), set('Curl', 5, 12)]))).toBe(24)
+    expect(totalRepsOf(cardio('2025-06-01', 'jalan', 3, 30))).toBe(0)
+  })
+})
+
+describe('Pustaka gerakan — nama Indonesia utama (v2.17)', () => {
+  test('semua gerakan punya idName tidak kosong & unik', () => {
+    const names = EX_LIB.map((e) => e.idName)
+    expect(new Set(names).size).toBe(names.length)
+    for (const n of names) expect(n.length).toBeGreaterThan(0)
+  })
+
+  test('exerciseLabel mengembalikan idName; fallback nama asli untuk gerakan asing', () => {
+    expect(exerciseLabel('Barbell Curl')).toBe('Angkat barbel ke arah dada')
+    expect(exerciseLabel('Overhead Press')).toBe('Dorong barbel ke atas')
+    expect(exerciseLabel('Romanian Deadlift')).toBe('Turunkan dan angkat barbel')
+    expect(exerciseLabel('Floor Press')).toBe('Dorong barbel sambil berbaring')
+    expect(exerciseLabel('Zercher Squat')).toBe('Jongkok sambil memegang barbel')
+    expect(exerciseLabel('Gerakan Tak Dikenal')).toBe('Gerakan Tak Dikenal')
   })
 })

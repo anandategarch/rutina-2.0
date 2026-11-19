@@ -49,6 +49,7 @@ const DOMAIN_KEYS = [
   'goals',
   'wallets',
   'budgets',
+  'customCats',
   'workouts',
   'foodEntries',
   'calorieTarget',
@@ -155,20 +156,27 @@ function applyServerState(remote: SyncState): void {
     txs: remote.txs.map((t) => ({
       ...t,
       type: t.type as TxType,
-      cat: t.cat as FinCat,
+      cat: t.cat,
       walletId: t.walletId ?? undefined,
       toWalletId: t.toWalletId ?? undefined,
       recurrence: (t.recurrence ?? null) as Recurrence | null,
       recurOf: t.recurOf ?? undefined,
+      subcat: t.subcat ?? undefined,
     })),
     goals: remote.goals.map((g) => ({ ...g })),
     wallets: remote.wallets.map((w) => ({ ...w })),
     budgets: { ...remote.budgets },
+    customCats: (remote.customCats ?? []).map((c) => ({
+      ...c,
+      type: c.type as TxType,
+      parentKey: c.parentKey ?? undefined,
+    })),
     workouts: remote.workouts.map((w) => ({
       ...w,
       kind: w.kind as WorkoutKind,
       sets: w.sets.map((x) => ({ ...x })),
       distance: w.distance ?? undefined,
+      kcal: w.kcal ?? undefined,
     })),
     foodEntries: remote.foodEntries.map((f) => ({
       ...f,
@@ -268,7 +276,6 @@ function isRemoteEmpty(remote: SyncState): boolean {
     Object.keys(remote.bodyLogs).length === 0
   )
 }
-
 /** Apakah store lokal memiliki data domain berarti? */
 function hasLocalData(): boolean {
   const s = useRutina.getState()

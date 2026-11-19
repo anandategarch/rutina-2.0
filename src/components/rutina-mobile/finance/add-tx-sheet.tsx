@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   useDragControls,
-  type Variants,
 } from 'motion/react'
 import * as m from 'motion/react-m'
 import { Delete } from 'lucide-react'
@@ -13,42 +12,42 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ChevronRight } from 'lucide-react'
 import { CONTENT_W } from '../layout-widths'
 import {
   shortDateLabel,
   todayISO,
   useRutina,
-  type FinCat,
   type Recurrence,
   type TxType,
 } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
-import { CAT_META, LEGACY_CATS_BY_TYPE, PRIMARY_CATS_BY_TYPE } from './cats'
+import { CatPickerSheet } from './cat-picker-sheet'
+import { catMetaOf, PRIMARY_CATS_BY_TYPE, subcatsOf } from './cats'
 import { formatIDR } from './utils'
 
 /**
- * Lembar tambah transaksi — keypad khas aplikasi keuangan:
- * tombol "000" untuk nominal bulat, kategori bergambar yang berganti
- * himpunan mengikuti arah arus (Pengeluaran / Pemasukan).
+ * Lembar tambah transaksi (v2.17) — keypad khas aplikasi keuangan
+ * dengan pemilih kategori DROPDOWN: form tetap pendek, hanya menampilkan
+ * kategori terpilih; daftar lengkap (bawaan 2.0 + impor 1.0 + buatan,
+ * tanpa penanda asal) hidup di CatPickerSheet bersama pencarian,
+ * kategori sering dipakai, subkategori, dan tombol tambah.
  */
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'back']
-
-/* Kategori melintas arah mengikuti tipe — masuk dari kanan, keluar dari kiri. */
-const gridSwap: Variants = {
-  enter: (dir: number) => ({ opacity: 0, x: dir * 26 }),
-  center: { opacity: 1, x: 0, transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] } },
-  exit: (dir: number) => ({ opacity: 0, x: dir * -26, transition: { duration: 0.18 } }),
-}
 
 export function AddTxSheet() {
   const open = useRutina((s) => s.txSheetOpen)
   const closeTxSheet = useRutina((s) => s.closeTxSheet)
   const addTx = useRutina((s) => s.addTx)
   const wallets = useRutina((s) => s.wallets)
+  const customCats = useRutina((s) => s.customCats)
 
   const [type, setType] = useState<TxType>('keluar')
-  const [cat, setCat] = useState<FinCat>('makan')
+  const [cat, setCat] = useState<string>('makan')
+  const [subcat, setSubcat] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [subOpen, setSubOpen] = useState(false)
   const [digits, setDigits] = useState('')
   const [note, setNote] = useState('')
   const [walletId, setWalletId] = useState('')
@@ -66,6 +65,9 @@ export function AddTxSheet() {
     if (open) {
       setType('keluar')
       setCat('makan')
+      setSubcat('')
+      setPickerOpen(false)
+      setSubOpen(false)
       setDigits('')
       setNote('')
       setWalletId(wallets[0]?.id ?? '')
@@ -99,6 +101,8 @@ export function AddTxSheet() {
     if (t === type) return
     setType(t)
     setCat(PRIMARY_CATS_BY_TYPE[t][0])
+    setSubcat('')
+    setSubOpen(false)
   }
 
   const submit = () => {
@@ -113,6 +117,7 @@ export function AddTxSheet() {
       note,
       walletId: walletId || undefined,
       recurrence,
+      subcat: subcat || undefined,
     })
     if (recurrence) {
       useRutina.getState().materializeRecurring()
@@ -127,7 +132,6 @@ export function AddTxSheet() {
 
   const amountColor =
     type === 'keluar' ? 'text-content-danger' : 'text-success'
-  const gridDir = type === 'masuk' ? 1 : -1
 
   return (
     <AnimatePresence>
@@ -234,102 +238,140 @@ export function AddTxSheet() {
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
               <p className="mt-1 text-eyebrow text-content-muted">
-                {CAT_META[cat].label} · {shortDateLabel(todayISO())}
+                {catMetaOf(cat, customCats).label}
+                {subcat ? ` · ${subcat}` : ''} · {shortDateLabel(todayISO())}
               </p>
             </div>
 
-            {/* Pemilih kategori — himpunan berganti mengikuti tipe.
-                Dua tingkat: kisi bawaan 2.0, lalu chip “Dari Rutina 1.0”
-                (kategori asli hasil impor Turso — v2.15). */}
-            <div className="mt-4" role="group" aria-label="Kategori transaksi">
+            {/* Kategori — DROPDOWN satu sistem (v2.17): form hanya
+                menampilkan kategori terpilih; daftar lengkap + pencarian
+                + sering dipakai + subkategori + tambah ada di lembar
+                pemilih. Tanpa penanda asal kategori. */}
+            <div className="mt-4 space-y-1.5">
               <span className="text-note font-semibold text-content-secondary">
                 Kategori
               </span>
-              <AnimatePresence mode="wait" custom={gridDir} initial={false}>
-                <m.div
-                  key={type}
-                  custom={gridDir}
-                  variants={gridSwap}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  className="mt-2 space-y-3"
-                >
-                  <div className="grid grid-cols-4 gap-2">
-                    {PRIMARY_CATS_BY_TYPE[type].map((c) => {
-                      const on = cat === c
-                      const Icon = CAT_META[c].icon
-                      return (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setCat(c)}
-                          aria-pressed={on}
-                          className={`flex h-[64px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all duration-200 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                            on
-                              ? 'border-primary bg-secondary shadow-leaf'
-                              : 'border-border bg-surface-sunken hover:border-primary/40'
-                          }`}
-                        >
-                          <Icon
-                            className={`h-5 w-5 ${on ? 'text-success' : 'text-content-muted'}`}
-                            strokeWidth={on ? 2.4 : 2}
-                          />
-                          <span
-                            className={`px-1 text-center text-eyebrow font-semibold leading-tight ${
-                              on ? 'text-success' : 'text-content-muted'
-                            }`}
-                          >
-                            {CAT_META[c].label}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {LEGACY_CATS_BY_TYPE[type].length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
-                          Dari Rutina 1.0
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className="h-px flex-1 bg-border"
-                        />
-                      </div>
-                      <div
-                        role="group"
-                        aria-label="Kategori hasil impor Rutina 1.0 dari Turso"
-                        className="mt-2 flex flex-wrap gap-2"
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                aria-haspopup="dialog"
+                aria-label={`Kategori terpilih: ${catMetaOf(cat, customCats).label}. Ketuk untuk mengganti.`}
+                className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                {(() => {
+                  const meta = catMetaOf(cat, customCats)
+                  const Icon = meta.icon
+                  return (
+                    <>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
+                        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                        {meta.label}
+                      </span>
+                      <ChevronRight
+                        className="h-4.5 w-4.5 shrink-0 text-content-muted"
+                        aria-hidden="true"
+                      />
+                    </>
+                  )
+                })()}
+              </button>
+            </div>
+
+            {/* Subkategori (opsional) — muncul setelah kategori induk
+                dipilih; opsi = subkategori bawaan + buatan kategori itu. */}
+            <div className="mt-3 space-y-1.5">
+              <span className="text-note font-semibold text-content-secondary">
+                Subkategori{' '}
+                <span className="font-normal text-content-muted">(opsional)</span>
+              </span>
+              {subcatsOf(cat, customCats).length > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSubOpen((v) => !v)}
+                    aria-expanded={subOpen}
+                    aria-label={
+                      subcat
+                        ? `Subkategori terpilih: ${subcat}. Ketuk untuk mengganti.`
+                        : 'Pilih subkategori (opsional)'
+                    }
+                    className={`flex h-11 w-full cursor-pointer items-center gap-3 rounded-xl border px-3.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      subcat
+                        ? 'border-primary bg-secondary/50'
+                        : 'border-border bg-surface-sunken hover:border-primary/40'
+                    }`}
+                  >
+                    <span
+                      className={`min-w-0 flex-1 truncate text-body font-semibold ${
+                        subcat ? 'text-content-primary' : 'text-content-muted'
+                      }`}
+                    >
+                      {subcat || 'Pilih subkategori'}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold tabular-nums text-content-muted"
+                    >
+                      {subcatsOf(cat, customCats).length}
+                    </span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {subOpen && (
+                      <m.div
+                        key="subs"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                        className="overflow-hidden"
                       >
-                        {LEGACY_CATS_BY_TYPE[type].map((c) => {
-                          const on = cat === c
-                          const Icon = CAT_META[c].icon
-                          return (
+                        <div
+                          role="group"
+                          aria-label="Pilihan subkategori"
+                          className="flex flex-wrap gap-2 pt-2"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSubcat('')
+                              setSubOpen(false)
+                            }}
+                            aria-pressed={subcat === ''}
+                            className="h-9 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-meta font-semibold text-content-secondary transition-all active:scale-[0.96] hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            Tanpa subkategori
+                          </button>
+                          {subcatsOf(cat, customCats).map((sub) => (
                             <button
-                              key={c}
+                              key={sub}
                               type="button"
-                              onClick={() => setCat(c)}
-                              aria-pressed={on}
-                              className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border pl-2.5 pr-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                                on
+                              onClick={() => {
+                                setSubcat(sub)
+                                setSubOpen(false)
+                              }}
+                              aria-pressed={subcat === sub}
+                              className={`h-9 shrink-0 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                                subcat === sub
                                   ? 'border-primary bg-secondary text-success shadow-leaf'
-                                  : 'border-border bg-surface-sunken text-content-muted hover:border-primary/40 hover:text-content-secondary'
+                                  : 'border-border bg-surface-primary text-content-secondary hover:border-primary/40'
                               }`}
                             >
-                              <Icon
-                                className="h-3.5 w-3.5 shrink-0"
-                                strokeWidth={on ? 2.4 : 2}
-                              />
-                              {CAT_META[c].label}
+                              {sub}
                             </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </m.div>
-              </AnimatePresence>
+                          ))}
+                        </div>
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              ) : (
+                <p className="rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta text-content-muted">
+                  Kategori ini belum punya subkategori — bisa ditambah dari
+                  pengelola kategori.
+                </p>
+              )}
             </div>
 
             {/* Catatan */}
@@ -461,6 +503,19 @@ export function AddTxSheet() {
               </Button>
             </div>
           </m.div>
+
+          {/* Lembar pemilih kategori — overlay di atas lembar transaksi
+              (v2.17): satu sistem kategori + pencarian + subkategori. */}
+          <CatPickerSheet
+            open={pickerOpen}
+            type={type}
+            selected={cat}
+            onSelect={(c, sub) => {
+              setCat(c)
+              setSubcat(sub ?? '')
+            }}
+            onClose={() => setPickerOpen(false)}
+          />
         </>
       )}
     </AnimatePresence>

@@ -8,6 +8,9 @@
 
 export interface Exercise {
   name: string
+  /** Nama tampilan bahasa Indonesia (utama); istilah Inggris
+   *  menjadi keterangan kecil (v2.17). */
+  idName: string
   /** Kelompok otot utama: Dada, Punggung, Kaki, Bahu, Lengan, Inti, Seluruh badan. */
   muscle: string
   /** Rincian otot yang bekerja. */
@@ -26,6 +29,7 @@ export interface Exercise {
 export const EX_LIB: Exercise[] = [
   {
     name: 'Bench Press',
+    idName: 'Dorong barbel terlentang',
     muscle: 'Dada',
     detail: 'Dada · Triceps · Bahu depan',
     level: 2,
@@ -42,6 +46,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Incline Bench Press',
+    idName: 'Dorong barbel bangku miring',
     muscle: 'Dada',
     detail: 'Dada atas · Bahu depan',
     level: 2,
@@ -58,6 +63,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Close-Grip Bench Press',
+    idName: 'Dorong barbel cengkeraman rapat',
     muscle: 'Dada',
     detail: 'Dada · Triceps',
     level: 2,
@@ -74,6 +80,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Floor Press',
+    idName: 'Dorong barbel sambil berbaring',
     muscle: 'Dada',
     detail: 'Dada · Triceps',
     level: 1,
@@ -90,6 +97,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Push-Up',
+    idName: 'Push-up',
     muscle: 'Dada',
     detail: 'Dada · Triceps · Inti',
     level: 1,
@@ -106,6 +114,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Row',
+    idName: 'Tarik barbel ke arah perut',
     muscle: 'Punggung',
     detail: 'Punggung · Bisep',
     level: 2,
@@ -122,6 +131,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Romanian Deadlift',
+    idName: 'Turunkan dan angkat barbel',
     muscle: 'Punggung',
     detail: 'Punggung bawah · Hamstring',
     level: 2,
@@ -138,6 +148,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Pendlay Row',
+    idName: 'Tarik barbel dari lantai',
     muscle: 'Punggung',
     detail: 'Punggung · Bisep',
     level: 3,
@@ -154,6 +165,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Rack Pull',
+    idName: 'Angkat barbel dari rak',
     muscle: 'Punggung',
     detail: 'Punggung atas · Trapezius',
     level: 2,
@@ -170,6 +182,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Pull-Up',
+    idName: 'Angkat badan di bar',
     muscle: 'Punggung',
     detail: 'Punggung lebar · Bisep',
     level: 3,
@@ -186,6 +199,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Shrug',
+    idName: 'Angkat bahu dengan barbel',
     muscle: 'Punggung',
     detail: 'Trapezius',
     level: 1,
@@ -202,6 +216,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Back Squat',
+    idName: 'Jongkok barbel di belakang leher',
     muscle: 'Kaki',
     detail: 'Kaki · Glute · Inti',
     level: 2,
@@ -218,6 +233,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Front Squat',
+    idName: 'Jongkok barbel di depan bahu',
     muscle: 'Kaki',
     detail: 'Kaki depan · Inti',
     level: 3,
@@ -234,6 +250,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Zercher Squat',
+    idName: 'Jongkok sambil memegang barbel',
     muscle: 'Kaki',
     detail: 'Kaki · Inti · Punggung atas',
     level: 3,
@@ -250,6 +267,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Bulgarian Split Squat',
+    idName: 'Jongkok satu kaki di kursi',
     muscle: 'Kaki',
     detail: 'Glute · Kaki',
     level: 2,
@@ -266,6 +284,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Lunge',
+    idName: 'Melangkah maju dengan barbel',
     muscle: 'Kaki',
     detail: 'Glute · Kaki',
     level: 1,
@@ -282,6 +301,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Hip Thrust',
+    idName: 'Dorong pinggul ke atas',
     muscle: 'Kaki',
     detail: 'Glute · Hamstring',
     level: 1,
@@ -298,6 +318,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Calf Raise',
+    idName: 'Angkat tumit dengan barbel',
     muscle: 'Kaki',
     detail: 'Betis',
     level: 1,
@@ -314,6 +335,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Overhead Press',
+    idName: 'Dorong barbel ke atas',
     muscle: 'Bahu',
     detail: 'Bahu · Triceps · Inti',
     level: 2,
@@ -330,6 +352,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Push Press',
+    idName: 'Dorong barbel dibantu kaki',
     muscle: 'Bahu',
     detail: 'Bahu · Kaki',
     level: 2,
@@ -346,6 +369,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Seated Overhead Press',
+    idName: 'Dorong barbel ke atas sambil duduk',
     muscle: 'Bahu',
     detail: 'Bahu · Triceps',
     level: 1,
@@ -362,6 +386,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Curl',
+    idName: 'Angkat barbel ke arah dada',
     muscle: 'Lengan',
     detail: 'Bisep',
     level: 1,
@@ -378,6 +403,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Reverse Curl',
+    idName: 'Angkat barbel telapak bawah',
     muscle: 'Lengan',
     detail: 'Lengan bawah · Bisep',
     level: 1,
@@ -394,6 +420,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Skull Crusher',
+    idName: 'Lipat barbel ke dahi',
     muscle: 'Lengan',
     detail: 'Triceps',
     level: 2,
@@ -410,6 +437,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Side Bend',
+    idName: 'Miringkan badan dengan barbel',
     muscle: 'Inti',
     detail: 'Perut samping',
     level: 1,
@@ -426,6 +454,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Barbell Ab Rollout',
+    idName: 'Gulung barbel maju-mundur',
     muscle: 'Inti',
     detail: 'Perut lurus',
     level: 3,
@@ -442,6 +471,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Deadlift',
+    idName: 'Angkat barbel dari lantai',
     muscle: 'Seluruh badan',
     detail: 'Glute · Punggung · Inti',
     level: 2,
@@ -458,6 +488,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Sumo Deadlift',
+    idName: 'Angkat barbel kaki lebar',
     muscle: 'Seluruh badan',
     detail: 'Glute · Paha dalam',
     level: 2,
@@ -474,6 +505,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Power Clean',
+    idName: 'Angkat barbel eksplosif ke bahu',
     muscle: 'Seluruh badan',
     detail: 'Kaki · Punggung · Bahu',
     level: 3,
@@ -490,6 +522,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Thruster',
+    idName: 'Jongkok-dorong satu gerakan',
     muscle: 'Seluruh badan',
     detail: 'Kaki · Bahu · Inti',
     level: 2,
@@ -506,6 +539,7 @@ export const EX_LIB: Exercise[] = [
   },
   {
     name: 'Clean & Press',
+    idName: 'Angkat lalu dorong barbel',
     muscle: 'Seluruh badan',
     detail: 'Seluruh badan',
     level: 3,
@@ -520,6 +554,24 @@ export const EX_LIB: Exercise[] = [
     tip: 'Ritme panjang napas; jeda wajar di bahu tiap repetisi.',
     mistakes: 'Menggabung terlalu cepat tanpa stabilisasi — bentuk rusak di tekanan.',
   },
+]
+
+
+/** Nama tampilan Indonesia untuk sebuah gerakan — jatuh ke nama Inggris
+ *  bila gerakan tak terdaftar (aman untuk data lama). */
+export function exerciseLabel(name: string): string {
+  return EX_LIB.find((e) => e.name === name)?.idName ?? name
+}
+
+/** Enam gerakan inti barbel rumah (v2.17) — alat cukup barbel 5 kg +
+ *  matras; gerakan paling relevan untuk gym rumah sederhana. */
+export const HOME_BARBELL_CORE: string[] = [
+  'Barbell Curl',
+  'Overhead Press',
+  'Barbell Row',
+  'Romanian Deadlift',
+  'Floor Press',
+  'Zercher Squat',
 ]
 
 export const EX_LEVELS: Record<1 | 2 | 3, string> = {

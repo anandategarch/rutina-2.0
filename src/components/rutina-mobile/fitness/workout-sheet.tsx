@@ -6,7 +6,15 @@ import {
   useDragControls,
 } from 'motion/react'
 import * as m from 'motion/react-m'
-import { AlertTriangle, Minus, Plus, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Dumbbell,
+  Footprints,
+  Minus,
+  Plus,
+  Trash2,
+  Volleyball,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
@@ -18,7 +26,7 @@ import {
   exStatOf,
   paceOf,
 } from './fit-utils'
-import { EX_LIB, MUSCLE_GROUPS } from './data'
+import { EX_LIB, MUSCLE_GROUPS, exerciseLabel } from './data'
 import {
   shortDateLabel,
   todayISO,
@@ -30,9 +38,12 @@ import {
 import { useFocusTrap } from '../use-focus-trap'
 
 /**
- * Lembar catat sesi latihan — dua mode: Beban (blok gerakan dengan
- * jumlah set) dan Kardio (jalan/lari dengan pace otomatis).
- * Terbuka dari tombol "Catat Sesi", kartu program, atau pustaka gerakan.
+ * Lembar catat aktivitas (v2.17) — tiga mode mengikuti empat jenis
+ * aktivitas Bugar: Lari & Jalan (jalan/lari/kombinasi), Badminton,
+ * dan Angkat Beban. Prinsip: Rutina PUSAT CATATAN hasil smartwatch —
+ * kalori diambil dari angka jam tangan bila tersedia, pace dihitung
+ * dari total waktu & jarak (kombinasi tetap SATU catatan).
+ * Terbuka dari tombol "Catat Aktivitas", kartu program, atau pustaka.
  */
 
 /* Blok input: satu gerakan × beban × repetisi × jumlah set.
@@ -52,7 +63,7 @@ function seedToBlocks(seed: WorkoutSeed[], lastOf: (name: string) => { weight: n
     const last = lastOf(s.name)
     return {
       exercise: s.name,
-      weight: String(last.weight || 20),
+      weight: String(last.weight || 5),
       reps: String(s.reps || last.reps || 5),
       count: Math.min(12, Math.max(1, s.count)),
     }
@@ -66,11 +77,25 @@ const emptyBlock = (): SetBlock => ({
   count: 3,
 })
 
-/** Gerakan dikelompokkan per otot untuk pemilih native yang ringkas. */
+/** Gerakan dikelompokkan per otot untuk pemilih native yang ringkas —
+ *  label utama nama Indonesia (idName), nama Inggris kecil di belakang. */
 const EX_OPTIONS = MUSCLE_GROUPS.map((g) => ({
   group: g,
-  items: EX_LIB.filter((e) => e.muscle === g).map((e) => e.name),
+  items: EX_LIB.filter((e) => e.muscle === g).map((e) => ({
+    name: e.name,
+    label: `${e.idName} (${e.name})`,
+  })),
 }))
+
+/** Pilihan jenis dalam mode Lari & Jalan — kombinasi tetap satu catatan. */
+const CARDIO_KINDS: { kind: WorkoutKind; label: string; hint: string }[] = [
+  { kind: 'jalan', label: 'Jalan', hint: 'jalan santai / cepat' },
+  { kind: 'lari', label: 'Lari', hint: 'lari terus' },
+  { kind: 'lari-jalan', label: 'Lari + Jalan', hint: 'bergantian — satu catatan' },
+]
+
+/** Chip kondisi permainan badminton — mengisi awal catatan. */
+const BAD_CONDITIONS = ['Santai', 'Sedang', 'Intens'] as const
 
 export function WorkoutSheet() {
   const open = useRutina((s) => s.workoutSheetOpen)
@@ -80,11 +105,13 @@ export function WorkoutSheet() {
   const closeWorkoutSheet = useRutina((s) => s.closeWorkoutSheet)
   const addWorkout = useRutina((s) => s.addWorkout)
 
-  const [mode, setMode] = useState<'beban' | 'kardio'>('beban')
+  const [mode, setMode] = useState<'beban' | 'kardio' | 'badminton'>('kardio')
   const [cardioKind, setCardioKind] = useState<WorkoutKind>('jalan')
   const [date, setDate] = useState(todayISO())
   const [duration, setDuration] = useState('')
   const [distance, setDistance] = useState('')
+  const [kcal, setKcal] = useState('')
+  const [badCondition, setBadCondition] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [blocks, setBlocks] = useState<SetBlock[]>([emptyBlock()])
   const [prevOpen, setPrevOpen] = useState(false)
@@ -98,10 +125,13 @@ export function WorkoutSheet() {
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      setMode('beban')
+      setMode('kardio')
+      setCardioKind('jalan')
       setDate(todayISO())
       setDuration('')
       setDistance('')
+      setKcal('')
+      setBadCondition(null)
       setNote('')
       setBlocks(
         seed && seed.length > 0
@@ -132,6 +162,8 @@ export function WorkoutSheet() {
       toast.warning('Pilih tanggal sesi')
       return
     }
+    const kcalNum = Number((kcal || '0').replace(/\D/g, ''))
+
     if (mode === 'kardio') {
       const km = Number(distance.replace(',', '.'))
       if (km <= 0 || dur <= 0) {
@@ -145,12 +177,38 @@ export function WorkoutSheet() {
         note,
         sets: [],
         distance: km,
+        ...(kcalNum > 0 ? { kcal: kcalNum } : {}),
       })
       toast.success(
-        `${cardioKind === 'jalan' ? 'Jalan' : 'Lari'} ${km} km tercatat — pace ${paceOf(dur, km)}/km`,
+        `${cardioKind === 'jalan' ? 'Jalan' : cardioKind === 'lari' ? 'Lari' : 'Lari + Jalan'} ${km.toString().replace('.', ',')} km tercatat — pace ${paceOf(dur, km)}/km`,
       )
       return
     }
+
+    if (mode === 'badminton') {
+      if (dur <= 0) {
+        toast.warning('Isi durasi bermain dulu')
+        return
+      }
+      const condNote = badCondition
+        ? note.trim()
+          ? `${badCondition} — ${note.trim()}`
+          : badCondition
+        : note.trim()
+      addWorkout({
+        kind: 'badminton',
+        date,
+        duration: dur,
+        note: condNote,
+        sets: [],
+        ...(kcalNum > 0 ? { kcal: kcalNum } : {}),
+      })
+      toast.success(
+        `Badminton ${dur} menit tercatat${kcalNum > 0 ? ` · ${kcalNum} kkal (smartwatch)` : ''}`,
+      )
+      return
+    }
+
     const valid: WorkoutSet[] = []
     for (const b of blocks) {
       const w = Number(b.weight.replace(',', '.'))
@@ -170,10 +228,11 @@ export function WorkoutSheet() {
       duration: dur,
       note,
       sets: valid,
+      ...(kcalNum > 0 ? { kcal: kcalNum } : {}),
     })
     const names = [...new Set(valid.map((s) => s.exercise))]
     toast.success(
-      `Sesi beban tersimpan — ${names.length} gerakan, ${valid.length} set`,
+      `Sesi barbel tersimpan — ${names.length} gerakan, ${valid.length} set`,
     )
   }
 
@@ -239,7 +298,7 @@ export function WorkoutSheet() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            aria-label="Catat sesi latihan"
+            aria-label="Catat aktivitas"
             drag="y"
             dragListener={false}
             dragControls={dragControls}
@@ -267,29 +326,35 @@ export function WorkoutSheet() {
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
                 <h2 className="text-lg font-semibold tracking-tight text-content-primary">
-                  Catat Sesi
+                  Catat Aktivitas
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">
-                  Sesi baru — {shortDateLabel(date || todayISO())}.
+                  {shortDateLabel(date || todayISO())} — hasil smartwatch
+                  tinggal dipindahkan ke sini.
                 </p>
               </div>
             </div>
 
-            {/* Saklar mode: Beban | Kardio */}
+            {/* Saklar mode: Lari & Jalan | Badminton | Beban */}
             <div
               role="group"
-              aria-label="Jenis sesi"
+              aria-label="Jenis aktivitas"
               className="relative mt-3 flex rounded-full bg-surface-secondary p-1"
             >
-              {(['beban', 'kardio'] as const).map((t) => {
-                const on = mode === t
+              {([
+                { id: 'kardio', label: 'Lari & Jalan', icon: Footprints },
+                { id: 'badminton', label: 'Badminton', icon: Volleyball },
+                { id: 'beban', label: 'Barbel', icon: Dumbbell },
+              ] as const).map((t) => {
+                const on = mode === t.id
+                const Icon = t.icon
                 return (
                   <button
-                    key={t}
+                    key={t.id}
                     type="button"
-                    onClick={() => setMode(t)}
+                    onClick={() => setMode(t.id)}
                     aria-pressed={on}
-                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-note font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full text-note font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       on ? 'text-success' : 'text-content-muted'
                     }`}
                   >
@@ -301,7 +366,8 @@ export function WorkoutSheet() {
                         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                       />
                     )}
-                    {t === 'beban' ? 'Angkat Beban' : 'Jalan / Lari'}
+                    <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{t.label}</span>
                   </button>
                 )
               })}
@@ -331,14 +397,117 @@ export function WorkoutSheet() {
                   inputMode="numeric"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                  placeholder="45"
+                  placeholder={mode === 'badminton' ? '60' : '38'}
                   className="h-11 rounded-xl border-border bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
             </div>
 
             <AnimatePresence mode="wait" initial={false}>
-              {mode === 'beban' ? (
+              {mode === 'kardio' && (
+                <m.div
+                  key="kardio"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-4"
+                >
+                  {/* Jenis kardio — kombinasi lari+jalan TETAP satu catatan;
+                      pace dihitung dari total waktu & jarak. */}
+                  <div
+                    role="group"
+                    aria-label="Jenis lari dan jalan"
+                    className="flex rounded-full bg-surface-secondary p-1"
+                  >
+                    {CARDIO_KINDS.map((k) => (
+                      <button
+                        key={k.kind}
+                        type="button"
+                        onClick={() => setCardioKind(k.kind)}
+                        aria-pressed={cardioKind === k.kind}
+                        title={k.hint}
+                        className={`h-9 flex-1 cursor-pointer rounded-full text-note font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          cardioKind === k.kind
+                            ? 'bg-surface-primary text-success shadow-soft'
+                            : 'text-content-muted'
+                        }`}
+                      >
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="wo-km" className="text-note font-semibold text-content-secondary">
+                        Jarak (km)
+                      </Label>
+                      <Input
+                        id="wo-km"
+                        inputMode="decimal"
+                        value={distance}
+                        onChange={(e) =>
+                          setDistance(e.target.value.replace(/[^\d.,]/g, '').slice(0, 5))
+                        }
+                        placeholder="4,25"
+                        className="h-11 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <div
+                        className={`flex h-11 w-full items-center justify-center rounded-xl text-body font-bold tabular-nums ${
+                          pace ? 'bg-secondary text-success' : 'bg-surface-sunken text-content-muted'
+                        }`}
+                        aria-live="polite"
+                      >
+                        {pace ? `${pace} /km` : 'pace otomatis'}
+                      </div>
+                    </div>
+                  </div>
+                </m.div>
+              )}
+
+              {mode === 'badminton' && (
+                <m.div
+                  key="badminton"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-4"
+                >
+                  <p className="text-meta leading-relaxed text-content-muted">
+                    Cukup praktis — durasi main, kalori dari smartwatch bila
+                    ada, dan kondisi permainan. Tidak ada metrik jarak/pace.
+                  </p>
+                  <div
+                    role="group"
+                    aria-label="Kondisi permainan"
+                    className="mt-3 flex gap-2"
+                  >
+                    {BAD_CONDITIONS.map((c) => {
+                      const on = badCondition === c
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setBadCondition(on ? null : c)}
+                          aria-pressed={on}
+                          className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            on
+                              ? 'bg-primary text-primary-foreground shadow-soft'
+                              : 'border border-border bg-surface-sunken text-content-secondary'
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </m.div>
+              )}
+
+              {mode === 'beban' && (
                 <m.div
                   key="beban"
                   initial={{ opacity: 0, y: 14 }}
@@ -407,8 +576,8 @@ export function WorkoutSheet() {
                             {EX_OPTIONS.map((g) => (
                               <optgroup key={g.group} label={g.group}>
                                 {g.items.map((n) => (
-                                  <option key={n} value={n}>
-                                    {n}
+                                  <option key={n.name} value={n.name}>
+                                    {n.label}
                                   </option>
                                 ))}
                               </optgroup>
@@ -428,6 +597,13 @@ export function WorkoutSheet() {
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
+                        {/* Nama Indonesia utama + istilah Inggris kecil. */}
+                        {b.exercise && (
+                          <p className="mt-1.5 truncate text-eyebrow font-medium text-content-muted">
+                            {exerciseLabel(b.exercise)}
+                            <span className="text-content-muted/70"> · {b.exercise}</span>
+                          </p>
+                        )}
 
                         <div className="mt-2.5 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                           <div>
@@ -443,7 +619,7 @@ export function WorkoutSheet() {
                                   weight: e.target.value.replace(/[^\d.,]/g, '').slice(0, 4),
                                 })
                               }
-                              placeholder="40"
+                              placeholder="5"
                               className="h-10 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
                             />
                           </div>
@@ -460,7 +636,7 @@ export function WorkoutSheet() {
                                   reps: e.target.value.replace(/\D/g, '').slice(0, 3),
                                 })
                               }
-                              placeholder="5"
+                              placeholder="12"
                               className="h-10 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
                             />
                           </div>
@@ -508,66 +684,27 @@ export function WorkoutSheet() {
                     Tambah gerakan
                   </button>
                 </m.div>
-              ) : (
-                <m.div
-                  key="kardio"
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  className="mt-4"
-                >
-                  <div
-                    role="group"
-                    aria-label="Jenis kardio"
-                    className="flex rounded-full bg-surface-secondary p-1"
-                  >
-                    {(['jalan', 'lari'] as const).map((k) => (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setCardioKind(k)}
-                        aria-pressed={cardioKind === k}
-                        className={`h-9 flex-1 cursor-pointer rounded-full text-note font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          cardioKind === k
-                            ? 'bg-surface-primary text-success shadow-soft'
-                            : 'text-content-muted'
-                        }`}
-                      >
-                        {k === 'jalan' ? 'Jalan' : 'Lari'}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2.5">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="wo-km" className="text-note font-semibold text-content-secondary">
-                        Jarak (km)
-                      </Label>
-                      <Input
-                        id="wo-km"
-                        inputMode="decimal"
-                        value={distance}
-                        onChange={(e) =>
-                          setDistance(e.target.value.replace(/[^\d.,]/g, '').slice(0, 5))
-                        }
-                        placeholder="5,2"
-                        className="h-11 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <div
-                        className={`flex h-11 w-full items-center justify-center rounded-xl text-body font-bold tabular-nums ${
-                          pace ? 'bg-secondary text-success' : 'bg-surface-sunken text-content-muted'
-                        }`}
-                        aria-live="polite"
-                      >
-                        {pace ? `${pace} /km` : 'pace otomatis'}
-                      </div>
-                    </div>
-                  </div>
-                </m.div>
               )}
             </AnimatePresence>
+
+            {/* Kalori dari smartwatch — opsional semua mode; Rutina tidak
+                mengklaim mengukur kalori sendiri (v2.17). */}
+            <div className="mt-4 space-y-1.5">
+              <Label htmlFor="wo-kcal" className="text-note font-semibold text-content-secondary">
+                Kalori{' '}
+                <span className="font-normal text-content-muted">
+                  (opsional — dari smartwatch)
+                </span>
+              </Label>
+              <Input
+                id="wo-kcal"
+                inputMode="numeric"
+                value={kcal}
+                onChange={(e) => setKcal(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                placeholder="mis. 280"
+                className="h-11 rounded-xl border-border bg-surface-sunken tabular-nums focus-visible:border-primary focus-visible:ring-primary/25"
+              />
+            </div>
 
             {/* Catatan */}
             <div className="mt-4 space-y-1.5">
@@ -578,7 +715,11 @@ export function WorkoutSheet() {
                 id="wo-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="mis. naik 2,5 kg dari minggu lalu"
+                placeholder={
+                  mode === 'badminton'
+                    ? 'mis. double berturut-turut'
+                    : 'mis. pace terakhir lebih stabil'
+                }
                 maxLength={60}
                 className="h-11 rounded-xl border-border bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />
@@ -591,7 +732,7 @@ export function WorkoutSheet() {
               whileTap={{ scale: 0.98 }}
               className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              Simpan Sesi
+              Simpan Aktivitas
             </m.button>
           </m.div>
         </>

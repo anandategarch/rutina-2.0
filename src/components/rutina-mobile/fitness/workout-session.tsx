@@ -51,6 +51,8 @@ const KIND_LABEL: Record<WorkoutKind, string> = {
   beban: 'Angkat Beban',
   jalan: 'Jalan',
   lari: 'Lari',
+  'lari-jalan': 'Lari + Jalan',
+  badminton: 'Badminton',
 }
 
 /** Pilihan gerakan dikelompokkan per otot (konsisten dengan workout-sheet). */

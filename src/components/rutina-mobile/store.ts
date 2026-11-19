@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+/* Label seluruh kategori bawaan (satu sistem terpadu — v2.17) untuk
+   validasi anti-duplikat kategori buatan. finance/cats.ts hanya
+   mengimpor tipe dari berkas ini (type-only) sehingga tidak ada
+   ketergantungan runtime melingkar. */
+import { CATS_UNIFIED_LABELS } from './finance/cats'
+
 /* ===== Tipe & data demo (deterministik, tanpa Math.random) ===== */
 
 export type Screen =
@@ -729,6 +735,10 @@ export type FinTab = 'ringkasan' | 'mutasi' | 'anggaran' | 'dompet'
 export type ChartPeriod = FinPeriod | 'semua'
 export type MutasiFilter = TxType | 'semua'
 export type StatsPeriod = 'pekan' | 'bulan'
+/** Filter riwayat aktivitas Bugar — jenis latihan (v2.17). */
+export type WoFilter = 'semua' | 'kardio' | 'badminton' | 'beban'
+/** Rentang tanggal riwayat aktivitas Bugar (v2.17). */
+export type WoRange = '30' | '90' | 'semua'
 
 export interface UiPrefs {
   /** Subtab aktif layar Bugar. */
@@ -741,6 +751,10 @@ export interface UiPrefs {
   mutasiFilter: MutasiFilter
   /** Periode ringkasan layar Statistik. */
   statsPeriod: StatsPeriod
+  /** Filter jenis riwayat aktivitas Bugar (v2.17). */
+  woFilter: WoFilter
+  /** Rentang tanggal riwayat aktivitas Bugar (v2.17). */
+  woRange: WoRange
 }
 
 
@@ -751,7 +765,8 @@ export type Recurrence = 'mingguan' | 'bulanan'
 export interface Tx {
   id: string
   type: TxType
-  cat: FinCat
+  /** Slug kategori — FinCat bawaan atau id kategori buatan (v2.17). */
+  cat: string
   amount: number
   note: string
   /** Tanggal ISO (yyyy-mm-dd) — dasar pengelompokan grafik & filter. */
@@ -764,6 +779,20 @@ export interface Tx {
   recurrence?: Recurrence | null
   /** ID templat asal — salinan otomatis transaksi berulang. */
   recurOf?: string
+  /** Subkategori opsional — label bebas di bawah kategori induk
+   *  (v2.17: satu sistem kategori + subkategori). */
+  subcat?: string
+}
+
+/** Kategori keuangan buatan pengguna (v2.17) — satu daftar terpadu
+ *  bersama kategori bawaan + impor Rutina 1.0. Tanpa parentKey =
+ *  kategori utama; parentKey (slug FinCat bawaan / id kategori lain)
+ *  = subkategori. */
+export interface CustomCat {
+  id: string
+  name: string
+  type: TxType
+  parentKey?: string
 }
 
 /** Sumber dana / dompet — saldo dihitung dari saldo awal + mutasi. */
@@ -795,7 +824,12 @@ export interface Goal {
 
 /* ===== Domain Bugar — latihan beban & kardio (dari Rutina v3) ===== */
 
-export type WorkoutKind = 'beban' | 'jalan' | 'lari'
+export type WorkoutKind =
+  | 'beban'
+  | 'jalan'
+  | 'lari'
+  | 'lari-jalan'
+  | 'badminton'
 
 export interface WorkoutSet {
   /** Nama gerakan — merujuk EX_LIB di fitness/data.ts. */
@@ -815,8 +849,11 @@ export interface Workout {
   note: string
   /** Rincian set — khusus kind 'beban'. */
   sets: WorkoutSet[]
-  /** Jarak dalam km — khusus kardio (jalan/lari). */
+  /** Jarak dalam km — khusus kardio (jalan/lari/lari-jalan). */
   distance?: number
+  /** Kalori dari smartwatch (opsional) — angka pengguna, bukan
+   *  klaim pengukuran Rutina; kosong = estimasi MET (v2.17). */
+  kcal?: number
 }
 
 export interface WorkoutInput {
@@ -826,6 +863,7 @@ export interface WorkoutInput {
   note: string
   sets: WorkoutSet[]
   distance?: number
+  kcal?: number
 }
 
 /** Praisai lembar sesi: gerakan + target set & repetisi (dari program
@@ -1076,6 +1114,8 @@ interface RutinaState {
   goals: Goal[]
   wallets: Wallet[]
   budgets: Budgets
+  /** Kategori buatan pengguna — satu daftar terpadu (v2.17). */
+  customCats: CustomCat[]
   finPeriod: FinPeriod
   txSheetOpen: boolean
   transferSheetOpen: boolean
@@ -1108,14 +1148,22 @@ interface RutinaState {
   closeTxSheet: () => void
   addTx: (input: {
     type: TxType
-    cat: FinCat
+    cat: string
     amount: number
     note: string
     walletId?: string
     recurrence?: Recurrence | null
+    subcat?: string
   }) => void
   deleteTx: (id: string) => void
   toggleExpandedTx: (id: string) => void
+  /* Kategori buatan — satu sistem kategori terpadu (v2.17) */
+  addCustomCat: (input: {
+    name: string
+    type: TxType
+    parentKey?: string
+  }) => CustomCat | null
+  removeCustomCat: (id: string) => void
   /* Dompet & transfer */
   addWallet: (name: string, initial: number) => void
   openTransferSheet: () => void
@@ -1237,6 +1285,7 @@ export const useRutina = create<RutinaState>()(
   goals: SEED_GOALS,
   wallets: SEED_WALLETS,
   budgets: { ...DEFAULT_BUDGETS },
+  customCats: [],
   finPeriod: 'bulan',
   txSheetOpen: false,
   transferSheetOpen: false,
@@ -1271,6 +1320,8 @@ export const useRutina = create<RutinaState>()(
     chartPeriod: 'bulan',
     mutasiFilter: 'semua',
     statsPeriod: 'pekan',
+    woFilter: 'semua',
+    woRange: 'semua',
   },
 
   setUiPref: (patch) =>
@@ -1280,7 +1331,7 @@ export const useRutina = create<RutinaState>()(
 
   closeTxSheet: () => set({ txSheetOpen: false }),
 
-  addTx: ({ type, cat, amount, note, walletId, recurrence }) =>
+  addTx: ({ type, cat, amount, note, walletId, recurrence, subcat }) =>
     set((s) => ({
       txs: [
         {
@@ -1292,9 +1343,43 @@ export const useRutina = create<RutinaState>()(
           ts: todayFinISO(),
           walletId,
           recurrence: recurrence ?? null,
+          subcat: subcat?.trim() || undefined,
         },
         ...s.txs,
       ],
+    })),
+
+  /* --- Kategori buatan — satu sistem terpadu (v2.17) ---
+
+     Nama harus unik per arus terhadap kategori bawaan maupun buatan
+     lain (case-insensitive) agar tidak lahir duplikat; mengembalikan
+     null bila ditolak sehingga UI bisa memberi umpan balik. */
+  addCustomCat: ({ name, type, parentKey }) => {
+    const clean = name.trim().slice(0, 40)
+    if (!clean) return null
+    const s = get()
+    const taken = new Set(
+      [
+        ...Object.values(CATS_UNIFIED_LABELS),
+        ...s.customCats.filter((c) => c.type === type).map((c) => c.name),
+      ].map((n) => n.toLowerCase()),
+    )
+    if (taken.has(clean.toLowerCase())) return null
+    const cat: CustomCat = {
+      id: `fcat-${Date.now()}`,
+      name: clean,
+      type,
+      ...(parentKey ? { parentKey } : {}),
+    }
+    set((st) => ({ customCats: [...st.customCats, cat] }))
+    return cat
+  },
+
+  removeCustomCat: (id) =>
+    set((s) => ({
+      customCats: s.customCats.filter(
+        (c) => c.id !== id && c.parentKey !== id,
+      ),
     })),
 
   /* --- Dompet & transfer --- */
@@ -1447,7 +1532,7 @@ export const useRutina = create<RutinaState>()(
   closeWorkoutSheet: () =>
     set({ workoutSheetOpen: false, workoutSheetSeed: null }),
 
-  addWorkout: ({ kind, date, duration, note, sets, distance }) =>
+  addWorkout: ({ kind, date, duration, note, sets, distance, kcal }) =>
     set((s) => ({
       workouts: [
         {
@@ -1458,6 +1543,7 @@ export const useRutina = create<RutinaState>()(
           note: note.trim(),
           sets: sets.map((x) => ({ ...x })),
           distance,
+          ...(kcal && kcal > 0 ? { kcal: Math.round(kcal) } : {}),
         },
         ...s.workouts,
       ],
@@ -1819,6 +1905,7 @@ export const useRutina = create<RutinaState>()(
         goals: s.goals,
         wallets: s.wallets,
         budgets: s.budgets,
+        customCats: s.customCats,
         workouts: s.workouts,
         foodEntries: s.foodEntries,
         calorieTarget: s.calorieTarget,

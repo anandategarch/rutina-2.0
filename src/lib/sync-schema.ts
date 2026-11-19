@@ -89,7 +89,7 @@ export const notePatchSchema = noteSchema.omit({ id: true }).partial()
 export const txSchema = z.object({
   id: z.string().min(1).max(64),
   type: z.enum(['masuk', 'keluar', 'transfer']),
-  cat: z.string().min(1).max(32),
+  cat: z.string().min(1).max(64),
   amount: z.number().int().min(0).max(1_000_000_000_000),
   note: z.string().max(500),
   ts: isoDate,
@@ -97,6 +97,8 @@ export const txSchema = z.object({
   toWalletId: z.string().max(64).nullable().optional(),
   recurrence: z.enum(['mingguan', 'bulanan']).nullable().optional(),
   recurOf: z.string().max(64).nullable().optional(),
+  /** Subkategori opsional (v2.17) — label bebas di bawah kategori. */
+  subcat: z.string().max(60).nullable().optional(),
 })
 /** Input POST — id & tanggal dibuat server bila absen. */
 export const txInputSchema = txSchema.omit({ id: true }).extend({
@@ -109,6 +111,17 @@ export const walletSchema = z.object({
   initial: z.number().int().min(0).max(1_000_000_000_000),
 })
 export const walletInputSchema = walletSchema.omit({ id: true })
+
+/** Kategori keuangan buatan pengguna (v2.17) — satu sistem terpadu
+ *  bersama kategori bawaan + impor Rutina 1.0. */
+export const customCatSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(60),
+  type: z.enum(['keluar', 'masuk']),
+  /** Kunci induk (slug bawaan / id buatan lain) — null = utama. */
+  parentKey: z.string().max(64).nullable().optional(),
+})
+export const customCatInputSchema = customCatSchema.omit({ id: true })
 
 export const budgetsSchema = z
   .record(
@@ -140,13 +153,17 @@ export const workoutSetSchema = z.object({
 
 export const workoutSchema = z.object({
   id: z.string().min(1).max(64),
-  kind: z.enum(['beban', 'jalan', 'lari']),
+  /** v2.17: empat jenis aktivitas — beban, jalan, lari, lari-jalan
+   *  (kombinasi satu catatan), badminton. */
+  kind: z.enum(['beban', 'jalan', 'lari', 'lari-jalan', 'badminton']),
   date: isoDate,
   duration: z.number().int().min(0).max(1440),
   note: z.string().max(500),
   /** JSON WorkoutSet[] di DB; array di wire. */
   sets: z.array(workoutSetSchema).max(60),
   distance: z.number().min(0).max(1000).nullable().optional(),
+  /** Kalori dari smartwatch (v2.17) — opsional. */
+  kcal: z.number().int().min(0).max(50_000).nullable().optional(),
 })
 /** Input POST — id & tanggal dibuat server bila absen. */
 export const workoutInputSchema = workoutSchema.omit({ id: true }).extend({
@@ -205,6 +222,8 @@ export const syncStateSchema = z.object({
   goals: z.array(goalSchema).max(200),
   wallets: z.array(walletSchema).max(50),
   budgets: budgetsSchema,
+  /** Kategori buatan pengguna (v2.17). */
+  customCats: z.array(customCatSchema).max(200).default([]),
   workouts: z.array(workoutSchema).max(5000),
   foodEntries: z.array(foodEntrySchema).max(10_000),
   calorieTarget: z.number().int().min(500).max(20_000),
@@ -232,6 +251,7 @@ export type HabitWire = z.infer<typeof habitSchema>
 export type NoteWire = z.infer<typeof noteSchema>
 export type TxWire = z.infer<typeof txSchema>
 export type WalletWire = z.infer<typeof walletSchema>
+export type CustomCatWire = z.infer<typeof customCatSchema>
 export type GoalWire = z.infer<typeof goalSchema>
 export type WorkoutWire = z.infer<typeof workoutSchema>
 export type FoodEntryWire = z.infer<typeof foodEntrySchema>

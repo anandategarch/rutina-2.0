@@ -50,7 +50,7 @@ import {
 import Heatmap from '../heatmap'
 import { MonthCalendar, type MonthDayInfo } from '../month-calendar'
 import { useMinWidth } from '../use-min-width'
-import { CAT_META } from '../finance/cats'
+import { useCatMeta } from '../finance/use-cat-meta'
 import {
   formatIDR,
   formatIDRShort,
@@ -168,6 +168,7 @@ function SectionTitle({ title, hint }: { title: string; hint?: string }) {
 }
 
 export default function StatsScreen() {
+  const catMeta = useCatMeta()
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const notes = useRutina((s) => s.notes)
@@ -1305,7 +1306,7 @@ export default function StatsScreen() {
                         ) : (
                           <ul className="mt-2.5 space-y-3">
                             {monthReport.topCats.map((c) => {
-                              const Icon = CAT_META[c.cat].icon
+                              const Icon = catMeta(c.cat).icon
                               return (
                                 <li key={c.cat}>
                                   <div className="flex items-baseline justify-between gap-2">
@@ -1314,7 +1315,7 @@ export default function StatsScreen() {
                                         aria-hidden="true"
                                         className="h-3.5 w-3.5 shrink-0 text-content-secondary"
                                       />
-                                      {CAT_META[c.cat].label}
+                                      {catMeta(c.cat).label}
                                     </span>
                                     <span className="shrink-0 text-meta font-semibold tabular-nums text-content-primary">
                                       {formatIDR(c.amount)}
@@ -1359,7 +1360,7 @@ export default function StatsScreen() {
                               return (
                                 <li key={b.cat}>
                                   <p className="text-note font-semibold text-content-primary">
-                                    {CAT_META[b.cat].label} — {formatIDR(b.used)}{' '}
+                                    {catMeta(b.cat).label} — {formatIDR(b.used)}{' '}
                                     <span className="font-medium text-content-muted">
                                       dari {formatIDR(b.limit)}
                                     </span>

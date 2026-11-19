@@ -65,6 +65,7 @@ export async function POST(req: Request) {
         toWalletId: input.toWalletId ?? null,
         recurrence: input.recurrence ?? null,
         recurOf: input.recurOf ?? null,
+        subcat: input.subcat ?? '',
       },
     })
     return ok({ transaction: tx }, 201)

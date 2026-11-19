@@ -70,7 +70,8 @@ import {
   type Wallet as FinWallet,
 } from '../store'
 import { FinChart } from '../finance/fin-chart'
-import { BUDGETABLE_CATS, CAT_META } from '../finance/cats'
+import { BUDGETABLE_CATS, catMetaOf } from '../finance/cats'
+import { useCatMeta } from '../finance/use-cat-meta'
 import { SpendHeatmap } from '../spend-heatmap'
 import {
   buildSeries,
@@ -418,13 +419,15 @@ function DetailCell({
 /* ===== Baris transaksi (kexpand + hapus dengan konfirmasi) ===== */
 
 function TxRow({ tx }: { tx: Tx }) {
+const catMeta = useCatMeta()
+
   const expanded = useRutina((s) => s.expandedTxId === tx.id)
   const toggleExpandedTx = useRutina((s) => s.toggleExpandedTx)
   const deleteTx = useRutina((s) => s.deleteTx)
   const wallets = useRutina((s) => s.wallets)
   const income = tx.type === 'masuk'
   const isTransfer = tx.type === 'transfer'
-  const Icon = CAT_META[tx.cat].icon
+  const Icon = catMeta(tx.cat).icon
   const fromW = wallets.find((w) => w.id === tx.walletId)
   const toW = wallets.find((w) => w.id === tx.toWalletId)
   const walletLabel = isTransfer
@@ -445,7 +448,7 @@ function TxRow({ tx }: { tx: Tx }) {
         whileTap={{ scale: 0.99 }}
         onClick={() => toggleExpandedTx(tx.id)}
         aria-expanded={expanded}
-        aria-label={`${tx.note || CAT_META[tx.cat].label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
+        aria-label={`${tx.note || catMeta(tx.cat).label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
         className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left transition-colors duration-200 hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       >
         <span
@@ -462,7 +465,7 @@ function TxRow({ tx }: { tx: Tx }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
             <span className="block min-w-0 line-clamp-2 break-words leading-snug text-body font-semibold">
-              {tx.note || CAT_META[tx.cat].label}
+              {tx.note || catMeta(tx.cat).label}
             </span>
             {tx.recurrence && !tx.recurOf && (
               <span
@@ -476,7 +479,7 @@ function TxRow({ tx }: { tx: Tx }) {
           <span className="mt-0.5 block break-words text-eyebrow leading-snug text-content-muted">
             {isTransfer
               ? `${fromW?.name ?? 'Dompet'} → ${toW?.name ?? 'Dompet'} · ${fmtDate(tx.ts)}`
-              : `${CAT_META[tx.cat].label}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
+              : `${catMeta(tx.cat).label}${tx.subcat ? ` · ${tx.subcat}` : ''}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
           </span>
         </span>
         <span
@@ -512,7 +515,7 @@ function TxRow({ tx }: { tx: Tx }) {
           >
             <div className="border-t border-border px-3.5 pb-3.5 pt-3">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <DetailCell label="Kategori" value={CAT_META[tx.cat].label} />
+                <DetailCell label="Kategori" value={`${catMeta(tx.cat).label}${tx.subcat ? ` · ${tx.subcat}` : ''}`} />
                 <DetailCell label="Tanggal" value={fmtDate(tx.ts)} />
                 <DetailCell label="Dompet" value={walletLabel} />
                 <DetailCell
@@ -555,7 +558,7 @@ function TxRow({ tx }: { tx: Tx }) {
                         Hapus transaksi?
                       </AlertDialogTitle>
                       <AlertDialogDescription className="text-note text-content-muted">
-                        {tx.note || CAT_META[tx.cat].label} sebesar{' '}
+                        {tx.note || catMeta(tx.cat).label} sebesar{' '}
                         {formatIDR(tx.amount)} akan dihapus dari daftar. Tindakan
                         ini tidak bisa dibatalkan.
                       </AlertDialogDescription>
@@ -648,7 +651,9 @@ function LedgerRow({
   selected: boolean
   onSelect: (id: string) => void
 }) {
-  const Icon = CAT_META[tx.cat].icon
+const catMeta = useCatMeta()
+
+  const Icon = catMeta(tx.cat).icon
   const income = tx.type === 'masuk'
   const isTransfer = tx.type === 'transfer'
 
@@ -676,12 +681,12 @@ function LedgerRow({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-note font-semibold leading-snug">
-          {tx.note || CAT_META[tx.cat].label}
+          {tx.note || catMeta(tx.cat).label}
         </span>
         <span className="mt-0.5 block truncate text-eyebrow leading-snug text-content-muted">
           {isTransfer
             ? walletLabelOf(tx, wallets)
-            : `${CAT_META[tx.cat].label} · ${walletLabelOf(tx, wallets)}`}
+            : `${catMeta(tx.cat).label} · ${walletLabelOf(tx, wallets)}`}
         </span>
       </span>
       <span className="shrink-0 text-eyebrow font-medium tabular-nums text-content-muted">
@@ -708,8 +713,10 @@ function TxInspectorDetail({
   wallets: FinWallet[]
   onClear: () => void
 }) {
+const catMeta = useCatMeta()
+
   const deleteTx = useRutina((s) => s.deleteTx)
-  const Icon = CAT_META[tx.cat].icon
+  const Icon = catMeta(tx.cat).icon
   const dateLong = new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -749,7 +756,7 @@ function TxInspectorDetail({
         <p
           className="mt-3 text-section-lg font-semibold leading-snug tracking-tight text-content-primary"
         >
-          {tx.note || CAT_META[tx.cat].label}
+          {tx.note || catMeta(tx.cat).label}
         </p>
         <p
           className={`mt-2 text-kpi-lg font-bold leading-none tabular-nums ${
@@ -770,7 +777,7 @@ function TxInspectorDetail({
             </dt>
             <dd className="flex min-w-0 items-center gap-1.5 text-note font-semibold text-content-primary">
               <Icon className="h-3.5 w-3.5 shrink-0 text-content-secondary" strokeWidth={2.1} />
-              <span className="truncate">{CAT_META[tx.cat].label}</span>
+              <span className="truncate">{catMeta(tx.cat).label}{tx.subcat ? ` · ${tx.subcat}` : ''}</span>
             </dd>
           </div>
           <div className="ledger-row flex items-center justify-between gap-3 py-2.5">
@@ -829,7 +836,7 @@ function TxInspectorDetail({
                 Hapus transaksi?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-note text-content-muted">
-                {tx.note || CAT_META[tx.cat].label} sebesar{' '}
+                {tx.note || catMeta(tx.cat).label} sebesar{' '}
                 {formatIDR(tx.amount)} akan dihapus dari daftar. Tindakan
                 ini tidak bisa dibatalkan.
               </AlertDialogDescription>
@@ -914,6 +921,8 @@ function TxInspector({
 /** Meja kerja Mutasi: ResizablePanelGroup horizontal — kiri ledger
     (default 60%), kanan inspektor (default 40%, resizable). */
 function MutasiWorkspace({ className = '' }: { className?: string }) {
+const catMeta = useCatMeta()
+
   const txs = useRutina((s) => s.txs)
   const wallets = useRutina((s) => s.wallets)
   const [query, setQuery] = useState('')
@@ -931,10 +940,10 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
         if (!q) return true
         return (
           t.note.toLowerCase().includes(q) ||
-          CAT_META[t.cat].label.toLowerCase().includes(q)
+          catMeta(t.cat).label.toLowerCase().includes(q)
         )
       }),
-    [txs, filter, q],
+    [txs, filter, q, catMeta],
   )
   const ledgerGroups = useMemo(() => groupByDay(filtered), [filtered])
   /* Batas render ledger (audit performa v2.13): 60 transaksi terbaru
@@ -1291,6 +1300,8 @@ function BudgetRow({
   barColor: string
   Icon: LucideIcon
 }) {
+const catMeta = useCatMeta()
+
   const setBudget = useRutina((s) => s.setBudget)
   const removeBudget = useRutina((s) => s.removeBudget)
   const [draft, setDraft] = useState('')
@@ -1314,7 +1325,7 @@ function BudgetRow({
             "Makan & Minum") tidak terpotong di layar sempit. */}
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate text-body font-semibold">
-            {CAT_META[cat].label}
+            {catMeta(cat).label}
           </span>
           {over && (
             <Badge className="h-5 shrink-0 border-transparent bg-clay/20 px-1.5 text-chart-label font-semibold uppercase tracking-[0.08em] text-content-danger hover:bg-clay/20">
@@ -1362,7 +1373,7 @@ function BudgetRow({
         <AlertDialogTrigger asChild>
           <button
             type="button"
-            aria-label={`Sunting anggaran ${CAT_META[cat].label}`}
+            aria-label={`Sunting anggaran ${catMeta(cat).label}`}
             className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
           >
             <Pencil className="h-4 w-4" />
@@ -1371,7 +1382,7 @@ function BudgetRow({
         <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-section-lg font-bold tracking-tight text-content-primary">
-              Batas {CAT_META[cat].label}
+              Batas {catMeta(cat).label}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-note leading-relaxed text-content-muted">
               Terpakai {formatIDR(used)} bulan ini. Tentukan batas bulanan
@@ -1393,7 +1404,7 @@ function BudgetRow({
               type="button"
               onClick={() => {
                 removeBudget(cat)
-                toast(`${CAT_META[cat].label} dihapus dari anggaran.`)
+                toast(`${catMeta(cat).label} dihapus dari anggaran.`)
               }}
               className="h-10 flex-1 cursor-pointer rounded-full border border-destructive/35 text-note font-bold text-content-danger transition-colors hover:bg-destructive/10"
             >
@@ -1408,7 +1419,7 @@ function BudgetRow({
                 if (v > 0) {
                   setBudget(cat, v)
                   toast.success(
-                    `Batas ${CAT_META[cat].label}: ${formatIDR(v)}/bulan`,
+                    `Batas ${catMeta(cat).label}: ${formatIDR(v)}/bulan`,
                   )
                 }
               }}
@@ -1529,7 +1540,7 @@ function budgetRowProps(
     : warn
       ? 'var(--warning)'
       : 'var(--primary)'
-  const Icon = CAT_META[b.cat].icon
+  const Icon = catMetaOf(b.cat).icon
   return { cat: b.cat, limit: b.limit, used, pct, over, warn, barColor, Icon }
 }
 
@@ -1552,7 +1563,9 @@ interface FinFinding {
 }
 
 export default function KeuanganScreen() {
+  const catMeta = useCatMeta()
   const txs = useRutina((s) => s.txs)
+  const customCats = useRutina((s) => s.customCats)
   const goals = useRutina((s) => s.goals)
   const wallets = useRutina((s) => s.wallets)
   const budgets = useRutina((s) => s.budgets)
@@ -1723,7 +1736,7 @@ export default function KeuanganScreen() {
       if (!BUDGETABLE_CATS.includes(cat as FinCat) || limit <= 0) continue
       const used = byCat[cat] ?? 0
       if (used <= limit) continue
-      const label = CAT_META[cat as FinCat].label
+      const label = catMeta(cat).label
       const pct = Math.round((used / limit) * 100)
       out.push({
         key: `over-${cat}`,
@@ -1743,7 +1756,7 @@ export default function KeuanganScreen() {
       const [topCat, topVal] = catEntries[0]
       const share = Math.round((topVal / spent) * 100)
       if (share > 40) {
-        const label = CAT_META[topCat as FinCat].label
+        const label = catMeta(topCat).label
         out.push({
           key: 'dominan',
           weight: 1,
@@ -1807,7 +1820,7 @@ export default function KeuanganScreen() {
     }
 
     return out.sort((a, b) => a.weight - b.weight).slice(0, 4)
-  }, [txs, budgets])
+  }, [txs, budgets, catMeta])
 
   /* anime.js — denyut "ka-ching" pada angka saldo saat transaksi baru masuk.
      Kebijakan reduced-motion: angka langsung diperbarui tanpa denyut. */
@@ -2426,21 +2439,24 @@ export default function KeuanganScreen() {
                 </>
               )}
 
-              {/* Tambah kategori yang belum dianggarkan */}
-              {BUDGETABLE_CATS.filter((c) => !(c in budgets)).length > 0 && (
+              {/* Tambah kategori yang belum dianggarkan — bawaan +
+                  kategori buatan pengguna, satu sistem (v2.17) */}
+              {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar' && !cc.parentKey).map((cc) => cc.id)]
+                .filter((c) => !(c in budgets)).length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2 pt-1">
-                  {BUDGETABLE_CATS.filter((c) => !(c in budgets)).map((c) => (
+                  {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar' && !cc.parentKey).map((cc) => cc.id)]
+                    .filter((c) => !(c in budgets)).map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => {
                         setBudget(c, 300_000)
-                        toast(`${CAT_META[c].label} ditambahkan — ubah batasnya sesukamu.`)
+                        toast(`${catMeta(c).label} ditambahkan — ubah batasnya sesukamu.`)
                       }}
                       className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 text-meta font-semibold text-content-muted transition-all hover:bg-surface-sunken active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      {CAT_META[c].label}
+                      {catMeta(c).label}
                     </button>
                   ))}
                 </div>
