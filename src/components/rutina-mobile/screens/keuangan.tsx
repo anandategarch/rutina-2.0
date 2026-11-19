@@ -97,9 +97,9 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
-/* ===== Konstanta gerak ===== */
-
-const EASE = motionTokens.easing.standard
+/* ===== Konstanta gerak =====
+   Seluruh durasi/easing kini melalui motionTokens.preset (governance
+   audit v2.9) — tidak ada angka gerak bebas di layar ini. */
 
 /* Ikon tujuan tabungan — tiga pertama tetap, sisanya koin celengan. */
 const GOAL_ICONS: LucideIcon[] = [ShieldCheck, Laptop, Plane]
@@ -320,7 +320,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
       <m.div
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: EASE, delay: Math.min(index * 0.07, 0.28) }}
+        transition={{ ...motionTokens.preset.data, delay: Math.min(index * 0.07, 0.28) }}
         className="flex h-full min-h-[200px] flex-col rounded-[22px] bg-surface-primary p-4 text-content-primary shadow-ink transition-transform duration-300 hover:-translate-y-0.5"
       >
         <div className="flex items-center gap-3.5">
@@ -436,7 +436,7 @@ function TxRow({ tx }: { tx: Tx }) {
       layout
       initial={{ opacity: 0, y: 16, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -32, scale: 0.97, transition: { duration: 0.2 } }}
+      exit={{ opacity: 0, x: -32, scale: 0.97, transition: { ...motionTokens.preset.interaction } }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       className="overflow-hidden rounded-[16px] bg-surface-primary text-content-primary shadow-ink"
     >
@@ -494,7 +494,7 @@ function TxRow({ tx }: { tx: Tx }) {
         <m.span
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.25 }}
+          transition={motionTokens.preset.interaction}
           className="shrink-0 text-content-muted"
         >
           <ChevronDown className="h-4 w-4" />
@@ -507,7 +507,7 @@ function TxRow({ tx }: { tx: Tx }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.32, ease: EASE }}
+            transition={motionTokens.preset.navigation}
             className="overflow-hidden"
           >
             <div className="border-t border-border px-3.5 pb-3.5 pt-3">
@@ -721,7 +721,7 @@ function TxInspectorDetail({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: EASE }}
+      transition={motionTokens.preset.interactionInstant}
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar p-5">
@@ -891,7 +891,7 @@ function TxInspector({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: EASE }}
+            transition={motionTokens.preset.interactionInstant}
             className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2.5 p-8 text-center"
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-sunken text-content-muted">
@@ -1785,7 +1785,7 @@ export default function KeuanganScreen() {
     if (grew && saldoRef.current && !reducedMotion) {
       const anim = animate(saldoRef.current, {
         scale: [1, 1.04, 1],
-        duration: 520,
+        duration: motionTokens.preset.valuePopMs.duration,
         ease: 'outBack(2)',
       })
       return () => {
@@ -1894,7 +1894,7 @@ export default function KeuanganScreen() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: EASE }}
+              transition={motionTokens.preset.interaction}
               className="mt-3.5"
             >
               <div className="grid grid-cols-3 gap-2.5">
@@ -1967,7 +1967,7 @@ export default function KeuanganScreen() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.22, ease: EASE }}
+                transition={motionTokens.preset.interaction}
               >
                 <FinChart
                   points={series}
@@ -1990,7 +1990,7 @@ export default function KeuanganScreen() {
                   initial={{ y: 8, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: -8, opacity: 0 }}
-                  transition={{ duration: 0.18, ease: EASE }}
+                  transition={motionTokens.preset.interaction}
                   className="text-[12.5px] font-bold text-content-primary"
                 >
                   {detailLabel}
@@ -2006,7 +2006,7 @@ export default function KeuanganScreen() {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: EASE }}
+                transition={motionTokens.preset.interaction}
                 className="mt-2 grid grid-cols-3 gap-2"
               >
                 <div>
@@ -2211,9 +2211,8 @@ export default function KeuanganScreen() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: motionTokens.duration.enter,
+              ...motionTokens.preset.layout,
               delay: 0.13,
-              ease: EASE,
             }}
           >
             <RutinaBentoGrid>
@@ -2472,7 +2471,7 @@ export default function KeuanganScreen() {
                       key={w.id}
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: i * 0.06, ease: EASE }}
+                      transition={{ ...motionTokens.preset.layout, delay: i * 0.06 }}
                       className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
                     >
                       <div className="flex items-center gap-3">

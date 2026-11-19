@@ -75,6 +75,39 @@ export const motionTokens = {
     normal: 0.05,
     relaxed: 0.07,
   },
+
+  /** Preset gerak berdasarkan FUNGSI — katalog tunggal lintas layar
+   *  (governance audit v2.9). Komponen tidak lagi menulis durasi/easing
+   *  bebas: pilih preset sesuai makna interaksinya. Durasi boleh berbeda
+   *  antar preset — yang penting punya alasan dan satu sumber kebenaran.
+   *
+   *    interaction        umpan balik kontrol (tekan chip, sorot baris)
+   *    interactionInstant reaksi sekecil mungkin (hover, active state)
+   *    navigation         pergeseran panel (ganti tab, inspector, sheet)
+   *    layout             perubahan komposisi (expand kartu, tile masuk)
+   *    data / dataSlow    pengungkapan data (grafik, baris, angka)
+   *    celebration        momen juara — meminjam spring.playful
+   *    *Ms                preset anime.js v4 (MILIDETIK — jangan
+   *                       tertukar dengan preset Motion di atas) */
+  preset: {
+    interaction: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+    interactionInstant: { duration: 0.12, ease: [0.4, 0, 0.2, 1] },
+    navigation: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+    layout: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
+    data: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+    /** Pengungkapan data BESAR — cincin penuh / grafik besar yang perlu
+     *  waktu bernapas sebelum terbaca utuh. */
+    dataSlow: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
+    celebration: { type: 'spring', stiffness: 300, damping: 18 },
+    /** Denyut ambient — SALAH SATU dari sedikit animasi berulang yang
+     *  diizinkan (api streak, amplitudo ≤8%). Direndam menjadi preset
+     *  agar daftar animasi infinite bisa dihitung & diaudit. */
+    ambientPulse: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+    /** anime.js v4 (MILIDETIK) — stagger batang grafik terungkap. */
+    chartRevealMs: { duration: 850 },
+    /** anime.js v4 (MILIDETIK) — pop umpan balik nilai (saldo, angka). */
+    valuePopMs: { duration: 520 },
+  },
 } as const
 
 export type MotionToken = (typeof motionTokens)[keyof typeof motionTokens]

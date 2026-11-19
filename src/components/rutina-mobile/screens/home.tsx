@@ -721,13 +721,18 @@ export default function HomeScreen() {
                 className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
                 <RutinaSectionHeader title="Insight hari ini" />
-                <div className="mt-4 space-y-4">
+                {/* Micro-bento ponsel: streak (metrik utama) memanjang
+                    penuh, misi pekan & saldo bersih berpasangan dua kolom —
+                    lebih ringkas daripada daftar vertikal, tetap lega di
+                    320px. Ruang kerja lebar otomatis kembali proporsional. */}
+                <div className="mt-4 grid grid-cols-2 gap-3">
                   <RutinaMetric
                     label="Streak berjalan"
                     value={`${streak} hari`}
                     icon={Flame}
                     iconClassName="bg-module-accent/15 text-module-accent-strong"
                     size="sm"
+                    className="col-span-2"
                   />
                   <RutinaMetric
                     label="Misi pekan ini"
@@ -1037,7 +1042,7 @@ export default function HomeScreen() {
               kolom diatur [&>section+section]. */}
           <RutinaBentoItem
             span="feature"
-            className="mt-6 xl:mt-0 [&>section+section]:mt-6"
+            className="mt-6 @[52rem]:mt-0 [&>section+section]:mt-6"
           >
             {/* Nudge "Jangan Bolong Dua Kali" — kartu hangat (bukan merah):
                kebiasaan terlewat kemarin, selesaikan hari ini. */}
@@ -1147,16 +1152,16 @@ export default function HomeScreen() {
       </m.div>
 
       {/* 3 — Baris bento arus kas (5) + insight pekan (7): satu baris
-          komposisi desktop, ponsel menumpuk finance → insight pekan.
+          komposisi ruang kerja lebar (≥52rem), ponsel menumpuk finance → insight pekan.
           mt-8 internal HomeFinanceCard dinetralkan agar tepi atas kedua
           tile sejajar. */}
       <RutinaBentoGrid>
-        <RutinaBentoItem className="sm:col-span-6 xl:col-span-5 [&>section]:mt-0">
+        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5 [&>section]:mt-0">
           {/* Ringkasan finansial harian (audit #11) */}
           <HomeFinanceCard />
         </RutinaBentoItem>
 
-        <RutinaBentoItem className="sm:col-span-6 xl:col-span-7">
+        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
           {/* Insight pekan: aktivitas & streak berdampingan */}
           <section aria-label="Insight pekan ini">
             <RutinaSectionHeader
@@ -1200,12 +1205,14 @@ export default function HomeScreen() {
                 ? 'bg-primary/20 text-success'
                 : 'bg-primary text-primary-foreground')
             }
-            animate={bonusClaimed ? { scale: 1 } : { scale: [1, 1.07, 1] }}
-            transition={
-              bonusClaimed
-                ? undefined
-                : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }
-            }
+            /* Umpan balik gerak yang tenang: satu pop entrance penuh
+               semangat saat kartu muncul (spring.playful), lalu DIAM —
+               hadiah tidak berdenyut tanpa henti memperebutkan perhatian.
+               Ledakan elastis saat klaim tetap ditangani anime.js di
+               giftRef (useAnimePop) sebagai umpan balik aksi. */
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={motionTokens.spring.playful}
           >
             {/* Pembungkus dalam: target anime.js terpisah dari motion —
                 keduanya menulis transform tanpa saling menimpa. */}

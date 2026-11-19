@@ -11,17 +11,15 @@ import { DAYS, fromISO, isoOf } from './store'
  *
  * Tujuh kolom Sen..Min (urutan DAYS di store). Setiap sel menampilkan
  * angka tanggal + hingga tiga titik indikator kecil:
- * - titik matcha  : ada kebiasaan selesai (makin pekat makin besar rasio
- *                    selesai/terjadwal),
- * - titik pasir    : ada transaksi (masuk/keluar) — amber halus #C7A17A,
- * - titik cokelat  : ada sesi latihan.
+ * - titik matcha      : ada kebiasaan selesai (makin pekat makin besar
+ *                       rasio selesai/terjadwal),
+ * - titik antique     : ada transaksi (masuk/keluar) — bronze domain
+ *                       keuangan (bg-module-finance, ikut mode gelap),
+ * - titik cokelat     : ada sesi latihan.
  *
  * Sel hari tanpa data dan tanggal masa depan tampil redup; hari ini
  * diberi cincin tipis; tanggal terpilih diisi matcha penuh.
  */
-
-/** Warna pasir untuk titik transaksi — amber halus di luar kelas Tailwind. */
-const SAND_DOT = '#C7A17A'
 
 /** Titik indikator satu hari — seluruhnya opsional. */
 export interface MonthDayInfo {
@@ -103,7 +101,7 @@ export function MonthCalendar({
       /* Rasio tinggi = matcha pekat; rasio rendah = pistachio muda. */
       dots.push(dotVisual(ratio >= 0.7 ? 'bg-matcha' : 'bg-pistachio'))
     }
-    if (d?.hasTx) dots.push(dotVisual('', { backgroundColor: SAND_DOT }))
+    if (d?.hasTx) dots.push(dotVisual('bg-module-finance'))
     if (d?.hasWorkout) dots.push(dotVisual('bg-cocoa'))
 
     cells.push(

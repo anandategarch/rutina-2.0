@@ -492,31 +492,71 @@
 
   /* ===== Layout Grammar — satu produk, lima ruang kerja =====
      data-module memilih domain warna; data-layout menentukan POLA
-     KOMPOSISI (kepadatan, jarak antar-bagian, radius hero). Kelima token
-     di bawah dikonsumsi layar agar tiap tab punya karakter ruang kerja
-     yang benar-benar berbeda — tanpa memecah satu sistem desain:
+     KOMPOSISI (kepadatan, jarak antar-bagian, radius hero). Tiap ruang
+     kerja punya empat token yang dikonsumsi layar & kisi bento:
+
+       --layout-gap          jarak antar-SEKSI utama (warisan v2.8)
+       --layout-hero-radius  radius sudut hero modul
+       --layout-density      karakter kepadatan ruang (spacious/airy/
+                             balanced/compact) — kontrak dokumentasi
+                             untuk aturan permukaan di masa depan
+       --layout-grid-gap     jarak antar-TILE bento (dipakai RutinaBentoGrid)
+
      daybook (planner lapang) · performance (studio rapat) · vault
      (ruang kas presisi) · garden (kebun organik) · observatory
      (laboratorium data). */
+  [data-layout] {
+    --layout-density: balanced;
+    /* Ponsel: micro-bento 2 kolom memakai jarak rapat 12px agar pas
+       di 320–430px; melebar otomatis begitu kontainer lega (lihat
+       @container di bawah). */
+    --layout-grid-gap: 0.75rem;
+    /* Jarak antar-seksi = ritme layout-gap (satu sumber konfigurasi;
+       boleh menyimpang per-ruang di masa depan tanpa menyentuh layar). */
+    --layout-section-gap: var(--layout-gap);
+  }
   [data-layout='daybook'] {
     --layout-gap: 1.75rem;
     --layout-hero-radius: 1.75rem;
+    --layout-density: spacious;
   }
   [data-layout='performance'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1.5rem;
+    --layout-density: compact;
   }
   [data-layout='vault'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1.75rem;
+    --layout-density: compact;
   }
   [data-layout='garden'] {
     --layout-gap: 1.5rem;
     --layout-hero-radius: 1.5rem;
+    --layout-density: airy;
   }
   [data-layout='observatory'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1.5rem;
+    --layout-density: compact;
+  }
+
+  /* Kepadatan grid relatif LEBAR KONTAINER, bukan viewport. Desktop
+     Rutina punya sidebar 240px + ContextRail 288px — pada jendela
+     1280px kolom kerja tinggal ±750px, jadi keputusan "sudah lega?"
+     harus diambil dari kontainer. Begitu ruang kerja ≥42rem (672px),
+     jarak tile melebar mengikuti karakter masing-masing ruang:
+     daybook/garden lapang (16px), ruang presisi lebih rapat (14px). */
+  @container (min-width: 42rem) {
+    [data-layout='daybook'],
+    [data-layout='garden'] {
+      --layout-grid-gap: 1rem;
+    }
+    [data-layout='performance'],
+    [data-layout='vault'],
+    [data-layout='observatory'] {
+      --layout-grid-gap: 0.875rem;
+    }
   }
 
   html {

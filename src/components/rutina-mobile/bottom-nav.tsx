@@ -134,7 +134,10 @@ export function BottomNav() {
                 />
               </m.span>
               <span
-                className="relative z-10 text-[11px] font-bold text-content-muted transition-colors duration-300"
+                /* Layar sangat sempit (≤360px): label terpanjang
+                   "Kebiasaan" tepat selebar sel 64px — kecilkan satu
+                   tingkat agar tidak menyentuh tepi (matriks uji 320px). */
+                className="relative z-10 text-[11px] font-bold text-content-muted transition-colors duration-300 max-[360px]:text-[10px]"
                 style={{ color: active ? accent.label : undefined }}
               >
                 {tab.label}

@@ -5,17 +5,27 @@ import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * RutinaBentoGrid — kisi 12 kolom standar komposisi desktop Rutina.
+ * RutinaBentoGrid — kisi bento yang sadar-kontainer (container-aware).
  *
  * Earth-Tone Editorial Bento: hierarki dibangun lewat PERBEDAAN UKURAN tile
  * (hero/feature/wide/medium/stat/compact/full), bukan lewat warna — kartu
  * biasa tetap parchment dengan hairline. Proporsi komposisi (bukan standar
  * teknis mutlak): ~70% permukaan netral, 20% matcha, 10% aksen modul/status.
  *
- * Perilaku responsif:
- * - ponsel  : satu kolom penuh (metrik setara boleh 2 kolong lewat span stat).
- * - sm–xl   : kisi 6 kolom — tile setengah/sepertiga lebar.
- * - xl+     : kisi 12 kolom — komposisi editorial penuh.
+ * Mengapa container query, bukan breakpoint viewport? Desktop Rutina
+ * menyandingkan sidebar 240px dan ContextRail 288px dengan kolom kerja —
+ * pada jendela 1280px konten hanya ±750px. Keputusan "kisi 12 kolom"
+ * harus diambil dari LEBAR RUANG KERJA NYATA (@container pada rutina-app),
+ * bukan dari lebar jendela. Ambang (selaras skala kontainer Tailwind):
+ *
+ * - < 42rem  : micro-bento 2 kolom — tile `stat` berpasangan, sisanya
+ *              memanjang penuh (metrik setara boleh berdampingan, daftar
+ *              dan editor tetap satu kolom lega).
+ * - ≥ 42rem  : kisi 6 kolom — tile setengah/sepertiga lebar.
+ * - ≥ 52rem  : kisi 12 kolom — komposisi editorial penuh.
+ *
+ * Jarak antar-tile memakai token --layout-grid-gap (data-layout): rapat
+ * di ponsel, lega mengikuti karakter tiap ruang kerja di kontainer lebar.
  */
 export function RutinaBentoGrid({
   className,
@@ -24,7 +34,7 @@ export function RutinaBentoGrid({
   return (
     <div
       className={cn(
-        'grid grid-cols-1 gap-4 sm:grid-cols-6 xl:grid-cols-12',
+        'grid grid-cols-2 gap-[var(--layout-grid-gap)] @[42rem]:grid-cols-6 @[52rem]:grid-cols-12',
         className,
       )}
       {...props}
@@ -38,18 +48,18 @@ export type RutinaBentoSpan =
   | 'feature' // 4 kolom — widget spesial / insight
   | 'wide' // 8 kolom — grafik / daftar
   | 'medium' // 6 kolom — dua kartu penting berdampingan
-  | 'stat' // 3 kolom — metrik kecil (2 kolom di sm)
+  | 'stat' // 3 kolom — metrik kecil (SEPARUH lebar di ponsel!)
   | 'compact' // 4 kolom — status / shortcut / ringkasan
   | 'full' // 12 kolom — tabel / agenda / konten utama
 
 const SPAN_CLASS: Record<RutinaBentoSpan, string> = {
-  hero: 'sm:col-span-6 xl:col-span-8',
-  feature: 'sm:col-span-6 xl:col-span-4',
-  wide: 'sm:col-span-6 xl:col-span-8',
-  medium: 'sm:col-span-3 xl:col-span-6',
-  stat: 'sm:col-span-3',
-  compact: 'sm:col-span-3 xl:col-span-4',
-  full: 'sm:col-span-6 xl:col-span-12',
+  hero: 'col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-8',
+  feature: 'col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4',
+  wide: 'col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-8',
+  medium: 'col-span-2 @[42rem]:col-span-3 @[52rem]:col-span-6',
+  stat: 'col-span-1 @[42rem]:col-span-3 @[52rem]:col-span-3',
+  compact: 'col-span-2 @[42rem]:col-span-3 @[52rem]:col-span-4',
+  full: 'col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-12',
 }
 
 export interface RutinaBentoItemProps

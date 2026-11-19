@@ -728,12 +728,12 @@ export default function KebiasaanScreen() {
                 />
               </div>
             ) : (
-              /* Split-screen desktop (xl+): daftar terkelompok di kiri,
-                 panel detail menempel di kanan. Di bawah xl susunan tetap
-                 satu kolom — panel tersembunyi total. */
-              <div className="xl:grid xl:grid-cols-12 xl:gap-[var(--layout-gap)]">
+              /* Split-screen desktop (kontainer ≥52rem): daftar terkelompok
+                 di kiri, panel detail menempel di kanan. Di bawah itu
+                 susunan tetap satu kolom — panel tersembunyi total. */
+              <div className="@[52rem]:grid @[52rem]:grid-cols-12 @[52rem]:gap-[var(--layout-gap)]">
                 {/* Kolom kiri — daftar terkelompok per kategori (tak berubah) */}
-                <div className="min-w-0 xl:col-span-7">
+                <div className="min-w-0 @[52rem]:col-span-7">
                   <m.div
                     variants={journalList}
                     initial="hidden"
@@ -797,13 +797,14 @@ export default function KebiasaanScreen() {
                   </m.div>
                 </div>
 
-                {/* Kolom kanan — Panel Detail Kebiasaan (hanya desktop xl+).
-                   self-start + max-h agar penempatan menempel tidak meluber:
-                   panel menggulir sendiri bila kontennya lebih tinggi. */}
+                {/* Kolom kanan — Panel Detail Kebiasaan (hanya ruang kerja
+                   lebar ≥52rem). self-start + max-h agar penempatan menempel
+                   tidak meluber: panel menggulir sendiri bila kontennya
+                   lebih tinggi. */}
                 {selectedHabit && (
                   <aside
                     aria-label="Detail kebiasaan terpilih"
-                    className="hidden self-start xl:sticky xl:top-0 xl:col-span-5 xl:mt-4 xl:block xl:max-h-[calc(100dvh-12rem)] xl:overflow-y-auto no-scrollbar"
+                    className="hidden self-start @[52rem]:sticky @[52rem]:top-0 @[52rem]:col-span-5 @[52rem]:mt-4 @[52rem]:block @[52rem]:max-h-[calc(100dvh-12rem)] @[52rem]:overflow-y-auto no-scrollbar"
                   >
                     <HabitDetailPanel
                       key={selectedHabit.id}

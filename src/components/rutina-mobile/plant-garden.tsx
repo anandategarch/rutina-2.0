@@ -58,10 +58,11 @@ export function PlantGarden({
   )
 
   /* Strip (bawaan) dan mode bedeng berbagi kelas dasar yang sama —
-     bedeng hanya mengganti perilaku di xl+: snap dimatikan, sumbu-x
-     kembali terlihat, kartu melipat di dalam permukaan garden-bed. */
+     bedeng hanya mengganti perilaku di ruang kerja lebar (≥52rem,
+     container query): snap dimatikan, sumbu-x kembali terlihat, kartu
+     melipat di dalam permukaan garden-bed. */
   const listClass = beds
-    ? 'mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1 xl:garden-bed xl:snap-none xl:overflow-x-visible xl:flex-wrap xl:p-4'
+    ? 'mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1 @[52rem]:garden-bed @[52rem]:snap-none @[52rem]:overflow-x-visible @[52rem]:flex-wrap @[52rem]:p-4'
     : 'mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1'
 
   return (
@@ -133,7 +134,7 @@ function PlantCard({
   stageLabel: string
   counter: string
   pct: number
-  /** Mode bedeng: kartu sedikit lebih lebar di desktop (xl+). */
+  /** Mode bedeng: kartu sedikit lebih lebar di ruang kerja lebar. */
   bed?: boolean
 }) {
   /* Milestone: naik tahap memicu koreografi pertumbuhan anime.js. */
@@ -144,7 +145,7 @@ function PlantCard({
       role="listitem"
       className={
         'w-[156px] shrink-0 snap-start rounded-[18px] border border-border bg-surface-primary p-3 shadow-soft transition-transform duration-300 hover:-translate-y-0.5' +
-        (bed ? ' xl:w-[168px]' : '')
+        (bed ? ' @[52rem]:w-[168px]' : '')
       }
     >
       <div

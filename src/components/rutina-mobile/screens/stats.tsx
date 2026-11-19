@@ -36,9 +36,14 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 import { Counter } from '../counter'
-import { DayDetailSheet, notesInWindow } from '../day-detail-sheet'
+import {
+  DayDetailPanel,
+  DayDetailSheet,
+  notesInWindow,
+} from '../day-detail-sheet'
 import Heatmap from '../heatmap'
 import { MonthCalendar, type MonthDayInfo } from '../month-calendar'
+import { useMinWidth } from '../use-min-width'
 import { CAT_META } from '../finance/cats'
 import {
   formatIDR,
@@ -100,7 +105,9 @@ import {
 /** Keliling ring progres XP (r = 78 pada viewBox 200). */
 const R = 78
 const CIRC = 2 * Math.PI * R
-const EASE = motionTokens.easing.standard
+/* Kurva gerak CSS batang grafik — mengikuti kurva preset.data agar
+   transisi CSS & Motion terasa satu denyut (governance audit v2.9). */
+const BAR_EASE = motionTokens.easing.standard
 
 /** Ikon suasana hati — padanan MOODS di store. */
 const MOOD_ICONS: Record<string, typeof Laugh> = {
@@ -176,6 +183,13 @@ export default function StatsScreen() {
      mengikuti. Jangkau: Jan (tahun ini − 2) s.d. bulan berjalan. */
   const [viewAnchor, setViewAnchor] = useState(today)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+
+  /* Inspector desktop — aktif hanya bila RUANG KERJA (bukan viewport)
+     benar-benar lega: padanan JS untuk container query @[52rem] = 832px
+     yang dipakai bento. Di ruang sempit detail tanggal tetap memakai
+     sheet (dikawatirkan di bawah). */
+  const rootRef = useRef<HTMLDivElement>(null)
+  const inspectorWide = useMinWidth(rootRef, 832)
   const viewYm = viewAnchor.slice(0, 7)
   const todayYm = today.slice(0, 7)
   const minYm = `${fromISO(today).getFullYear() - 2}-01`
@@ -570,7 +584,7 @@ export default function StatsScreen() {
     animate(bars, {
       scaleY: [0, 1],
       delay: stagger(55),
-      duration: 850,
+      duration: motionTokens.preset.chartRevealMs.duration,
       ease: 'outBack(1.3)',
     })
   }, [chartInView, reducedMotion])
@@ -578,6 +592,7 @@ export default function StatsScreen() {
   return (
     <TooltipProvider delayDuration={120}>
       <div
+        ref={rootRef}
         data-module="stats"
         data-layout="observatory"
         className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
@@ -615,7 +630,7 @@ export default function StatsScreen() {
           <m.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.55, ease: EASE }}
+            transition={motionTokens.preset.data}
             whileTap={{ scale: 0.96 }}
             className="relative cursor-pointer select-none"
           >
@@ -682,14 +697,14 @@ export default function StatsScreen() {
 
         {/* ===== KPI strip — empat metrik inti, lensa 30 hari ===== */}
         <section aria-label="Ringkasan metrik utama">
-          <RutinaBentoGrid className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-4">
+          <RutinaBentoGrid className="grid-cols-2 @[42rem]:grid-cols-4">
             {kpiTiles.map((tile, i) => (
               <RutinaBentoItem key={tile.key}>
                 <m.div
                   initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.45, delay: i * 0.05, ease: EASE }}
+                  transition={{ ...motionTokens.preset.data, delay: i * 0.05 }}
                   className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -720,13 +735,13 @@ export default function StatsScreen() {
             Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
             periode, total, dan ringkasan; kartu grafik murni batang. */}
         <RutinaBentoGrid>
-          <RutinaBentoItem className="sm:col-span-6 xl:col-span-4">
+          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4">
             {/* Panel fokus periode — sakelar periode + pembacaan ringkas */}
             <m.section
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={motionTokens.preset.data}
               className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
               aria-label="Fokus periode grafik misi selesai"
             >
@@ -771,14 +786,14 @@ export default function StatsScreen() {
             </m.section>
           </RutinaBentoItem>
 
-          <RutinaBentoItem className="sm:col-span-6 xl:col-span-8">
+          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-8">
             {/* Instrumen grafik — batang misi selesai */}
             <m.section
               ref={chartRef}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+              transition={{ ...motionTokens.preset.data, delay: 0.06 }}
               className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
               aria-label="Grafik misi selesai"
             >
@@ -821,7 +836,7 @@ export default function StatsScreen() {
                           }px`,
                           transition: reducedMotion
                             ? undefined
-                            : `height 480ms cubic-bezier(${EASE.join(',')})`,
+                            : `height ${motionTokens.preset.data.duration * 1000}ms cubic-bezier(${BAR_EASE.join(',')})`,
                         }}
                       />
                       <span
@@ -851,7 +866,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, ease: EASE }}
+                  transition={motionTokens.preset.data}
                   className="rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
                 >
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -895,7 +910,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+                  transition={{ ...motionTokens.preset.data, delay: 0.06 }}
                   className="flex flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
                 >
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -921,11 +936,7 @@ export default function StatsScreen() {
                       aria-hidden="true"
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20"
                       animate={{ scale: [1, 1.08, 1] }}
-                      transition={{
-                        duration: 2.2,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      }}
+                      transition={motionTokens.preset.ambientPulse}
                     >
                       <Flame className="h-5 w-5 text-pistachio" />
                     </m.span>
@@ -940,8 +951,8 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, delay: 0.1, ease: EASE }}
-                  className="col-span-2 flex items-center gap-5 rounded-[16px] border border-border bg-cocoa p-5 shadow-soft sm:col-span-1"
+                  transition={{ ...motionTokens.preset.data, delay: 0.1 }}
+                  className="col-span-2 flex items-center gap-5 rounded-[16px] border border-border bg-cocoa p-5 shadow-soft @[42rem]:col-span-1"
                 >
                   <div className="relative h-24 w-24 shrink-0">
                     <svg
@@ -971,7 +982,7 @@ export default function StatsScreen() {
                           strokeDashoffset: 2 * Math.PI * 42 * (1 - pct / 100),
                         }}
                         viewport={{ once: true, margin: '-24px' }}
-                        transition={{ duration: 0.9, ease: EASE }}
+                        transition={motionTokens.preset.dataSlow}
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -1009,7 +1020,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, ease: EASE }}
+                  transition={motionTokens.preset.data}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -1072,7 +1083,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+                  transition={{ ...motionTokens.preset.data, delay: 0.06 }}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
                   <div className="flex items-end justify-between gap-3">
@@ -1177,13 +1188,13 @@ export default function StatsScreen() {
         {/* Kalender Aktivitas + Laporan Bulanan — pasangan bento 7 : 5
             (col-span mentah — preset bento tak memiliki 7/5) */}
         <RutinaBentoGrid>
-          <RutinaBentoItem className="sm:col-span-6 xl:col-span-7">
+          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
             {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
             <m.section
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={motionTokens.preset.data}
               aria-label="Kalender aktivitas bulanan"
             >
               <RutinaSectionHeader
@@ -1210,8 +1221,7 @@ export default function StatsScreen() {
                   <span className="flex items-center gap-1.5">
                     <span
                       aria-hidden="true"
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#C7A17A' }}
+                      className="h-2 w-2 rounded-full bg-module-finance"
                     />
                     Ada transaksi
                   </span>
@@ -1219,19 +1229,34 @@ export default function StatsScreen() {
                     <span aria-hidden="true" className="h-2 w-2 rounded-full bg-cocoa" />
                     Ada latihan
                   </span>
-                  <span className="ml-auto hidden sm:inline">Ketuk tanggal untuk detail.</span>
+                  <span className="ml-auto hidden sm:inline">
+                    {inspectorWide
+                      ? 'Ketuk tanggal — detail tampil di panel di samping.'
+                      : 'Ketuk tanggal untuk detail.'}
+                  </span>
                 </div>
               </RutinaCard>
             </m.section>
           </RutinaBentoItem>
 
-          <RutinaBentoItem className="sm:col-span-6 xl:col-span-5">
+          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5">
+            {/* Inspector tanggal desktop — PERMANEN di ruang kerja lebar:
+                menampilkan tanggal terpilih dari kalender (default hari ini)
+                sehingga observatorium data punya panel bacaan yang selalu
+                hadir, bukan overlay. Ponsel: lewati (sheet di bawah). */}
+            {inspectorWide && (
+              <DayDetailPanel
+                date={selectedDay ?? today}
+                className="mb-[var(--layout-gap)]"
+              />
+            )}
+
             {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8) ===== */}
             <m.section
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={motionTokens.preset.data}
               aria-label="Laporan bulanan"
             >
               <RutinaSectionHeader
@@ -1411,7 +1436,7 @@ export default function StatsScreen() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={motionTokens.preset.data}
               aria-label="Pembanding pekan ini vs pekan lalu"
             >
               <RutinaSectionHeader
@@ -1477,7 +1502,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, ease: EASE }}
+                  transition={motionTokens.preset.data}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -1528,7 +1553,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+                  transition={{ ...motionTokens.preset.data, delay: 0.06 }}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -1562,7 +1587,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ duration: 0.5, delay: 0.12, ease: EASE }}
+                  transition={{ ...motionTokens.preset.data, delay: 0.12 }}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
@@ -1640,7 +1665,7 @@ export default function StatsScreen() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={motionTokens.preset.data}
               aria-label="Piala dan lencana"
             >
               <SectionTitle
@@ -1711,18 +1736,14 @@ export default function StatsScreen() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ duration: 0.5, ease: EASE }}
+              transition={motionTokens.preset.data}
               aria-label="Streak berjalan"
             >
               <div className="flex items-center gap-4 rounded-[20px] border border-border bg-cocoa p-4 shadow-soft">
                 <m.span
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/20"
                   animate={{ scale: [1, 1.08, 1] }}
-                  transition={{
-                    duration: 2.2,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
+                  transition={motionTokens.preset.ambientPulse}
                 >
                   <Flame className="h-6 w-6 text-pistachio" />
                 </m.span>
@@ -1755,8 +1776,12 @@ export default function StatsScreen() {
 
         </div>
 
-        {/* Detail harian — dibuka dengan mengetuk tanggal kalender. */}
-        <DayDetailSheet date={selectedDay} onClose={() => setSelectedDay(null)} />
+        {/* Detail harian — di ponsel/tablet dibuka dengan mengetuk tanggal
+            kalender (sheet); di ruang kerja lebar digantikan panel permanen
+            di samping kalender, jadi sheet tidak dirender sama sekali. */}
+        {!inspectorWide && (
+          <DayDetailSheet date={selectedDay} onClose={() => setSelectedDay(null)} />
+        )}
       </div>
     </TooltipProvider>
   )

@@ -979,10 +979,14 @@ export default function BugarScreen() {
           {/* Strip performa — tonase beban per hari pekan berjalan */}
           <TonaseStrip />
 
-          {/* Tumpukan seksi utama — ritme --layout-gap (performance). */}
-          <div className="mt-[var(--layout-gap)] flex flex-col gap-[var(--layout-gap)]">
-      {/* ===== Program latihan ===== */}
-      <section aria-label="Program latihan">
+          {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
+              (ritme --layout-gap performance); begitu kontainer ≥52rem,
+              seksi berpasangan 7:5 lalu 5:7 sehingga studio performa
+              terasa seperti MEJA KERJA, bukan gulir panjang: Program
+              berdampingan Riwayat, Papan Rekor berdampingan Pustaka. */}
+          <div className="mt-[var(--layout-gap)] grid grid-cols-1 gap-[var(--layout-gap)] @[52rem]:grid-cols-12">
+      {/* ===== Program latihan — pasangan kiri (7) ===== */}
+      <section aria-label="Program latihan" className="@[52rem]:col-span-7">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Program Latihan
@@ -999,8 +1003,8 @@ export default function BugarScreen() {
         </div>
       </section>
 
-      {/* ===== Riwayat sesi ===== */}
-      <section aria-label="Riwayat latihan">
+      {/* ===== Riwayat sesi — pasangan kanan (5) ===== */}
+      <section aria-label="Riwayat latihan" className="@[52rem]:col-span-5">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
@@ -1044,8 +1048,8 @@ export default function BugarScreen() {
         </div>
       </section>
 
-      {/* ===== Papan rekor e1RM ===== */}
-      <section aria-label="Papan rekor">
+      {/* ===== Papan rekor e1RM — pasangan kiri (5) ===== */}
+      <section aria-label="Papan rekor" className="@[52rem]:col-span-5">
         <div className="flex items-center gap-2 px-0.5">
           <Trophy className="h-4 w-4 text-warning" />
           <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
@@ -1114,8 +1118,8 @@ export default function BugarScreen() {
         )}
       </section>
 
-      {/* ===== Pustaka gerakan ===== */}
-      <section aria-label="Pustaka gerakan">
+      {/* ===== Pustaka gerakan — katalog pasangan kanan (7) ===== */}
+      <section aria-label="Pustaka gerakan" className="@[52rem]:col-span-7">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Pustaka Gerakan
