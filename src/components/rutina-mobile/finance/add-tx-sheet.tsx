@@ -23,7 +23,7 @@ import {
   type TxType,
 } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
-import { CAT_META, CATS_BY_TYPE } from './cats'
+import { CAT_META, LEGACY_CATS_BY_TYPE, PRIMARY_CATS_BY_TYPE } from './cats'
 import { formatIDR } from './utils'
 
 /**
@@ -98,7 +98,7 @@ export function AddTxSheet() {
   const switchType = (t: TxType) => {
     if (t === type) return
     setType(t)
-    setCat(CATS_BY_TYPE[t][0])
+    setCat(PRIMARY_CATS_BY_TYPE[t][0])
   }
 
   const submit = () => {
@@ -234,7 +234,9 @@ export function AddTxSheet() {
               </p>
             </div>
 
-            {/* Pemilih kategori — himpunan berganti mengikuti tipe */}
+            {/* Pemilih kategori — himpunan berganti mengikuti tipe.
+                Dua tingkat: kisi bawaan 2.0, lalu chip “Dari Rutina 1.0”
+                (kategori asli hasil impor Turso — v2.15). */}
             <div className="mt-4">
               <span className="text-note font-semibold text-content-secondary">
                 Kategori
@@ -247,37 +249,81 @@ export function AddTxSheet() {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  className="mt-2 grid grid-cols-4 gap-2"
+                  className="mt-2 space-y-3"
                 >
-                  {CATS_BY_TYPE[type].map((c) => {
-                    const on = cat === c
-                    const Icon = CAT_META[c].icon
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setCat(c)}
-                        aria-pressed={on}
-                        className={`flex h-[64px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all duration-200 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          on
-                            ? 'border-primary bg-secondary shadow-leaf'
-                            : 'border-border bg-surface-sunken hover:border-primary/40'
-                        }`}
-                      >
-                        <Icon
-                          className={`h-5 w-5 ${on ? 'text-success' : 'text-content-muted'}`}
-                          strokeWidth={on ? 2.4 : 2}
-                        />
-                        <span
-                          className={`px-1 text-center text-eyebrow font-semibold leading-tight ${
-                            on ? 'text-success' : 'text-content-muted'
+                  <div className="grid grid-cols-4 gap-2">
+                    {PRIMARY_CATS_BY_TYPE[type].map((c) => {
+                      const on = cat === c
+                      const Icon = CAT_META[c].icon
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setCat(c)}
+                          aria-pressed={on}
+                          className={`flex h-[64px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all duration-200 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            on
+                              ? 'border-primary bg-secondary shadow-leaf'
+                              : 'border-border bg-surface-sunken hover:border-primary/40'
                           }`}
                         >
-                          {CAT_META[c].label}
+                          <Icon
+                            className={`h-5 w-5 ${on ? 'text-success' : 'text-content-muted'}`}
+                            strokeWidth={on ? 2.4 : 2}
+                          />
+                          <span
+                            className={`px-1 text-center text-eyebrow font-semibold leading-tight ${
+                              on ? 'text-success' : 'text-content-muted'
+                            }`}
+                          >
+                            {CAT_META[c].label}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {LEGACY_CATS_BY_TYPE[type].length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
+                          Dari Rutina 1.0
                         </span>
-                      </button>
-                    )
-                  })}
+                        <span
+                          aria-hidden="true"
+                          className="h-px flex-1 bg-border"
+                        />
+                      </div>
+                      <div
+                        role="group"
+                        aria-label="Kategori hasil impor Rutina 1.0 dari Turso"
+                        className="mt-2 flex flex-wrap gap-2"
+                      >
+                        {LEGACY_CATS_BY_TYPE[type].map((c) => {
+                          const on = cat === c
+                          const Icon = CAT_META[c].icon
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setCat(c)}
+                              aria-pressed={on}
+                              className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border pl-2.5 pr-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                                on
+                                  ? 'border-primary bg-secondary text-success shadow-leaf'
+                                  : 'border-border bg-surface-sunken text-content-muted hover:border-primary/40 hover:text-content-secondary'
+                              }`}
+                            >
+                              <Icon
+                                className="h-3.5 w-3.5 shrink-0"
+                                strokeWidth={on ? 2.4 : 2}
+                              />
+                              {CAT_META[c].label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </m.div>
               </AnimatePresence>
             </div>

@@ -670,6 +670,13 @@ const SEED_NOTES: Note[] = [
 /** Transfer antar-dompet: uang berpindah, BUKAN pemasukan/pengeluaran —
  *  dikecualikan dari seluruh statistik arus kas & anggaran. */
 export type TxType = 'masuk' | 'keluar' | 'transfer'
+
+/** Kategori transaksi. 11 pertama adalah set bawaan 2.0; blok kedua
+ *  (v2.15) adalah kategori hasil IMPOR dari Rutina 1.0 — daftar asli
+ *  dibaca dari database Turso lama (lihat scripts/import-rutina1.ts,
+ *  CAT_MAP). Nama lama dipertahankan sebagai id (slug) sehingga
+ *  transaksi lama tidak lagi dilipat menjadi kategori umum: "Kopi"
+ *  tetap "kopi", bukan "makan". */
 export type FinCat =
   | 'makan'
   | 'transport'
@@ -682,6 +689,31 @@ export type FinCat =
   | 'bonus'
   | 'proyek'
   | 'transfer'
+  /* ===== Impor Rutina 1.0 (Turso) — v2.15 ===== */
+  | 'kopi'
+  | 'makanan-berat'
+  | 'jajan'
+  | 'cathering'
+  | 'bensin'
+  | 'parkir'
+  | 'pajak-motor'
+  | 'servis-motor'
+  | 'loundry'
+  | 'dating'
+  | 'badminton'
+  | 'tagihan-utilitas'
+  | 'tagihan-air'
+  | 'tagihan-listrik'
+  | 'pulsa-data'
+  | 'skin-care'
+  | 'potong-rambut'
+  | 'hutang'
+  | 'iuran-kas'
+  | 'tak-terduga'
+  | 'pendidikan'
+  | 'lifestyle'
+  | 'investasi'
+  | 'penghasilan'
 
 export type FinPeriod = 'minggu' | 'bulan' | 'tahun'
 

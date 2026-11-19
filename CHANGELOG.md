@@ -3,6 +3,71 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.15] — Logo “r Tunas” & Impor Kategori Keuangan dari Turso
+
+Fokus: identitas visual baru yang sepenuhnya berbeda dari versi lama,
+dan kategori keuangan asli Rutina 1.0 (Turso) diimpor apa adanya —
+tidak lagi dilipat menjadi kategori umum saat impor data.
+
+### Ditambahkan
+- **Logo baru “r tunas”** (menggantikan total logo lama) — huruf r
+  lowercase digambar SATU goresan menerus (batang + bahu berakhir jam-12
+  dengan tutup bundar), dengan satu daun yang sengaja MELAYANG ±3px di
+  ujung bahu: rutinitas (goresan) + pertumbuhan (tunas). Seluruh aset
+  diregenerasi dari satu sumber geometri (`scripts/gen-icons.ts` +
+  sharp): `public/logo.svg` (marka matcha, latar transparan),
+  `public/icons/icon.svg` (kotak sudut-bulat matcha + marka parchment),
+  `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` (180), dan
+  `maskable-512.png` (marka 46%, aman di zona 80%). Palet flat earth
+  tone — tanpa gradien emerald ikon lama, tanpa kotak-huruf-Z logo lama;
+  tema PWA tetap matcha `#749b58`.
+- **Splash pembuka memakai marka baru** — goresan r ditarik garis demi
+  garis lalu daun melayang digaris tepi (stroke 9, grid 140); geometri
+  identik dengan ikon — satu sumber kebenaran.
+- **24 kategori hasil impor Rutina 1.0 (Turso)** — kategori asli yang
+  benar-benar dipakai pengguna di aplikasi lama, dipertahankan apa adanya
+  (termasuk ejaan khas “Cathering” & “Loundry”). Sisi keluar (22): Kopi,
+  Makanan Berat, Jajan, Cathering, Bensin, Parkir, Pajak Motor, Servis
+  Motor, Loundry, Dating, Badminton, Tagihan & Utilitas, Tagihan Air,
+  Tagihan Listrik, Pulsa & Paket Data, Skin Care, Potong Rambut, Hutang,
+  Iuran Kas, Tak Terduga, Pendidikan, Lifestyle. Sisi masuk (2):
+  Investasi, Penghasilan.
+- **Pemilih kategori dua tingkat di lembar transaksi** — kisi ikon
+  bawaan 2.0 seperti sebelumnya, lalu seksi berlabel “Dari Rutina 1.0”
+  (pemisah garis) berisi chip ringkas ikon+label; himpunan tetap berganti
+  arah mengikuti Pengeluaran/Pemasukan.
+- **9 subkategori impor masuk daftar anggaran** (`BUDGETABLE_CATS`):
+  Kopi, Makanan Berat, Jajan, Bensin, Parkir, Loundry, Tagihan Air,
+  Tagihan Listrik, Pulsa & Paket Data — tampil sebagai chip “tambah
+  anggaran” di tab Anggaran dan dihormati filter temuan over-anggaran.
+
+### Diubah
+- **`scripts/import-rutina1.ts` — CAT_MAP kini identitas**: kategori lama
+  dipetakan ke slug-nya sendiri (“Kopi”→kopi, “Bensin”→bensin), bukan
+  dilipat ke kategori umum; `RECUR_CAT_MAP` ikut (Lifestyle,
+  Penghasilan). Menjalankan ulang impor setelah v2.15 memperbarui
+  kategori baris lama (INSERT OR REPLACE, id sama) ke nama aslinya.
+- **`finance/cats.ts`** — registry dipisah `PRIMARY_CATS_BY_TYPE` dan
+  `LEGACY_CATS_BY_TYPE`; `CATS_BY_TYPE` = gabungan (bawaan duluan, jadi
+  default lembar tetap “Makan & Minum” / “Gaji”).
+- Skrip baru `bun scripts/gen-icons.ts` — regenerasi aset logo/ikon
+  sewaktu-waktu (idempoten).
+
+### Pengujian
+- `tests/cat-registry.test.ts` (11 tes baru; total suite 109 / 6 file):
+  meta lengkap + label unik, daftar per arah bebas duplikat, gabungan
+  bawaan+impor, elemen pertama tetap bawaan, impor tidak tumpang tindih,
+  BUDGETABLE ⊆ keluar, subset impor di anggaran, 24 slug CAT_MAP
+  terdaftar.
+- Verifikasi visual ikon: tiga putaran kritik VLM (lebar goresan seragam,
+  sambungan, pemusatan optis) hingga vonis SHIP — konsep final “daun
+  melayang”: terminal goresan bersih + celah disengaja, tanpa benjolan
+  sambungan.
+- Verifikasi browser (agent-browser, 390px): splash marka baru, lembar
+  transaksi dua tingkat (22 chip keluar + 2 masuk), simpan transaksi
+  kategori Kopi Rp18.000 → muncul di kartu arus kas Beranda, anggaran
+  Kopi ditambahkan dari chip — tanpa error konsol.
+
 ## [2.14] — Sorotan Harian, Rekap Pekan & Navigasi Plus Tengah
 
 Fokus: Beranda selalu menunjukkan satu hal paling relevan untuk hari itu,

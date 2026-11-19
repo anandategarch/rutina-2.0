@@ -5,6 +5,20 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+## v2.15 — Logo “r Tunas” & Impor Kategori Keuangan dari Turso
+
+Identitas visual baru yang sepenuhnya berbeda dari versi lama, dan kategori
+keuangan asli Rutina 1.0 diimpor apa adanya — tidak lagi dilipat menjadi
+kategori umum.
+
+| Fitur | Rincian |
+|---|---|
+| **Logo baru “r tunas”** | Huruf **r** lowercase digambar satu goresan menerus (batang + bahu, tutup bundar jam-12) dengan satu **daun yang sengaja melayang** ±3px di ujung bahu — rutinitas (goresan) + pertumbuhan (tunas). Semua aset lahir dari satu sumber geometri `scripts/gen-icons.ts` (sharp): `logo.svg` (marka matcha transparan), `icon.svg` + PNG 512/192/180 (kotak sudut-bulat matcha, marka parchment), `maskable-512.png` (marka 46%, zona aman 80%). Palet flat earth tone — berbeda total dari logo lama (kotak gelap huruf-Z) dan ikon lama (gradien emerald + kecambah). Splash pembuka ikut memakai marka baru (digambar garis demi garis). |
+| **Impor kategori keuangan dari Turso** | 24 kategori asli Rutina 1.0 kini jadi warga kelas satu di 2.0 — label & ejaan asli dipertahankan (“Cathering”, “Loundry”). Keluar (22): Kopi, Makanan Berat, Jajan, Cathering, Bensin, Parkir, Pajak Motor, Servis Motor, Loundry, Dating, Badminton, Tagihan & Utilitas, Tagihan Air, Tagihan Listrik, Pulsa & Paket Data, Skin Care, Potong Rambut, Hutang, Iuran Kas, Tak Terduga, Pendidikan, Lifestyle. Masuk (2): Investasi, Penghasilan. |
+| **Pemilih dua tingkat** | Lembar transaksi: kisi ikon bawaan 2.0 seperti biasa, lalu seksi **“Dari Rutina 1.0”** dengan chip ringkas ikon+label — himpunan tetap berganti mengikuti Pengeluaran/Pemasukan. `scripts/import-rutina1.ts` kini memetakan kategori lama ke slug-nya sendiri (“Kopi”→kopi, bukan→“makan”), sehingga menjalankan ulang impor memulihkan nama asli transaksi lama. |
+| **Anggaran impor 1.0** | `BUDGETABLE_CATS` +9 subkategori asli: Kopi, Makanan Berat, Jajan, Bensin, Parkir, Loundry, Tagihan Air, Tagihan Listrik, Pulsa & Paket Data — siap diatur dari chip “tambah anggaran” tab Anggaran. |
+| **109 pengujian otomatis** | Suite baru `tests/cat-registry.test.ts` (11 tes): meta lengkap + label unik, daftar bebas duplikat, gabungan bawaan+impor, default tetap bawaan, BUDGETABLE ⊆ keluar, 24 slug impor terdaftar. Ikon lolos tiga putaran kritik visual VLM hingga vonis SHIP. |
+
 ## v2.14 — Sorotan Harian, Rekap Pekan & Navigasi Plus Tengah
 
 Beranda kini selalu menunjukkan SATU hal paling relevan untuk hari itu, rekap

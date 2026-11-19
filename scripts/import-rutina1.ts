@@ -16,8 +16,14 @@
  *                        habit_metadata.payload.schedule)
  *   habit_checkins  → rutina_habit_logs    (id deterministik habit:date)
  *   transactions    → rutina_transactions  (expense→keluar, income→masuk;
- *                        kategori lama dipetakan ke FinCat 2.0 karena
- *                        CAT_META[cat] dipakai tanpa fallback di UI)
+ *                        v2.15: kategori lama dipetakan ke id slug-nya
+ *                        SENDIRI — "Kopi"→kopi, "Bensin"→bensin — bukan
+ *                        lagi dilipat ke kategori umum, karena union FinCat
+ *                        kini mencakup seluruh kategori 1.0 (lihat
+ *                        finance/cats.ts blok "Impor Rutina 1.0").
+ *                        Menjalankan ulang skrip ini setelah v2.15 akan
+ *                        MEMPERBARUI kategori baris lama (INSERT OR REPLACE
+ *                        dengan id yang sama) ke nama aslinya.
  *   workspace_modules:
  *     finance.wallets      → rutina_wallets  (hanya dompet yang dirujuk tx)
  *     finance.wallet_id    → UPDATE walletId pada rutina_transactions
@@ -52,45 +58,48 @@ if (!token) {
 }
 
 /* ===== Pemetaan kategori Rutina 1.0 → FinCat Rutina 2.0 =====
-   Wajib: UI 2.0 membaca CAT_META[cat].icon tanpa fallback, sehingga
-   kategori tak dikenal akan merusak render. Nama lama diseragamkan. */
+   v2.15 — IMPOR KATEGORI DARI TURSO: setiap kategori lama dipetakan ke
+   id slug miliknya sendiri sehingga nama asli pengguna dipertahankan
+   ("Kopi" tetap kopi, bukan dilipat menjadi "makan"). Nama yang sama
+   persis dengan kategori bawaan 2.0 (Belanja, Hiburan, Kesehatan,
+   Gaji, Lainnya) dipetakan ke id bawaan tersebut. */
 const CAT_MAP: Record<string, string> = {
-  /* makan & minum */
-  Kopi: 'makan',
-  'Makanan Berat': 'makan',
-  Jajan: 'makan',
-  Cathering: 'makan',
-  /* transportasi */
-  Bensin: 'transport',
-  Parkir: 'transport',
-  'Pajak Motor': 'transport',
-  'Servis Motor': 'transport',
-  /* belanja */
+  /* makan & minum → kategori impor 1.0 */
+  Kopi: 'kopi',
+  'Makanan Berat': 'makanan-berat',
+  Jajan: 'jajan',
+  Cathering: 'cathering',
+  /* transportasi → kategori impor 1.0 */
+  Bensin: 'bensin',
+  Parkir: 'parkir',
+  'Pajak Motor': 'pajak-motor',
+  'Servis Motor': 'servis-motor',
+  /* belanja — “Belanja” sama dgn bawaan 2.0 */
   Belanja: 'belanja',
-  Loundry: 'belanja',
-  /* hiburan */
+  Loundry: 'loundry',
+  /* hiburan — “Hiburan” sama dgn bawaan 2.0 */
   Hiburan: 'hiburan',
-  Dating: 'hiburan',
-  Badminton: 'hiburan',
-  /* tagihan */
-  'Tagihan & Utilitas': 'tagihan',
-  'Tagihan Air': 'tagihan',
-  'Tagihan Listrik': 'tagihan',
-  'Pulsa & Paket Data': 'tagihan',
-  /* kesehatan */
+  Dating: 'dating',
+  Badminton: 'badminton',
+  /* tagihan → pecahan tagihan impor 1.0 */
+  'Tagihan & Utilitas': 'tagihan-utilitas',
+  'Tagihan Air': 'tagihan-air',
+  'Tagihan Listrik': 'tagihan-listrik',
+  'Pulsa & Paket Data': 'pulsa-data',
+  /* kesehatan — “Kesehatan” sama dgn bawaan 2.0 */
   Kesehatan: 'kesehatan',
-  'Skin Care': 'kesehatan',
-  'Potong Rambut': 'kesehatan',
-  /* pemasukan */
+  'Skin Care': 'skin-care',
+  'Potong Rambut': 'potong-rambut',
+  /* pemasukan — “Gaji” & “Lainnya” sama dgn bawaan 2.0 */
   Gaji: 'gaji',
-  Investasi: 'lainnya',
+  Investasi: 'investasi',
   'Lainnya (Pemasukan)': 'lainnya',
-  /* lain-lain */
+  /* lain-lain → kategori impor 1.0 */
   Lainnya: 'lainnya',
-  Hutang: 'lainnya',
-  'Iuran Kas': 'lainnya',
-  'Tak Terduga': 'lainnya',
-  Pendidikan: 'lainnya',
+  Hutang: 'hutang',
+  'Iuran Kas': 'iuran-kas',
+  'Tak Terduga': 'tak-terduga',
+  Pendidikan: 'pendidikan',
 }
 
 /* Pemetaan kategori kebiasaan lama (inggris) → HabitCat 2.0. */
@@ -341,10 +350,11 @@ for (const g of oldFinance.savingsGoals ?? []) {
 }
 
 /* Transaksi berulang aktif → templat bulanan (materializeRecurring
-   membuat salinan saat jatuh tempo; ts = jadwal berikutnya). */
+   membuat salinan saat jatuh tempo; ts = jadwal berikutnya).
+   v2.15: kategori berulang lama juga diimpor sebagai dirinya sendiri. */
 const RECUR_CAT_MAP: Record<string, string> = {
-  Lifestyle: 'hiburan',
-  Penghasilan: 'gaji',
+  Lifestyle: 'lifestyle',
+  Penghasilan: 'penghasilan',
 }
 let recurRows = 0
 for (const r of oldFinance.recurring ?? []) {

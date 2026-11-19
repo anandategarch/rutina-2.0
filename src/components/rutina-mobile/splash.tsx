@@ -6,8 +6,10 @@ import { createScope, createTimeline, stagger } from 'animejs'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /**
- * Layar pembuka — logo tunas digambar garis demi garis (anime.js timeline),
- * lalu wordmark & tagline muncul bertahap. Bisa diketuk untuk melewati.
+ * Layar pembuka — marka “r tunas” digambar garis demi garis (anime.js
+ * timeline): goresan huruf r ditarik dari pangkal batang melewati bahu,
+ * lalu daun melayang digaris tepi, dan wordmark & tagline muncul bertahap.
+ * Bisa diketuk untuk melewati.
  *
  * Lifecycle: seluruh timeline hidup dalam anime `createScope` — saat
  * komponen unmount (termasuk saat dilewati lebih awal) scope.revert()
@@ -124,18 +126,16 @@ export function Splash({ onDone }: { onDone: () => void }) {
         className="h-28 w-28"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
       >
-        <circle cx="98" cy="34" r="12" />
-        <path d="M98 14v5M98 49v5M78 34h5M113 34h5" />
-        <path d="M4 106q34-36 68 0" />
-        <path d="M52 120q30-28 60 0" />
-        <path d="M26 122v-10" />
-        <path d="M26 112c-8-1-12-6-12-13 8 1 12 6 12 13z" />
-        <path d="M26 112c8-1 12-6 12-13-8 1-12 6-12 13z" />
+        {/* Marka v2.15 “r tunas” — geometri sama dengan scripts/gen-icons.ts:
+            goresan r (stroke 9) + daun melayang (outline), centering seragam. */}
+        <g transform="translate(-14.6 1.8)" strokeWidth="9">
+          <path d="M58 124 V72 A32 32 0 0 1 90 40" />
+          <path d="M88 32 Q96.8 7.9 117.3 11.9 Q115.2 36.3 102 32 Z" />
+        </g>
       </svg>
 
       <h1
