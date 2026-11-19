@@ -11,21 +11,26 @@ import { addDaysISO, fromISO, todayISO, useRutina, weekStartISO, type Tx } from 
  * SpendHeatmap — peta panas pengeluaran ala GitHub (audit #9).
  *
  * Grid 12 kolom (pekan) × 7 baris (Sen..Min). Warna sel = total keluar
- * harian (transfer dikecualikan). Ramp intensitas matcha→amber mengikuti
- * semantik GitHub: sedikit = hijau kebun, banyak = amber peringatan.
- * Level ditentukan relatif terhadap hari terpadat dalam jendela
- * (25% / 50% / 75% dari maksimum).
+ * harian (transfer dikecualikan). Audit visualisasi v2.12: ramp intensitas
+ * memakai gradasi BRONZE netral (token domain keuangan) — bukan
+ * gold→terracotta — karena pengeluaran tinggi belum tentu buruk (bisa
+ * jadi pembelian besar yang direncanakan); terracotta disimpan untuk
+ * peringatan anggaran yang memang nyata. Level ditentukan relatif
+ * terhadap hari terpadat dalam jendela (25% / 50% / 75% dari maksimum)
+ * dan keterangan itu dinyatakan eksplisit di kaki kartu.
  */
 
 const WEEKS = 12
 
-/** Ramp level 0–4; level 0 = garis tepi saja (tidak ada pengeluaran). */
+/** Ramp level 0–4; level 0 = garis tepi saja (tidak ada pengeluaran).
+ *  Opasitas bertingkat di atas token bronze domain keuangan sehingga
+ *  mode gelap ikut otomatis (varian terang). */
 const LEVEL_CLS = [
   'border border-border bg-transparent',
-  'bg-pistachio/40',
-  'bg-pistachio',
-  'bg-gold',
-  'bg-clay',
+  'bg-module-finance/25',
+  'bg-module-finance/50',
+  'bg-module-finance/75',
+  'bg-module-finance',
 ] as const
 
 /** Label baris hari di sisi kiri — hanya Sen/Rab/Jum agar hemat ruang. */
@@ -205,18 +210,24 @@ export function SpendHeatmap() {
         {caption}
       </p>
 
-      {/* Legenda — "Sedikit → Banyak". */}
+      {/* Legenda — intensitas relatif hari terpadat jendela 12 pekan
+          (audit visualisasi v2.12: arti skala dinyatakan eksplisit). */}
       <div className="mt-3 flex items-center justify-end gap-1.5">
         <span className="text-chart-label font-semibold uppercase tracking-[0.12em] text-content-muted">
-          Sedikit
+          Rendah
         </span>
         {LEVEL_CLS.map((cls) => (
           <span key={cls} aria-hidden="true" className={`h-3 w-3 rounded-[3px] ${cls}`} />
         ))}
         <span className="text-chart-label font-semibold uppercase tracking-[0.12em] text-content-muted">
-          Banyak
+          Tertinggi
         </span>
       </div>
+      <p className="mt-1.5 text-eyebrow leading-relaxed text-content-muted">
+        Intensitas relatif terhadap hari pengeluaran tertinggi dalam 12 pekan
+        terakhir — warna pekat belum tentu masalah; anggaran menyatakan
+        peringatannya sendiri.
+      </p>
     </div>
   )
 }

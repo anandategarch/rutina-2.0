@@ -24,7 +24,6 @@ import {
   Sun,
   Sunrise,
   Sunset,
-  Timer,
   TrendingUp,
   Undo2,
   Wallet,
@@ -206,18 +205,10 @@ function weekDoneCount(c: Completions, habitId: string, iso: string): number {
   return n
 }
 
-/** Total misi selesai seluruh kebiasaan sepanjang pekan (Senin s.d. iso). */
-function weekTotalDone(c: Completions, iso: string): number {
-  let total = 0
-  for (
-    let cursor = weekStartISO(iso);
-    cursor <= iso;
-    cursor = addDaysISO(cursor, 1)
-  ) {
-    total += doneCountOn(c, cursor)
-  }
-  return total
-}
+/** Total misi selesai seluruh kebiasaan sepanjang pekan (Senin s.d. iso).
+ *  (Audit visualisasi v2.12: tile misi-pekan di Insight hari ini dihapus —
+ *  grafik FocusWidget menampilkan informasi yang sama; fungsi dipertahankan
+ *  untuk FocusWidget bila kelak butuh derivasi serupa.) */
 
 /** Riwayat 14 hari terakhir berakhir pada tanggal yang dilihat. */
 function recentDays(c: Completions, habitId: string, iso: string): boolean[] {
@@ -437,11 +428,11 @@ export default function HomeScreen() {
   const level = computeLevel(xp)
   const xpProgress = Math.min(xp / XP_TARGET, 1)
   const xpRemaining = Math.max(XP_TARGET - xp, 0)
+  /* Streak hero chip — bestStreak dipakai chip hero; tile duplikat sudah
+     dihapus (audit visualisasi v2.12). */
   const streak = bestStreak(habits, completions, today).streak
 
-  /* Insight hari ini (tile bento) — misi sepanjang pekan berjalan dan
-     arus kas bersih seluruh transaksi (transfer antar-dompet dilewati). */
-  const weekMissions = weekTotalDone(completions, today)
+  /* Arus kas bersih seluruh transaksi (transfer antar-dompet dilewati). */
   const netSaldo = txs.reduce(
     (acc, t) =>
       acc +
@@ -710,8 +701,11 @@ export default function HomeScreen() {
             </m.section>
           </RutinaBentoItem>
 
-          {/* Insight hari ini — tile pendamping hero (selalu tampil, nilai
-              0 sah): streak berjalan, misi pekan, dan saldo bersih. */}
+          {/* Insight hari ini — tile pendamping hero (audit visualisasi
+              v2.12: tile streak & misi-pekan dihapus — keduanya sudah
+              terbaca di chip hero, FocusWidget, dan StreakWidget pada
+              Insight pekan; saldo bersih dipertahankan karena informasinya
+              berbeda dan tidak digambarkan grafik lain). */}
           <RutinaBentoItem span="feature">
             <section aria-label="Insight hari ini" className="h-full">
               <RutinaCard
@@ -721,26 +715,7 @@ export default function HomeScreen() {
                 className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
                 <RutinaSectionHeader title="Insight hari ini" />
-                {/* Micro-bento ponsel: streak (metrik utama) memanjang
-                    penuh, misi pekan & saldo bersih berpasangan dua kolom —
-                    lebih ringkas daripada daftar vertikal, tetap lega di
-                    320px. Ruang kerja lebar otomatis kembali proporsional. */}
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <RutinaMetric
-                    label="Streak berjalan"
-                    value={`${streak} hari`}
-                    icon={Flame}
-                    iconClassName="bg-module-accent/15 text-module-accent-strong"
-                    size="sm"
-                    className="col-span-2"
-                  />
-                  <RutinaMetric
-                    label="Misi pekan ini"
-                    value={weekMissions}
-                    icon={Timer}
-                    iconClassName="bg-cocoa/10 text-content-secondary"
-                    size="sm"
-                  />
+                <div className="mt-4">
                   <RutinaMetric
                     label="Saldo bersih"
                     value={
@@ -750,7 +725,7 @@ export default function HomeScreen() {
                     }
                     icon={Wallet}
                     iconClassName="bg-gold/25 text-warning"
-                    size="sm"
+                    caption="seluruh transaksi — transfer antar-dompet dikecualikan"
                   />
                 </div>
               </RutinaCard>

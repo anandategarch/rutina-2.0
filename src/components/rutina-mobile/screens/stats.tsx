@@ -47,6 +47,7 @@ import { useMinWidth } from '../use-min-width'
 import { CAT_META } from '../finance/cats'
 import {
   formatIDR,
+  formatIDRShort,
   monthFlow,
   monthLabel,
   monthRange,
@@ -55,7 +56,6 @@ import {
 } from '../finance/utils'
 import {
   MOODS,
-  XP_PER_TASK,
   XP_TARGET,
   addDaysISO,
   addMonthsISO,
@@ -81,7 +81,6 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
-import TrendLine from '../trend-line'
 import { motionTokens } from '@/lib/motion/tokens'
 import {
   cardioSummary,
@@ -306,7 +305,12 @@ export default function StatsScreen() {
       label: string
       cur: string
       prev: string
+      /** Angka mentah — dasar lebar batang berpasangan (skala per metrik). */
+      curN: number
+      prevN: number
       delta: number
+      /** "naik 8" / "turun 250 rb" — ringkas, untuk chip pembanding. */
+      deltaText: string
       dir: 'up' | 'down' | 'flat'
       good: boolean | null
     }
@@ -318,6 +322,7 @@ export default function StatsScreen() {
       prevN: number,
       invert: boolean,
       fmt: (n: number) => string,
+      fmtDelta: (n: number) => string,
     ) => {
       const delta = curN - prevN
       const dir: MetricRow['dir'] = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
@@ -326,14 +331,20 @@ export default function StatsScreen() {
         label,
         cur: fmt(curN),
         prev: fmt(prevN),
+        curN,
+        prevN,
         delta,
+        deltaText:
+          delta === 0
+            ? 'stabil'
+            : `${delta > 0 ? 'naik' : 'turun'} ${fmtDelta(Math.abs(delta))}`,
         dir,
         good: dir === 'flat' ? null : invert ? delta < 0 : delta > 0,
       })
     }
 
-    push('active', 'Hari aktif', activeDays(curDays), activeDays(prevDays), false, (n) => `${n} hari`)
-    push('done', 'Kebiasaan selesai', totalDone(curDays), totalDone(prevDays), false, (n) => `${n} misi`)
+    push('active', 'Hari aktif', activeDays(curDays), activeDays(prevDays), false, (n) => `${n} hari`, (n) => `${n} hari`)
+    push('done', 'Kebiasaan selesai', totalDone(curDays), totalDone(prevDays), false, (n) => `${n} misi`, (n) => `${n} misi`)
     push(
       'notes',
       'Catatan (perkiraan)',
@@ -341,12 +352,13 @@ export default function StatsScreen() {
       notesInWindow(notes, prevWeekStart, addDaysISO(weekStart, -1), today),
       false,
       (n) => `${n} catatan`,
+      (n) => `${n} catatan`,
     )
     /* Pengeluaran: makin kecil makin baik — panah dibalik. */
-    push('spend', 'Total pengeluaran', spendOf(curDays), spendOf(prevDays), true, (n) => formatIDR(n))
+    push('spend', 'Total pengeluaran', spendOf(curDays), spendOf(prevDays), true, (n) => formatIDR(n), (n) => formatIDRShort(n))
     const woCur = workoutsOf(curDays)
     const woPrev = workoutsOf(prevDays)
-    push('workout', 'Latihan', woCur.count, woPrev.count, false, (n) => `${n} sesi`)
+    push('workout', 'Latihan', woCur.count, woPrev.count, false, (n) => `${n} sesi`, (n) => `${n} sesi`)
     const workoutRow = rows.find((r) => r.key === 'workout')
     if (workoutRow) {
       workoutRow.cur = `${woCur.count} sesi · ${woCur.minutes} mnt`
@@ -358,18 +370,18 @@ export default function StatsScreen() {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInView = useInView(chartRef, { once: true, margin: '-40px' })
 
-  /* Misi hari ini — dari jadwal & histori penyelesaian nyata. */
+  /* Misi hari ini — dari jadwal & histori penyelesaian nyata (dipakai
+     menghitung XP ring profil; ring misi harian sendiri sudah dibaca di
+     Beranda — audit visualisasi v2.12). */
   const todayHabits = habitsOn(habits, today)
   const doneCount = todayHabits.filter((h) =>
     isDoneOn(completions, today, h.id),
   ).length
-  const totalToday = todayHabits.length
 
   const xp = computeXp(doneCount, bonusClaimed)
   const level = computeLevel(xp)
   const progress = Math.min(xp / XP_TARGET, 1)
   const remaining = Math.max(XP_TARGET - xp, 0)
-  const pct = totalToday === 0 ? 0 : Math.round((doneCount / totalToday) * 100)
 
   /* Streak terbaik & rekor dari seluruh kebiasaan aktif. */
   const best = bestStreak(habits, completions, today)
@@ -879,259 +891,44 @@ export default function StatsScreen() {
           </RutinaBentoItem>
         </RutinaBentoGrid>
 
-        {/* Ringkasan Pekan + Wawasan & Analitik — pasangan bento (medium · medium) */}
-        <RutinaBentoGrid>
-          <RutinaBentoItem span="medium">
-            {/* Ringkasan pekan */}
-            <section aria-label="Ringkasan pekan" className="@container">
-              <SectionTitle title="Ringkasan Pekan" />
-              {/* Grid berbasis CONTAINER (bukan viewport): di dalam bento
-                  medium (±321px di desktop) kartu tak lagi diremjak 3 kolom
-                  99px — 2 kolom di ruang sempit, 3 kolom begitu lega. */}
-              <div className="grid grid-cols-2 gap-3 @[26rem]:grid-cols-3">
-                {/* Suasana hati */}
-                <m.div
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={motionTokens.preset.data}
-                  className="rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
-                >
+        {/* ===== Tren & Konsistensi — area 30 hari + heatmap 12 pekan =====
+            (audit visualisasi v2.12: grafik garis TrendLine 7 hari dihapus
+            karena tumpang tindih dengan grafik batang Misi Selesai — jumlah
+            misi yang sama tak perlu digambar dua kali; area chart dipindah
+            ke sini berpasangan dengan heatmap sebagai satu seksi tren.) */}
+        <section aria-label="Tren dan konsistensi" className="@container">
+          <SectionTitle title="Tren & Konsistensi" hint="% selesai per hari · 30 hari" />
+          <div className="mt-3 grid grid-cols-1 gap-3 @[36rem]:grid-cols-2">
+            {/* Grafik area tren penyelesaian */}
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={motionTokens.preset.data}
+              className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+            >
+              <div className="flex items-end justify-between gap-3">
+                <div>
                   <p className="text-body font-semibold tracking-tight text-content-inverse/80">
-                    Suasana Hati
+                    Tren Penyelesaian
                   </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {MOODS.map((m) => {
-                      const MoodIcon = MOOD_ICONS[m]
-                      const selected = mood === m
-                      return (
-                        <button
-                          /* key berubah saat terpilih → tombol dipasang ulang
-                             sehingga animasi pop CSS bermain setiap kali aktif. */
-                          key={selected ? `on-${m}` : `off-${m}`}
-                          type="button"
-                          aria-pressed={selected}
-                          aria-label={`Catat suasana hati: ${m}`}
-                          onClick={() => setMood(selected ? null : m)}
-                          className={
-                            'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
-                            (selected
-                              ? 'animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
-                              : 'border-content-inverse/15 bg-surface-inverse text-content-inverse/75 hover:bg-surface-inverse/80')
-                          }
-                        >
-                          <MoodIcon className="h-4 w-4" />
-                          <span className="text-eyebrow font-semibold">{m}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
-                    {mood
-                      ? `Kamu merasa ${mood.toLowerCase()} hari ini`
-                      : 'Bagaimana perasaanmu?'}
+                  <p className="mt-0.5 text-eyebrow font-medium text-content-inverse/60">
+                    persentase misi selesai · 30 hari terakhir
                   </p>
-                </m.div>
-
-                {/* Streak terpanjang */}
-                <m.div
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: 0.06 }}
-                  className="flex flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
-                >
-                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
-                    Streak Terpanjang
-                  </p>
-                  <div className="mt-2 flex items-start justify-between gap-2">
-                    <div>
-                      <p className="flex items-baseline gap-1">
-                        <span className="text-kpi-hero font-semibold leading-none tracking-tight text-pistachio">
-                          <Counter to={best.streak} />
-                        </span>
-                        <span className="text-sm font-medium text-content-inverse/70">
-                          hari
-                        </span>
-                      </p>
-                      <p className="mt-1.5 text-eyebrow font-medium text-content-inverse/70">
-                        {best.habit
-                          ? best.habit.title
-                          : 'Belum ada kebiasaan berjalan'}
-                      </p>
-                    </div>
-                    <m.span
-                      aria-hidden="true"
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20"
-                      animate={{ scale: [1, 1.08, 1] }}
-                      transition={motionTokens.preset.ambientPulse}
-                    >
-                      <Flame className="h-5 w-5 text-pistachio" />
-                    </m.span>
-                  </div>
-                  <p className="mt-auto pt-3 text-eyebrow font-medium text-content-inverse/70">
-                    Rekor pribadi: {best.record} hari
-                  </p>
-                </m.div>
-
-                {/* Ring penyelesaian misi */}
-                <m.div
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: 0.1 }}
-                  className="col-span-2 flex items-center gap-5 rounded-[16px] border border-border bg-cocoa p-5 shadow-soft @[42rem]:col-span-1"
-                >
-                  <div className="relative h-24 w-24 shrink-0">
-                    <svg
-                      viewBox="0 0 96 96"
-                      className="h-24 w-24 -rotate-90"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="48"
-                        cy="48"
-                        r="42"
-                        fill="none"
-                        stroke="var(--surface-inverse)"
-                        strokeWidth="9"
-                      />
-                      <m.circle
-                        cx="48"
-                        cy="48"
-                        r="42"
-                        fill="none"
-                        stroke="var(--chart-4)"
-                        strokeWidth="9"
-                        strokeLinecap="round"
-                        strokeDasharray={2 * Math.PI * 42}
-                        initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                        whileInView={{
-                          strokeDashoffset: 2 * Math.PI * 42 * (1 - pct / 100),
-                        }}
-                        viewport={{ once: true, margin: '-24px' }}
-                        transition={motionTokens.preset.dataSlow}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xl font-semibold text-content-inverse">
-                        <Counter to={pct} />%
-                      </span>
-                      <span className="text-eyebrow font-semibold uppercase tracking-wider text-content-inverse/70">
-                        misi
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-body font-semibold tracking-tight text-content-inverse/80">
-                      Misi Selesai
-                    </p>
-                    <p className="mt-1 text-body font-medium text-content-inverse">
-                      {doneCount} dari {totalToday} misi hari ini
-                    </p>
-                    <p className="mt-2 text-xs font-medium text-content-inverse/70">
-                      Tiap misi bernilai {XP_PER_TASK} XP — terus jaga ritmenya.
-                    </p>
-                  </div>
-                </m.div>
-              </div>
-            </section>
-          </RutinaBentoItem>
-
-          <RutinaBentoItem span="medium">
-            {/* ===== Dashboard Wawasan & Analitik ===== */}
-            <section aria-label="Wawasan dan analitik" className="@container">
-              <SectionTitle title="Wawasan & Analitik" hint="30 hari terakhir" />
-              <div className="grid grid-cols-1 gap-3 @[30rem]:grid-cols-2">
-                <m.div
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={motionTokens.preset.data}
-                  className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
-                >
-                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
-                    Distribusi Kategori
-                  </p>
-                  <div className="mt-3 flex items-center gap-4">
-                    <div className="relative h-28 w-28 shrink-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={catData}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={34}
-                            outerRadius={52}
-                            paddingAngle={3}
-                            stroke="none"
-                            isAnimationActive
-                          >
-                            {catData.map((c) => (
-                              <Cell key={c.name} fill={c.color} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
-                          {activeHabits.length}
-                        </span>
-                        <span className="mt-0.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
-                          aktif
-                        </span>
-                      </div>
-                    </div>
-                    <ul className="min-w-0 flex-1 space-y-2">
-                      {catData.map((c) => (
-                        <li
-                          key={c.name}
-                          className="flex items-center gap-2.5 text-meta"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: c.color }}
-                          />
-                          <span className="flex-1 truncate font-medium text-content-inverse/80">
-                            {c.name}
-                          </span>
-                          <span className="shrink-0 font-semibold tabular-nums text-content-inverse">
-                            {c.value}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </m.div>
-
-                {/* Grafik area tren penyelesaian */}
-                <m.div
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: 0.06 }}
-                  className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
-                >
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-body font-semibold tracking-tight text-content-inverse/80">
-                        Tren Penyelesaian
-                      </p>
-                      <p className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
-                          <Counter to={trendAvg} decimals={1} />
-                        </span>
-                        <span className="text-sm font-medium text-content-inverse/70">
-                          % rata-rata / hari
-                        </span>
-                      </p>
-                    </div>
-                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent-strong px-2.5 py-1 text-eyebrow font-semibold text-module-accent-fg">
-                      <TrendIcon className="h-3.5 w-3.5" />
-                      {trendBadge}
+                  <p className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
+                      <Counter to={trendAvg} decimals={1} />
                     </span>
-                  </div>
+                    <span className="text-sm font-medium text-content-inverse/70">
+                      % rata-rata / hari
+                    </span>
+                  </p>
+                </div>
+                <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent-strong px-2.5 py-1 text-eyebrow font-semibold text-module-accent-fg">
+                  <TrendIcon className="h-3.5 w-3.5" />
+                  {trendBadge}
+                </span>
+              </div>
                   <div className="mt-4">
                     <ResponsiveContainer width="100%" height={130}>
                       <AreaChart
@@ -1201,16 +998,131 @@ export default function StatsScreen() {
                     Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
                   </p>
                 </m.div>
+
+            {/* Heatmap — pola penyelesaian 12 pekan */}
+            <Heatmap />
+          </div>
+        </section>
+
+        {/* ===== Wawasan — komposisi kebiasaan aktif + suasana hati =====
+            (audit visualisasi v2.12: duplikasi dihapus — ring misi harian
+            sudah terbaca di Beranda, kartu streak ganda sudah terwakili KPI
+            utama; donut diberi judul jujur sesuai sumber datanya.) */}
+        <RutinaBentoGrid>
+          <RutinaBentoItem span="medium">
+            {/* Komposisi kebiasaan aktif — donut per kategori */}
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={motionTokens.preset.data}
+              className="h-full rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+            >
+              <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+                Komposisi Kebiasaan Aktif
+              </p>
+              <p className="mt-0.5 text-eyebrow font-medium text-content-inverse/60">
+                jumlah kebiasaan per kategori — bukan aktivitas 30 hari
+              </p>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="relative h-28 w-28 shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={catData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={34}
+                        outerRadius={52}
+                        paddingAngle={3}
+                        stroke="none"
+                        isAnimationActive
+                      >
+                        {catData.map((c) => (
+                          <Cell key={c.name} fill={c.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
+                      {activeHabits.length}
+                    </span>
+                    <span className="mt-0.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
+                      aktif
+                    </span>
+                  </div>
+                </div>
+                <ul className="min-w-0 flex-1 space-y-2">
+                  {catData.map((c) => (
+                    <li
+                      key={c.name}
+                      className="flex items-center gap-2.5 text-meta"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: c.color }}
+                      />
+                      <span className="flex-1 truncate font-medium text-content-inverse/80">
+                        {c.name}
+                      </span>
+                      <span className="shrink-0 font-semibold tabular-nums text-content-inverse">
+                        {c.value}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </section>
+            </m.div>
+          </RutinaBentoItem>
+
+          <RutinaBentoItem span="medium">
+            {/* Suasana hati — catatan perasaan, dipindah dari Ringkasan Pekan */}
+            <m.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ ...motionTokens.preset.data, delay: 0.06 }}
+              className="h-full rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+            >
+              <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+                Suasana Hati
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {MOODS.map((m) => {
+                  const MoodIcon = MOOD_ICONS[m]
+                  const selected = mood === m
+                  return (
+                    <button
+                      /* key berubah saat terpilih → tombol dipasang ulang
+                         sehingga animasi pop CSS bermain setiap kali aktif. */
+                      key={selected ? `on-${m}` : `off-${m}`}
+                      type="button"
+                      aria-pressed={selected}
+                      aria-label={`Catat suasana hati: ${m}`}
+                      onClick={() => setMood(selected ? null : m)}
+                      className={
+                        'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        (selected
+                          ? 'animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
+                          : 'border-content-inverse/15 bg-surface-inverse text-content-inverse/75 hover:bg-surface-inverse/80')
+                      }
+                    >
+                      <MoodIcon className="h-4 w-4" />
+                      <span className="text-eyebrow font-semibold">{m}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
+                {mood
+                  ? `Kamu merasa ${mood.toLowerCase()} hari ini`
+                  : 'Bagaimana perasaanmu?'}
+              </p>
+            </m.div>
           </RutinaBentoItem>
         </RutinaBentoGrid>
-
-        {/* Konsistensi & tren aktivitas (widget gelap) */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Heatmap />
-          <TrendLine />
-        </div>
 
         {/* Kalender Aktivitas + Laporan Bulanan — pasangan bento 7 : 5
             (col-span mentah — preset bento tak memiliki 7/5) */}
@@ -1481,39 +1393,82 @@ export default function StatsScreen() {
                         : row.good
                           ? 'text-success'
                           : 'text-warning'
+                    /* Skala batang per metrik — pasangan lalu vs sekarang
+                       dinormalisasi ke maksimum pasangannya sendiri agar
+                       satuan berbeda (misi, rupiah, sesi) tak dibandingkan
+                       lintas baris (audit visualisasi v2.12). */
+                    const pairMax = Math.max(row.curN, row.prevN)
+                    const prevW = pairMax > 0 ? Math.round((row.prevN / pairMax) * 100) : 0
+                    const curW = pairMax > 0 ? Math.round((row.curN / pairMax) * 100) : 0
                     return (
                       <li
                         key={row.key}
-                        className="flex items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-3"
+                        className="rounded-2xl bg-surface-sunken px-3.5 py-3"
                       >
-                        <div className="min-w-0 flex-1">
-                          <p className="break-words text-note font-semibold leading-snug text-content-primary">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="min-w-0 break-words text-note font-semibold leading-snug text-content-primary">
                             {row.label}
                           </p>
-                          <p className="mt-0.5 break-words text-eyebrow font-medium leading-snug tabular-nums text-content-muted">
-                            pekan lalu: {row.prev}
-                          </p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-body font-bold leading-tight tabular-nums text-content-primary">
-                            {row.cur}
-                          </p>
                           <p
-                            className={`mt-0.5 flex items-center justify-end gap-1 text-eyebrow font-semibold tabular-nums ${tone}`}
+                            className={`flex shrink-0 items-center gap-1 text-eyebrow font-semibold tabular-nums ${tone}`}
                           >
                             <DeltaIcon aria-hidden="true" className="h-3 w-3" strokeWidth={2.4} />
-                            {row.delta === 0
-                              ? 'sama dengan pekan lalu'
-                              : `${row.delta > 0 ? '+' : '−'}${Math.abs(row.delta).toLocaleString('id-ID')}`}
+                            {row.deltaText}
                           </p>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {/* Pekan lalu — batang redup */}
+                          <div className="flex items-center gap-2">
+                            <span className="w-9 shrink-0 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
+                              lalu
+                            </span>
+                            <div
+                              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-content-primary/10"
+                              role="presentation"
+                            >
+                              <m.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${prevW}%` }}
+                                viewport={{ once: true, margin: '-16px' }}
+                                transition={{ type: 'spring', stiffness: 110, damping: 21 }}
+                                className="h-full rounded-full bg-cocoa/40"
+                              />
+                            </div>
+                            <span className="w-24 shrink-0 truncate text-right text-eyebrow font-medium tabular-nums text-content-muted">
+                              {row.prev}
+                            </span>
+                          </div>
+                          {/* Pekan ini — batang aksen domain */}
+                          <div className="flex items-center gap-2">
+                            <span className="w-9 shrink-0 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
+                              kini
+                            </span>
+                            <div
+                              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-content-primary/10"
+                              role="presentation"
+                            >
+                              <m.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${curW}%` }}
+                                viewport={{ once: true, margin: '-16px' }}
+                                transition={{ type: 'spring', stiffness: 110, damping: 21, delay: 0.06 }}
+                                className="h-full rounded-full bg-module-accent-strong"
+                              />
+                            </div>
+                            <span className="w-24 shrink-0 truncate text-right text-eyebrow font-semibold tabular-nums text-content-primary">
+                              {row.cur}
+                            </span>
+                          </div>
                         </div>
                       </li>
                     )
                   })}
                 </ul>
                 <p className="mt-3 text-eyebrow leading-relaxed text-content-muted">
-                  Pengeluaran dihitung tanpa transfer; nilai lebih kecil dinilai lebih baik.
-                  Jumlah catatan bersifat perkiraan (pencocokan label tanggal).
+                  Skala batang berlaku per metrik — satuan berbeda tidak
+                  dibandingkan langsung. Pengeluaran dihitung tanpa transfer;
+                  nilai lebih kecil dinilai lebih baik. Jumlah catatan bersifat
+                  perkiraan (pencocokan label tanggal).
                 </p>
               </RutinaCard>
             </m.section>
@@ -1684,22 +1639,23 @@ export default function StatsScreen() {
           </RutinaBentoItem>
         </RutinaBentoGrid>
 
-        {/* Piala & Lencana + Streak berjalan — pasangan bento (medium · medium) */}
-        <RutinaBentoGrid>
-          <RutinaBentoItem span="medium">
-            {/* Lencana dengan Tooltip */}
-            <m.section
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              aria-label="Piala dan lencana"
-            >
-              <SectionTitle
-                title="Piala & Lencana"
-                hint={`${unlockedCount}/4 terbuka`}
-              />
-              <div className="grid grid-cols-2 gap-2.5">
+        {/* ===== Piala & Lencana — lebar penuh =====
+            (audit visualisasi v2.12: kartu Streak Berjalan dihapus —
+            streak & rekor sudah terbaca di KPI utama; lencana melebar
+            4 kolom di ruang kerja lega.) */}
+        <m.section
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-24px' }}
+          transition={motionTokens.preset.data}
+          aria-label="Piala dan lencana"
+          className="@container"
+        >
+          <SectionTitle
+            title="Piala & Lencana"
+            hint={`${unlockedCount}/4 terbuka`}
+          />
+          <div className="grid grid-cols-2 gap-2.5 @[36rem]:grid-cols-4">
                 {badges.map((b) => (
                   <Tooltip key={b.name}>
                     <TooltipTrigger asChild>
@@ -1755,51 +1711,6 @@ export default function StatsScreen() {
                 ))}
               </div>
             </m.section>
-          </RutinaBentoItem>
-
-          <RutinaBentoItem span="medium">
-            {/* Streak berjalan */}
-            <m.section
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              aria-label="Streak berjalan"
-            >
-              <div className="flex items-center gap-4 rounded-[20px] border border-border bg-cocoa p-4 shadow-soft">
-                <m.span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/20"
-                  animate={{ scale: [1, 1.08, 1] }}
-                  transition={motionTokens.preset.ambientPulse}
-                >
-                  <Flame className="h-6 w-6 text-pistachio" />
-                </m.span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
-                    Streak Berjalan
-                  </p>
-                  <p className="mt-0.5 flex items-baseline gap-1.5">
-                    <span className="text-kpi font-semibold leading-none tabular-nums text-content-inverse">
-                      <Counter to={best.streak} />
-                    </span>
-                    <span className="text-xs font-medium text-content-inverse/70">
-                      hari berturut-turut
-                    </span>
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-inverse/70">
-                    Rekor
-                  </p>
-                  <p className="flex items-center gap-1 text-sm font-bold text-pistachio">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    {best.record} hari
-                  </p>
-                </div>
-              </div>
-            </m.section>
-          </RutinaBentoItem>
-        </RutinaBentoGrid>
 
         </div>
 

@@ -19,13 +19,20 @@ const BAR_MIN = 5
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
-/** Ukuran batang & jarak antar batang menurut kepadatan deret. */
+/** Ukuran batang & jarak antar batang menurut kepadatan deret.
+ *  Audit visualisasi v2.12: batang 4px pada deret panjang sulit dibaca
+ *  di ponsel — lebar minimum kini 7px dan kolom diberi lantai 32px;
+ *  kelebihan histori digulir horizontal (lihat COL_MIN_W di bawah). */
 function barMetrics(count: number): { bar: number; gap: number } {
-  if (count > 24) return { bar: 4, gap: 1.5 }
-  if (count > 16) return { bar: 5, gap: 2 }
-  if (count > 10) return { bar: 7, gap: 2.5 }
+  if (count > 24) return { bar: 7, gap: 2 }
+  if (count > 16) return { bar: 8, gap: 2.5 }
+  if (count > 10) return { bar: 9, gap: 3 }
   return { bar: 9, gap: 3 }
 }
+
+/** Lebar kolom minimum (px) — menjamin batang & label tetap nyaman
+ *  dibaca; konten melebihi wadah digeser horizontal, bukan diremjak. */
+const COL_MIN_W = 32
 
 /** Label sumbu-x ditampilkan melangkah agar tidak bertumpuk pada
     deret panjang (informasi lengkap tetap tersedia via aria-label). */
@@ -55,19 +62,28 @@ export function FinChart({
       className="relative select-none"
       style={{ height: TRACK_H + LABEL_H }}
       role="group"
-      aria-label="Grafik arus kas per periode"
+      aria-label="Grafik arus kas per periode — geser menyamping untuk histori panjang"
     >
-      {/* Garis bantu horizontal (25/50/75/100%) */}
-      {[0.25, 0.5, 0.75, 1].map((f) => (
-        <span
-          key={f}
-          aria-hidden="true"
-          className="absolute inset-x-0 border-t border-border"
-          style={{ bottom: LABEL_H + f * (TRACK_H - 14) }}
-        />
-      ))}
+      {/* Wadah geser — histori panjang (mode "Semua") melebar mengikuti
+          jumlah kolom, bukan mengecilkan batang; ponsel menggeser
+          horizontal. Garis bantu & garis dasar ikut melebar bersama
+          konten agar tetap sejajar batang. */}
+      <div className="h-full overflow-x-auto no-scrollbar overscroll-x-contain">
+        <div
+          className="relative h-full"
+          style={{ minWidth: `max(100%, ${points.length * COL_MIN_W}px)` }}
+        >
+          {/* Garis bantu horizontal (25/50/75/100%) */}
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <span
+              key={f}
+              aria-hidden="true"
+              className="absolute inset-x-0 border-t border-border"
+              style={{ bottom: LABEL_H + f * (TRACK_H - 14) }}
+            />
+          ))}
 
-      <div className="absolute inset-0 flex items-end justify-between gap-1">
+          <div className="absolute inset-0 flex items-end justify-between gap-1">
         {points.map((p, i) => {
           const isOn = i === active
           return (
@@ -77,7 +93,7 @@ export function FinChart({
               onClick={() => onPick(i)}
               aria-pressed={isOn}
               aria-label={`${p.label}: masuk ${p.masuk.toLocaleString('id-ID')}, keluar ${p.keluar.toLocaleString('id-ID')}`}
-              className={`group relative flex h-full flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+              className={`group relative flex h-full min-w-[26px] flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
                 isOn
                   ? ''
                   : 'transition-colors duration-200 hover:bg-surface-sunken/70'
@@ -158,6 +174,8 @@ export function FinChart({
         className="absolute inset-x-0 border-t border-border-strong"
         style={{ bottom: LABEL_H - 2, transition: `all .3s ${EASE.join(',')}` }}
       />
+        </div>
+      </div>
     </div>
   )
 }

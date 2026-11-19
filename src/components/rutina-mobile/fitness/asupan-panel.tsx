@@ -33,26 +33,43 @@ function fmt(n: number): string {
   return Math.round(n).toLocaleString('id-ID')
 }
 
-/** Ringkasan nutrisi sekumpulan entri. */
+/** Ringkasan nutrisi sekumpulan entri.
+ *  knownKcal = total kalori entri yang makronya tercatat — dasar klaim
+ *  kejujuran komposisi makro (audit visualisasi v2.12). */
 function summarize(entries: FoodEntry[]) {
   let kcal = 0
   let protein = 0
   let carb = 0
   let fat = 0
   let macroKnown = false
+  let knownKcal = 0
   for (const e of entries) {
     kcal += e.kcal
     if (e.protein != null) {
       macroKnown = true
+      knownKcal += e.kcal
       protein += e.protein
     }
     if (e.carb != null) carb += e.carb
     if (e.fat != null) fat += e.fat
   }
-  return { kcal, protein, carb, fat, macroKnown }
+  return { kcal, protein, carb, fat, macroKnown, knownKcal }
 }
 
+/** Kalori per gram makro — komposisi dihitung dari kontribusi energi,
+ *  bukan perbandingan gram (protein/karbo ≈ 4 kkal/g, lemak ≈ 9). */
+const KCAL_PER_G = { protein: 4, carb: 4, fat: 9 } as const
+
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+/** "Sen, 12 Nov" — label hari + tanggal pendek untuk bacaan grafik. */
+function dayLongLabel(iso: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(iso + 'T00:00:00'))
+}
 
 /** Entri jurnal untuk satu tanggal, diurut sesuai slot waktu makan. */
 function entriesOn(entries: FoodEntry[], date: string): FoodEntry[] {
@@ -129,6 +146,8 @@ export function AsupanPanel() {
 
   const [editingTarget, setEditingTarget] = useState(false)
   const [targetDraft, setTargetDraft] = useState('2000')
+  /* Hari terpilih pada grafik 7 hari — null = hari ini (default bacaan). */
+  const [selDay, setSelDay] = useState<string | null>(null)
 
   const today = todayISO()
   const todayEntries = useMemo(
@@ -321,8 +340,55 @@ export function AsupanPanel() {
           </p>
         )}
 
-        {/* Makro */}
-        <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-espresso/35 p-3 backdrop-blur-sm">
+        {/* Makro — segmented bar komposisi (dari kontribusi kalori) + tiga
+            kolom gram. Komposisi hanya digambar dari makro yang tercatat;
+            bila belum lengkap, angka tetap tampil dengan keterangan jujur
+            (audit visualisasi v2.12). */}
+        <div className="mt-4 rounded-2xl bg-espresso/35 p-3 backdrop-blur-sm">
+          {(() => {
+            const pK = sum.protein * KCAL_PER_G.protein
+            const cK = sum.carb * KCAL_PER_G.carb
+            const fK = sum.fat * KCAL_PER_G.fat
+            const total = pK + cK + fK
+            if (sum.macroKnown && total > 0) {
+              const pP = Math.round((pK / total) * 100)
+              const cP = Math.round((cK / total) * 100)
+              const fP = Math.max(0, 100 - pP - cP)
+              const partial = sum.knownKcal < sum.kcal
+              return (
+                <div className="mb-3">
+                  <div
+                    className="flex h-2.5 overflow-hidden rounded-full bg-module-accent-fg/15"
+                    role="img"
+                    aria-label={`Komposisi makro: protein ${pP} persen, karbohidrat ${cP} persen, lemak ${fP} persen${partial ? ', dihitung dari makanan yang makronya tercatat' : ''}`}
+                  >
+                    <span className="bg-gold" style={{ width: `${pP}%` }} />
+                    <span
+                      className="bg-module-accent-fg/75"
+                      style={{ width: `${cP}%` }}
+                    />
+                    <span
+                      className="bg-module-accent-fg/40"
+                      style={{ width: `${fP}%` }}
+                    />
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-chart-label font-semibold text-module-accent-fg/75">
+                    <span>P {pP}%</span>
+                    <span>K {cP}%</span>
+                    <span>L {fP}%</span>
+                  </div>
+                  {partial && (
+                    <p className="mt-1.5 text-chart-label leading-relaxed text-module-accent-fg/65">
+                      Komposisi dari {fmt(sum.knownKcal)} dari {fmt(sum.kcal)}{' '}
+                      kkal — sebagian makanan belum punya rincian makro.
+                    </p>
+                  )}
+                </div>
+              )
+            }
+            return null
+          })()}
+          <div className="grid grid-cols-3 gap-2">
           <div className="text-center">
             <p className="text-lead font-bold leading-none tabular-nums">
               {fmt(sum.protein)}<span className="text-eyebrow font-semibold"> g</span>
@@ -346,6 +412,7 @@ export function AsupanPanel() {
             <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               lemak
             </p>
+          </div>
           </div>
         </div>
         {!sum.macroKnown && todayEntries.length > 0 && (
@@ -440,60 +507,118 @@ export function AsupanPanel() {
         </div>
       </section>
 
-      {/* Tren 7 hari */}
+      {/* Tren 7 hari — batang interaktif + garis target (audit visualisasi
+          v2.12: garis target kini benar-benar digambar; detail per hari
+          melalui ketukan, bukan memaksakan seluruh angka masuk layar). */}
       <section className="mt-8" aria-label="Tren kalori 7 hari">
-        <div className="flex items-center gap-2 px-0.5">
-          <h2 className="text-note font-bold uppercase tracking-[0.16em] text-content-secondary">
+        <div className="flex items-baseline justify-between gap-2 px-0.5">
+          <h2 className="text-note font-semibold uppercase tracking-[0.16em] text-content-secondary">
             7 Hari Terakhir
           </h2>
+          <span className="text-eyebrow font-medium tabular-nums text-content-muted">
+            target {fmt(calorieTarget)} kkal
+          </span>
         </div>
         <div className="mt-3 rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft">
-          <div className="flex h-32 items-end gap-1.5">
-            {week.days.map((d, i) => {
-              const kcal = week.kcalByDay[i]
-              const h =
-                week.max > 0 ? Math.max((kcal / week.max) * 100, 2) : 2
-              const isToday = d === today
-              return (
-                <div
-                  key={d}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
-                >
-                  <span className="text-[9px] font-bold tabular-nums text-content-muted">
-                    {kcal > 0 ? fmt(kcal) : ''}
-                  </span>
-                  <div className="flex h-full w-full items-end">
+          {/* Zona batang + garis target — tinggi batang & posisi garis
+              memakai skala yang sama (maks deret ∪ target). */}
+          <div className="relative">
+            {/* Garis target putus-putus */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 z-10"
+              style={{
+                bottom: `${Math.round((calorieTarget / Math.max(week.max, 1)) * 100)}%`,
+              }}
+            >
+              <div className="border-t-2 border-dashed border-module-accent-strong/55" />
+              <span className="absolute right-0 -top-2 rounded-full bg-module-accent-soft px-1.5 py-0.5 text-chart-label font-semibold tabular-nums text-module-accent-strong">
+                {fmt(calorieTarget)}
+              </span>
+            </div>
+            {/* Batang harian — ketuk untuk memilih */}
+            <div className="flex h-32 items-end gap-1.5">
+              {week.days.map((d, i) => {
+                const kcal = week.kcalByDay[i]
+                const h =
+                  week.max > 0 ? Math.max((kcal / week.max) * 100, 4) : 4
+                const isToday = d === today
+                const isSel = (selDay ?? today) === d
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={isSel}
+                    aria-label={`${dayLongLabel(d)}: ${kcal > 0 ? `${fmt(kcal)} kkal` : 'tidak tercatat'}`}
+                    onClick={() => setSelDay(isSel && selDay !== null ? null : d)}
+                    className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col justify-end rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+                  >
                     <m.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${h}%` }}
+                      animate={{ height: kcal > 0 ? `${h}%` : '3px' }}
                       transition={{
                         duration: 0.5,
                         delay: i * 0.05,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className={`w-full rounded-t-lg ${
-                        isToday ? 'bg-primary' : 'bg-secondary'
+                      className={`w-full rounded-t-lg transition-colors ${
+                        kcal === 0
+                          ? 'bg-module-accent/15'
+                          : isToday
+                            ? 'bg-module-accent-strong'
+                            : isSel
+                              ? 'bg-module-accent'
+                              : 'bg-module-accent/45 group-hover:bg-module-accent/70'
                       }`}
                     />
-                  </div>
-                  <span
-                    className={`text-chart-label font-semibold ${
-                      isToday ? 'text-success' : 'text-content-muted'
-                    }`}
-                  >
-                    {DAY_LABELS[new Date(d + 'T00:00:00').getDay()]}
-                  </span>
-                </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          {/* Label hari */}
+          <div className="mt-2 flex gap-1.5">
+            {week.days.map((d) => {
+              const isToday = d === today
+              const isSel = (selDay ?? today) === d
+              return (
+                <span
+                  key={d}
+                  className={`min-w-0 flex-1 text-center text-chart-label font-semibold ${
+                    isSel ? 'text-module-accent-strong' : 'text-content-muted'
+                  } ${isToday ? 'underline decoration-module-accent-strong/60 underline-offset-2' : ''}`}
+                >
+                  {DAY_LABELS[new Date(d + 'T00:00:00').getDay()]}
+                </span>
               )
             })}
           </div>
-          {/* Garis target */}
-          <div className="mt-3 border-t border-dashed border-border pt-2.5">
-            <p className="text-center text-eyebrow font-semibold text-content-muted">
-              Garis batang hijau = hari ini · target {fmt(calorieTarget)} kkal/hari
-            </p>
-          </div>
+          {/* Bacaan hari terpilih (default: hari ini) */}
+          {(() => {
+            const idx = week.days.indexOf(selDay ?? today)
+            const kcal = idx >= 0 ? week.kcalByDay[idx] : 0
+            const diff = kcal - calorieTarget
+            const diffText =
+              kcal === 0
+                ? 'tidak tercatat'
+                : diff === 0
+                  ? 'pas di target'
+                  : diff > 0
+                    ? `+${fmt(diff)} di atas target`
+                    : `−${fmt(-diff)} di bawah target`
+            return (
+              <p className="mt-3 border-t border-border pt-2.5 text-center text-eyebrow font-medium tabular-nums text-content-muted">
+                {dayLongLabel(selDay ?? today)} —{' '}
+                {kcal > 0 ? `${fmt(kcal)} kkal` : 'belum ada catatan'} ·{' '}
+                {diffText}
+              </p>
+            )
+          })()}
         </div>
+        <p className="mt-2 px-0.5 text-eyebrow leading-relaxed text-content-muted">
+          Batang pekat = hari ini · garis putus-putus = target asupan. Jatah
+          harian = target + energi terbakar ({fmt(allowance)} kkal hari ini).
+        </p>
       </section>
     </div>
   )

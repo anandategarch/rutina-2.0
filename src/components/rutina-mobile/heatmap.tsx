@@ -22,6 +22,9 @@ const LEVEL_COLORS = [
   'var(--chart-4)',
 ]
 
+/* Label legenda per level — jumlah kebiasaan selesai per hari. */
+const LEVEL_LEGEND = ['0', '1', '2', '3–4', '5+'] as const
+
 /** Tanggal singkat Indonesia ("5 Jan") dari ISO — untuk label aksesibel sel. */
 const fmtDate = (iso: string) =>
   fromISO(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
@@ -146,19 +149,28 @@ export default function Heatmap() {
           : 'Ketuk sel untuk melihat detail hari.'}
       </p>
 
-      <div className="mt-3 flex items-center justify-end gap-1.5">
+      {/* Legenda intensitas — jumlah kebiasaan selesai per hari (audit
+          visualisasi v2.12: "Sedikit/Banyak" terlalu abstrak; level kini
+          berlabel angka konkret agar warna mudah dimengerti). */}
+      <div
+        className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5"
+        aria-label="Legenda intensitas: jumlah kebiasaan selesai per hari"
+      >
         <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-inverse/70">
-          Sedikit
+          Selesai/hari
         </span>
-        {LEVEL_COLORS.map((c) => (
-          <span
-            key={c}
-            className="h-3 w-3 rounded-[3px]"
-            style={{ backgroundColor: c }}
-          />
-        ))}
-        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-inverse/70">
-          Banyak
+        <span className="flex items-center gap-1.5">
+          {LEVEL_COLORS.map((c, i) => (
+            <span key={c} className="flex items-center gap-1">
+              <span
+                className="h-3 w-3 rounded-[3px]"
+                style={{ backgroundColor: c }}
+              />
+              <span className="text-eyebrow font-semibold tabular-nums text-content-inverse/70">
+                {LEVEL_LEGEND[i]}
+              </span>
+            </span>
+          ))}
         </span>
       </div>
     </m.div>

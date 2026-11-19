@@ -36,9 +36,22 @@ const ENERGY_OPTIONS: { v: number; label: string }[] = [
   { v: 5, label: 'Bugar' },
 ]
 
-/** ===== Grafik tren berat (sparkline SVG ringan) ===== */
+/** ===== Tren berat badan — sparkline yang jujur terhadap skalanya =====
+ *  Audit visualisasi v2.12: angka terakhir menonjol, perubahan dihitung
+ *  terhadap catatan pertama rentang, tanggal awal–akhir ditampilkan, dan
+ *  label rentang nilai menjelaskan dramatisme skala. 2 catatan = perbandingan
+ *  angka (dua titik belum meyakinkan sebagai "tren"); warna netral —
+ *  naik/turun berat belum tentu baik/buruk tanpa konteks target. */
 function WeightSpark({ logs }: { logs: BodyLogs }) {
   const series = useMemo(() => weightSeries(logs).slice(-14), [logs])
+
+  const fmtKg = (n: number) => n.toFixed(1).replace('.', ',')
+  const dateShort = (iso: string) =>
+    new Intl.DateTimeFormat('id-ID', {
+      day: 'numeric',
+      month: 'short',
+    }).format(new Date(iso + 'T00:00:00'))
+
   if (series.length < 2) {
     return (
       <p className="text-meta font-medium text-content-muted">
@@ -46,6 +59,36 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
       </p>
     )
   }
+
+  const first = series[0]
+  const last = series[series.length - 1]
+  const delta = last.kg - first.kg
+  const deltaText =
+    delta === 0
+      ? 'berat stabil'
+      : delta < 0
+        ? `turun ${fmtKg(Math.abs(delta))} kg`
+        : `naik ${fmtKg(delta)} kg`
+
+  /* Dua catatan — perbandingan angka saja, tanpa klaim tren. */
+  if (series.length === 2) {
+    return (
+      <div>
+        <p className="flex items-baseline gap-2">
+          <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
+            {fmtKg(last.kg)} kg
+          </span>
+          <span className="text-eyebrow font-medium text-content-muted">
+            {dateShort(first.date)} → {dateShort(last.date)} · {deltaText}
+          </span>
+        </p>
+        <p className="mt-1 text-eyebrow font-medium text-content-muted">
+          Butuh catatan ketiga sebelum garis tren digambar.
+        </p>
+      </div>
+    )
+  }
+
   const kgs = series.map((s) => s.kg)
   const min = Math.min(...kgs)
   const max = Math.max(...kgs)
@@ -58,37 +101,56 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
     return { x, y }
   })
   const path = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  const delta = series[series.length - 1].kg - series[0].kg
+
   return (
     <div>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-14 w-full"
-        role="img"
-        aria-label={`Tren berat badan ${series.length} catatan terakhir`}
-      >
-        <polyline
-          points={path}
-          fill="none"
-          stroke="var(--chart-stroke-1)"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {pts.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={i === pts.length - 1 ? 4 : 2.5}
-            fill={i === pts.length - 1 ? 'var(--chart-stroke-1)' : 'var(--secondary)'}
-          />
-        ))}
-      </svg>
-      <p className="mt-1 text-meta font-semibold text-content-muted">
-        {series.length} catatan ·{' '}
-        {delta === 0 ? 'berat stabil' : delta < 0 ? `turun ${Math.abs(delta).toFixed(1).replace('.', ',')} kg` : `naik ${delta.toFixed(1).replace('.', ',')} kg`}
+      {/* Baris nilai — terbaru menonjol + perubahan rentang + tanggal. */}
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
+          {fmtKg(last.kg)} kg
+        </span>
+        <span className="text-eyebrow font-medium text-content-secondary">
+          {deltaText}
+        </span>
+        <span className="text-eyebrow font-medium tabular-nums text-content-muted">
+          {dateShort(first.date)} – {dateShort(last.date)}
+        </span>
       </p>
+      {/* Sparkline + label rentang nilai kiri (atas = terberat, bawah =
+          teringan) — pembaca tahu seberapa lebar skala yang digambar. */}
+      <div className="mt-2 flex items-stretch gap-1.5">
+        <div
+          className="flex w-9 shrink-0 flex-col justify-between py-0.5 text-chart-label font-semibold tabular-nums text-content-muted"
+          aria-hidden="true"
+        >
+          <span className="text-right leading-none">{fmtKg(max)}</span>
+          <span className="text-right leading-none">{fmtKg(min)}</span>
+        </div>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-14 min-w-0 flex-1"
+          role="img"
+          aria-label={`Tren berat badan ${series.length} catatan terakhir: dari ${fmtKg(first.kg)} kg menjadi ${fmtKg(last.kg)} kg, ${deltaText}. Rentang ${fmtKg(min)}–${fmtKg(max)} kg`}
+        >
+          <polyline
+            points={path}
+            fill="none"
+            stroke="var(--chart-stroke-1)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {pts.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={i === pts.length - 1 ? 4 : 2.5}
+              fill={i === pts.length - 1 ? 'var(--chart-stroke-1)' : 'var(--secondary)'}
+            />
+          ))}
+        </svg>
+      </div>
     </div>
   )
 }

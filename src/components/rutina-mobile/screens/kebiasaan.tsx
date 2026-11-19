@@ -44,8 +44,8 @@ import {
   HABIT_CAT_COLORS,
   XP_PER_TASK,
   addDaysISO,
-  doneCountOn,
   habitStreak,
+  habitsOn,
   isDoneOn,
   longDateLabel,
   scheduledOn,
@@ -306,15 +306,35 @@ export default function KebiasaanScreen() {
       ),
     [activeHabits, completions, today],
   )
-  const weekDoneTotal = useMemo(() => {
-    let sum = 0
-    let cursor = weekStartISO(today)
-    for (let i = 0; i < 7 && cursor <= today; i++) {
-      sum += doneCountOn(completions, cursor)
-      cursor = addDaysISO(cursor, 1)
+  /* Rasio target pekan — jadwal-aware (audit visualisasi v2.12):
+     terjadwal dihitung dari habitsOn per tanggal (menghormati hari
+     aktif & hari istirahat — BUKAN asumsi semua kebiasaan tiap hari);
+     selesai hanya dihitung untuk kebiasaan yang memang terjadwal
+     hari itu. Hari berjalan dihitung Senin..hari ini; target tersisa
+     = jadwal sisa pekan (besok..Minggu). */
+  const weekTarget = useMemo(() => {
+    const start = weekStartISO(today)
+    let schedElapsed = 0
+    let doneElapsed = 0
+    let schedRemaining = 0
+    for (let i = 0; i < 7; i++) {
+      const iso = addDaysISO(start, i)
+      const scheduled = habitsOn(habits, iso)
+      if (iso <= today) {
+        schedElapsed += scheduled.length
+        doneElapsed += scheduled.filter((h) =>
+          isDoneOn(completions, iso, h.id),
+        ).length
+      } else {
+        schedRemaining += scheduled.length
+      }
     }
-    return sum
-  }, [completions, today])
+    return { schedElapsed, doneElapsed, schedRemaining }
+  }, [habits, completions, today])
+  const weekTargetPct =
+    weekTarget.schedElapsed > 0
+      ? Math.round((weekTarget.doneElapsed / weekTarget.schedElapsed) * 100)
+      : null
   const maturePlants = useMemo(
     () =>
       activeHabits.filter((h) => {
@@ -478,10 +498,29 @@ export default function KebiasaanScreen() {
                   </span>
                   <RutinaMetric
                     className="mt-2"
-                    label="Selesai pekan ini"
-                    value={weekDoneTotal}
-                    unit="kali"
-                    caption="Senin–hari ini"
+                    label="Target pekan ini"
+                    value={
+                      weekTarget.schedElapsed > 0
+                        ? `${weekTarget.doneElapsed}/${weekTarget.schedElapsed}`
+                        : '—'
+                    }
+                    unit="target"
+                    trend={
+                      weekTargetPct == null
+                        ? 'neutral'
+                        : weekTargetPct >= 80
+                          ? 'up'
+                          : weekTargetPct >= 50
+                            ? 'neutral'
+                            : 'down'
+                    }
+                    caption={
+                      weekTarget.schedElapsed === 0
+                        ? 'belum ada jadwal pekan ini'
+                        : `${
+                            weekTargetPct ?? 0
+                          }% tercapai · ${weekTarget.schedRemaining} target tersisa`
+                    }
                   />
                 </m.div>
                 <m.div variants={journalCard} className="min-w-0">

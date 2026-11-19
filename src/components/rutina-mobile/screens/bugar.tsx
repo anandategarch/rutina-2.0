@@ -39,6 +39,7 @@ import {
   cardioSummary,
   deloadActive,
   detectPlateau,
+  e1rmOf,
   kcalOf,
   latestWeight,
   prBoard,
@@ -438,8 +439,10 @@ function ExerciseCard({ name }: { name: string }) {
 
 /* ===== Strip tonase 7 hari — Senin s.d. Minggu pekan berjalan ===== */
 
-/** Label satu huruf hari (Senin–Minggu). */
-const TONASE_DAY_LETTERS = ['S', 'S', 'R', 'K', 'J', 'S', 'M']
+/** Label tiga huruf hari (Senin–Minggu) — audit visualisasi v2.12:
+ *  satu huruf "S S R K J S M" ambigu (dua S bersebelahan); label
+ *  tiga huruf tetap muat di kolom ±48px. */
+const TONASE_DAY_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 const TONASE_DAY_NAMES = [
   'Senin',
   'Selasa',
@@ -453,10 +456,12 @@ const TONASE_DAY_NAMES = [
 function TonaseStrip() {
   const workouts = useRutina((s) => s.workouts)
   const reducedMotion = useReducedMotion()
+  /* Hari terpilih — null = belum memilih (header menampilkan petunjuk). */
+  const [selIdx, setSelIdx] = useState<number | null>(null)
 
   /* Tonase per hari = Σ (beban × repetisi) dari sesi beban hari itu —
      pecahan per tanggal dari logika weekSummary + tonaseOf yang sama. */
-  const { days, values, max, total } = useMemo(() => {
+  const { days, values, max } = useMemo(() => {
     const start = weekRange().start
     const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
     const values = days.map((d) =>
@@ -468,11 +473,26 @@ function TonaseStrip() {
       days,
       values,
       max: Math.max(...values, 0),
-      total: values.reduce((a, v) => a + v, 0),
     }
   }, [workouts])
 
   const todayIdx = (new Date(todayISO() + 'T00:00:00').getDay() + 6) % 7
+
+  /* Bacaan header: hari terpilih bila ada — total pekan sengaja tidak
+     ditampilkan lagi di sini karena hero sudah memuatnya (audit
+     visualisasi v2.12). */
+  const headerRight =
+    selIdx != null
+      ? `${TONASE_DAY_NAMES[selIdx]} · ${
+          values[selIdx] > 0
+            ? `${Math.round(values[selIdx]).toLocaleString('id-ID')} kg`
+            : 'tidak ada latihan'
+        }${
+          values[selIdx] > 0 && max > 0 && values[selIdx] === max
+            ? ' · terberat pekan ini'
+            : ''
+        }`
+      : 'ketuk batang untuk detail'
 
   return (
     <m.section
@@ -488,19 +508,18 @@ function TonaseStrip() {
     >
       <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-          Tonase 7 Hari
+          Tonase per Hari
         </h2>
-        <p className="text-meta font-bold tabular-nums text-module-accent-strong">
-          {total >= 1000
-            ? `${(total / 1000).toFixed(1).replace('.', ',')}t`
-            : Math.round(total).toLocaleString('id-ID')}
-          <span className="ml-1 text-chart-label font-semibold text-content-muted">
-            kg pekan ini
-          </span>
+        <p
+          className={`text-eyebrow font-medium tabular-nums ${
+            selIdx != null ? 'text-module-accent-strong' : 'text-content-muted'
+          }`}
+        >
+          {headerRight}
         </p>
       </div>
-      {/* Tujuh batang tipis — tinggi proporsional tonase hari; hari kosong
-          tampak samar. Tumbuh lewat scaleY (transform-only) dari dasar. */}
+      {/* Tujuh batang — tinggi proporsional tonase hari; ketuk kolom untuk
+          membaca nilai di header. Tumbuh lewat scaleY (transform-only). */}
       <div
         className="mt-3 flex gap-1.5"
         role="img"
@@ -514,10 +533,17 @@ function TonaseStrip() {
           const has = v > 0
           /* Hari terisi minimal 12% agar terlihat; hari kosong stub 6%. */
           const h = has ? Math.max((v / max) * 100, 12) : 6
+          const isSel = selIdx === i
           return (
-            <div
+            <button
               key={d}
-              className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
+              type="button"
+              aria-pressed={isSel}
+              aria-label={`${TONASE_DAY_NAMES[i]}: ${
+                has ? `${Math.round(v).toLocaleString('id-ID')} kg tonase` : 'tidak ada latihan'
+              }`}
+              onClick={() => setSelIdx(isSel ? null : i)}
+              className="group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
             >
               <div className="flex h-16 w-full items-end">
                 <m.div
@@ -531,25 +557,70 @@ function TonaseStrip() {
                     ease: motionTokens.easing.standard,
                   }}
                   style={{ height: `${h}%`, transformOrigin: 'bottom' }}
-                  className={`w-full rounded-full ${
-                    has ? 'bg-module-accent/90' : 'bg-module-accent/20'
+                  className={`w-full rounded-full transition-colors ${
+                    isSel
+                      ? 'bg-module-accent-strong'
+                      : has
+                        ? 'bg-module-accent/80 group-hover:bg-module-accent'
+                        : 'bg-module-accent/20'
                   }`}
                 />
               </div>
               <span
-                className={`text-[9px] font-bold ${
-                  i === todayIdx
+                className={`text-chart-label font-semibold ${
+                  isSel || i === todayIdx
                     ? 'text-module-accent-strong'
                     : 'text-content-muted'
                 }`}
               >
-                {TONASE_DAY_LETTERS[i]}
+                {TONASE_DAY_LABELS[i]}
               </span>
-            </div>
+            </button>
           )
         })}
       </div>
     </m.section>
+  )
+}
+
+/* ===== Sparkline e1RM per gerakan — mini garis perkembangan kekuatan.
+   Hanya digambar bila sebuah gerakan punya ≥3 catatan sesi (audit
+   visualisasi v2.12: dua titik belum meyakinkan sebagai tren). Warna
+   gold tua (chart-stroke-3) — zona highlight papan rekor. */
+function PrSpark({ points }: { points: { e1: number }[] }) {
+  const vals = points.map((p) => p.e1)
+  const min = Math.min(...vals)
+  const max = Math.max(...vals)
+  const span = Math.max(max - min, 0.1)
+  const W = 64
+  const H = 24
+  const pts = points.map((p, i) => ({
+    x: (i / (points.length - 1)) * (W - 6) + 3,
+    y: H - 3 - ((p.e1 - min) / span) * (H - 6),
+  }))
+  const d = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-6 w-16 shrink-0"
+      role="img"
+      aria-label={`Perkembangan e1RM ${points.length} sesi terakhir`}
+    >
+      <polyline
+        points={d}
+        fill="none"
+        stroke="var(--chart-stroke-3)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx={pts[pts.length - 1].x}
+        cy={pts[pts.length - 1].y}
+        r="2.5"
+        fill="var(--chart-stroke-3)"
+      />
+    </svg>
   )
 }
 
@@ -575,6 +646,27 @@ export default function BugarScreen() {
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
   const prs = useMemo(() => prBoard(workouts), [workouts])
   const topPr = prs[0]
+  /* Riwayat e1RM per gerakan — e1RM terbaik tiap sesi, urut tanggal;
+     dipakai sparkline papan rekor (audit visualisasi v2.12). */
+  const prHistory = useMemo(() => {
+    const map = new Map<string, { e1: number }[]>()
+    const byDate = [...workouts]
+      .filter((w) => w.kind === 'beban')
+      .sort((a, b) => a.date.localeCompare(b.date))
+    for (const w of byDate) {
+      const perEx = new Map<string, number>()
+      for (const s of w.sets) {
+        const e = e1rmOf(s.weight, s.reps)
+        perEx.set(s.exercise, Math.max(perEx.get(s.exercise) ?? 0, e))
+      }
+      for (const [name, e1] of perEx) {
+        const arr = map.get(name) ?? []
+        arr.push({ e1 })
+        map.set(name, arr)
+      }
+    }
+    return map
+  }, [workouts])
   /* Estimasi kalori terbakar pekan ini — MET × berat tercatat. */
   const weight = useMemo(() => latestWeight(bodyLogs), [bodyLogs])
   const weekKcal = useMemo(
@@ -1103,6 +1195,10 @@ export default function BugarScreen() {
                     {r.sessions} sesi tercatat
                   </p>
                 </div>
+                {/* Sparkline perkembangan — hanya bila ≥3 sesi tercatat. */}
+                {(prHistory.get(r.name)?.length ?? 0) >= 3 && (
+                  <PrSpark points={prHistory.get(r.name)!.slice(-8)} />
+                )}
                 <div className="shrink-0 text-right">
                   <p className="text-section-lg font-bold leading-none tabular-nums text-content-primary">
                     {r.best.toFixed(1).replace('.', ',')}
