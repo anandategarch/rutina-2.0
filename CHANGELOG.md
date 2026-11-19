@@ -3,6 +3,52 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.26] — Audit CRUD Menyeluruh · Opsi Hapus Kini Terjangkau di Mana-mana
+
+Audit menyeluruh atas operasi kelola data (buat/sunting/hapus) di seluruh
+modul, dipicu keluhan "tidak ada opsi hapus kebiasaan" — akar masalahnya
+bukan hilangnya aksi, melainkan REACHABILITY (aksi terkubur) dan CEKUNGAN
+CRUD (entitas tanpa hapus/sunting sama sekali).
+
+### KRITIS — layar Statistik & Profil tidak bisa dimuat
+- **Impor dinamis rusak** (v2.25): `import('./screens/statistik')` dan
+  `import('./screens/profil')` menunjuk berkas yang tidak ada (nama
+  sebenarnya `stats.tsx` / `profile.tsx`) — kedua layar gagal termuat
+  (module-not-found) saat dibuka. Diperbaiki + diverifikasi browser E2E.
+
+### Tujuan Tabungan — CRUD lengkap (dulu: sekali buat, selamanya menempel)
+- **Sunting tujuan** (baru): nama & target bisa diubah kapan pun lewat
+  dialog sunting — tabungan terkumpul tetap utuh.
+- **Hapus tujuan** (baru): konfirmasi AlertDialog, termasuk riwayat
+  setorannya; tujuan TERCAPAI kini akhirnya bisa dilepas (dulu buntu
+  total — badge "Tercapai" tanpa jalan keluar).
+- **Tombol kelola (kebab)** di sudut kartu tujuan membuka sheet tujuan
+  yang sama dengan "Setor" — satu tempat kelola untuk semua keadaan.
+- Store: `updateGoal`, `deleteGoal`, `openGoalEdit`/`closeGoalEdit`,
+  `goalEditId` — otomatis ikut persist lokal + sinkronisasi domain.
+
+### Kebiasaan — aksi kelola turun ke Panel Detail
+- **Arsipkan + Hapus permanen kini ada LANGSUNG di Panel Detail** (inline
+  ponsel & kolom kanan desktop) — sebelumnya terkubur di dasar sheet
+  sunting yang harus digulir penuh (akar keluhan "tidak ada opsi hapus").
+- Konfirmasi AlertDialog + saran "pertimbangkan arsip" pada teks hapus.
+
+### Kelompok kebiasaan — ganti nama & warna (baru)
+- Chip "Kelola" di sheet kebiasaan kini bisa diklik untuk mengisi baris
+  buat dengan data kelompok (mode sunting: tombol Buat → Simpan, tautan
+  batal tersedia). Store: `renameHabitGroup` dengan validasi duplikat.
+
+### Audit CRUD modul lain (verifikasi — sudah lengkap, tanpa perubahan)
+- Catatan jurnal: sunting + hapus + sematkan ✓ · Transaksi: sunting +
+  hapus ✓ · Dompet: sunting + hapus ✓ · Kategori: hapus ✓ · Aktivitas
+  bugar: hapus (dengan ringkasan set) ✓ · Asupan makanan: hapus ✓
+
+### Verifikasi
+- `tsc --noEmit` + ESLint bersih; keenam layar 0 error halaman/console.
+- E2E browser (desktop 1440px + ponsel 390px): buat→sunting→hapus
+  tujuan; buat→arsip→pulihkan→hapus kebiasaan; buat→ganti nama→hapus
+  kelompok; kedua layar yang dulu rusak termuat sempurna.
+
 ## [2.25] — Tahap 3+4 · Motion Terarah & Performa
 
 ### Tahap 3 — Motion design

@@ -91,6 +91,7 @@ export function HabitSheet() {
   const habitGroups = useRutina((s) => s.habitGroups)
   const addHabitGroup = useRutina((s) => s.addHabitGroup)
   const deleteHabitGroup = useRutina((s) => s.deleteHabitGroup)
+  const renameHabitGroup = useRutina((s) => s.renameHabitGroup)
   const addHabit = useRutina((s) => s.addHabit)
   const updateHabit = useRutina((s) => s.updateHabit)
   const setHabitArchived = useRutina((s) => s.setHabitArchived)
@@ -109,6 +110,9 @@ export function HabitSheet() {
   const [newGroupColor, setNewGroupColor] = useState<string>(
     HABIT_GROUP_COLORS[0].token,
   )
+  /* Mode sunting kelompok (audit CRUD v2.26) — baris "buat" berubah
+     jadi "simpan" saat kelompok dipilih untuk diganti namanya. */
+  const [editGroupId, setEditGroupId] = useState<string | null>(null)
   const [prevKey, setPrevKey] = useState('')
   /* Pemilih pemicu "Susun Kebiasaan" — panel kandidat dibuka manual lewat
      "Ubah"; kueri cari menyaring daftar yang panjang. */
@@ -127,6 +131,7 @@ export function HabitSheet() {
     setPickTriggerOpen(false)
     setTriggerQuery('')
     setNewGroupName('')
+    setEditGroupId(null)
     if (open) {
       if (editing) {
         setDraft({
@@ -471,43 +476,98 @@ export function HabitSheet() {
                       variant="outline"
                       disabled={!newGroupName.trim()}
                       onClick={() => {
-                        const g = addHabitGroup(newGroupName, newGroupColor)
-                        if (g) {
-                          setDraft((p) => ({ ...p, groupId: g.id }))
-                          setNewGroupName('')
-                          toast.success(`Kelompok "${g.name}" dibuat`)
+                        if (editGroupId) {
+                          /* Mode sunting — simpan nama/warna baru. */
+                          const res = renameHabitGroup(
+                            editGroupId,
+                            newGroupName,
+                            newGroupColor,
+                          )
+                          if (res.ok) {
+                            toast.success('Kelompok diperbarui')
+                            setEditGroupId(null)
+                            setNewGroupName('')
+                          } else {
+                            toast.warning(res.error)
+                          }
                         } else {
-                          toast.info('Nama kelompok sudah dipakai')
+                          const g = addHabitGroup(newGroupName, newGroupColor)
+                          if (g) {
+                            setDraft((p) => ({ ...p, groupId: g.id }))
+                            setNewGroupName('')
+                            toast.success(`Kelompok "${g.name}" dibuat`)
+                          } else {
+                            toast.info('Nama kelompok sudah dipakai')
+                          }
                         }
                       }}
                       className="h-10 shrink-0 rounded-xl px-3 text-meta font-bold"
                     >
-                      Buat
+                      {editGroupId ? 'Simpan' : 'Buat'}
                     </Button>
                   </div>
+                  {/* isyarat mode sunting aktif */}
+                  {editGroupId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditGroupId(null)
+                        setNewGroupName('')
+                      }}
+                      className="text-eyebrow font-semibold text-content-muted underline decoration-dotted underline-offset-2 transition-colors hover:text-content-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      Sedang menyunting kelompok — batal dan kembali membuat baru
+                    </button>
+                  )}
                   {habitGroups.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-eyebrow font-medium text-content-muted">
                         Kelola:
                       </span>
                       {habitGroups.map((g) => (
-                        <button
+                        <span
                           key={g.id}
-                          type="button"
-                          onClick={() => {
-                            deleteHabitGroup(g.id)
-                            if (draft.groupId === g.id)
-                              setDraft((p) => ({ ...p, groupId: null }))
-                            toast.info(
-                              `Kelompok "${g.name}" dihapus — anggotanya kembali tanpa kelompok`,
-                            )
-                          }}
-                          aria-label={`Hapus kelompok ${g.name}`}
-                          className="flex h-7 items-center gap-1 rounded-full border border-border px-2.5 text-eyebrow font-semibold text-content-muted transition-colors hover:border-destructive/40 hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          className="flex items-center gap-1 rounded-full border border-border pr-1"
                         >
-                          {g.name}
-                          <Trash2 className="h-3 w-3" aria-hidden="true" />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              /* Isi baris buat dengan data kelompok — mode
+                                 sunting nama/warna (audit CRUD v2.26). */
+                              setEditGroupId(g.id)
+                              setNewGroupName(g.name)
+                              setNewGroupColor(g.color)
+                            }}
+                            aria-label={`Ganti nama kelompok ${g.name}`}
+                            className="flex h-7 cursor-pointer items-center gap-1 rounded-full px-2.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: g.color }}
+                            />
+                            {g.name}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteHabitGroup(g.id)
+                              if (draft.groupId === g.id)
+                                setDraft((p) => ({ ...p, groupId: null }))
+                              if (editGroupId === g.id) {
+                                setEditGroupId(null)
+                                setNewGroupName('')
+                              }
+                              toast.info(
+                                `Kelompok "${g.name}" dihapus — anggotanya kembali tanpa kelompok`,
+                              )
+                            }}
+                            aria-label={`Hapus kelompok ${g.name}`}
+                            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            <Trash2 className="h-3 w-3" aria-hidden="true" />
+                          </button>
+                        </span>
                       ))}
                     </div>
                   )}

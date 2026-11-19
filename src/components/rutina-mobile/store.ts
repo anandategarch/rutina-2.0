@@ -1094,6 +1094,14 @@ interface RutinaState {
   openGoalDialog: () => void
   closeGoalDialog: () => void
   addGoal: (name: string, target: number) => void
+  /** Sunting tujuan tabungan (audit CRUD v2.26) — nama/target bisa
+   *  diubah kapan pun; tabungan terkumpul tetap utuh. */
+  goalEditId: string | null
+  openGoalEdit: (id: string) => void
+  closeGoalEdit: () => void
+  updateGoal: (id: string, patch: { name?: string; target?: number }) => void
+  /** Hapus tujuan (audit CRUD v2.26) — konfirmasi ada di UI (AlertDialog). */
+  deleteGoal: (id: string) => void
   /* Aksi bugar */
   openWorkoutSheet: (seed?: WorkoutSeed[], hint?: WorkoutSheetHint) => void
   closeWorkoutSheet: () => void
@@ -1136,6 +1144,13 @@ interface RutinaState {
   /* Kelompok kebiasaan custom (v2.22). */
   addHabitGroup: (name: string, color: string) => HabitGroup | null
   deleteHabitGroup: (id: string) => void
+  /** Ganti nama/warna kelompok (audit CRUD v2.26) — anggota tetap
+   *  terhubung; nama duplikat ditolak (pola addHabitGroup). */
+  renameHabitGroup: (
+    id: string,
+    name: string,
+    color: string,
+  ) => { ok: boolean; error?: string }
   /* Jeda Runtun Aman (streak freeze) */
   scheduleRestDay: (
     id: string,
@@ -1212,6 +1227,7 @@ export const useRutina = create<RutinaState>()(
   finDrill: null,
   goalSheetId: null,
   goalDialogOpen: false,
+  goalEditId: null,
   expandedTxId: null,
   /* Bugar */
   workouts: [],
@@ -1572,6 +1588,35 @@ export const useRutina = create<RutinaState>()(
       ],
     })),
 
+  openGoalEdit: (goalEditId) => set({ goalEditId }),
+
+  closeGoalEdit: () => set({ goalEditId: null }),
+
+  updateGoal: (id, patch) =>
+    set((s) => ({
+      goals: s.goals.map((g) =>
+        g.id === id
+          ? {
+              ...g,
+              name: patch.name != null ? patch.name.trim() : g.name,
+              /* Target baru tak boleh di bawah nominal minimum begitu
+                 tujuan dibuat; jaga agar tetap > 0. */
+              target:
+                patch.target != null ? Math.max(1000, patch.target) : g.target,
+            }
+          : g,
+      ),
+    })),
+
+  deleteGoal: (id) =>
+    set((s) => ({
+      goals: s.goals.filter((g) => g.id !== id),
+      /* Tutup sheet/kelola tujuan yang mungkin masih menunjuk tujuan
+         yang dihapus. */
+      goalSheetId: s.goalSheetId === id ? null : s.goalSheetId,
+      goalEditId: s.goalEditId === id ? null : s.goalEditId,
+    })),
+
   /* --- Aksi bugar --- */
 
   openWorkoutSheet: (seed, hint) =>
@@ -1824,6 +1869,24 @@ export const useRutina = create<RutinaState>()(
         h.groupId === id ? { ...h, groupId: null } : h,
       ),
     })),
+
+  renameHabitGroup: (id, name, color) => {
+    const clean = name.trim().slice(0, 24)
+    if (!clean) return { ok: false, error: 'Nama kelompok tidak boleh kosong.' }
+    const s = get()
+    if (
+      s.habitGroups.some(
+        (g) => g.id !== id && g.name.toLowerCase() === clean.toLowerCase(),
+      )
+    )
+      return { ok: false, error: 'Nama kelompok sudah dipakai.' }
+    set((st) => ({
+      habitGroups: st.habitGroups.map((g) =>
+        g.id === id ? { ...g, name: clean, color } : g,
+      ),
+    }))
+    return { ok: true }
+  },
 
   /* --- Jeda Runtun Aman (streak freeze) --- */
 

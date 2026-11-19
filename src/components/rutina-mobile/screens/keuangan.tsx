@@ -15,6 +15,7 @@ import {
   Info,
   Laptop,
   Minus,
+  MoreHorizontal,
   Pencil,
   PiggyBank,
   Plane,
@@ -335,8 +336,19 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ ...motionTokens.preset.data, delay: Math.min(index * 0.07, 0.28) }}
-        className="flex h-full min-h-[200px] flex-col rounded-xl bg-surface-primary p-4 text-content-primary shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift"
+        className="relative flex h-full min-h-[200px] flex-col rounded-xl bg-surface-primary p-4 text-content-primary shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift"
       >
+        {/* Kelola tujuan (audit CRUD v2.26) — pintu ke sunting/hapus
+            via ContributeGoalSheet; TAMPIL di semua keadaan, termasuk
+            tujuan tercapai yang dulu buntu tanpa jalan keluar. */}
+        <button
+          type="button"
+          onClick={() => openGoalSheet(goal.id)}
+          aria-label={`Kelola tujuan ${goal.name}`}
+          className="absolute right-1.5 top-1.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <MoreHorizontal className="h-4 w-4" strokeWidth={2.4} />
+        </button>
         <div className="flex items-center gap-3.5">
           <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
             <svg

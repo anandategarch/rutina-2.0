@@ -22,11 +22,23 @@ import {
   Sunset,
   Target,
   Timer,
+  Trash2,
   Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
@@ -536,6 +548,11 @@ function HabitDetailPanel({
   /** Aksi “cukup versi 2 menit” — menerima kebiasaan sebagai argumen. */
   onCompleteMini?: (habit: Habit) => void
 }) {
+  /* Kelola cepat (audit CRUD v2.26) — arsip & hapus kini terjangkau
+     LANGSUNG dari panel detail, tak perlu membuka sheet sunting dan
+     menggulir ke dasarnya (akar keluhan "tidak ada opsi hapus"). */
+  const setHabitArchived = useRutina((s) => s.setHabitArchived)
+  const deleteHabit = useRutina((s) => s.deleteHabit)
   /* Metrik inti — dihitung dari histori nyata; dipakai di JSX saja. */
   const streak = habitStreak(habit, completions, today)
   const weekDone = weekDoneCount(completions, habit.id, today)
@@ -722,6 +739,60 @@ function HabitDetailPanel({
           <Pencil className="h-4 w-4" strokeWidth={2.4} />
           Sunting kebiasaan
         </button>
+
+        {/* Zona kelola — arsip & hapus tanpa membuka sheet sunting.
+            Konfirmasi AlertDialog mencegah salah ketuk (pola hapus
+            transaksi/catatan/tujuan). */}
+        <div className="mt-2.5 flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setHabitArchived(habit.id, true)
+              toast.success('Kebiasaan diarsipkan — pulihkan kapan pun dari Arsip')
+            }}
+            className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-surface-primary text-meta font-bold text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Archive className="h-4 w-4" />
+            Arsipkan
+          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Hapus permanen ${habit.title}`}
+                className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-destructive/30 text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-[400px] rounded-sheet border-border bg-surface-primary p-6">
+              <AlertDialogHeader className="text-left">
+                <AlertDialogTitle className="text-lead tracking-tight text-content-primary">
+                  Hapus kebiasaan ini?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-note text-content-muted">
+                  &ldquo;{habit.title}&rdquo; beserta seluruh riwayat
+                  penyelesaiannya akan dihapus permanen. Pertimbangkan
+                  mengarsipkan bila hanya ingin istirahat sementara.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-3 flex flex-row gap-2">
+                <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-note font-semibold text-content-secondary hover:bg-surface-secondary">
+                  Batal
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    deleteHabit(habit.id)
+                    toast.info('Kebiasaan dihapus')
+                  }}
+                  className="h-10 flex-1 rounded-full bg-destructive text-note font-semibold text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Hapus
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </RutinaCard>
     </m.div>
   )

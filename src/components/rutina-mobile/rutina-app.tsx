@@ -27,7 +27,7 @@ import { CelebrationOverlay } from './celebration'
 import { Splash } from './splash'
 import { AddTxSheet } from './finance/add-tx-sheet'
 import { TransferSheet } from './finance/transfer-sheet'
-import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
+import { ContributeGoalSheet, EditGoalDialog, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
 import { useSyncEngine } from './sync-engine'
 import dynamic from 'next/dynamic'
@@ -49,8 +49,8 @@ const loadBugar = () => import('./screens/bugar')
 const loadJournal = () => import('./screens/journal')
 const loadKebiasaan = () => import('./screens/kebiasaan')
 const loadKeuangan = () => import('./screens/keuangan')
-const loadStats = () => import('./screens/statistik')
-const loadProfile = () => import('./screens/profil')
+const loadStats = () => import('./screens/stats')
+const loadProfile = () => import('./screens/profile')
 
 const BugarScreen = dynamic(loadBugar, { ssr: false, loading: ScreenSkeleton })
 const JournalScreen = dynamic(loadJournal, { ssr: false, loading: ScreenSkeleton })
@@ -287,6 +287,7 @@ export function RutinaApp() {
             <TransferSheet />
             <ContributeGoalSheet />
             <NewGoalDialog />
+            <EditGoalDialog />
             <HabitSheet />
             <WorkoutSheet />
             <FoodSheet />
