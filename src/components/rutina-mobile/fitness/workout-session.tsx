@@ -1044,6 +1044,17 @@ function SessionCelebration({
   const rootRef = useRef<HTMLDivElement>(null)
   const doneRef = useRef(false)
 
+  /* onDone dibaca lewat ref, BUKAN dependency — callback inline dari parent
+     berubah identitas tiap re-render; jika masuk deps, re-render di tengah
+     perayaan menjalankan cleanup (timer dibatalkan + scope.revert()) lalu
+     berhenti di guard doneRef → onDone tak pernah terpanggil → overlay
+     gelap full-screen menempel permanen. Ref membuat effect hanya
+     bergantung pada `summary`. */
+  const onDoneRef = useRef(onDone)
+  useEffect(() => {
+    onDoneRef.current = onDone
+  })
+
   useEffect(() => {
     if (!summary) {
       doneRef.current = false
@@ -1095,12 +1106,12 @@ function SessionCelebration({
     })
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const timer = setTimeout(onDone, reduced ? 1000 : 2600)
+    const timer = setTimeout(() => onDoneRef.current(), reduced ? 1000 : 2600)
     return () => {
       clearTimeout(timer)
       scope.revert()
     }
-  }, [summary, onDone])
+  }, [summary])
 
   return (
     <AnimatePresence>

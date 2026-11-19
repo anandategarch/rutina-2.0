@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import {
   AnimatePresence,
@@ -87,6 +87,12 @@ export function RutinaApp() {
   const closeBoard = useRutina((s) => s.closeBoard)
   const [phase, setPhase] = useState<'splash' | 'app'>('splash')
 
+  /* Callback stabil untuk Splash — tanpa ini identitas arrow berubah tiap
+     re-render (rehidrasi persist / update store terjadi tepat saat splash
+     berjalan), memicu ulang effect di Splash: timeline anime.js kembali ke
+     nol dan timer 2,6 dtk di-reset (splash terlihat "tersendat"). */
+  const handleSplashDone = useCallback(() => setPhase('app'), [])
+
   /* Mesin sinkronisasi cloud (Turso): pulihkan state persist paska-mount
      (pola skipHydration — render pertama memakai seed, lalu histori lokal
      mengambil alih tanpa hydration mismatch), tarik/unggah snapshot
@@ -94,11 +100,14 @@ export function RutinaApp() {
      materializeRecurring dijalankan engine setelah sinkronisasi awal. */
   useSyncEngine()
 
-  /* PWA — daftarkan service worker offline shell (hanya di klien,
-     pada konteks aman: https atau localhost). Kegagalan didiamkan:
-     SW adalah pening pengalaman, bukan kebutuhan fungsional. */
+  /* PWA — daftarkan service worker offline shell HANYA di production.
+     Di dev, strategi stale-while-revalidate SW untuk chunk /_next/static
+     menyajikan chunk basi setelah suntingan (kode baru baru muncul pada
+     reload kedua) — membingungkan iterasi. Kegagalan didiamkan: SW adalah
+     pening pengalaman, bukan kebutuhan fungsional. */
   useEffect(() => {
     if (
+      process.env.NODE_ENV === 'production' &&
       'serviceWorker' in navigator &&
       (location.protocol === 'https:' || location.hostname === 'localhost')
     ) {
@@ -142,7 +151,7 @@ export function RutinaApp() {
     <div className="@container relative flex h-full w-full flex-col overflow-hidden text-content-primary">
         <AnimatePresence>
           {phase === 'splash' && (
-            <Splash key="splash" onDone={() => setPhase('app')} />
+            <Splash key="splash" onDone={handleSplashDone} />
           )}
         </AnimatePresence>
 

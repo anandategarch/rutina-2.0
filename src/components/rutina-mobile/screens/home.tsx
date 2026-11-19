@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { AnimatePresence, useScroll, useTransform } from 'motion/react'
+import { AnimatePresence, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate } from 'animejs'
 import {
@@ -496,22 +496,25 @@ export default function HomeScreen() {
     return out.slice(0, 3)
   }, [todayHabits, completions, today])
 
-  /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim */
+  /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim.
+     Kebijakan reduced-motion: klaim tetap tercatat tanpa ledakan. */
+  const reducedMotion = useReducedMotion()
   useEffect(() => {
     if (bonusClaimed && !prevBonusRef.current && giftRef.current) {
+      prevBonusRef.current = true
+      if (reducedMotion) return
       const anim = animate(giftRef.current, {
         scale: [1, 1.4, 1],
         rotate: [0, -14, 9, 0],
         duration: 750,
         ease: 'outBack(2.2)',
       })
-      prevBonusRef.current = true
       return () => {
         anim.revert()
       }
     }
     prevBonusRef.current = bonusClaimed
-  }, [bonusClaimed])
+  }, [bonusClaimed, reducedMotion])
 
   /* Header menyusut halus saat layar digulir — transform & opacity saja. */
   const { scrollY } = useScroll({ container: scrollRef })

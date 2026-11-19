@@ -704,9 +704,11 @@ export default function BugarScreen() {
               <button
                 type="button"
                 onClick={openCheckIn}
-                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-[12.5px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-surface-inverse pl-4 pr-[72px] text-[12.5px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                Isi check-in pagi untuk saran latihan
+                {/* pr-[72px] = FAB 56px + jarak 16px: label tak pernah
+                    tertindih FAB mengambang yang anchored di kanan-bawah. */}
+                <span className="truncate">Isi check-in pagi untuk saran latihan</span>
               </button>
             )}
           </m.div>

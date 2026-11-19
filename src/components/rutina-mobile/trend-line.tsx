@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useInView } from 'motion/react'
+import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate } from 'animejs'
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
@@ -75,10 +75,18 @@ export default function TrendLine() {
   const lineRef = useRef<SVGPathElement>(null)
   const lineInView = useInView(svgRef, { once: true, margin: '-40px' })
 
-  // anime.js — garis digambar (stroke draw-in) saat terlihat
+  // anime.js — garis digambar (stroke draw-in) saat terlihat.
+  // Kebijakan reduced-motion: garis langsung tampil penuh.
+  const reducedMotion = useReducedMotion()
   useEffect(() => {
     if (!lineInView || !lineRef.current) return
     const el = lineRef.current
+    if (reducedMotion) {
+      /* Bersihkan dash manual (sisa run sebelumnya) agar garis utuh. */
+      el.style.strokeDasharray = ''
+      el.style.strokeDashoffset = ''
+      return
+    }
     const len = el.getTotalLength()
     el.style.strokeDasharray = `${len}`
     el.style.strokeDashoffset = `${len}`
@@ -90,7 +98,7 @@ export default function TrendLine() {
     return () => {
       anim.revert()
     }
-  }, [lineInView])
+  }, [lineInView, reducedMotion])
 
   const deltaLabel =
     deltaPct > 0

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useInView } from 'motion/react'
+import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 import {
@@ -464,10 +464,27 @@ export default function StatsScreen() {
   ]
   const unlockedCount = badges.filter((b) => b.unlocked).length
 
-  /* anime.js — batang grafik tumbuh saat terlihat & saat periode berganti */
+  /* anime.js — batang grafik tumbuh saat terlihat & saat periode berganti.
+     Kebijakan reduced-motion: batang langsung tampil tanpa koreografi. */
+  const reducedMotion = useReducedMotion()
   useEffect(() => {
-    if (!chartInView || !chartRef.current) return
-    const anim = animate(chartRef.current.querySelectorAll('[data-bar]'), {
+    if (!chartRef.current) return
+    const bars = chartRef.current.querySelectorAll('[data-bar]')
+    if (!chartInView || reducedMotion) {
+      /* Tanpa animasi: pastikan batang pada keadaan alami — termasuk
+         membersihkan sisa scaleY(0) dari run sebelumnya bila preferensi
+         berubah di tengah jalan. */
+      bars.forEach((el) => {
+        ;(el as HTMLElement).style.transform = ''
+      })
+      return
+    }
+    /* Sembunyikan batang SEBELUM memicu stagger — tanpa ini batang akhir
+       (delay ±0,3 dtk) sempat tampil penuh lalu melompat ke 0 (kilatan). */
+    bars.forEach((el) => {
+      ;(el as HTMLElement).style.transform = 'scaleY(0)'
+    })
+    const anim = animate(bars, {
       scaleY: [0, 1],
       delay: stagger(55),
       duration: 850,
@@ -476,7 +493,7 @@ export default function StatsScreen() {
     return () => {
       anim.revert()
     }
-  }, [chartInView, period])
+  }, [chartInView, period, reducedMotion])
 
   return (
     <TooltipProvider delayDuration={120}>

@@ -55,8 +55,24 @@ export default function Heatmap() {
   // anime.js — sel heatmap bermunculan bergelombang saat terlihat.
   // Kebijakan reduced-motion: sel langsung tampil tanpa gelombang.
   useEffect(() => {
-    if (!inView || reducedMotion || !rootRef.current) return
-    const anim = animate(rootRef.current.querySelectorAll('button'), {
+    if (!rootRef.current) return
+    const cells = rootRef.current.querySelectorAll('button')
+    if (!inView || reducedMotion) {
+      /* Tanpa animasi (belum terlihat / reduce-motion): pastikan sel pada
+         keadaan alami — termasuk membersihkan sisa scale(0) dari run sebelumnya
+         bila preferensi berubah di tengah jalan. */
+      cells.forEach((el) => {
+        ;(el as HTMLElement).style.transform = ''
+      })
+      return
+    }
+    /* Sembunyikan sel SEBELUM memicu stagger — tanpa ini sel terakhir
+       (delay gelombang ±0,5 dtk) sempat tampil penuh lalu melompat ke 0
+       sebelum tumbuh (kilatan awal). */
+    cells.forEach((el) => {
+      ;(el as HTMLElement).style.transform = 'scale(0)'
+    })
+    const anim = animate(cells, {
       scale: [0, 1],
       delay: stagger(6, { grid: [7, 12], from: 'first' }),
       duration: 420,
@@ -112,7 +128,7 @@ export default function Heatmap() {
                 title={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
                 onClick={() => setSel({ w, d })}
                 className={
-                  'h-5 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                  'h-5 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
                     ? 'ring-2 ring-primary ring-offset-1 ring-offset-cocoa'
                     : '')

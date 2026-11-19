@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
 import {
   ArrowDownRight,
@@ -695,51 +695,70 @@ function FocusCard() {
 export function ContextRail() {
   const screen = useRutina((s) => s.screen)
 
+  /* Render konten rail HANYA pasca-mount. Seluruh metrik kartu diturunkan
+     dari data store + tanggal/jam klien (todayISO/nowHM) yang bisa berbeda
+     dengan server (zona waktu — pengguna WIB vs server UTC) — merender
+     kosong saat SSR/hidrasi mencegah hydration mismatch yang memaksa React
+     me-render ulang seluruh pohon. Di bawah xl rail tersembunyi (tanpa
+     dampak visual); di desktop konten muncul lewat animasi entrance
+     RailSection yang memang dirancang untuk itu. Pola useSyncExternalStore
+     (snapshot server false → klien true) = deteksi hidrasi tanpa setState
+     dalam effect. */
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+
   return (
     <aside
       aria-label="Panel konteks"
       className="hidden h-full w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface-primary/60 p-5 pb-6 xl:flex"
     >
-      {/* Kartu 1 — ringkasan utama domain layar aktif */}
-      <RailSection delay={0.05}>
-        {screen === 'bugar' ? (
-          <BodyReadinessCard />
-        ) : screen === 'keuangan' ? (
-          <PeriodCard />
-        ) : screen === 'kebiasaan' ? (
-          <ConsistencyCard />
-        ) : screen === 'statistik' ? (
-          <InsightCard />
-        ) : (
-          <WeekSummaryCard />
-        )}
-      </RailSection>
+      {mounted && (
+        <>
+          {/* Kartu 1 — ringkasan utama domain layar aktif */}
+          <RailSection delay={0.05}>
+            {screen === 'bugar' ? (
+              <BodyReadinessCard />
+            ) : screen === 'keuangan' ? (
+              <PeriodCard />
+            ) : screen === 'kebiasaan' ? (
+              <ConsistencyCard />
+            ) : screen === 'statistik' ? (
+              <InsightCard />
+            ) : (
+              <WeekSummaryCard />
+            )}
+          </RailSection>
 
-      {/* Kartu 2 — agenda / rekor / anggaran sesuai domain */}
-      <RailSection delay={0.13}>
-        {screen === 'bugar' ? (
-          <PrCard />
-        ) : screen === 'keuangan' ? (
-          <BudgetCard />
-        ) : screen === 'kebiasaan' ? (
-          <NextUpCard title="Agenda" />
-        ) : (
-          <NextUpCard />
-        )}
-      </RailSection>
+          {/* Kartu 2 — agenda / rekor / anggaran sesuai domain */}
+          <RailSection delay={0.13}>
+            {screen === 'bugar' ? (
+              <PrCard />
+            ) : screen === 'keuangan' ? (
+              <BudgetCard />
+            ) : screen === 'kebiasaan' ? (
+              <NextUpCard title="Agenda" />
+            ) : (
+              <NextUpCard />
+            )}
+          </RailSection>
 
-      {/* Kartu 3 — hidrasi / aktivitas / taman / tips */}
-      <RailSection delay={0.21}>
-        {screen === 'bugar' ? (
-          <HydrationCard />
-        ) : screen === 'keuangan' ? (
-          <RecentTxsCard />
-        ) : screen === 'kebiasaan' ? (
-          <GardenCard />
-        ) : (
-          <TipsCard />
-        )}
-      </RailSection>
+          {/* Kartu 3 — hidrasi / aktivitas / taman / tips */}
+          <RailSection delay={0.21}>
+            {screen === 'bugar' ? (
+              <HydrationCard />
+            ) : screen === 'keuangan' ? (
+              <RecentTxsCard />
+            ) : screen === 'kebiasaan' ? (
+              <GardenCard />
+            ) : (
+              <TipsCard />
+            )}
+          </RailSection>
+        </>
+      )}
     </aside>
   )
 }

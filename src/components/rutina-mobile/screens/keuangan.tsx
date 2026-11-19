@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { animate } from 'animejs'
-import { AnimatePresence, useSpring } from 'motion/react'
+import { AnimatePresence, useReducedMotion, useSpring } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   AlertTriangle,
@@ -1242,14 +1242,16 @@ export default function KeuanganScreen() {
     return out.sort((a, b) => a.weight - b.weight).slice(0, 4)
   }, [txs, budgets])
 
-  /* anime.js — denyut "ka-ching" pada angka saldo saat transaksi baru masuk. */
+  /* anime.js — denyut "ka-ching" pada angka saldo saat transaksi baru masuk.
+     Kebijakan reduced-motion: angka langsung diperbarui tanpa denyut. */
   const prevLen = useRef(txs.length)
   const saldoRef = useRef<HTMLSpanElement>(null)
+  const reducedMotion = useReducedMotion()
   useEffect(() => {
     if (txs.length === prevLen.current) return
     const grew = txs.length > prevLen.current
     prevLen.current = txs.length
-    if (grew && saldoRef.current) {
+    if (grew && saldoRef.current && !reducedMotion) {
       const anim = animate(saldoRef.current, {
         scale: [1, 1.04, 1],
         duration: 520,
@@ -1259,7 +1261,7 @@ export default function KeuanganScreen() {
         anim.revert()
       }
     }
-  }, [txs.length])
+  }, [txs.length, reducedMotion])
 
   const netChipTone =
     net > 0

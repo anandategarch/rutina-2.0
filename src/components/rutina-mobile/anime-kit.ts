@@ -12,6 +12,9 @@
  * Prinsip: hook me-return cleanup revert() agar animasi tidak pernah
  * bocor setelah unmount, dan SELALU melewatkan render pertama (pop
  * hanya untuk PERUBAHAN — entrance tetap tanggung jawab Motion).
+ *
+ * CATATAN UNIT: anime.js 4.x yang terpasang (4.5.0) memakai MILIDETIK
+ * untuk duration/delay/posisi timeline — JANGAN mengonversi ke detik.
  */
 
 import { useEffect, useRef, type RefObject } from 'react'
@@ -62,6 +65,12 @@ export function useAnimePop<T extends Element>(
     }
     if (prev.current.v === key) return
     prev.current.v = key
+
+    /* Hormati prefers-reduced-motion: pop adalah umpan balik dekoratif —
+       nilai baru tetap dirender, cukup tanpa ledakan skala. */
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
 
     const anim = animate(el, {
       scale: [1, scale, 1],
@@ -119,7 +128,7 @@ export function useAnimeDrawIn(
         strokeDashoffset: 0,
         duration,
         ease,
-        delay: delay / 1000,
+        delay, // milidetik — anime.js 4.x (lihat catatan unit di atas)
       })
     }
 
@@ -139,6 +148,9 @@ export function useAnimeDrawIn(
     return () => {
       io.disconnect()
       anim?.revert()
+      /* Reset bendera satu-jalan agar penggambaran ulang tetap bisa
+         terjadi bila deps berubah (perilaku yang dijanjikan JSDoc). */
+      observed.current = false
     }
   }, [pathRef, duration, ease, delay])
 }

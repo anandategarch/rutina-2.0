@@ -28,6 +28,14 @@ export function Splash({ onDone }: { onDone: () => void }) {
     onDone()
   }, [onDone])
 
+  /* `finish` dibaca lewat ref di dalam effect — timeline pembuka HANYA
+     boleh berjalan sekali. Jika `finish` masuk deps, perubahan identitas
+     callback (re-render parent) me-restart seluruh animasi dari nol. */
+  const finishRef = useRef(finish)
+  useEffect(() => {
+    finishRef.current = finish
+  })
+
   useEffect(() => {
     const svg = svgRef.current
     const title = titleRef.current
@@ -84,14 +92,19 @@ export function Splash({ onDone }: { onDone: () => void }) {
       }
     })
 
-    const timer = setTimeout(finish, matchMedia('(prefers-reduced-motion: reduce)').matches ? 500 : 2600)
+    const timer = setTimeout(
+      () => finishRef.current(),
+      matchMedia('(prefers-reduced-motion: reduce)').matches ? 500 : 2600,
+    )
     return () => {
       clearTimeout(timer)
       /* revert() pada unmount akhir — aman: AnimatePresence telah
          menyelesaikan animasi keluar sebelum cleanup dijalankan. */
       scope.revert()
     }
-  }, [finish])
+    // Timeline sekali jalan saat mount (deps []); finish diakses via ref
+    // agar re-render parent tidak me-restart animasi pembuka.
+  }, [])
 
   return (
     <m.div
