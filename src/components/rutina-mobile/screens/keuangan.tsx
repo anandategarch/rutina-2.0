@@ -21,10 +21,13 @@ import {
   Plus,
   Receipt,
   Repeat,
+  ScrollText,
+  Search,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
   Wallet,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -42,6 +45,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable'
 import { Counter } from '../counter'
 import { BlurFade, ShineBorder, Spotlight } from '../motion-kit'
 import { RutinaDialog } from '../rutina-dialog'
@@ -57,7 +66,10 @@ import {
   type FinPeriod,
   type Goal,
   type Tx,
+  type TxType,
+  type Wallet as FinWallet,
 } from '../store'
+import { playfair } from '../serif'
 import { FinChart } from '../finance/fin-chart'
 import { BUDGETABLE_CATS, CAT_META } from '../finance/cats'
 import { SpendHeatmap } from '../spend-heatmap'
@@ -581,6 +593,505 @@ function TxRow({ tx }: { tx: Tx }) {
   )
 }
 
+/* ===== Workspace Mutasi (desktop lg+) — buku kas & inspektor =====
+   Di layar lebar tab Mutasi menjadi meja kerja akuntansi: panel kiri
+   berisi ledger harian (pencarian + filter arus, baris hairline ala
+   buku kas dengan angka tabular rata kanan), panel kanan berisi
+   inspektor transaksi terpilih. Kedua panel menggulir mandiri dan
+   pembatasnya bisa digeser. Ponsel (<lg) tetap memakai daftar TxRow
+   per hari — komponen ini hanya dipasang di lg+. */
+
+type MutasiFilter = TxType | 'semua'
+
+const TYPE_FILTERS: { id: MutasiFilter; label: string }[] = [
+  { id: 'semua', label: 'Semua' },
+  { id: 'masuk', label: 'Masuk' },
+  { id: 'keluar', label: 'Keluar' },
+  { id: 'transfer', label: 'Transfer' },
+]
+
+/** Nada warna nominal — cermin TxRow: masuk hijau, keluar merah,
+    transfer netral. Dipakai baris ledger & inspektor. */
+function amountTone(tx: Tx): string {
+  if (tx.type === 'masuk') return 'text-success'
+  if (tx.type === 'keluar') return 'text-content-danger'
+  return 'text-content-muted'
+}
+
+/** Nominal + tanda — transfer tanpa tanda, masuk "+", keluar "−". */
+function amountText(tx: Tx): string {
+  const sign = tx.type === 'transfer' ? '' : tx.type === 'masuk' ? '+' : '−'
+  return `${sign}${formatIDR(tx.amount)}`
+}
+
+/** Label dompet (sumber → tujuan bila transfer) — logika yang sama
+    dengan TxRow. */
+function walletLabelOf(tx: Tx, wallets: FinWallet[]): string {
+  const fromW = wallets.find((w) => w.id === tx.walletId)
+  const toW = wallets.find((w) => w.id === tx.toWalletId)
+  return tx.type === 'transfer'
+    ? `${fromW?.name ?? 'Dompet'} → ${toW?.name ?? 'Dompet'}`
+    : (fromW?.name ?? 'Tanpa dompet')
+}
+
+/** Satu baris ledger — padat, hairline bawah (utilitas ledger-row),
+    nominal rata kanan. Terpilih memakai tint modul lembut + garis
+    aksen perunggu di tepi kiri. */
+function LedgerRow({
+  tx,
+  wallets,
+  selected,
+  onSelect,
+}: {
+  tx: Tx
+  wallets: FinWallet[]
+  selected: boolean
+  onSelect: (id: string) => void
+}) {
+  const Icon = CAT_META[tx.cat].icon
+  const income = tx.type === 'masuk'
+  const isTransfer = tx.type === 'transfer'
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(tx.id)}
+      aria-current={selected ? 'true' : undefined}
+      className={`ledger-row flex min-h-11 w-full cursor-pointer items-center gap-3 px-2 py-2 text-left transition-[background-color,box-shadow] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+        selected
+          ? 'bg-module-accent-soft/50 [box-shadow:inset_2px_0_0_var(--module-accent)] hover:bg-module-accent-soft/70'
+          : '[box-shadow:inset_2px_0_0_transparent] hover:bg-surface-sunken'
+      }`}
+    >
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+          isTransfer
+            ? 'bg-gold/30 text-warning'
+            : income
+              ? 'bg-pistachio/30 text-success'
+              : 'bg-clay/25 text-content-danger'
+        }`}
+      >
+        <Icon className="h-4 w-4" strokeWidth={2.1} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold leading-snug">
+          {tx.note || CAT_META[tx.cat].label}
+        </span>
+        <span className="mt-0.5 block truncate text-[11px] leading-snug text-content-muted">
+          {isTransfer
+            ? walletLabelOf(tx, wallets)
+            : `${CAT_META[tx.cat].label} · ${walletLabelOf(tx, wallets)}`}
+        </span>
+      </span>
+      <span className="shrink-0 text-[11px] font-medium tabular-nums text-content-muted">
+        {fmtDate(tx.ts)}
+      </span>
+      <span
+        className={`w-28 shrink-0 text-right text-[13px] font-bold tabular-nums ${amountTone(tx)}`}
+      >
+        {amountText(tx)}
+      </span>
+    </button>
+  )
+}
+
+/** Isi inspektor untuk satu transaksi — nominal besar, badge arus,
+    baris rincian hairline, catatan, dan aksi Hapus dengan alur
+    konfirmasi yang sama dengan TxRow. */
+function TxInspectorDetail({
+  tx,
+  wallets,
+  onClear,
+}: {
+  tx: Tx
+  wallets: FinWallet[]
+  onClear: () => void
+}) {
+  const deleteTx = useRutina((s) => s.deleteTx)
+  const Icon = CAT_META[tx.cat].icon
+  const dateLong = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(fromISO(tx.ts))
+
+  return (
+    <m.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: EASE }}
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar p-5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-content-muted">
+            Detail Transaksi
+          </p>
+          <Badge
+            className={
+              tx.type === 'masuk'
+                ? 'border-transparent bg-pistachio/30 text-success hover:bg-pistachio/30'
+                : tx.type === 'keluar'
+                  ? 'border-transparent bg-clay/20 text-content-danger hover:bg-clay/20'
+                  : 'border-transparent bg-gold/25 text-warning hover:bg-gold/25'
+            }
+          >
+            {tx.type === 'transfer'
+              ? 'Transfer'
+              : tx.type === 'masuk'
+                ? 'Pemasukan'
+                : 'Pengeluaran'}
+          </Badge>
+        </div>
+
+        <p
+          className={`mt-3 text-[17px] font-semibold leading-snug tracking-tight text-content-primary ${playfair.className}`}
+        >
+          {tx.note || CAT_META[tx.cat].label}
+        </p>
+        <p
+          className={`mt-2 text-[30px] font-bold leading-none tabular-nums ${
+            tx.type === 'masuk'
+              ? 'text-success'
+              : tx.type === 'keluar'
+                ? 'text-content-danger'
+                : 'text-content-primary'
+          }`}
+        >
+          {amountText(tx)}
+        </p>
+
+        <dl className="mt-4">
+          <div className="ledger-row flex items-center justify-between gap-3 py-2.5">
+            <dt className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+              Kategori
+            </dt>
+            <dd className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-content-primary">
+              <Icon className="h-3.5 w-3.5 shrink-0 text-content-secondary" strokeWidth={2.1} />
+              <span className="truncate">{CAT_META[tx.cat].label}</span>
+            </dd>
+          </div>
+          <div className="ledger-row flex items-center justify-between gap-3 py-2.5">
+            <dt className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+              Dompet
+            </dt>
+            <dd className="min-w-0 truncate text-[13px] font-semibold text-content-primary">
+              {walletLabelOf(tx, wallets)}
+            </dd>
+          </div>
+          <div className="ledger-row flex items-center justify-between gap-3 py-2.5">
+            <dt className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+              Tanggal
+            </dt>
+            <dd className="shrink-0 text-[13px] font-semibold tabular-nums text-content-primary">
+              {dateLong}
+            </dd>
+          </div>
+          {tx.recurrence && !tx.recurOf && (
+            <div className="ledger-row flex items-center justify-between gap-3 py-2.5">
+              <dt className="shrink-0 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                Jadwal
+              </dt>
+              <dd className="shrink-0 text-[13px] font-semibold text-content-primary">
+                Berulang {tx.recurrence}
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        {tx.note && (
+          <div className="mt-3 rounded-xl bg-surface-sunken px-3 py-2.5 text-left">
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-content-muted">
+              Catatan
+            </p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-content-secondary">
+              {tx.note}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex shrink-0 gap-2 border-t border-border p-4">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="h-11 flex-1 rounded-full border-destructive/30 text-[13px] font-semibold text-content-danger hover:bg-destructive/10 hover:text-content-danger"
+            >
+              Hapus
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle className="text-lg tracking-tight text-content-primary">
+                Hapus transaksi?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] text-content-muted">
+                {tx.note || CAT_META[tx.cat].label} sebesar{' '}
+                {formatIDR(tx.amount)} akan dihapus dari daftar. Tindakan
+                ini tidak bisa dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-3 flex flex-row gap-2">
+              <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary">
+                Batal
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  deleteTx(tx.id)
+                  toast.info('Transaksi dihapus')
+                }}
+                className="h-10 flex-1 rounded-full bg-destructive text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90"
+              >
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onClear}
+          className="h-11 flex-1 rounded-full text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
+        >
+          Tutup
+        </Button>
+      </div>
+    </m.div>
+  )
+}
+
+/** Inspektor — panel kanan workspace Mutasi. Crossfade halus antar
+    pergantian pilihan (AnimatePresence mode="wait", opacity 0.15 dtk);
+    tanpa pilihan menampilkan keadaan kosong. */
+function TxInspector({
+  tx,
+  wallets,
+  onClear,
+}: {
+  tx: Tx | null
+  wallets: FinWallet[]
+  onClear: () => void
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <AnimatePresence mode="wait" initial={false}>
+        {tx ? (
+          <TxInspectorDetail
+            key={tx.id}
+            tx={tx}
+            wallets={wallets}
+            onClear={onClear}
+          />
+        ) : (
+          <m.div
+            key="kosong"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: EASE }}
+            className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2.5 p-8 text-center"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-sunken text-content-muted">
+              <ScrollText className="h-5 w-5" strokeWidth={2} />
+            </span>
+            <p className="text-[13.5px] font-bold text-content-primary">
+              Pilih transaksi untuk melihat detail
+            </p>
+            <p className="max-w-[260px] text-[11.5px] leading-relaxed text-content-muted">
+              Klik baris mutasi di panel kiri — rincian, catatan, dan aksi
+              akan tampil di sini.
+            </p>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/** Meja kerja Mutasi: ResizablePanelGroup horizontal — kiri ledger
+    (default 60%), kanan inspektor (default 40%, resizable). */
+function MutasiWorkspace({ className = '' }: { className?: string }) {
+  const txs = useRutina((s) => s.txs)
+  const wallets = useRutina((s) => s.wallets)
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<MutasiFilter>('semua')
+  const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
+
+  const q = query.trim().toLowerCase()
+  const filtered = useMemo(
+    () =>
+      txs.filter((t) => {
+        if (filter !== 'semua' && t.type !== filter) return false
+        if (!q) return true
+        return (
+          t.note.toLowerCase().includes(q) ||
+          CAT_META[t.cat].label.toLowerCase().includes(q)
+        )
+      }),
+    [txs, filter, q],
+  )
+  const ledgerGroups = useMemo(() => groupByDay(filtered), [filtered])
+  const selectedTx = useMemo(
+    () =>
+      selectedTxId ? (txs.find((t) => t.id === selectedTxId) ?? null) : null,
+    [txs, selectedTxId],
+  )
+
+  return (
+    <div
+      className={`h-[calc(100dvh-18rem)] min-h-[460px] max-h-[840px] ${className}`}
+    >
+      <ResizablePanelGroup
+        direction="horizontal"
+        autoSaveId="mutasi-workspace"
+        className="h-full"
+      >
+        {/* KIRI — buku kas: pencarian, filter arus, ledger per hari */}
+        <ResizablePanel
+          id="mutasi-ledger"
+          defaultSize={60}
+          minSize={38}
+          className="min-w-0"
+        >
+          <section
+            aria-label="Buku mutasi"
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-border bg-surface-primary shadow-soft"
+          >
+            <div className="shrink-0 space-y-2.5 border-b border-border p-4 pb-3">
+              <div className="relative">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted"
+                />
+                <Input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Cari catatan / kategori…"
+                  aria-label="Cari transaksi"
+                  className="h-11 rounded-xl border-border bg-surface-sunken pl-10 pr-9 placeholder:text-content-muted focus-visible:border-gold/60"
+                />
+                {query !== '' && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    aria-label="Hapus pencarian"
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                  >
+                    <X className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {TYPE_FILTERS.map((f) => {
+                  const active = filter === f.id
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setFilter(f.id)}
+                      className={`h-8 cursor-pointer rounded-full border px-3.5 text-[11.5px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                        active
+                          ? 'border-module-accent/40 bg-module-accent/15 text-module-accent-strong'
+                          : 'border-border text-content-secondary hover:bg-surface-sunken hover:text-content-primary'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  )
+                })}
+                <span className="ml-auto shrink-0 text-[11px] font-semibold tabular-nums text-content-muted">
+                  {filtered.length} transaksi
+                </span>
+              </div>
+            </div>
+
+            {/* Ledger — hairline per baris; kepala hari menempel saat digulir */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar">
+              <div className="px-4 pb-4">
+                {ledgerGroups.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-sunken text-content-muted">
+                      <Search className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                    <p className="text-[13px] font-bold text-content-primary">
+                      Tidak ada mutasi yang cocok
+                    </p>
+                    <p className="text-[11.5px] text-content-muted">
+                      Coba kata kunci lain atau ganti filter arus.
+                    </p>
+                  </div>
+                ) : (
+                  ledgerGroups.map((g) => (
+                    <section key={g.date} aria-label={`Mutasi ${fmtDate(g.date)}`}>
+                      <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-3 border-b border-border bg-surface-primary/95 px-4 py-2 backdrop-blur-sm">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                          {fmtDate(g.date)}
+                        </p>
+                        <p className="text-[11px] font-semibold tabular-nums text-content-muted">
+                          {g.masuk > 0 && (
+                            <span className="text-success">
+                              +{formatIDRShort(g.masuk)}{' '}
+                            </span>
+                          )}
+                          {g.keluar > 0 && (
+                            <span className="text-content-danger">
+                              −{formatIDRShort(g.keluar)}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        {g.txs.map((tx) => (
+                          <LedgerRow
+                            key={tx.id}
+                            tx={tx}
+                            wallets={wallets}
+                            selected={selectedTxId === tx.id}
+                            onSelect={setSelectedTxId}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+        </ResizablePanel>
+
+        <ResizableHandle
+          withHandle
+          className="mx-0.5 bg-border transition-colors after:w-2 data-[resize-handle-state=hover]:bg-gold/60 data-[resize-handle-state=drag]:bg-gold"
+        />
+
+        {/* KANAN — inspektor transaksi terpilih */}
+        <ResizablePanel
+          id="mutasi-inspector"
+          defaultSize={40}
+          minSize={26}
+          className="min-w-0"
+        >
+          <aside
+            aria-label="Detail transaksi terpilih"
+            className="h-full min-h-0 overflow-hidden rounded-[24px] border border-border bg-surface-primary shadow-soft"
+          >
+            <TxInspector
+              tx={selectedTx}
+              wallets={wallets}
+              onClear={() => setSelectedTxId(null)}
+            />
+          </aside>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </div>
+  )
+}
+
 /* ===== Kartu saldo — dompet espresso, bukan kartu bank =====
    Tanpa ikon NFC, chip, atau nomor kartu: tidak ada integrasi
    finansial nyata di baliknya. Tilt 3D halus + sapuan kilau ShineBorder.
@@ -1054,6 +1565,26 @@ export default function KeuanganScreen() {
     [series],
   )
   const net = totals.masuk - totals.keluar
+  /* Rasio tabungan periode terpilih — (masuk − keluar) / masuk × 100%.
+     Null (→ tampil "—") bila belum ada pemasukan pada periode ini. */
+  const savingRate =
+    totals.masuk > 0 ? Math.round((net / totals.masuk) * 100) : null
+  const savingRateTone =
+    savingRate === null
+      ? 'text-content-muted'
+      : savingRate > 0
+        ? 'text-success'
+        : savingRate < 0
+          ? 'text-content-danger'
+          : 'text-content-secondary'
+  const savingRateLabel =
+    savingRate === null
+      ? '—'
+      : savingRate > 0
+        ? `${savingRate}%`
+        : savingRate < 0
+          ? `−${Math.abs(savingRate)}%`
+          : '0%'
   const lastIdx = Math.max(0, series.length - 1)
   const fallbackActive = Math.min(
     period === 'semua' ? lastIdx : defaultActive(period, txs),
@@ -1273,6 +1804,7 @@ export default function KeuanganScreen() {
   return (
     <div
       data-module="finance"
+      data-layout="vault"
       className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Subtab Keuangan — Radix Tabs: state aktif terkelola penuh,
@@ -1296,7 +1828,7 @@ export default function KeuanganScreen() {
 
       {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
           masuk viewport — pengganti staggervariants statis. */}
-      <div className="mt-4 flex flex-col gap-5">
+      <div className="mt-4 flex flex-col gap-[var(--layout-gap)]">
         {finTab === 'ringkasan' && (
           <>
         {/* ===== LAPISAN 1 — SALDO: dompet espresso + FAB tambah ===== */}
@@ -1355,7 +1887,7 @@ export default function KeuanganScreen() {
             </RutinaTabsList>
           </RutinaTabs>
 
-          {/* Chip ringkasan periode: masuk, keluar, net */}
+          {/* Chip ringkasan periode: masuk, keluar, net + rasio tabungan */}
           <AnimatePresence mode="wait" initial={false}>
             <m.div
               key={period}
@@ -1363,43 +1895,64 @@ export default function KeuanganScreen() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: EASE }}
-              className="mt-3.5 grid grid-cols-3 gap-2.5"
+              className="mt-3.5"
             >
-              <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
-                  <ArrowUpRight className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
-                  Masuk
-                </p>
-                <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-success">
-                  +{formatIDRShort(totals.masuk)}
-                </p>
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
+                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                    <ArrowUpRight className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
+                    Masuk
+                  </p>
+                  <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-success">
+                    +{formatIDRShort(totals.masuk)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
+                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                    <ArrowDownRight className="h-3 w-3 text-clay" strokeWidth={2.6} />
+                    Keluar
+                  </p>
+                  <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-content-danger">
+                    −{formatIDRShort(totals.keluar)}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
+                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                    {net > 0 ? (
+                      <TrendingUp className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
+                    ) : net < 0 ? (
+                      <TrendingDown className="h-3 w-3 text-clay" strokeWidth={2.6} />
+                    ) : (
+                      <Minus className="h-3 w-3 text-content-muted" strokeWidth={2.6} />
+                    )}
+                    Net
+                  </p>
+                  <p className={`mt-1 truncate text-[15px] font-bold tabular-nums ${netChipTone}`}>
+                    {net > 0
+                      ? `+${formatIDRShort(net)}`
+                      : net < 0
+                        ? `−${formatIDRShort(-net)}`
+                        : '0'}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
-                  <ArrowDownRight className="h-3 w-3 text-clay" strokeWidth={2.6} />
-                  Keluar
-                </p>
-                <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-content-danger">
-                  −{formatIDRShort(totals.keluar)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
-                  {net > 0 ? (
-                    <TrendingUp className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
-                  ) : net < 0 ? (
-                    <TrendingDown className="h-3 w-3 text-clay" strokeWidth={2.6} />
-                  ) : (
-                    <Minus className="h-3 w-3 text-content-muted" strokeWidth={2.6} />
-                  )}
-                  Net
-                </p>
-                <p className={`mt-1 truncate text-[15px] font-bold tabular-nums ${netChipTone}`}>
-                  {net > 0
-                    ? `+${formatIDRShort(net)}`
-                    : net < 0
-                      ? `−${formatIDRShort(-net)}`
-                      : '0'}
+
+              {/* Rasio tabungan periode — (masuk − keluar) / masuk.
+                  "—" bila belum ada pemasukan pada periode ini. */}
+              <div className="mt-2.5 flex items-center justify-between gap-3 rounded-2xl bg-surface-sunken px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                    <PiggyBank className="h-3 w-3 text-module-accent-strong" strokeWidth={2.6} />
+                    Rasio Tabungan
+                  </p>
+                  <p className="mt-0.5 truncate text-[11px] leading-tight text-content-muted">
+                    Sisa pemasukan yang berhasil disimpan
+                  </p>
+                </div>
+                <p
+                  className={`shrink-0 text-[17px] font-bold tabular-nums ${savingRateTone}`}
+                >
+                  {savingRateLabel}
                 </p>
               </div>
             </m.div>
@@ -1761,34 +2314,42 @@ export default function KeuanganScreen() {
                 }
               />
             ) : (
-              <div className="mt-3 space-y-5">
-                {dayGroups.map((g) => (
-                  <div key={g.date}>
-                    <div className="mb-2 flex items-center justify-between px-0.5">
-                      <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
-                        {fmtDate(g.date)}
-                      </p>
-                      <p className="text-[11px] font-semibold tabular-nums text-content-muted">
-                        {g.masuk > 0 && (
-                          <span className="text-success">
-                            +{formatIDRShort(g.masuk)}{' '}
-                          </span>
-                        )}
-                        {g.keluar > 0 && (
-                          <span className="text-content-danger">
-                            −{formatIDRShort(g.keluar)}
-                          </span>
-                        )}
-                      </p>
+              <>
+                {/* Desktop lg+ — meja kerja akuntansi: ledger + inspektor
+                    (panel resizable, gulir mandiri; lihat MutasiWorkspace) */}
+                <MutasiWorkspace className="mt-3 hidden lg:block" />
+
+                {/* Ponsel/tablet — daftar terkelompok per hari,
+                    persis seperti sebelumnya */}
+                <div className="mt-3 space-y-5 lg:hidden">
+                  {dayGroups.map((g) => (
+                    <div key={g.date}>
+                      <div className="mb-2 flex items-center justify-between px-0.5">
+                        <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                          {fmtDate(g.date)}
+                        </p>
+                        <p className="text-[11px] font-semibold tabular-nums text-content-muted">
+                          {g.masuk > 0 && (
+                            <span className="text-success">
+                              +{formatIDRShort(g.masuk)}{' '}
+                            </span>
+                          )}
+                          {g.keluar > 0 && (
+                            <span className="text-content-danger">
+                              −{formatIDRShort(g.keluar)}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="space-y-2.5">
+                        {g.txs.map((tx) => (
+                          <TxRow key={tx.id} tx={tx} />
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2.5">
-                      {g.txs.map((tx) => (
-                        <TxRow key={tx.id} tx={tx} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </BlurFade>
         )}

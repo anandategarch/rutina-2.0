@@ -23,6 +23,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { PLANT_STAGES, plantStageOf, triggerLabelOf } from './habit-coach'
+import { PlantGlyph } from './plant-glyph'
 import { type Habit, todayISO, useRutina } from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
@@ -379,9 +380,9 @@ export function TaskRow({
                 <div className="flex items-center gap-2">
                   <span
                     aria-hidden="true"
-                    className="text-[18px] leading-none"
+                    className="text-module-accent-strong"
                   >
-                    {plant.stage.emoji}
+                    <PlantGlyph stage={plant.stage.key} className="h-[18px] w-[18px]" />
                   </span>
                   <span className="text-[12px] font-bold text-content-primary">
                     {plant.stage.label}

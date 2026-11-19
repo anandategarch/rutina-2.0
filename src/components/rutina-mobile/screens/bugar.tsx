@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   AlertTriangle,
@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { playfair } from '../serif'
 import {
+  addDaysISO,
   longDateLabel,
   shortDateLabel,
   todayISO,
@@ -436,6 +437,123 @@ function ExerciseCard({ name }: { name: string }) {
   )
 }
 
+/* ===== Strip tonase 7 hari — Senin s.d. Minggu pekan berjalan ===== */
+
+/** Label satu huruf hari (Senin–Minggu). */
+const TONASE_DAY_LETTERS = ['S', 'S', 'R', 'K', 'J', 'S', 'M']
+const TONASE_DAY_NAMES = [
+  'Senin',
+  'Selasa',
+  'Rabu',
+  'Kamis',
+  'Jumat',
+  'Sabtu',
+  'Minggu',
+]
+
+function TonaseStrip() {
+  const workouts = useRutina((s) => s.workouts)
+  const reducedMotion = useReducedMotion()
+
+  /* Tonase per hari = Σ (beban × repetisi) dari sesi beban hari itu —
+     pecahan per tanggal dari logika weekSummary + tonaseOf yang sama. */
+  const { days, values, max, total } = useMemo(() => {
+    const start = weekRange().start
+    const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
+    const values = days.map((d) =>
+      workouts
+        .filter((w) => w.date === d)
+        .reduce((a, w) => a + tonaseOf(w), 0),
+    )
+    return {
+      days,
+      values,
+      max: Math.max(...values, 0),
+      total: values.reduce((a, v) => a + v, 0),
+    }
+  }, [workouts])
+
+  const todayIdx = (new Date(todayISO() + 'T00:00:00').getDay() + 6) % 7
+
+  return (
+    <m.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: motionTokens.duration.enter,
+        delay: 0.1,
+        ease: motionTokens.easing.standard,
+      }}
+      aria-label="Tonase 7 hari pekan ini"
+      className="mt-[var(--layout-gap)] rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
+    >
+      <div className="flex items-baseline justify-between gap-2 px-0.5">
+        <h2 className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-content-secondary">
+          Tonase 7 Hari
+        </h2>
+        <p className="text-[12px] font-bold tabular-nums text-module-accent-strong">
+          {total >= 1000
+            ? `${(total / 1000).toFixed(1).replace('.', ',')}t`
+            : Math.round(total).toLocaleString('id-ID')}
+          <span className="ml-1 text-[10px] font-semibold text-content-muted">
+            kg pekan ini
+          </span>
+        </p>
+      </div>
+      {/* Tujuh batang tipis — tinggi proporsional tonase hari; hari kosong
+          tampak samar. Tumbuh lewat scaleY (transform-only) dari dasar. */}
+      <div
+        className="mt-3 flex gap-1.5"
+        role="img"
+        aria-label={TONASE_DAY_NAMES.map(
+          (n, i) =>
+            `${n} ${Math.round(values[i]).toLocaleString('id-ID')} kg`,
+        ).join(', ')}
+      >
+        {days.map((d, i) => {
+          const v = values[i]
+          const has = v > 0
+          /* Hari terisi minimal 12% agar terlihat; hari kosong stub 6%. */
+          const h = has ? Math.max((v / max) * 100, 12) : 6
+          return (
+            <div
+              key={d}
+              className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
+            >
+              <div className="flex h-16 w-full items-end">
+                <m.div
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{
+                    duration: reducedMotion ? 0 : 0.5,
+                    delay: reducedMotion
+                      ? 0
+                      : i * motionTokens.stagger.normal,
+                    ease: motionTokens.easing.standard,
+                  }}
+                  style={{ height: `${h}%`, transformOrigin: 'bottom' }}
+                  className={`w-full rounded-full ${
+                    has ? 'bg-module-accent/90' : 'bg-module-accent/20'
+                  }`}
+                />
+              </div>
+              <span
+                className={`text-[9px] font-bold ${
+                  i === todayIdx
+                    ? 'text-module-accent-strong'
+                    : 'text-content-muted'
+                }`}
+              >
+                {TONASE_DAY_LETTERS[i]}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </m.section>
+  )
+}
+
 /* ===== Layar Bugar ===== */
 
 export default function BugarScreen() {
@@ -452,6 +570,7 @@ export default function BugarScreen() {
   const [libMuscle, setLibMuscle] = useState<string>('Semua')
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
   const [barbellOpen, setBarbellOpen] = useState(false)
+  const reducedMotion = useReducedMotion()
 
   const week = useMemo(() => weekSummary(workouts), [workouts])
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
@@ -505,6 +624,7 @@ export default function BugarScreen() {
   return (
     <div
       data-module="bugar"
+      data-layout="performance"
       className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Header editorial */}
@@ -544,8 +664,20 @@ export default function BugarScreen() {
         </RutinaTabsList>
       </RutinaTabs>
 
-      {tab === 'latihan' && (
-        <>
+      {/* Transisi antar-subtab — crossfade pendek khusus opacity
+          (mode="wait": panel lama memudar dulu, lalu panel baru masuk). */}
+      <AnimatePresence mode="wait" initial={false}>
+        {tab === 'latihan' && (
+          <m.div
+            key="latihan"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: reducedMotion ? 0 : 0.18,
+              ease: motionTokens.easing.standard,
+            }}
+          >
           {/* Komposisi bento desktop (xl): ringkasan pekan + pintasan sesi
               (hero 8) berdampingan Coach Bugar (feature 4); di bawah xl
               tetap bertumpuk mengikuti urutan DOM. */}
@@ -719,10 +851,10 @@ export default function BugarScreen() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.05, ease: motionTokens.easing.standard }}
-              className="rounded-[20px] border border-warning/40 bg-gold/25 p-4 shadow-soft"
+              className="rounded-[20px] border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-warning text-content-inverse">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive text-destructive-foreground">
                   <AlertTriangle className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -740,7 +872,7 @@ export default function BugarScreen() {
                   endDeload()
                   toast.success('Deload diakhiri — beban kembali normal.')
                 }}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-warning/50 text-[12.5px] font-bold text-warning transition-colors hover:bg-gold/40 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-[12.5px] font-bold text-content-danger transition-colors hover:bg-destructive/15 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Akhiri deload sekarang
               </button>
@@ -750,10 +882,10 @@ export default function BugarScreen() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.05, ease: motionTokens.easing.standard }}
-              className="rounded-[20px] border border-warning/40 bg-gold/25 p-4 shadow-soft"
+              className="rounded-[20px] border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-warning text-content-inverse">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive text-destructive-foreground">
                   <TrendingDown className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -767,7 +899,7 @@ export default function BugarScreen() {
                     {stalledNames.map((n) => (
                       <span
                         key={n}
-                        className="rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold text-warning"
+                        className="rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold text-content-danger"
                       >
                         {n}
                       </span>
@@ -785,7 +917,7 @@ export default function BugarScreen() {
                   startDeload(7)
                   toast.success('Deload 7 hari dimulai — target beban dipangkas 50%.')
                 }}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-[12.5px] font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-[12.5px] font-bold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Mulai deload 7 hari
               </button>
@@ -798,10 +930,10 @@ export default function BugarScreen() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.08, ease: motionTokens.easing.standard }}
-              className="rounded-[20px] border border-warning/35 bg-surface-sunken p-4"
+              className="rounded-[20px] border border-destructive/30 bg-surface-sunken p-4"
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gold/40 text-warning">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive/15 text-content-danger">
                   <Footprints className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -844,8 +976,13 @@ export default function BugarScreen() {
             </RutinaBentoGrid>
           </m.div>
 
+          {/* Strip performa — tonase beban per hari pekan berjalan */}
+          <TonaseStrip />
+
+          {/* Tumpukan seksi utama — ritme --layout-gap (performance). */}
+          <div className="mt-[var(--layout-gap)] flex flex-col gap-[var(--layout-gap)]">
       {/* ===== Program latihan ===== */}
-      <section className="mt-7" aria-label="Program latihan">
+      <section aria-label="Program latihan">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Program Latihan
@@ -863,7 +1000,7 @@ export default function BugarScreen() {
       </section>
 
       {/* ===== Riwayat sesi ===== */}
-      <section className="mt-8" aria-label="Riwayat latihan">
+      <section aria-label="Riwayat latihan">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
@@ -908,7 +1045,7 @@ export default function BugarScreen() {
       </section>
 
       {/* ===== Papan rekor e1RM ===== */}
-      <section className="mt-8" aria-label="Papan rekor">
+      <section aria-label="Papan rekor">
         <div className="flex items-center gap-2 px-0.5">
           <Trophy className="h-4 w-4 text-warning" />
           <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
@@ -978,7 +1115,7 @@ export default function BugarScreen() {
       </section>
 
       {/* ===== Pustaka gerakan ===== */}
-      <section className="mt-8" aria-label="Pustaka gerakan">
+      <section aria-label="Pustaka gerakan">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
             Pustaka Gerakan
@@ -1041,12 +1178,40 @@ export default function BugarScreen() {
           )}
         </div>
       </section>
-        </>
-      )}
+          </div>
+          </m.div>
+        )}
 
-      {tab === 'asupan' && <AsupanPanel />}
+        {tab === 'asupan' && (
+          <m.div
+            key="asupan"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: reducedMotion ? 0 : 0.18,
+              ease: motionTokens.easing.standard,
+            }}
+          >
+            <AsupanPanel />
+          </m.div>
+        )}
 
-      {tab === 'tubuh' && <TubuhPanel />}
+        {tab === 'tubuh' && (
+          <m.div
+            key="tubuh"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: reducedMotion ? 0 : 0.18,
+              ease: motionTokens.easing.standard,
+            }}
+          >
+            <TubuhPanel />
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {/* Mode sesi latihan imersif — fixed overlay di atas navigasi bawah;
           state sesi hidup di session-store sehingga tetap berjalan walau

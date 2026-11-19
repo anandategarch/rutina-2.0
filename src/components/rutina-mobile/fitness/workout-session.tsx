@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, useDragControls } from 'motion/react'
+import { AnimatePresence, useDragControls, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { createScope, createTimeline, stagger } from 'animejs'
 import {
@@ -230,6 +230,11 @@ function Stepper({
 
 /* ===== Kartu timer istirahat ===== */
 
+/* Geometri ring progres timer — lingkaran penuh, sisa waktu =
+   strokeDashoffset (transform-safe, cocok untuk Motion). */
+const RING_R = 38
+const RING_CIRC = 2 * Math.PI * RING_R
+
 function RestCard({
   restingUntil,
   restDuration,
@@ -247,6 +252,7 @@ function RestCard({
   /* Cermin module-level soundOn — agar ikon toggle mengikuti nilai yang
      bertahan antar-mount. */
   const [sound, setSound] = useState(soundOn)
+  const reducedMotion = useReducedMotion()
 
   /* Tick 250ms — cukup halus untuk detik, murah untuk render. */
   useEffect(() => {
@@ -255,7 +261,8 @@ function RestCard({
   }, [])
 
   const remaining = Math.max(0, restingUntil - now)
-  const pct = Math.min(100, (remaining / Math.max(restDuration, 1)) * 100)
+  /* Fraksi sisa waktu (1 = baru mulai → 0 = habis) — dasar isian ring. */
+  const frac = Math.min(1, remaining / Math.max(restDuration, 1))
   const urgent = remaining > 0 && remaining <= 5_000
   const secondsLeft = Math.max(0, Math.ceil(remaining / 1000))
 
@@ -317,47 +324,77 @@ function RestCard({
           )}
         </button>
       </div>
-      <m.p
-        animate={urgent ? { scale: [1, 1.06, 1] } : { scale: 1 }}
-        transition={{
-          duration: 0.85,
-          repeat: urgent ? Infinity : 0,
-          ease: 'easeInOut',
-        }}
-        className={`mt-2 font-mono text-[44px] font-bold leading-none tabular-nums ${
-          urgent ? 'text-hero-accent' : 'text-hero-content'
-        }`}
-      >
-        {mmss(remaining)}
-      </m.p>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-hero-content/12">
-        <m.div
-          className="h-full rounded-full bg-hero-accent"
-          initial={false}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.25, ease: 'linear' }}
-        />
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <button
-          type="button"
-          onClick={() => {
-            ensureAudio()
-            onExtend(15)
-          }}
-          className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-hero-content/25 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          15 dtk
-        </button>
-        <button
-          type="button"
-          onClick={onSkip}
-          className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/15 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/25 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <SkipForward className="h-4 w-4" aria-hidden="true" />
-          Lewati
-        </button>
+      {/* Ring progres melingkar + angka detik besar (eucalyptus modul
+          di atas espresso — AA untuk grafik/teks besar). Denyut tak
+          berujung dihapus; urgensi 3-2-1 cukup lewat warna. */}
+      <div className="mt-3 flex items-center gap-4">
+        <div className="relative h-[88px] w-[88px] shrink-0">
+          <svg
+            viewBox="0 0 88 88"
+            aria-hidden="true"
+            className="h-full w-full -rotate-90"
+          >
+            <circle
+              cx="44"
+              cy="44"
+              r={RING_R}
+              fill="none"
+              strokeWidth="6"
+              stroke="currentColor"
+              className="text-hero-content/12"
+            />
+            <m.circle
+              cx="44"
+              cy="44"
+              r={RING_R}
+              fill="none"
+              strokeWidth="6"
+              strokeLinecap="round"
+              stroke="currentColor"
+              className="text-module-accent"
+              strokeDasharray={RING_CIRC}
+              initial={false}
+              animate={{ strokeDashoffset: RING_CIRC * (1 - frac) }}
+              transition={{
+                duration: reducedMotion ? 0 : 0.25,
+                ease: 'linear',
+              }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p
+              className={`text-3xl font-bold leading-none tabular-nums ${
+                urgent ? 'text-hero-accent' : 'text-hero-content'
+              }`}
+            >
+              {secondsLeft}
+            </p>
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
+              dtk
+            </p>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              ensureAudio()
+              onExtend(15)
+            }}
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-hero-content/25 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            15 dtk
+          </button>
+          <button
+            type="button"
+            onClick={onSkip}
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/15 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/25 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <SkipForward className="h-4 w-4" aria-hidden="true" />
+            Lewati
+          </button>
+        </div>
       </div>
     </m.div>
   )

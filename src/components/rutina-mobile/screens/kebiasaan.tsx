@@ -32,6 +32,7 @@ import {
   type GoldilocksAdvice,
 } from '../habit-coach'
 import { PlantGarden } from '../plant-garden'
+import { PlantGlyph } from '../plant-glyph'
 import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaMetric } from '../rutina-metric'
@@ -373,6 +374,7 @@ export default function KebiasaanScreen() {
   return (
     <div
       data-module="kebiasaan"
+      data-layout="garden"
       className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Kepala editorial tenang — tanggal panjang + ringkasan singkat.
@@ -404,7 +406,7 @@ export default function KebiasaanScreen() {
             ease: motionTokens.easing.standard,
           }}
           aria-label="Belum ada kebiasaan"
-          className="mt-6"
+          className="mt-[var(--layout-gap)]"
         >
           <RutinaEmptyState
             icon={<Sprout className="h-6 w-6" />}
@@ -425,7 +427,9 @@ export default function KebiasaanScreen() {
         </m.section>
       ) : (
         <>
-          {/* Strip ringkasan — runtun, capaian pekan, taman */}
+          {/* Strip ringkasan — bedeng metrik kebun: runtun, capaian pekan,
+              dan tanaman dewasa; glif kecil (Flame · Check · PlantGlyph)
+              menandai tiap angka di atas permukaan garden-bed. */}
           <m.section
             aria-label="Ringkasan kebiasaan"
             className="mt-4"
@@ -433,59 +437,61 @@ export default function KebiasaanScreen() {
             initial="hidden"
             animate="show"
           >
-            <div className="grid grid-cols-3 gap-2.5">
-              <m.div variants={journalCard} className="h-full">
-                <RutinaCard
-                  variant="default"
-                  density="compact"
-                  radius="2xl"
-                  className="h-full"
-                >
+            <div className="garden-bed p-3.5 sm:p-4">
+              <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                <m.div variants={journalCard} className="min-w-0">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
+                  >
+                    <Flame className="h-4 w-4" strokeWidth={2.2} />
+                  </span>
                   <RutinaMetric
+                    className="mt-2"
                     label="Runtun terbaik"
                     value={maxStreak}
                     unit="hari"
                     trend={maxStreak > 0 ? 'up' : 'neutral'}
                     caption="sedang berjalan"
                   />
-                </RutinaCard>
-              </m.div>
-              <m.div variants={journalCard} className="h-full">
-                <RutinaCard
-                  variant="default"
-                  density="compact"
-                  radius="2xl"
-                  className="h-full"
-                >
+                </m.div>
+                <m.div variants={journalCard} className="min-w-0">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
+                  >
+                    <Check className="h-4 w-4" strokeWidth={2.2} />
+                  </span>
                   <RutinaMetric
+                    className="mt-2"
                     label="Selesai pekan ini"
                     value={weekDoneTotal}
                     unit="kali"
                     caption="Senin–hari ini"
                   />
-                </RutinaCard>
-              </m.div>
-              <m.div variants={journalCard} className="h-full">
-                <RutinaCard
-                  variant="default"
-                  density="compact"
-                  radius="2xl"
-                  className="h-full"
-                >
+                </m.div>
+                <m.div variants={journalCard} className="min-w-0">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
+                  >
+                    <PlantGlyph stage="berbunga" className="h-[18px] w-[18px]" />
+                  </span>
                   <RutinaMetric
+                    className="mt-2"
                     label="Tanaman"
                     value={maturePlants}
                     unit="pohon"
                     caption="dewasa / berbunga"
                   />
-                </RutinaCard>
-              </m.div>
+                </m.div>
+              </div>
             </div>
           </m.section>
 
           {/* Saran Coach — nudge hangat + Goldilocks, hanya bila ada */}
           {coachCards.length > 0 && (
-            <section className="mt-6" aria-label="Saran Coach">
+            <section className="mt-[var(--layout-gap)]" aria-label="Saran Coach">
               <RutinaSectionHeader
                 title="Saran Coach"
                 description="Penyesuaian kecil dari hasil pekan ini"
@@ -574,7 +580,7 @@ export default function KebiasaanScreen() {
           )}
 
           {/* Agenda hari ini — yang menunggu, selesai terlipat */}
-          <section className="mt-6" aria-label="Agenda hari ini">
+          <section className="mt-[var(--layout-gap)]" aria-label="Agenda hari ini">
             <RutinaSectionHeader
               title="Agenda hari ini"
               description="Yang menunggu hari ini, urut waktu"
@@ -697,13 +703,17 @@ export default function KebiasaanScreen() {
             )}
           </section>
 
-          {/* Taman Pertumbuhan — PlantGarden membawa header seksinya sendiri */}
-          <section aria-label="Taman Pertumbuhan">
-            <PlantGarden />
-          </section>
+          {/* Taman Pertumbuhan — zona botani: permukaan kebun (garden-surface)
+              membungkus bedeng tanaman; mode 'beds' menanam tanaman sebagai
+              kisi melipat di desktop xl+. */}
+          {activeHabits.length > 0 && (
+            <section className="garden-surface mt-[var(--layout-gap)] rounded-[var(--layout-hero-radius)] p-3 sm:p-4 xl:p-5">
+              <PlantGarden variant="beds" />
+            </section>
+          )}
 
           {/* Semua kebiasaan — dikelompokkan per kategori + arsip */}
-          <section className="mt-6" aria-label="Semua kebiasaan">
+          <section className="mt-[var(--layout-gap)]" aria-label="Semua kebiasaan">
             <RutinaSectionHeader
               title="Semua kebiasaan"
               description="Dikelompokkan per kategori"
@@ -721,7 +731,7 @@ export default function KebiasaanScreen() {
               /* Split-screen desktop (xl+): daftar terkelompok di kiri,
                  panel detail menempel di kanan. Di bawah xl susunan tetap
                  satu kolom — panel tersembunyi total. */
-              <div className="xl:grid xl:grid-cols-12 xl:gap-5">
+              <div className="xl:grid xl:grid-cols-12 xl:gap-[var(--layout-gap)]">
                 {/* Kolom kiri — daftar terkelompok per kategori (tak berubah) */}
                 <div className="min-w-0 xl:col-span-7">
                   <m.div
@@ -732,7 +742,7 @@ export default function KebiasaanScreen() {
                   >
                     {catGroups.map((g) => (
                       <m.div key={g.cat} variants={journalCard}>
-                        <div className="mb-2.5 flex items-center gap-2">
+                        <div className="mb-2.5 flex items-center gap-2 border-l-2 border-module-accent pl-2.5">
                           <span
                             aria-hidden="true"
                             className="h-2.5 w-2.5 shrink-0 rounded-full"

@@ -4,10 +4,12 @@
  * anime-kit — antarmuka tipis & terpusat di atas anime.js v4 untuk
  * momen "hidup" khas Rutina yang tidak selesai dengan spring Motion:
  *
- *   useAnimePop      — ledakan elastis (outBack) saat sebuah nilai berubah
- *                      (api streak bertambah, tanaman naik tahap, cincin penuh)
- *   useAnimeDrawIn   — garis SVG "digambar" masuk (stroke draw-in) saat
- *                      elemen terlihat — pola yang dipakai TrendLine
+ *   useAnimePop — ledakan elastis (outBack) saat sebuah nilai berubah
+ *                 (api streak bertambah, cincin progres penuh)
+ *
+ * Koreografi multi-elemen (splash, perayaan sesi, pertumbuhan tanaman)
+ * memakai createScope + createTimeline langsung di komponennya masing-
+ * masing — lihat splash.tsx, workout-session.tsx, plant-glyph.tsx.
  *
  * Prinsip: hook me-return cleanup revert() agar animasi tidak pernah
  * bocor setelah unmount, dan SELALU melewatkan render pertama (pop
@@ -84,73 +86,4 @@ export function useAnimePop<T extends Element>(
   }, [trigger, ref, scale, rotate, duration, back])
 
   return ref
-}
-
-/* ------------------------------------------------------------------ */
-/* useAnimeDrawIn — stroke draw-in saat elemen masuk viewport.         */
-/* ------------------------------------------------------------------ */
-
-/**
- * Menggambar path SVG dari nol ke penuh (dashoffset → 0) saat elemen
- * terlihat, sekali jalan. `deps` memicu penggambaran ulang bila data
- * berubah (mis. rentang tanggal filter diganti).
- */
-export function useAnimeDrawIn(
-  pathRef: RefObject<SVGPathElement | null>,
-  options: {
-    /** Durasi draw (ms). Default 1100. */
-    duration?: number
-    /** Easing anime.js. Default 'inOutQuad'. */
-    ease?: string
-    /** Tunda (ms) setelah terlihat. Default 0. */
-    delay?: number
-  } = {},
-) {
-  const { duration = 1100, ease = 'inOutQuad', delay = 0 } = options
-  const observed = useRef(false)
-
-  useEffect(() => {
-    const el = pathRef.current
-    if (!el) return
-
-    /* Pastikan path terukur; totalLength 0 berarti belum dirender. */
-    const len = el.getTotalLength()
-    if (len <= 0) return
-
-    el.style.strokeDasharray = `${len}`
-    el.style.strokeDashoffset = `${len}`
-
-    let anim: ReturnType<typeof animate> | null = null
-    const run = () => {
-      if (observed.current) return
-      observed.current = true
-      anim = animate(el, {
-        strokeDashoffset: 0,
-        duration,
-        ease,
-        delay, // milidetik — anime.js 4.x (lihat catatan unit di atas)
-      })
-    }
-
-    /* IntersectionObserver ringan — path yang sudah di viewport atas
-       langsung digambar; yang di bawah menunggu terlihat. */
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          run()
-          io.disconnect()
-        }
-      },
-      { rootMargin: '-40px' },
-    )
-    io.observe(el)
-
-    return () => {
-      io.disconnect()
-      anim?.revert()
-      /* Reset bendera satu-jalan agar penggambaran ulang tetap bisa
-         terjadi bila deps berubah (perilaku yang dijanjikan JSDoc). */
-      observed.current = false
-    }
-  }, [pathRef, duration, ease, delay])
 }

@@ -359,6 +359,65 @@ export default function StatsScreen() {
   const best = bestStreak(habits, completions, today)
   const activeHabits = habits.filter((h) => !h.archived)
 
+  /* ===== KPI strip — lensa 30 hari =====
+     Konsistensi & misi memakai sumber kebenaran yang sama dengan grafik
+     dan laporan di bawah: habitsOn + isDoneOn (ala rateSeries/monthReport)
+     untuk rasio terjadwal, doneCountOn (ala dayCounts) untuk total misi.
+     Streak & rekor dari bestStreak — sama dengan widget runtun. */
+  const kpi = useMemo(() => {
+    let sched = 0
+    let done = 0
+    let missions = 0
+    for (let i = 29; i >= 0; i--) {
+      const iso = addDaysISO(today, -i)
+      for (const h of habitsOn(habits, iso)) {
+        sched++
+        if (isDoneOn(completions, iso, h.id)) done++
+      }
+      missions += doneCountOn(completions, iso)
+    }
+    return {
+      consistency: sched > 0 ? Math.round((done / sched) * 100) : 0,
+      sched,
+      done,
+      missions,
+    }
+  }, [habits, completions, today])
+
+  const kpiTiles = [
+    {
+      key: 'konsistensi',
+      label: 'Konsistensi 30 Hari',
+      value: kpi.consistency,
+      unit: '%',
+      caption:
+        kpi.sched > 0
+          ? `${kpi.done} dari ${kpi.sched} terjadwal`
+          : 'Belum ada jadwal kebiasaan',
+    },
+    {
+      key: 'misi',
+      label: 'Misi Selesai',
+      value: kpi.missions,
+      unit: 'misi',
+      caption: 'dalam 30 hari terakhir',
+    },
+    {
+      key: 'streak',
+      label: 'Streak Berjalan',
+      value: best.streak,
+      unit: 'hari',
+      caption: best.habit ? best.habit.title : 'Belum ada kebiasaan aktif',
+    },
+    {
+      key: 'rekor',
+      label: 'Rekor Streak',
+      value: best.record,
+      unit: 'hari',
+      caption: 'rekor pribadi sepanjang histori',
+    },
+  ]
+
   /* ===== Statistik lintas modul Bugar — semua dari data nyata ===== */
 
   /* Latihan: sesi & tonase 30 hari, PR terbaik, kardio. */
@@ -416,6 +475,19 @@ export default function StatsScreen() {
   const p3 = monthData[2]?.value ?? 0
   const p4 = monthData[3]?.value ?? 0
 
+  /* Ringkasan satu baris untuk panel Fokus Periode — dipindah dari kartu
+     grafik agar kartu grafik menjadi instrumen murni. */
+  const chartSummary =
+    period === 'pekan'
+      ? peak.value === 0
+        ? 'Belum ada misi selesai pada tujuh hari terakhir.'
+        : `Puncak ${peak.value} misi ada di hari ${peak.label}.`
+      : p4 > p3
+        ? `Pekan berjalan naik ${p4 - p3} misi dibanding pekan lalu.`
+        : p4 < p3
+          ? `Pekan berjalan turun ${p3 - p4} misi dibanding pekan lalu.`
+          : 'Pekan berjalan setara dengan pekan lalu.'
+
   /* Tren penyelesaian 30 hari — persen selesai per hari. */
   const trend = rateSeries(habits, completions, today, 30)
   const trendAvg = trend.reduce((a, b) => a + b.v, 0) / (trend.length || 1)
@@ -464,9 +536,13 @@ export default function StatsScreen() {
   ]
   const unlockedCount = badges.filter((b) => b.unlocked).length
 
-  /* anime.js — batang grafik tumbuh saat terlihat & saat periode berganti.
+  /* anime.js — batang grafik tumbuh HANYA pada pandangan pertama
+     (disiplin gerak: satu momen dominan per layar). Perubahan periode
+     selanjutnya hanya memorf tinggi batang lewat transisi CSS ringan —
+     koreografi stagger tidak diulang.
      Kebijakan reduced-motion: batang langsung tampil tanpa koreografi. */
   const reducedMotion = useReducedMotion()
+  const barsPlayedRef = useRef(false)
   useEffect(() => {
     if (!chartRef.current) return
     const bars = chartRef.current.querySelectorAll('[data-bar]')
@@ -479,26 +555,31 @@ export default function StatsScreen() {
       })
       return
     }
+    /* Gerbang pandangan-pertama: stagger sekali sepanjang hidup layar;
+       pergantian periode tidak lagi memicu koreografi ulang. */
+    if (barsPlayedRef.current) return
+    barsPlayedRef.current = true
     /* Sembunyikan batang SEBELUM memicu stagger — tanpa ini batang akhir
        (delay ±0,3 dtk) sempat tampil penuh lalu melompat ke 0 (kilatan). */
     bars.forEach((el) => {
       ;(el as HTMLElement).style.transform = 'scaleY(0)'
     })
-    const anim = animate(bars, {
+    /* Tanpa cleanup revert: animasi ini sekali-jalan dan tidak pernah
+       bertumpuk (period bukan lagi dependensi) — revert justru memulihkan
+       keadaan pra-animasi scaleY(0) dan membiarkan batang menghilang. */
+    animate(bars, {
       scaleY: [0, 1],
       delay: stagger(55),
       duration: 850,
       ease: 'outBack(1.3)',
     })
-    return () => {
-      anim.revert()
-    }
-  }, [chartInView, period, reducedMotion])
+  }, [chartInView, reducedMotion])
 
   return (
     <TooltipProvider delayDuration={120}>
       <div
         data-module="stats"
+        data-layout="observatory"
         className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
       >
         {/* Header pemain */}
@@ -522,9 +603,13 @@ export default function StatsScreen() {
           </span>
         </header>
 
+        {/* Tumpukan seksi utama — ritme antar-bagian memakai token layout
+            observatory (var(--layout-gap)) agar seluruh layar berbagi satu
+            denyut laboratorium data yang seragam. */}
+        <div className="mt-[var(--layout-gap)] flex flex-col gap-[var(--layout-gap)]">
         {/* Ring XP interaktif */}
         <section
-          className="mt-5 flex flex-col items-center"
+          className="flex flex-col items-center"
           aria-label="Progres level pemain"
         >
           <m.div
@@ -595,22 +680,79 @@ export default function StatsScreen() {
           </p>
         </section>
 
-        {/* Grafik misi selesai dengan pemilih periode (shadcn Tabs) */}
-        <m.section
-          ref={chartRef}
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-24px' }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="mt-6 rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
-          aria-label="Grafik misi selesai"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
+        {/* ===== KPI strip — empat metrik inti, lensa 30 hari ===== */}
+        <section aria-label="Ringkasan metrik utama">
+          <RutinaBentoGrid className="grid-cols-2 sm:grid-cols-4 xl:grid-cols-4">
+            {kpiTiles.map((tile, i) => (
+              <RutinaBentoItem key={tile.key}>
+                <m.div
+                  initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-24px' }}
+                  transition={{ duration: 0.45, delay: i * 0.05, ease: EASE }}
+                  className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
+                >
+                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                    <span
+                      aria-hidden="true"
+                      className="h-1 w-1 shrink-0 rounded-full bg-module-accent"
+                    />
+                    {tile.label}
+                  </p>
+                  <p className="mt-2.5 flex items-baseline gap-1">
+                    <span className="text-[28px] font-semibold leading-none tracking-tight tabular-nums text-content-inverse">
+                      {tile.value.toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-[11px] font-bold text-content-inverse/70">
+                      {tile.unit}
+                    </span>
+                  </p>
+                  <p className="mt-auto truncate pt-2 text-[10.5px] font-medium leading-snug text-content-inverse/70">
+                    {tile.caption}
+                  </p>
+                </m.div>
+              </RutinaBentoItem>
+            ))}
+          </RutinaBentoGrid>
+        </section>
+
+        {/* Misi selesai — panel fokus periode + instrumen grafik.
+            Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
+            periode, total, dan ringkasan; kartu grafik murni batang. */}
+        <RutinaBentoGrid>
+          <RutinaBentoItem className="sm:col-span-6 xl:col-span-4">
+            {/* Panel fokus periode — sakelar periode + pembacaan ringkas */}
+            <m.section
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, ease: EASE }}
+              className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
+              aria-label="Fokus periode grafik misi selesai"
+            >
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
-                Misi Selesai
+                Fokus Periode
               </p>
-              <p className="mt-1.5 flex items-baseline gap-1.5">
+              <Tabs
+                value={period}
+                onValueChange={(v) => setPeriod(v as 'pekan' | 'bulan')}
+              >
+                <TabsList className="h-[52px] w-full rounded-full bg-surface-inverse p-1">
+                  <TabsTrigger
+                    value="pekan"
+                    className="h-11 flex-1 rounded-full px-4 text-[12px] font-bold data-[state=active]:bg-module-accent data-[state=active]:text-module-accent-fg"
+                  >
+                    Pekan
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="bulan"
+                    className="h-11 flex-1 rounded-full px-4 text-[12px] font-bold data-[state=active]:bg-module-accent data-[state=active]:text-module-accent-fg"
+                  >
+                    Bulan
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <p className="mt-4 flex items-baseline gap-1.5">
                 <span className="text-[38px] font-semibold leading-none tracking-tight text-content-inverse">
                   <Counter to={chartTotal} />
                 </span>
@@ -618,81 +760,87 @@ export default function StatsScreen() {
                   misi{period === 'pekan' ? ' / pekan' : ' / bulan'}
                 </span>
               </p>
-            </div>
-            <Tabs
-              value={period}
-              onValueChange={(v) => setPeriod(v as 'pekan' | 'bulan')}
-            >
-              <TabsList className="h-8 rounded-full bg-surface-inverse p-1">
-                <TabsTrigger
-                  value="pekan"
-                  className="h-6 rounded-full px-3 text-[11px] font-bold data-[state=active]:bg-module-accent data-[state=active]:text-module-accent-fg"
-                >
-                  Pekan
-                </TabsTrigger>
-                <TabsTrigger
-                  value="bulan"
-                  className="h-6 rounded-full px-3 text-[11px] font-bold data-[state=active]:bg-module-accent data-[state=active]:text-module-accent-fg"
-                >
-                  Bulan
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+              <p className="mt-1.5 text-[11px] font-medium text-content-inverse/70">
+                {period === 'pekan'
+                  ? 'Tujuh hari terakhir'
+                  : 'Empat pekan terakhir — P4 pekan berjalan'}
+              </p>
+              <p className="mt-auto border-t border-content-inverse/10 pt-3 text-[11px] font-medium leading-relaxed text-content-inverse/70">
+                {chartSummary}
+              </p>
+            </m.section>
+          </RutinaBentoItem>
 
-          <div
-            className="mt-5 flex items-end justify-between gap-2"
-            role="img"
-            aria-label={`Grafik batang misi selesai ${period === 'pekan' ? 'tujuh hari terakhir' : 'empat pekan terakhir'}`}
-          >
-            {chartData.map((d) => {
-              const isPeak = d.value === chartMax && d.value > 0
-              return (
-                <div
-                  key={d.label}
-                  className="flex flex-1 flex-col items-center gap-1.5"
-                >
-                  <div
-                    data-bar
-                    className={`w-full origin-bottom rounded-full ${
-                      isPeak
-                        ? 'bg-gradient-to-t from-chart-1 to-chart-4'
-                        : 'bg-content-inverse/15'
-                    }`}
-                    style={{
-                      height: `${
-                        d.value === 0
-                          ? 3
-                          : Math.max(Math.round((d.value / chartMax) * 84), 6)
-                      }px`,
-                    }}
-                  />
-                  <span
-                    className={`text-[10px] font-bold ${
-                      isPeak ? 'text-pistachio' : 'text-content-inverse/70'
-                    }`}
-                  >
-                    {d.label}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-          <p className="mt-3 text-[11px] font-medium text-content-inverse/70">
-            {period === 'pekan'
-              ? peak.value === 0
-                ? 'Belum ada misi selesai pada tujuh hari terakhir.'
-                : `Puncak ${peak.value} misi ada di hari ${peak.label}.`
-              : p4 > p3
-                ? `Pekan berjalan naik ${p4 - p3} misi dibanding pekan lalu.`
-                : p4 < p3
-                  ? `Pekan berjalan turun ${p3 - p4} misi dibanding pekan lalu.`
-                  : 'Pekan berjalan setara dengan pekan lalu.'}
-          </p>
-        </m.section>
+          <RutinaBentoItem className="sm:col-span-6 xl:col-span-8">
+            {/* Instrumen grafik — batang misi selesai */}
+            <m.section
+              ref={chartRef}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={{ duration: 0.5, delay: 0.06, ease: EASE }}
+              className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
+              aria-label="Grafik misi selesai"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  Misi Selesai
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-inverse/50">
+                  {period === 'pekan' ? 'per hari' : 'per pekan'}
+                </p>
+              </div>
+              <div
+                className="mt-auto flex items-end justify-between gap-2 pt-5"
+                role="img"
+                aria-label={`Grafik batang misi selesai ${period === 'pekan' ? 'tujuh hari terakhir' : 'empat pekan terakhir'}`}
+              >
+                {chartData.map((d, i) => {
+                  /* Kunci indeks: batang P1–P4 memakai node DOM yang sama
+                     dengan hari 1–4 sehingga pergantian periode memorf
+                     tinggi batang (transisi CSS ringan) alih-alih memasang
+                     ulang seluruh grafik — stagger anime.js tak diulang. */
+                  const isPeak = d.value === chartMax && d.value > 0
+                  return (
+                    <div
+                      key={i}
+                      className="flex flex-1 flex-col items-center gap-1.5"
+                    >
+                      <div
+                        data-bar
+                        className={`w-full origin-bottom rounded-full ${
+                          isPeak
+                            ? 'bg-gradient-to-t from-chart-1 to-chart-4'
+                            : 'bg-content-inverse/15'
+                        }`}
+                        style={{
+                          height: `${
+                            d.value === 0
+                              ? 3
+                              : Math.max(Math.round((d.value / chartMax) * 84), 6)
+                          }px`,
+                          transition: reducedMotion
+                            ? undefined
+                            : `height 480ms cubic-bezier(${EASE.join(',')})`,
+                        }}
+                      />
+                      <span
+                        className={`text-[10px] font-bold ${
+                          isPeak ? 'text-pistachio' : 'text-content-inverse/70'
+                        }`}
+                      >
+                        {d.label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </m.section>
+          </RutinaBentoItem>
+        </RutinaBentoGrid>
 
         {/* Ringkasan Pekan + Wawasan & Analitik — pasangan bento (medium · medium) */}
-        <RutinaBentoGrid className="mt-6">
+        <RutinaBentoGrid>
           <RutinaBentoItem span="medium">
             {/* Ringkasan pekan */}
             <section aria-label="Ringkasan pekan">
@@ -1021,14 +1169,15 @@ export default function StatsScreen() {
         </RutinaBentoGrid>
 
         {/* Konsistensi & tren aktivitas (widget gelap) */}
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Heatmap />
           <TrendLine />
         </div>
 
-        {/* Kalender Aktivitas + Laporan Bulanan — pasangan bento (wide · feature) */}
-        <RutinaBentoGrid className="mt-6">
-          <RutinaBentoItem span="wide">
+        {/* Kalender Aktivitas + Laporan Bulanan — pasangan bento 7 : 5
+            (col-span mentah — preset bento tak memiliki 7/5) */}
+        <RutinaBentoGrid>
+          <RutinaBentoItem className="sm:col-span-6 xl:col-span-7">
             {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
             <m.section
               initial={{ opacity: 0, y: 16 }}
@@ -1076,7 +1225,7 @@ export default function StatsScreen() {
             </m.section>
           </RutinaBentoItem>
 
-          <RutinaBentoItem span="feature">
+          <RutinaBentoItem className="sm:col-span-6 xl:col-span-5">
             {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8) ===== */}
             <m.section
               initial={{ opacity: 0, y: 16 }}
@@ -1255,7 +1404,7 @@ export default function StatsScreen() {
         </RutinaBentoGrid>
 
         {/* Pekan Ini vs Pekan Lalu + Bugar & Tubuh — pasangan bento (medium · medium) */}
-        <RutinaBentoGrid className="mt-6">
+        <RutinaBentoGrid>
           <RutinaBentoItem span="medium">
             {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12) ===== */}
             <m.section
@@ -1484,7 +1633,7 @@ export default function StatsScreen() {
         </RutinaBentoGrid>
 
         {/* Piala & Lencana + Streak berjalan — pasangan bento (medium · medium) */}
-        <RutinaBentoGrid className="mt-3">
+        <RutinaBentoGrid>
           <RutinaBentoItem span="medium">
             {/* Lencana dengan Tooltip */}
             <m.section
@@ -1603,6 +1752,8 @@ export default function StatsScreen() {
             </m.section>
           </RutinaBentoItem>
         </RutinaBentoGrid>
+
+        </div>
 
         {/* Detail harian — dibuka dengan mengetuk tanggal kalender. */}
         <DayDetailSheet date={selectedDay} onClose={() => setSelectedDay(null)} />

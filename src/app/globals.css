@@ -481,6 +481,43 @@
     --module-accent-soft: var(--module-profil-soft);
     --module-accent-fg: var(--module-profil-fg);
   }
+  /* Beranda — matcha eksplisit (identik aksen default global; dideklarasikan
+     agar layar Beranda tetap mandiri bila default global suatu saat berubah). */
+  [data-module='home'] {
+    --module-accent: var(--palette-matcha);
+    --module-accent-strong: var(--palette-matcha-deep);
+    --module-accent-soft: var(--palette-mist);
+    --module-accent-fg: #ffffff;
+  }
+
+  /* ===== Layout Grammar — satu produk, lima ruang kerja =====
+     data-module memilih domain warna; data-layout menentukan POLA
+     KOMPOSISI (kepadatan, jarak antar-bagian, radius hero). Kelima token
+     di bawah dikonsumsi layar agar tiap tab punya karakter ruang kerja
+     yang benar-benar berbeda — tanpa memecah satu sistem desain:
+     daybook (planner lapang) · performance (studio rapat) · vault
+     (ruang kas presisi) · garden (kebun organik) · observatory
+     (laboratorium data). */
+  [data-layout='daybook'] {
+    --layout-gap: 1.75rem;
+    --layout-hero-radius: 1.75rem;
+  }
+  [data-layout='performance'] {
+    --layout-gap: 1.25rem;
+    --layout-hero-radius: 1.5rem;
+  }
+  [data-layout='vault'] {
+    --layout-gap: 1.25rem;
+    --layout-hero-radius: 1.75rem;
+  }
+  [data-layout='garden'] {
+    --layout-gap: 1.5rem;
+    --layout-hero-radius: 1.5rem;
+  }
+  [data-layout='observatory'] {
+    --layout-gap: 1.25rem;
+    --layout-hero-radius: 1.5rem;
+  }
 
   html {
     /* Hentikan scroll-chaining & permulaan pull-to-refresh di tepi aplikasi. */
@@ -528,6 +565,82 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ===== Permukaan khas Layout Grammar =====
+   Kelima tab berbagi fondasi (sand/parchment, hairline, radius 12–24),
+   namun tiap ruang kerja punya permukaan khasnya sendiri. */
+
+/* Paper surface — kartu agenda editorial: garis tepi kiri seperti garis
+   margin planner harian + sapuan lembut aksen modul dari sisi awal. */
+@utility paper-surface {
+  background:
+    linear-gradient(90deg, var(--module-accent-soft), transparent 32%),
+    var(--surface-primary);
+  border-inline-start: 2px solid var(--module-accent);
+}
+
+/* Garden surface — permukaan "kebun" untuk hero progres, streak, dan
+   area tanaman: kabut lembut aksen dari sudut kiri atas. */
+@utility garden-surface {
+  background:
+    radial-gradient(
+      120% 90% at 14% 0%,
+      var(--module-accent-soft) 0%,
+      transparent 58%
+    ),
+    var(--surface-primary);
+}
+
+/* Agenda rail — rel timeline vertikal: hairline + titik aksen pada tiap
+   kelompok waktu (Pagi/Siang/Malam) — agenda terasa seperti linimasa
+   kertas, bukan tumpukan kartu. */
+@utility agenda-rail {
+  position: relative;
+  padding-inline-start: 1.25rem;
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0.3125rem;
+    top: 0.5rem;
+    bottom: 0.25rem;
+    width: 1px;
+    background: var(--border-default);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0.625rem;
+    width: 0.6875rem;
+    height: 0.6875rem;
+    border-radius: 9999px;
+    background: var(--module-accent);
+    box-shadow: 0 0 0 3px var(--module-accent-soft);
+  }
+}
+
+/* Ledger row — baris buku kas workspace Mutasi: pemisah hairline
+   tipis ala ledger akuntansi, bukan kartu berbayang satu per satu. */
+@utility ledger-row {
+  border-block-end: 1px solid var(--border-default);
+  &:last-child {
+    border-block-end: none;
+  }
+}
+
+/* Garden bed — bedeng kebun: permukaan lembut bertint tanah untuk
+   mengelompokkan klaster tanaman kebiasaan. */
+@utility garden-bed {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--module-accent-soft) 72%, transparent),
+      transparent
+    ),
+    var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
 }
 
 /* Tekstur butiran halus (grain) — lapisan dekoratif atas kanvas ambien */

@@ -284,7 +284,7 @@ function DateStrip() {
   const selected = days.find((d) => d.iso === selectedDate) ?? null
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 mt-5 border-b border-border bg-surface-primary/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
+    <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-surface-primary/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
       <div
         ref={stripRef}
         role="group"
@@ -374,7 +374,12 @@ function slotOf(h: Habit): AgendaSlot {
   return 'malam'
 }
 
-/* ===== Layar Beranda — Pusat Kendali Harian ===== */
+/* ===== Layar Beranda — Editorial Daybook =====
+   Bukan dasbor statistik, melainkan buku harian digital yang membantu
+   memahami HARI INI. Tata letak "daybook": ritme jarak antar-bagian
+   ditarik dari token --layout-gap (data-layout), hero progres berendam
+   di garden-surface, dan agenda hidup sebagai halaman planner kertas
+   (paper-surface) dengan rel timeline per waktu. */
 
 export default function HomeScreen() {
   const habits = useRutina((s) => s.habits)
@@ -416,6 +421,9 @@ export default function HomeScreen() {
     [habits, selectedDate],
   )
   const archivedHabits = habits.filter((h) => h.archived)
+  /* Pembungkus garden-surface Taman hanya dirender bila ada kebiasaan
+     aktif — PlantGarden sendiri mengembalikan null saat kosong. */
+  const hasActiveHabits = habits.some((h) => !h.archived)
 
   /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
   const todayHabits = useMemo(() => habitsOn(habits, today), [habits, today])
@@ -548,7 +556,13 @@ export default function HomeScreen() {
   return (
     <div
       ref={scrollRef}
-      className="h-full overflow-y-auto no-scrollbar px-4 pb-28"
+      data-module="home"
+      data-layout="daybook"
+      /* Ritme daybook: tiap bagian utama dipisah --layout-gap (1.75rem).
+         Aturan anak-berikutnya menimpa mt-* internal komponen asing
+         (HomeFinanceCard mt-8, PunchCard mt-3) secara deterministik
+         lewat spesifisitas. */
+      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
     >
       {/* Kepala layar — banner demo + sapaan yang menyusut halus saat digulir */}
       <div className="pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -601,7 +615,6 @@ export default function HomeScreen() {
           delay: 0.05,
           ease: motionTokens.easing.standard,
         }}
-        className="mt-4"
       >
         <RutinaBentoGrid>
           <RutinaBentoItem span="hero">
@@ -619,7 +632,10 @@ export default function HomeScreen() {
                 variant="default"
                 density="spacious"
                 radius="2xl"
-                className="h-full shadow-soft"
+                /* Permukaan kebun untuk area pertumbuhan: kabut matcha
+                   lembut dari sudut kiri atas; radius mengikuti token
+                   hero tata letak daybook (lebih lapang dari kartu biasa). */
+                className="garden-surface h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
                 <div className="sm:mx-auto sm:max-w-[600px]">
                   <div className="flex items-center gap-5">
@@ -702,7 +718,7 @@ export default function HomeScreen() {
                 variant="default"
                 density="comfortable"
                 radius="2xl"
-                className="h-full shadow-soft"
+                className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
                 <RutinaSectionHeader title="Insight hari ini" />
                 <div className="mt-4 space-y-4">
@@ -754,33 +770,37 @@ export default function HomeScreen() {
       >
         <RutinaBentoGrid>
           <RutinaBentoItem span="wide">
-            <section className="mt-6" aria-label="Agenda hari ini">
+            <section aria-label="Agenda hari ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
               />
 
-              {/* Pita konteks tanggal lampau / masa depan */}
-              {!viewingToday && (
-                <div className="mb-3 mt-4 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
-                  <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
-                  <p className="min-w-0 flex-1 text-[12px] font-medium text-content-muted">
-                    {viewingPast
-                      ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
-                      : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDate(today)}
-                    className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    Hari ini
-                  </button>
-                </div>
-              )}
+              {/* Halaman planner agenda: paper-surface memberi garis margin
+                  kiri 2px + sapuan matcha lembut dari sisi awal; tiap
+                  kelompok waktu mengalir di atas rel timeline. */}
+              <div className="paper-surface mt-4 rounded-2xl border-y border-e p-4 shadow-soft sm:p-6">
+                {/* Pita konteks tanggal lampau / masa depan */}
+                {!viewingToday && (
+                  <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
+                    <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
+                    <p className="min-w-0 flex-1 text-[12px] font-medium text-content-muted">
+                      {viewingPast
+                        ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
+                        : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDate(today)}
+                      className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      Hari ini
+                    </button>
+                  </div>
+                )}
 
-              {dayHabits.length === 0 ? (
-                /* Tidak ada misi terjadwal — jeda yang dirayakan, bukan kegagalan */
-                <div className="mt-4">
+                {dayHabits.length === 0 ? (
+                  /* Tidak ada misi terjadwal — halaman kosong yang dirayakan,
+                     bukan kegagalan */
                   <RutinaEmptyState
                     icon={<CalendarDays className="h-6 w-6" />}
                     title="Tidak ada misi terjadwal hari ini"
@@ -800,213 +820,225 @@ export default function HomeScreen() {
                       </Button>
                     }
                   />
-                </div>
-              ) : (
-                <>
-                  {/* Kelompok misi belum selesai — urutan waktu alami */}
-                  <div className="mt-4 space-y-5">
-                    {pendingGroups.map((g, gi) => (
-                      <m.div
-                        key={g.key}
-                        initial={{ opacity: 0, y: 14 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.4,
-                          delay: Math.min(0.1 + gi * 0.06, 0.34),
-                          ease: motionTokens.easing.standard,
-                        }}
-                      >
-                        <div className="mb-2.5 flex items-center gap-2">
-                          <g.icon
-                            aria-hidden="true"
-                            className="h-4 w-4 text-primary"
-                            strokeWidth={2}
-                          />
-                          <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
-                            {g.label}
-                          </h3>
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
-                            {g.items.length}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                          {g.items.map((h) => (
-                            <TaskRow
-                              key={h.id}
-                              habit={h}
-                              done={false}
-                              streak={habitStreak(h, completions, selectedDate)}
-                              recent={recentDays(completions, h.id, selectedDate)}
-                              weekDone={weekDoneCount(completions, h.id, selectedDate)}
-                              expanded={expandedTaskId === h.id}
-                              readOnly={selectedDate > today}
-                              xp={XP_PER_TASK}
-                              onToggle={() => {
-                                /* Misi dari kelompok terbuka selalu berarti "selesai" —
-                                   buka lipatan Selesai agar terlihat misinya terarsip. */
-                                toggleHabit(h.id, selectedDate)
-                                setShowDone(true)
-                              }}
-                              onExpand={() => toggleExpandedTask(h.id)}
-                              onEdit={() => openHabitEdit(h.id)}
-                            />
-                          ))}
-                        </div>
-                      </m.div>
-                    ))}
-                  </div>
-
-                  {/* Misi selesai — dilipat, terbuka otomatis saat ada yang baru */}
-                  {doneHabits.length > 0 && (
-                    <div className="mt-6">
-                      <button
-                        type="button"
-                        onClick={() => setShowDone((v) => !v)}
-                        aria-expanded={showDone}
-                        aria-controls="agenda-done-panel"
-                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-primary/20 bg-secondary/50 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                      >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                          <Check className="h-4 w-4" strokeWidth={2.6} />
-                        </span>
-                        <span className="flex-1 text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
-                          Selesai ({doneHabits.length})
-                        </span>
-                        <m.span
-                          aria-hidden="true"
-                          animate={{ rotate: showDone ? 180 : 0 }}
-                          transition={{ duration: 0.25 }}
-                          className="text-content-muted"
+                ) : (
+                  <>
+                    {/* Kelompok misi belum selesai — tiap waktu menjadi
+                        baris rel (agenda-rail): titik aksen + hairline
+                        vertikal ala planner kertas; label waktu kecil
+                        di kepala rel. */}
+                    <div className="space-y-5">
+                      {pendingGroups.map((g, gi) => (
+                        <m.div
+                          key={g.key}
+                          initial={{ opacity: 0, y: 14 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.4,
+                            delay: Math.min(0.1 + gi * 0.06, 0.34),
+                            ease: motionTokens.easing.standard,
+                          }}
                         >
-                          <ChevronDown className="h-4 w-4" />
-                        </m.span>
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {showDone && (
-                          <m.div
-                            id="agenda-done-panel"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{
-                              duration: motionTokens.duration.normal,
-                              ease: motionTokens.easing.standard,
-                            }}
-                            className="overflow-hidden"
-                          >
-                            <div className="grid grid-cols-1 gap-2.5 pt-2.5 sm:grid-cols-2">
-                              {doneHabits.map((h) => (
+                          <div className="agenda-rail">
+                            <div className="mb-2.5 flex items-center gap-2">
+                              <g.icon
+                                aria-hidden="true"
+                                className="h-4 w-4 text-primary"
+                                strokeWidth={2}
+                              />
+                              <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                                {g.label}
+                              </h3>
+                              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
+                                {g.items.length}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                              {g.items.map((h) => (
                                 <TaskRow
                                   key={h.id}
                                   habit={h}
-                                  done
+                                  done={false}
                                   streak={habitStreak(h, completions, selectedDate)}
                                   recent={recentDays(completions, h.id, selectedDate)}
                                   weekDone={weekDoneCount(completions, h.id, selectedDate)}
                                   expanded={expandedTaskId === h.id}
                                   readOnly={selectedDate > today}
                                   xp={XP_PER_TASK}
-                                  onToggle={() => toggleHabit(h.id, selectedDate)}
+                                  onToggle={() => {
+                                    /* Misi dari kelompok terbuka selalu berarti "selesai" —
+                                       buka lipatan Selesai agar terlihat misinya terarsip. */
+                                    toggleHabit(h.id, selectedDate)
+                                    setShowDone(true)
+                                  }}
                                   onExpand={() => toggleExpandedTask(h.id)}
                                   onEdit={() => openHabitEdit(h.id)}
                                 />
                               ))}
                             </div>
-                          </m.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
-
-                  {/* Pintu masuk tambah kebiasaan — baris halus di ujung agenda */}
-                  <button
-                    type="button"
-                    onClick={openHabitCreate}
-                    aria-label="Tambah kebiasaan baru"
-                    className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong px-4 py-3.5 text-[13px] font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    <Plus className="h-4 w-4" strokeWidth={2.5} />
-                    Tambah kebiasaan
-                  </button>
-                </>
-              )}
-
-              {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
-              {archivedHabits.length > 0 && (
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowArchive((v) => !v)}
-                    aria-expanded={showArchive}
-                    className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
-                      <Archive className="h-3.5 w-3.5" />
-                      Arsip · {archivedHabits.length} kebiasaan
-                    </span>
-                    <m.span
-                      aria-hidden="true"
-                      animate={{ rotate: showArchive ? 180 : 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="text-content-muted"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </m.span>
-                  </button>
-                  {showArchive && (
-                    <m.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="mt-2 space-y-2"
-                    >
-                      {archivedHabits.map((h) => (
-                        <div
-                          key={h.id}
-                          className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
-                        >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted">
-                            <Archive className="h-4 w-4" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13px] font-semibold text-content-secondary">
-                              {h.title}
-                            </span>
-                            <span className="block text-[11px] font-medium text-content-muted">
-                              {h.cat} · diarsipkan
-                            </span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setHabitArchived(h.id, false)
-                              toast.success('Kebiasaan dipulihkan dari arsip')
-                            }}
-                            aria-label={`Pulihkan ${h.title} dari arsip`}
-                            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-primary/40 text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          >
-                            <ArchiveRestore className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openHabitEdit(h.id)}
-                            aria-label={`Sunting ${h.title}`}
-                            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          >
-                            <Undo2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                          </div>
+                        </m.div>
                       ))}
-                    </m.div>
-                  )}
-                </div>
-              )}
+                    </div>
+
+                    {/* Misi selesai — dilipat, terbuka otomatis saat ada yang baru */}
+                    {doneHabits.length > 0 && (
+                      <div className="mt-6">
+                        <button
+                          type="button"
+                          onClick={() => setShowDone((v) => !v)}
+                          aria-expanded={showDone}
+                          aria-controls="agenda-done-panel"
+                          className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-primary/20 bg-secondary/50 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                            <Check className="h-4 w-4" strokeWidth={2.6} />
+                          </span>
+                          <span className="flex-1 text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
+                            Selesai ({doneHabits.length})
+                          </span>
+                          <m.span
+                            aria-hidden="true"
+                            animate={{ rotate: showDone ? 180 : 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="text-content-muted"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </m.span>
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {showDone && (
+                            <m.div
+                              id="agenda-done-panel"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{
+                                duration: motionTokens.duration.normal,
+                                ease: motionTokens.easing.standard,
+                              }}
+                              className="overflow-hidden"
+                            >
+                              <div className="grid grid-cols-1 gap-2.5 pt-2.5 sm:grid-cols-2">
+                                {doneHabits.map((h) => (
+                                  <TaskRow
+                                    key={h.id}
+                                    habit={h}
+                                    done
+                                    streak={habitStreak(h, completions, selectedDate)}
+                                    recent={recentDays(completions, h.id, selectedDate)}
+                                    weekDone={weekDoneCount(completions, h.id, selectedDate)}
+                                    expanded={expandedTaskId === h.id}
+                                    readOnly={selectedDate > today}
+                                    xp={XP_PER_TASK}
+                                    onToggle={() => toggleHabit(h.id, selectedDate)}
+                                    onExpand={() => toggleExpandedTask(h.id)}
+                                    onEdit={() => openHabitEdit(h.id)}
+                                  />
+                                ))}
+                              </div>
+                            </m.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
+                    {/* Pintu masuk tambah kebiasaan — baris halus di ujung
+                        halaman agenda */}
+                    <button
+                      type="button"
+                      onClick={openHabitCreate}
+                      aria-label="Tambah kebiasaan baru"
+                      className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong px-4 py-3.5 text-[13px] font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <Plus className="h-4 w-4" strokeWidth={2.5} />
+                      Tambah kebiasaan
+                    </button>
+                  </>
+                )}
+
+                {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
+                {archivedHabits.length > 0 && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowArchive((v) => !v)}
+                      aria-expanded={showArchive}
+                      className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
+                        <Archive className="h-3.5 w-3.5" />
+                        Arsip · {archivedHabits.length} kebiasaan
+                      </span>
+                      <m.span
+                        aria-hidden="true"
+                        animate={{ rotate: showArchive ? 180 : 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="text-content-muted"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </m.span>
+                    </button>
+                    {showArchive && (
+                      <m.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="mt-2 space-y-2"
+                      >
+                        {archivedHabits.map((h) => (
+                          <div
+                            key={h.id}
+                            className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
+                          >
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted">
+                              <Archive className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px] font-semibold text-content-secondary">
+                                {h.title}
+                              </span>
+                              <span className="block text-[11px] font-medium text-content-muted">
+                                {h.cat} · diarsipkan
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setHabitArchived(h.id, false)
+                                toast.success('Kebiasaan dipulihkan dari arsip')
+                              }}
+                              aria-label={`Pulihkan ${h.title} dari arsip`}
+                              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-primary/40 text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            >
+                              <ArchiveRestore className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openHabitEdit(h.id)}
+                              aria-label={`Sunting ${h.title}`}
+                              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            >
+                              <Undo2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </m.div>
+                    )}
+                  </div>
+                )}
+              </div>
             </section>
           </RutinaBentoItem>
 
           {/* Kolom sempit: pengingat "jangan bolong" dan saran coach
-              menumpuk vertikal — keduanya kondisional, kolom aman kosong. */}
-          <RutinaBentoItem span="feature">
+              menumpuk vertikal — keduanya kondisional, kolom aman kosong.
+              Jarak dari agenda hanya di bawah xl (mt-6 xl:mt-0) supaya
+              di xl tepi atas kolom sejajar agenda; jarak antar-seksi
+              kolom diatur [&>section+section]. */}
+          <RutinaBentoItem
+            span="feature"
+            className="mt-6 xl:mt-0 [&>section+section]:mt-6"
+          >
             {/* Nudge "Jangan Bolong Dua Kali" — kartu hangat (bukan merah):
                kebiasaan terlewat kemarin, selesaikan hari ini. */}
             {missedList.length > 0 && (
@@ -1015,7 +1047,6 @@ export default function HomeScreen() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
                 aria-label="Pengingat jangan bolong dua kali"
-                className="mt-6"
               >
                 <div className="rounded-[20px] border border-gold/45 bg-gold/15 p-4">
                   <div className="flex items-start gap-3">
@@ -1072,7 +1103,6 @@ export default function HomeScreen() {
                   ease: motionTokens.easing.standard,
                 }}
                 aria-label="Saran Coach"
-                className="mt-6"
               >
                 <RutinaSectionHeader
                   title="Saran Coach"
@@ -1116,16 +1146,37 @@ export default function HomeScreen() {
         </RutinaBentoGrid>
       </m.div>
 
-      {/* Ringkasan finansial harian (audit #11) */}
-      <HomeFinanceCard />
+      {/* 3 — Baris bento arus kas (5) + insight pekan (7): satu baris
+          komposisi desktop, ponsel menumpuk finance → insight pekan.
+          mt-8 internal HomeFinanceCard dinetralkan agar tepi atas kedua
+          tile sejajar. */}
+      <RutinaBentoGrid>
+        <RutinaBentoItem className="sm:col-span-6 xl:col-span-5 [&>section]:mt-0">
+          {/* Ringkasan finansial harian (audit #11) */}
+          <HomeFinanceCard />
+        </RutinaBentoItem>
 
-      {/* 3 — Bonus konsistensi (klaim XP harian) */}
+        <RutinaBentoItem className="sm:col-span-6 xl:col-span-7">
+          {/* Insight pekan: aktivitas & streak berdampingan */}
+          <section aria-label="Insight pekan ini">
+            <RutinaSectionHeader
+              title="Insight pekan"
+              description="Aktivitas misi & konsistensi terpanjang"
+            />
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FocusWidget />
+              <StreakWidget />
+            </div>
+          </section>
+        </RutinaBentoItem>
+      </RutinaBentoGrid>
+
+      {/* 4 — Bonus konsistensi (klaim XP harian) */}
       <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: motionTokens.easing.standard }}
         aria-label="Bonus harian"
-        className="mt-6"
       >
         <button
           type="button"
@@ -1184,25 +1235,11 @@ export default function HomeScreen() {
         </button>
       </m.section>
 
-      {/* 4 — Insight pekan: aktivitas & streak berdampingan */}
-      <section className="mt-8" aria-label="Insight pekan ini">
-        <RutinaSectionHeader
-          title="Insight pekan"
-          description="Aktivitas misi & konsistensi terpanjang"
-        />
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FocusWidget />
-          <StreakWidget />
-        </div>
-      </section>
-
       {/* 5 — Kartu stempel pekan (pola punch card, histori nyata) */}
-      <div className="mt-5">
-        <PunchCard />
-      </div>
+      <PunchCard />
 
       {/* 6 — Kartu Kategori / Folder (jumlah dihitung nyata) */}
-      <section className="mt-8" aria-label="Koleksi folder catatan">
+      <section aria-label="Koleksi folder catatan">
         <RutinaSectionHeader
           title="Koleksi"
           description={`${FOLDERS.length} folder catatan`}
@@ -1276,8 +1313,15 @@ export default function HomeScreen() {
         </div>
       </section>
 
-      {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap kebiasaan */}
-      <PlantGarden />
+      {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap
+          kebiasaan, berendam di permukaan kebun (garden-surface) sebagai
+          bedeng lembut. mt-8 internal PlantGarden dinetralkan agar
+          ritme jarak mengikuti --layout-gap dari tumpukan utama. */}
+      {hasActiveHabits && (
+        <div className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-6 [&>section]:mt-0">
+          <PlantGarden />
+        </div>
+      )}
 
       {/* 7 — Kartu Kutipan & Pengingat (pembatas visual) */}
       <m.section
@@ -1286,7 +1330,7 @@ export default function HomeScreen() {
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
         aria-label="Refleksi hari ini"
-        className="mt-8 rounded-[20px] bg-surface-inverse p-6 text-content-inverse shadow-ink"
+        className="rounded-[20px] bg-surface-inverse p-6 text-content-inverse shadow-ink"
       >
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">

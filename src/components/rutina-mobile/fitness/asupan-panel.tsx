@@ -170,11 +170,11 @@ export function AsupanPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Neraca kalori hari ini"
-        className="overflow-hidden rounded-[24px] bg-primary p-6 text-primary-foreground shadow-leaf"
+        className="overflow-hidden rounded-[24px] bg-module-accent p-6 text-module-accent-fg shadow-leaf"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="flex items-center gap-1.5 text-[13px] font-medium text-primary-foreground/80">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium text-module-accent-fg/80">
               <Flame className="h-4 w-4" />
               Asupan hari ini
             </p>
@@ -182,7 +182,7 @@ export function AsupanPanel() {
               <span className="text-[44px] font-semibold leading-none tracking-tight tabular-nums">
                 {fmt(sum.kcal)}
               </span>
-              <span className="text-lg font-medium text-primary-foreground/85">
+              <span className="text-lg font-medium text-module-accent-fg/85">
                 / {fmt(allowance)} kkal
               </span>
             </p>
@@ -194,7 +194,7 @@ export function AsupanPanel() {
               setEditingTarget((v) => !v)
             }}
             aria-expanded={editingTarget}
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary-foreground/15 px-3 py-1.5 text-[11.5px] font-bold text-primary-foreground transition-colors hover:bg-primary-foreground/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-[11.5px] font-bold text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
           >
             <Target className="h-3.5 w-3.5" />
             Atur target
@@ -218,7 +218,7 @@ export function AsupanPanel() {
                   onClick={() =>
                     setTargetDraft(String(Math.max(1200, Number(targetDraft) - 100)))
                   }
-                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-primary-foreground/15 text-primary-foreground transition-colors hover:bg-primary-foreground/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-module-accent-fg/15 text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -229,7 +229,7 @@ export function AsupanPanel() {
                   onChange={(e) =>
                     setTargetDraft(e.target.value.replace(/\D/g, '').slice(0, 4))
                   }
-                  className="h-10 flex-1 rounded-xl border-transparent bg-primary-foreground/15 text-center text-[15px] font-bold tabular-nums text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:border-primary-foreground/40 focus-visible:ring-primary-foreground/20"
+                  className="h-10 flex-1 rounded-xl border-transparent bg-module-accent-fg/15 text-center text-[15px] font-bold tabular-nums text-module-accent-fg placeholder:text-module-accent-fg/50 focus-visible:border-module-accent-fg/40 focus-visible:ring-module-accent-fg/20"
                 />
                 <button
                   type="button"
@@ -237,7 +237,7 @@ export function AsupanPanel() {
                   onClick={() =>
                     setTargetDraft(String(Math.min(4500, Number(targetDraft) + 100)))
                   }
-                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-primary-foreground/15 text-primary-foreground transition-colors hover:bg-primary-foreground/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-module-accent-fg/15 text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -253,7 +253,7 @@ export function AsupanPanel() {
                       toast.warning('Target antara 1.200 – 4.500 kkal')
                     }
                   }}
-                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-primary-foreground px-4 text-[12.5px] font-bold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-[12.5px] font-bold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   Simpan
                 </button>
@@ -263,10 +263,10 @@ export function AsupanPanel() {
         </AnimatePresence>
 
         {/* Bar progres — terisi relatif jatah (target + terbakar) */}
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-primary-foreground/25">
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-module-accent-fg/25">
           <m.div
             initial={false}
-            className="h-full rounded-full bg-primary-foreground"
+            className="h-full rounded-full bg-module-accent-fg"
             animate={{ width: `${pct}%` }}
             transition={{ type: 'spring', stiffness: 130, damping: 22 }}
           />
@@ -274,26 +274,26 @@ export function AsupanPanel() {
 
         {/* Energi terbakar — baris tambahan neraca v2 */}
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
-          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-primary-foreground/90">
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-module-accent-fg/90">
             <Flame className="h-4 w-4 text-gold" aria-hidden="true" />
             Energi terbakar
           </p>
-          <p className="text-[13px] font-bold tabular-nums text-primary-foreground">
+          <p className="text-[13px] font-bold tabular-nums text-module-accent-fg">
             +{fmt(burned)}
-            <span className="ml-0.5 text-[10px] font-semibold text-primary-foreground/75">
+            <span className="ml-0.5 text-[10px] font-semibold text-module-accent-fg/75">
               kkal
             </span>
           </p>
         </div>
         {burned === 0 && (
-          <p className="mt-1.5 px-0.5 text-[10.5px] font-medium text-primary-foreground/70">
+          <p className="mt-1.5 px-0.5 text-[10.5px] font-medium text-module-accent-fg/70">
             Catat latihan di Bugar untuk menambah jatah.
           </p>
         )}
 
         {/* Coaching adaptif — menggantikan teks sisa lama */}
         {remaining < -300 ? (
-          <p className="mt-2 flex items-start gap-2 rounded-xl bg-espresso/35 px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-primary-foreground">
+          <p className="mt-2 flex items-start gap-2 rounded-xl bg-espresso/35 px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-module-accent-fg">
             <AlertTriangle
               className="mt-0.5 h-4 w-4 shrink-0 text-gold"
               aria-hidden="true"
@@ -303,19 +303,19 @@ export function AsupanPanel() {
             intensitas.
           </p>
         ) : remaining < 0 ? (
-          <p className="mt-2 px-0.5 text-[12px] font-semibold text-primary-foreground/85">
+          <p className="mt-2 px-0.5 text-[12px] font-semibold text-module-accent-fg/85">
             Sedikit di atas jatah — tidak masalah, seimbangkan besok.
           </p>
         ) : remaining <= 400 ? (
-          <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[12px] font-semibold text-primary-foreground">
+          <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[12px] font-semibold text-module-accent-fg">
             <Sparkles
-              className="h-4 w-4 shrink-0 text-pistachio"
+              className="h-4 w-4 shrink-0 text-module-accent-fg"
               aria-hidden="true"
             />
             Sisa {fmt(remaining)} kkal — tempo yang pas untuk hari ini.
           </p>
         ) : (
-          <p className="mt-2 px-0.5 text-[12px] font-semibold text-primary-foreground/85">
+          <p className="mt-2 px-0.5 text-[12px] font-semibold text-module-accent-fg/85">
             Masih ada {fmt(remaining)} kkal jatah — jangan lewatkan energi
             untuk pemulihan.
           </p>
@@ -327,7 +327,7 @@ export function AsupanPanel() {
             <p className="text-[18px] font-bold leading-none tabular-nums">
               {fmt(sum.protein)}<span className="text-[11px] font-semibold"> g</span>
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary-foreground/70">
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-module-accent-fg/70">
               protein
             </p>
           </div>
@@ -335,7 +335,7 @@ export function AsupanPanel() {
             <p className="text-[18px] font-bold leading-none tabular-nums">
               {fmt(sum.carb)}<span className="text-[11px] font-semibold"> g</span>
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary-foreground/70">
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-module-accent-fg/70">
               karbohidrat
             </p>
           </div>
@@ -343,13 +343,13 @@ export function AsupanPanel() {
             <p className="text-[18px] font-bold leading-none tabular-nums">
               {fmt(sum.fat)}<span className="text-[11px] font-semibold"> g</span>
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary-foreground/70">
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-module-accent-fg/70">
               lemak
             </p>
           </div>
         </div>
         {!sum.macroKnown && todayEntries.length > 0 && (
-          <p className="mt-2 text-[10.5px] leading-relaxed text-primary-foreground/70">
+          <p className="mt-2 text-[10.5px] leading-relaxed text-module-accent-fg/70">
             Sebagian makanan di master belum punya rincian makro — kalori tetap
             dihitung penuh.
           </p>
