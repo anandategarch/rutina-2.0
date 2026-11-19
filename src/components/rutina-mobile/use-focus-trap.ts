@@ -15,6 +15,7 @@ const FOCUSABLE =
 export function useFocusTrap(
   open: boolean,
   ref: RefObject<HTMLElement | null>,
+  opts?: { initialFocus?: 'first' | 'panel' },
 ) {
   useEffect(() => {
     if (!open || !ref.current) return
@@ -28,8 +29,11 @@ export function useFocusTrap(
         panel.querySelectorAll<HTMLElement>(FOCUSABLE),
       ).filter((el) => el.offsetParent !== null)
 
-    /* Fokus awal: elemen interaktif pertama, atau panel itu sendiri. */
-    const initial = focusables()[0]
+    /* Fokus awal: elemen interaktif pertama, atau panel itu sendiri.
+       v2.16: initialFocus 'panel' (mis. Quick Action Hub di ponsel)
+       agar papan ketik virtual tidak langsung menutupi konten. */
+    const initial =
+      opts?.initialFocus === 'panel' ? null : (focusables()[0] ?? null)
     ;(initial ?? panel).focus({ preventScroll: true })
 
     const onKeyDown = (e: KeyboardEvent) => {

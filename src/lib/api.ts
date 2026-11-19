@@ -3,8 +3,13 @@ import type { z } from 'zod'
 
 /* Pembantu kecil seragam untuk seluruh route API Rutina. */
 
+/* v2.16 (audit T5-b #13): respons data pribadi tidak di-cache oleh
+   perantara — seluruh route memakai no-store. */
 export function ok<T extends object>(data: T, status = 200) {
-  return NextResponse.json({ ok: true, ...data }, { status })
+  return NextResponse.json(
+    { ok: true, ...data },
+    { status, headers: { 'cache-control': 'no-store' } },
+  )
 }
 
 export function fail(message: string, status = 400, details?: unknown) {
@@ -52,15 +57,13 @@ export function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-/** Pembungkus try/catch — pesan aman untuk klien, detail di log server. */
+/** Pembungkus try/catch — pesan generik untuk klien, detail di log server
+ *  (audit v2.16 T5-b #6: pesan mentah bisa membocorkan detail infrastruktur). */
 export async function guard<T>(fn: () => Promise<T>): Promise<T | ReturnType<typeof fail>> {
   try {
     return await fn()
   } catch (error) {
     console.error('[api] error:', error)
-    return fail(
-      error instanceof Error ? error.message : 'Kesalahan server tak terduga',
-      500,
-    )
+    return fail('Kesalahan server', 500)
   }
 }

@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils'
 
 import { useCheckInSheet } from './checkin-sheet'
 import { formatIDR } from './finance/utils'
+import { useFocusTrap } from './use-focus-trap'
 import {
   FOLDER_SHORT,
   HABIT_CAT_COLORS,
@@ -290,15 +291,15 @@ export function QuickActionHub() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, closeHub])
 
-  /* Fokus awal + pengembalian fokus ke pemicu saat ditutup. Di desktop
-     kursor langsung di bidang cari; di ponsel fokus tetap di panel agar
-     papan ketik tidak menutupi kisi enam aksi. */
+  /* Fokus: trap penuh + pengembalian fokus ke pemicu saat ditutup
+     (v2.16, audit T5-d #1 — sebelumnya satu-satunya dialog tanpa trap:
+     Tab bisa lolos ke konten di belakang modal). Panel difokuskan awal
+     agar papan ketik ponsel tidak menutupi kisi; desktop menindihnya
+     dengan langsung memfokuskan bidang cari. */
+  useFocusTrap(open, panelRef, { initialFocus: 'panel' })
   useEffect(() => {
-    if (!open) return
-    const trigger = document.activeElement as HTMLElement | null
-    if (isDesktop) inputRef.current?.focus()
-    else panelRef.current?.focus({ preventScroll: true })
-    return () => trigger?.focus?.({ preventScroll: true })
+    if (!open || !isDesktop) return
+    inputRef.current?.focus({ preventScroll: true })
   }, [open, isDesktop])
 
   const q = query.trim().toLowerCase()

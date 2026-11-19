@@ -143,7 +143,9 @@ export default function Heatmap() {
         )}
       </div>
 
-      <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
+      {/* v2.16 (audit T5-d #5): umumkan pilihan sel ke pembaca layar —
+          selaras dengan spend-heatmap & month-calendar. */}
+      <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-content-inverse/70">
         {sel && selEntry
           ? `Pekan ${WEEKS - sel.w}, ${cellText(selEntry)}`
           : 'Ketuk sel untuk melihat detail hari.'}

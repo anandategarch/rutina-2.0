@@ -23,11 +23,10 @@ export async function GET() {
       headers: { 'cache-control': 'no-store' },
     })
   } catch (error) {
+    /* v2.16 (audit T5-b #6): pesan generik — detail error bisa membocorkan
+       nama tabel/fragmen SQL; detail tetap di log server. */
     console.error('[api/state] GET gagal:', error)
-    return fail(
-      error instanceof Error ? error.message : 'Gagal membaca state',
-      500,
-    )
+    return fail('Gagal membaca state', 500)
   }
 }
 
@@ -42,6 +41,13 @@ export async function PUT(req: Request) {
   if (Object.keys(state.bodyLogs).length > MAX_TRACKED_DAYS) {
     return fail('Jumlah tanggal bodyLogs melebihi batas', 413)
   }
+  /* v2.16 (audit T5-b #3): dua record tanpa batas kini ikut dicek. */
+  if (Object.keys(state.moodLogs).length > MAX_TRACKED_DAYS) {
+    return fail('Jumlah tanggal moodLogs melebihi batas', 413)
+  }
+  if (Object.keys(state.budgets).length > MAX_TRACKED_DAYS) {
+    return fail('Jumlah kunci budgets melebihi batas', 413)
+  }
 
   try {
     const counts = await writeFullState(state)
@@ -50,10 +56,8 @@ export async function PUT(req: Request) {
       syncedAt: new Date().toISOString(),
     })
   } catch (error) {
+    /* v2.16 (audit T5-b #6): pesan generik — detail tetap di log server. */
     console.error('[api/state] PUT gagal:', error)
-    return fail(
-      error instanceof Error ? error.message : 'Gagal menulis state',
-      500,
-    )
+    return fail('Gagal menulis state', 500)
   }
 }

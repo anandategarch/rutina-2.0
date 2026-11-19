@@ -36,6 +36,10 @@ const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'tanggal harus ISO yyyy-mm-dd')
 
+/** Batas jumlah tanggal pada completions/bodyLogs/moodLogs dan kunci
+ *  budgets (tolak muatan raksasa — audit v2.16 T5-b #3). */
+export const MAX_TRACKED_DAYS = 4000
+
 /* ===== Domain: kebiasaan ===== */
 
 export const habitSchema = z.object({
@@ -106,10 +110,16 @@ export const walletSchema = z.object({
 })
 export const walletInputSchema = walletSchema.omit({ id: true })
 
-export const budgetsSchema = z.record(
-  z.string().min(1).max(32),
-  z.number().int().min(0).max(1_000_000_000_000),
-)
+export const budgetsSchema = z
+  .record(
+    z.string().min(1).max(32),
+    z.number().int().min(0).max(1_000_000_000_000),
+  )
+  /* v2.16 (audit T5-b #3): batasi jumlah kunci — tanpa ini record
+     raksasa lolos validasi dan membebani writeFullState. */
+  .refine((rec) => Object.keys(rec).length <= MAX_TRACKED_DAYS, {
+    message: 'Jumlah kunci budgets melebihi batas',
+  })
 
 export const goalSchema = z.object({
   id: z.string().min(1).max(64),
@@ -176,8 +186,13 @@ export const bodyLogSchema = z.object({
 })
 export const bodyLogsSchema = z.record(isoDate, bodyLogSchema)
 
-/** moodLogs[tanggalISO] = nama mood — histori wellness per tanggal. */
-export const moodLogsSchema = z.record(isoDate, z.string().min(1).max(24))
+/** moodLogs[tanggalISO] = nama mood — histori wellness per tanggal.
+ *  v2.16 (audit T5-b #3): batasi jumlah kunci (selaras completions). */
+export const moodLogsSchema = z
+  .record(isoDate, z.string().min(1).max(24))
+  .refine((rec) => Object.keys(rec).length <= MAX_TRACKED_DAYS, {
+    message: 'Jumlah tanggal moodLogs melebihi batas',
+  })
 
 /* ===== Snapshot penuh ===== */
 
@@ -221,6 +236,3 @@ export type GoalWire = z.infer<typeof goalSchema>
 export type WorkoutWire = z.infer<typeof workoutSchema>
 export type FoodEntryWire = z.infer<typeof foodEntrySchema>
 export type BodyLogWire = z.infer<typeof bodyLogSchema>
-
-/** Batas jumlah tanggal pada completions/bodyLogs (tolak muatan raksasa). */
-export const MAX_TRACKED_DAYS = 4000

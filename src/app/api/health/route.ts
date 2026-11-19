@@ -19,12 +19,14 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    /* v2.16 (audit T5-b #6): pesan generik — detail DB tetap di log server. */
+    console.error("[health] gagal:", error);
     return NextResponse.json(
       {
         status: "error",
         app: "rutina-2.0",
         database: { connected: false, backend: isTurso ? "turso" : "sqlite-local" },
-        message: error instanceof Error ? error.message : "Unknown database error",
+        message: "Kesalahan database tak terduga",
       },
       { status: 500 },
     );

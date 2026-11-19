@@ -55,13 +55,21 @@ export interface ExStat {
   lastReps: number
 }
 
-/** Rekap satu gerakan: jumlah sesi, PR e1RM, set terakhir. */
+/** Rekap satu gerakan: jumlah sesi, PR e1RM, set terakhir.
+ *  v2.16 (audit T5-e #6): urutkan sesi terbaru-dulu di dalam fungsi —
+ *  store menambah workout di depan (newest-first), tetapi pemanggil
+ *  boleh datang dengan urutan apa pun; "set terakhir" kini selalu
+ *  diambil dari sesi bertanggal terbaru, bukan elemen terakhir array. */
 export function exStatOf(workouts: Workout[], name: string): ExStat {
   let sessions = 0
   let best = 0
   let lastWeight = 0
   let lastReps = 0
-  for (const w of workouts) {
+  let haveLast = false
+  const ordered = [...workouts].sort((a, b) =>
+    a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
+  )
+  for (const w of ordered) {
     if (w.kind !== 'beban') continue
     const sets = w.sets.filter((s) => s.exercise === name)
     if (sets.length === 0) continue
@@ -70,8 +78,11 @@ export function exStatOf(workouts: Workout[], name: string): ExStat {
       const e = e1rmOf(s.weight, s.reps)
       if (e > best) best = e
     }
-    lastWeight = sets[sets.length - 1].weight
-    lastReps = sets[sets.length - 1].reps
+    if (!haveLast) {
+      lastWeight = sets[sets.length - 1].weight
+      lastReps = sets[sets.length - 1].reps
+      haveLast = true
+    }
   }
   return { sessions, best, lastWeight, lastReps }
 }

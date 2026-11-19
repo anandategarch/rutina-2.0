@@ -429,15 +429,24 @@ export default function HomeScreen() {
   const xpProgress = Math.min(xp / XP_TARGET, 1)
   const xpRemaining = Math.max(XP_TARGET - xp, 0)
   /* Streak hero chip — bestStreak dipakai chip hero; tile duplikat sudah
-     dihapus (audit visualisasi v2.12). */
-  const streak = bestStreak(habits, completions, today).streak
+     dihapus (audit visualisasi v2.12). v2.16 (audit T5-c #8): dibungkus
+     useMemo — bestStreak O(habits×800) tidak perlu dihitung tiap render. */
+  const streak = useMemo(
+    () => bestStreak(habits, completions, today).streak,
+    [habits, completions, today],
+  )
 
-  /* Arus kas bersih seluruh transaksi (transfer antar-dompet dilewati). */
-  const netSaldo = txs.reduce(
-    (acc, t) =>
-      acc +
-      (t.type === 'masuk' ? t.amount : t.type === 'keluar' ? -t.amount : 0),
-    0,
+  /* Arus kas bersih seluruh transaksi (transfer antar-dompet dilewati).
+     v2.16 (audit T5-c #8): useMemo — O(txs) per render sebelumnya. */
+  const netSaldo = useMemo(
+    () =>
+      txs.reduce(
+        (acc, t) =>
+          acc +
+          (t.type === 'masuk' ? t.amount : t.type === 'keluar' ? -t.amount : 0),
+        0,
+      ),
+    [txs],
   )
 
   /* Agenda terbuka: belum selesai dikelompokkan per waktu, selesai

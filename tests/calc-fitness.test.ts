@@ -89,6 +89,20 @@ describe('rekap lintas sesi', () => {
     expect(stat.lastReps).toBe(6)
   })
 
+  /* v2.16 (audit T5-e #6): urutan produksi store = newest-first (unshift).
+     Sebelumnya "set terakhir" diambil dari elemen TERAKHIR array sehingga
+     pada urutan newest-first hasilnya sesi TERLAMA. */
+  test('exStatOf: set terakhir tetap dari sesi terbaru walau array newest-first', () => {
+    const newestFirst = [
+      beban('2025-06-05', [set('Bench', 85, 6)]),
+      beban('2025-06-02', [set('Bench', 80, 8)]),
+    ]
+    const stat = exStatOf(newestFirst, 'Bench')
+    expect(stat.lastWeight).toBe(85)
+    expect(stat.lastReps).toBe(6)
+    expect(stat.sessions).toBe(2)
+  })
+
   test('prBoard mengurutkan gerakan berdasar e1RM tertinggi', () => {
     const board = prBoard(workouts)
     const bench = board.find((r) => r.name === 'Bench')

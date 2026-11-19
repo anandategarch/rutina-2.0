@@ -71,6 +71,20 @@ interface SyncMeta {
   lastSyncedAt: number | null
 }
 
+/* ===== Shared secret opsional (audit v2.16 T5-b #2) =====
+   Bila NEXT_PUBLIC_SYNC_TOKEN (klien) & SYNC_TOKEN (server, lihat
+   middleware.ts) diisi, seluruh permintaan /api/* membawa header
+   x-sync-token. Kosong di sandbox/preview → autentikasi mati
+   (perilaku lama tetap). */
+const SYNC_TOKEN = process.env.NEXT_PUBLIC_SYNC_TOKEN ?? ''
+
+function syncHeaders(extra?: Record<string, string>): Record<string, string> {
+  return {
+    ...(extra ?? {}),
+    ...(SYNC_TOKEN ? { 'x-sync-token': SYNC_TOKEN } : {}),
+  }
+}
+
 /* ===== Status modul (singleton — selamat dari StrictMode ganda) ===== */
 
 let bootStarted = false
@@ -198,7 +212,7 @@ async function push(): Promise<void> {
   try {
     const res = await fetch('/api/state', {
       method: 'PUT',
-      headers: { 'content-type': 'application/json' },
+      headers: syncHeaders({ 'content-type': 'application/json' }),
       body: JSON.stringify({ state: snapshot() }),
     })
     if (!res.ok) throw new Error(`PUT /api/state → HTTP ${res.status}`)
@@ -282,7 +296,10 @@ async function boot(): Promise<void> {
   /* 2. Tarik status server. */
   let remote: StateResponse | null = null
   try {
-    const res = await fetch('/api/state', { cache: 'no-store' })
+    const res = await fetch('/api/state', {
+      cache: 'no-store',
+      headers: syncHeaders(),
+    })
     if (res.ok) remote = (await res.json()) as StateResponse
   } catch (error) {
     console.warn('[sync] GET /api/state gagal (mode offline):', error)
@@ -292,11 +309,19 @@ async function boot(): Promise<void> {
     const meta = readMeta()
     const serverPushAt = remote.syncedAt ? Date.parse(remote.syncedAt) : 0
     const localNewer = (meta?.lastEditAt ?? 0) > (serverPushAt || 0)
-    /* Server kosong tetapi perangkat ini punya data (mis. pengguna lama
-       dengan histori localStorage, atau server baru di-reset) → data
-       lokal diunggah, bukan ditimpa dengan kekosongan. */
-    const localBeatsEmpty = isRemoteEmpty(remote.state) && hasLocalData()
-    if (localNewer || localBeatsEmpty) {
+    /* v2.16 (audit T5-e #1/#3) — dua vektor kehilangan data ditutup:
+       (a) data contoh (demo seed) TIDAK boleh menimpa server yang sudah
+       berisi data nyata, seberapa pun suntingan lokal pada data contoh;
+       (b) server yang di-reset kosong secara sengaja (mis. "Mulai bersih"
+       dari perangkat lain) tidak boleh dihidupkan ulang oleh perangkat
+       lain yang masih memegang data lama. localBeatsEmpty kini hanya
+       berlaku bagi lokal yang belum pernah sinkron sama sekali
+       (unggah pertama histori lokal) — dan bukan data contoh. */
+    const demoSeed = useRutina.getState().demoMode === true
+    const neverSynced = (meta?.lastSyncedAt ?? 0) === 0
+    const localBeatsEmpty =
+      isRemoteEmpty(remote.state) && hasLocalData() && neverSynced && !demoSeed
+    if ((localNewer && !demoSeed) || localBeatsEmpty) {
       /* Ada suntingan lokal yang belum sempat terkirim → unggahkan. */
       await push()
     } else {
@@ -367,7 +392,10 @@ export function syncStatus(): { lastSyncedAt: number | null } {
  *  lama yang baru saja ditimpa. */
 export async function forcePull(): Promise<boolean> {
   try {
-    const res = await fetch('/api/state', { cache: 'no-store' })
+    const res = await fetch('/api/state', {
+      cache: 'no-store',
+      headers: syncHeaders(),
+    })
     if (!res.ok) return false
     const remote = (await res.json()) as StateResponse
     if (!remote?.initialized || !remote.state) return false

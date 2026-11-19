@@ -173,28 +173,36 @@ sampah. Respons seragam `{ ok: true, ... }` / `{ ok: false, error }`.
 
 ## 7. Catatan keamanan
 
-- `.env` dan `db/custom.db` sudah **dihapus dari seluruh riwayat git**
-  (git filter-branch + force push; commit lama tidak lagi memuat berkas
-  tersebut). File `.env` tetap hidup lokal saja dan tergolong `.gitignore`.
-- **Rotasi token:** token pernah terekspos di riwayat git publik sebelum
-  pembersihan. Token saat ini (read-write, tanpa kedaluwarsa) hidup di
-  `.env` lokal + sandbox. Bila dicurigai bocor, jalankan
-  `turso db tokens invalidate <token>` lalu buat baru
-  (`turso db tokens create habit-tracker-v2-anandategarch`) dan perbarui
-  di dashboard Vercel serta `.env` lokal.
-- Semua kredensial produksi hanya hidup di dashboard Vercel / `.env`
-  lokal — tidak pernah di-commit.
+- **`db/custom.db` di-untrack sejak v2.16 (audit T5-b #1)** — berkas
+  database lokal berisi data pribadi pengguna (transaksi, jurnal, mood)
+  dan sebelumnya ikut ter-commit. Sekarang hanya hidup lokal
+  (`.gitignore: db/*.db` berlaku). Catatan jujur: commit-commit lama
+  di riwayat git masih memuat snapshot lamanya — bila repo pernah
+  publik, bersihkan riwayat dengan `git filter-repo --path db/custom.db
+  --invert-paths` + force push, atau jadikan repo private.
+- **Shared secret API (v2.16, audit T5-b #2):** bila `SYNC_TOKEN` (server,
+  `src/middleware.ts`) dan `NEXT_PUBLIC_SYNC_TOKEN` (klien,
+  `sync-engine.ts`) diisi, seluruh `/api/*` kecuali `/api/health` menolak
+  permintaan tanpa header `x-sync-token` yang sama. Kosong = autentikasi
+  mati (prilaku sandbox). Token DB Turso sebaiknya dibuat dengan
+  kedaluwarsa (mis. 90 hari) lalu dirotasi — jangan lagi "tahan lama".
+- **Header keamanan dasar (v2.16, audit T5-b #4):** `next.config.ts`
+  mengirim `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`
+  + CSP mode laporan (`Content-Security-Policy-Report-Only`).
+- `.env` tidak pernah di-commit (tetap `.gitignore`).
 - `postinstall: prisma generate` sudah ada di `package.json` agar build
   Vercel selalu memiliki Prisma Client yang ter-generate.
 
 ## 8. Checklist pasca-deploy
 
-- [ ] `bun run verify` lulus lokal (typecheck + lint + 75 tes).
+- [ ] `bun run verify` lulus lokal (typecheck + lint + seluruh tes).
 - [ ] `DATABASE_AUTH_TOKEN` di Vercel = token baru (bukan token 1 hari).
 - [ ] `GET /api/health` → `connected: true, backend: turso`.
+- [ ] (Opsional) Set `SYNC_TOKEN` + `NEXT_PUBLIC_SYNC_TOKEN` dengan nilai
+      sama → pastikan `GET /api/state` dari luar (tanpa header) kini 401.
 - [ ] Buka aplikasi di ponsel → tab Profil → chip waktu sinkron terisi.
 - [ ] Centang satu misi → muat ulang di perangkat lain → tetap tercentang
       (verifikasi sinkronisasi lintas perangkat).
 - [ ] (Performa data besar) Buka tab Mutasi dengan histori panjang —
-      daftar dirender bertahap (60 transaksi awal, tombol "tampilkan
-      lagi"), tanpa jank gulir.
+      daftar dirender bertahap (desktop 60 awal; ponsel 14 hari +
+      "Muat lagi"), tanpa jank gulir.

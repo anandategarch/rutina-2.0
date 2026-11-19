@@ -2369,36 +2369,10 @@ export default function KeuanganScreen() {
                     (panel resizable, gulir mandiri; lihat MutasiWorkspace) */}
                 <MutasiWorkspace className="mt-3 hidden lg:block" />
 
-                {/* Ponsel/tablet — daftar terkelompok per hari,
-                    persis seperti sebelumnya */}
-                <div className="mt-3 space-y-5 lg:hidden">
-                  {dayGroups.map((g) => (
-                    <div key={g.date}>
-                      <div className="mb-2 flex items-center justify-between px-0.5">
-                        <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-                          {fmtDate(g.date)}
-                        </p>
-                        <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
-                          {g.masuk > 0 && (
-                            <span className="text-success">
-                              +{formatIDRShort(g.masuk)}{' '}
-                            </span>
-                          )}
-                          {g.keluar > 0 && (
-                            <span className="text-content-danger">
-                              −{formatIDRShort(g.keluar)}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="space-y-2.5">
-                        {g.txs.map((tx) => (
-                          <TxRow key={tx.id} tx={tx} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {/* Ponsel/tablet — daftar terkelompok per hari dengan anggar
+                    render (audit v2.16 T5-c #4): 14 hari pertama + muat lagi,
+                    selaras budget ledger desktop (MutasiWorkspace). */}
+                <MutasiPhoneList className="mt-3 lg:hidden" dayGroups={dayGroups} />
               </>
             )}
           </BlurFade>
@@ -2590,6 +2564,60 @@ export default function KeuanganScreen() {
 
       {/* Dialog tambah dompet */}
       <WalletDialog />
+    </div>
+  )
+}
+
+/* ===== Daftar mutasi ponsel — anggar render (audit v2.16 T5-c #4) =====
+   Desktop sudah punya budget ledger (MutasiWorkspace, 60 baris awal);
+   ponsel sebelumnya me-mount SEMUA TxRow sekaligus. Tampilkan 14 hari
+   pertama + tombol "Muat lagi" — jumlah baris terpasang kini konstan. */
+function MutasiPhoneList({
+  className,
+  dayGroups,
+}: {
+  className?: string
+  dayGroups: ReturnType<typeof groupByDay>
+}) {
+  const PAGE = 14
+  const [limit, setLimit] = useState(PAGE)
+  return (
+    <div className={className ?? ''}>
+      {dayGroups.slice(0, limit).map((g) => (
+        <div key={g.date} className="[&+&]:mt-5">
+          <div className="mb-2 flex items-center justify-between px-0.5">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+              {fmtDate(g.date)}
+            </p>
+            <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+              {g.masuk > 0 && (
+                <span className="text-success">
+                  +{formatIDRShort(g.masuk)}{' '}
+                </span>
+              )}
+              {g.keluar > 0 && (
+                <span className="text-content-danger">
+                  −{formatIDRShort(g.keluar)}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="space-y-2.5">
+            {g.txs.map((tx) => (
+              <TxRow key={tx.id} tx={tx} />
+            ))}
+          </div>
+        </div>
+      ))}
+      {dayGroups.length > limit && (
+        <button
+          type="button"
+          onClick={() => setLimit((n) => n + PAGE)}
+          className="mt-5 flex h-11 w-full cursor-pointer items-center justify-center rounded-2xl border border-dashed border-border-strong text-note font-semibold text-content-secondary transition-colors hover:bg-surface-sunken active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          Muat lagi — sisa {dayGroups.length - limit} hari
+        </button>
+      )}
     </div>
   )
 }

@@ -220,9 +220,13 @@ export function AddTxSheet() {
               })}
             </div>
 
-            {/* Nominal besar */}
+            {/* Nominal besar — diumumkan ke pembaca layar (audit T5-d #2):
+                keypad tidak memberi umpan balik lain saat nilai diketik. */}
             <div className="mt-4 text-center">
               <span
+                role="status"
+                aria-live="polite"
+                aria-label={`Nominal saat ini: ${amount ? formatIDR(amount) : 'Rp0'}`}
                 className={`text-kpi-lg font-bold leading-none tabular-nums transition-colors duration-300 ${amountColor} ${
                   amount ? '' : 'opacity-35'
                 }`}
@@ -237,7 +241,7 @@ export function AddTxSheet() {
             {/* Pemilih kategori — himpunan berganti mengikuti tipe.
                 Dua tingkat: kisi bawaan 2.0, lalu chip “Dari Rutina 1.0”
                 (kategori asli hasil impor Turso — v2.15). */}
-            <div className="mt-4">
+            <div className="mt-4" role="group" aria-label="Kategori transaksi">
               <span className="text-note font-semibold text-content-secondary">
                 Kategori
               </span>
@@ -348,7 +352,7 @@ export function AddTxSheet() {
 
             {/* Dompet sumber — hanya bila pengguna punya dompet */}
             {wallets.length > 0 && (
-              <div className="mt-4 space-y-1.5">
+              <div className="mt-4 space-y-1.5" role="group" aria-label="Dompet sumber">
                 <span className="text-note font-semibold text-content-secondary">
                   Dompet
                 </span>
@@ -376,7 +380,7 @@ export function AddTxSheet() {
             )}
 
             {/* Transaksi berulang */}
-            <div className="mt-4 space-y-1.5">
+            <div className="mt-4 space-y-1.5" role="group" aria-label="Transaksi berulang">
               <span className="text-note font-semibold text-content-secondary">
                 Berulang{' '}
                 <span className="font-normal text-content-muted">

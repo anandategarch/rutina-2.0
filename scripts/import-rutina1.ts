@@ -223,6 +223,21 @@ for (const mod of modules) {
 /* ===== 2. Susun semua statement tulis ===== */
 const writes: Stmt[] = []
 
+/* v2.16 (audit T5-e #9): fallback createdAt untuk baris dengan
+   created_at rusak — pakai check-in terawalnya, bukan konstanta
+   masa depan (konstanta '2026-01-01' lama merusak streak/tahap
+   tanaman karena cursor < createdAt langsung break). */
+const firstCheckinBy = new Map<string, string>()
+for (const c of oldCheckins) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.completed_on ?? '')) continue
+  const cur = firstCheckinBy.get(c.habit_id)
+  if (cur === undefined || c.completed_on < cur) {
+    firstCheckinBy.set(c.habit_id, c.completed_on)
+  }
+}
+let createdFallback = 0
+let checkinsSkipped = 0
+
 /* Kebiasaan → rutina_habits */
 for (const h of oldHabits) {
   const sched = metaByHabit.get(h.id)
@@ -231,7 +246,11 @@ for (const h of oldHabits) {
     const d = [...new Set(sched.days)].filter((x) => x >= 0 && x <= 6).sort()
     if (d.length > 0) days = d
   }
-  const createdAt = (h.created_at ?? '').slice(0, 10) || '2026-01-01'
+  const createdAtOk = /^\d{4}-\d{2}-\d{2}$/.test((h.created_at ?? '').slice(0, 10))
+  if (!createdAtOk) createdFallback++
+  const createdAt = createdAtOk
+    ? (h.created_at ?? '').slice(0, 10)
+    : (firstCheckinBy.get(h.id) ?? '2024-01-01')
   writes.push({
     sql: `INSERT OR REPLACE INTO rutina_habits
           (id, title, desc, cat, schedule, weeklyTarget, reminder, restDays, afterId, mini, archived, createdAt)
@@ -252,8 +271,14 @@ for (const h of oldHabits) {
 /* Check-in → rutina_habit_logs (id deterministik → idempoten). */
 const habitIds = new Set(oldHabits.map((h) => h.id))
 for (const c of oldCheckins) {
-  if (!habitIds.has(c.habit_id)) continue
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.completed_on ?? '')) continue
+  if (!habitIds.has(c.habit_id)) {
+    checkinsSkipped++
+    continue
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(c.completed_on ?? '')) {
+    checkinsSkipped++
+    continue
+  }
   writes.push({
     sql: `INSERT OR REPLACE INTO rutina_habit_logs (id, habitId, date) VALUES (?, ?, ?)`,
     args: [`${c.habit_id}:${c.completed_on}`, c.habit_id, c.completed_on],
@@ -357,9 +382,19 @@ const RECUR_CAT_MAP: Record<string, string> = {
   Penghasilan: 'penghasilan',
 }
 let recurRows = 0
+let recurSkipped = 0
 for (const r of oldFinance.recurring ?? []) {
   if (r.active === false) continue
-  if (!r.id || !r.title || !r.nextDate) continue
+  if (!r.id || !r.title || !r.nextDate) {
+    recurSkipped++
+    continue
+  }
+  /* v2.16 (audit T5-e #9): nextDate wajib ISO — nilai malformat lolos
+     ke DB akan membuat PUT klien ditolak 422 (sinkron macet permanen). */
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.nextDate)) {
+    recurSkipped++
+    continue
+  }
   const type = r.type === 'income' ? 'masuk' : 'keluar'
   const cat =
     RECUR_CAT_MAP[r.category ?? ''] ?? (type === 'masuk' ? 'gaji' : 'lainnya')
@@ -443,13 +478,21 @@ for (const [date, row] of byDate) {
 console.log(`[import-rutina1] Menulis ${writes.length} statement dalam batch…`)
 await runBatch(writes)
 
-/* ===== 4. Tandai dataset ter-inisialisasi + segarkan lastPushAt ===== */
+/* ===== 4. Tandai dataset ter-inisialisasi + segarkan lastPushAt =====
+   v2.16 (audit T5-e #7): app.demoMode='false' ikut ditulis — tanpa ini
+   data hasil impor tampil dengan banner "Data contoh" dan tombol
+   "Mulai bersih" yang satu klik dari menghapus data pengguna sendiri. */
 const now = new Date().toISOString()
 await client.batch(
   [
     {
       sql: `INSERT INTO rutina_app_settings (key, value) VALUES ('sync.initialized', 'true')
             ON CONFLICT(key) DO UPDATE SET value = 'true'`,
+      args: [],
+    },
+    {
+      sql: `INSERT INTO rutina_app_settings (key, value) VALUES ('app.demoMode', 'false')
+            ON CONFLICT(key) DO UPDATE SET value = 'false'`,
       args: [],
     },
     {
@@ -472,10 +515,10 @@ const verify = await client.execute(
           (SELECT COUNT(*) FROM rutina_body_logs) bodies`,
 )
 console.log(
-  `[import-rutina1] Impor selesai: ${oldHabits.length} kebiasaan · ${oldCheckins.length} check-in · ${oldTxs.length} transaksi (${skipped} dilewati)`,
+  `[import-rutina1] Impor selesai: ${oldHabits.length} kebiasaan (${createdFallback} createdAt difallback) · ${oldCheckins.length} check-in (${checkinsSkipped} dilewati) · ${oldTxs.length} transaksi (${skipped} dilewati)`,
 )
 console.log(
-  `[import-rutina1] Modul: ${walletRows} dompet (${linked} tx ter-taut) · ${goalRows} goals · ${recurRows} berulang · ${moodRows} mood · ${bodyRows} body log`,
+  `[import-rutina1] Modul: ${walletRows} dompet (${linked} tx ter-taut) · ${goalRows} goals · ${recurRows} berulang (${recurSkipped} dilewati) · ${moodRows} mood · ${bodyRows} body log`,
 )
 console.log(`[import-rutina1] Verifikasi tabel: ${JSON.stringify(verify.rows[0])}`)
 console.log(`[import-rutina1] sync.lastPushAt = ${now} — klien berikutnya akan menarik data ini.`)

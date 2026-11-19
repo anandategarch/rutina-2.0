@@ -3,6 +3,103 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.16] — Deep Audit Menyeluruh (5 Agent Paralel) & Perbaikan Prioritas
+
+Deep audit seluruh basis kode oleh lima auditor paralel — kualitas kode
+(T5-a, 6,5/10), keamanan (T5-b, 6,5/10), performa & pertumbuhan data
+(T5-c, 6/10), UI/UX & aksesibilitas (T5-d, 8/10), integritas data &
+sinkronisasi (T5-e, 6,5/10). Temuan critical/major prioritas atas telah
+diperbaiki; sisanya masuk peta jalan di bawah.
+
+### Diperbaiki — Integritas Data (audit T5-e)
+- **Demo seed tidak lagi bisa menimpa server** (`sync-engine.ts` boot):
+  perangkat baru yang membuka aplikasi pertama kali secara offline lalu
+  menyunting data contoh tidak lagi meng-PUT data demo menimpa dataset
+  nyata di cloud; `localBeatsEmpty` kini hanya berlaku bagi lokal yang
+  belum pernah sinkron sama sekali, sehingga reset kosong yang disengaja
+  ("Mulai bersih") dari perangkat lain tidak dihidupkan ulang oleh
+  perangkat lama yang masih memegang data.
+- **Resurreksi salinan transaksi berulang** (`materializeRecurring`):
+  ts TEMPLAT dimajukan ke due terakhir yang direncanakan — menghapus
+  salinan terbaru tidak lagi memundurkan kursor sehingga tanggal yang
+  sama tidak dibuat ulang. Dibuktikan `tests/recurring.test.ts` (3 tes).
+- **`exStatOf` salah sesi terakhir** (`fit-utils.ts`): urutkan sesi
+  terbaru-dulu di dalam fungsi — "set terakhir" kini selalu dari sesi
+  bertanggal terbaru (sebelumnya sesi TERLAMA pada urutan produksi
+  newest-first; memengaruhi prefill beban coach). +1 tes urutan
+  produksi.
+- **Impor Rutina 1.0 menulis `app.demoMode='false'`** — tanpa ini data
+  hasil impor tampil dengan banner "Data contoh" + tombol "Mulai bersih"
+  yang satu klik dari menghapus data pengguna sendiri.
+- **Validasi tanggal impor** (`created_at`, `recurring.nextDate` wajib
+  ISO; fallback createdAt kini check-in terawal kebiasaan itu, bukan
+  konstanta masa depan) + penghitung baris yang dilewati.
+
+### Diperbaiki — Keamanan (audit T5-b)
+- **`db/custom.db` di-untrack dari git** — berikut data pribadi nyata
+  (gaji, jurnal, mood) tidak lagi ikut ter-commit; `.gitignore` kini
+  berlaku. DEPLOY.md diperbarui dengan catatan jujur bahwa riwayat lama
+  masih memuat snapshot lamanya (panduan filter-repo disertakan).
+- **Shared secret opsional `/api/*`** (`src/middleware.ts` baru): bila
+  `SYNC_TOKEN`/`NEXT_PUBLIC_SYNC_TOKEN` diisi, seluruh API kecuali
+  health menolak permintaan tanpa header `x-sync-token` (kosong =
+  perilaku lama). Klien mengirim header dari `sync-engine.ts`.
+- **Batas kunci record** `moodLogs` & `budgets` (refine Zod + cek route,
+  selaras `MAX_TRACKED_DAYS`) — menutup celah muatan raksasa; +1 tes.
+- **Header keamanan dasar** di `next.config.ts`: `X-Content-Type-Options`,
+  `Referrer-Policy`, `X-Frame-Options`, CSP Report-Only.
+- **Pesan error generik** (`guard`, `/api/state`, `/api/health`) — pesan
+  mentah yang bisa membocorkan detail infrastruktur kini hanya di log
+  server; `ok()` selalu `cache-control: no-store`.
+- Route scaffold `src/app/api/route.ts` dihapus.
+
+### Diperbaiki — Aksesibilitas (audit T5-d)
+- **Focus trap di Quick Action Hub** (`use-focus-trap` + opsi
+  `initialFocus: 'panel'`): satu-satunya dialog tanpa pengurungan Tab
+  kini terkurung penuh; terverifikasi browser (5× Tab tetap di dalam
+  dialog).
+- **Umpan balik pembaca layar**: nominal transaksi `aria-live` (keypad
+  tanpa umpan balik sebelumnya), input cari makanan ber-`aria-label`,
+  caption heatmap `aria-live`, seksi Kategori/Dompet/Berulang jadi
+  `role="group"` berlabel.
+- Label `text-[9px]` spend-heatmap → token `text-chart-label`.
+
+### Diperbaiki — Performa (audit T5-c)
+- **Anggar render daftar Mutasi ponsel** (`MutasiPhoneList`): 14 hari
+  pertama + tombol "Muat lagi" — selaras budget ledger desktop; jumlah
+  TxRow terpasang kini konstan (terverifikasi browser: "Muat lagi —
+  sisa 5 hari" muncul & berfungsi).
+- `bestStreak` & `netSaldo` Beranda dibungkus `useMemo`.
+
+### Diperbaiki — Kualitas (audit T5-a)
+- `tsconfig.json`: `noImplicitAny: false` dihapus (strict penuh) +
+  seluruh `scripts/**/*.ts` kini masuk cakupan typecheck.
+
+### Pengujian
+- 5 tes baru (114 total / 7 file): anti-resurreksi berulang (3), urutan
+  produksi exStatOf (1), batas kunci moodLogs/budgets (1).
+- Verifikasi browser (390px): fokus trap hub (5× Tab), lembar transaksi
+  dengan grup berlabel, Mutasi ponsel + muat lagi, tanpa error konsol.
+
+### Peta jalan (temuan besar yang belum dikerjakan — disengaja)
+1. **Pecah `store.ts` (1.828 baris) & `keuangan.tsx` (2.624 baris)** ke
+   modul (`store/{types,derive,seeds,theme,index}`, `finance/tabs/*`)
+   mengikuti pola `fitness/` (T5-a #6-7).
+2. **Sinkronisasi incremental per-slice** — pakai dirty-flag `DOMAIN_KEYS`
+   + route REST per-domain yang sudah ada; mengubah biaya per-aksi dari
+   O(total data) → O(perubahan) (T5-c #1-2; horison masalah ±1 tahun
+   pemakaian padat).
+3. **Version counter pada snapshot** — menutup lost-update dua perangkat
+   aktif (T5-e #4).
+4. **Ekstrak `useSheetLifecycle`** — 11× pola reset-draf + 15× Escape
+   manual (T5-a #3); 5× duplikasi MOOD_ICONS (T5-a #4).
+5. **Code-split**: `next/dynamic` untuk layar Statistik (recharts) +
+   celebration; konsolidasi anime.js/motion (T5-c #6-7).
+6. Gate render `ContextRail` pada <xl (T5-c #5); target sentuh 44px
+   sistemik (T5-d #4); skip-link & pengumuman pergantian layar (T5-d
+   #11-12); migrasi `Budgets` → `Partial<Record<FinCat, number>>` untuk
+   memberantas 10 cast `as FinCat` (T5-a #8).
+
 ## [2.15] — Logo “r Tunas” & Impor Kategori Keuangan dari Turso
 
 Fokus: identitas visual baru yang sepenuhnya berbeda dari versi lama,

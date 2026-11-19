@@ -162,7 +162,7 @@ export function FoodSheet() {
                 Tambah Asupan
               </h2>
               <p className="mt-0.5 text-note text-content-muted">
-                Cari di 179 makanan &amp; minuman Indonesia.
+                Cari di {FOOD_DB.length} makanan &amp; minuman Indonesia.
               </p>
             </div>
 
@@ -175,6 +175,7 @@ export function FoodSheet() {
                   setQuery(e.target.value)
                   setPicked(null)
                 }}
+                aria-label="Cari makanan"
                 placeholder="mis. nasi goreng, ayam geprek, es kopi…"
                 className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-sm text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />

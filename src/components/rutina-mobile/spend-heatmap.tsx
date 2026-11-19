@@ -143,7 +143,7 @@ export function SpendHeatmap() {
           {ROW_LABELS.map((label, d) => (
             <span
               key={d}
-              className="flex h-5 items-center justify-end pr-0.5 text-[9px] font-bold uppercase leading-none text-content-muted"
+              className="flex h-5 items-center justify-end pr-0.5 text-chart-label font-bold uppercase leading-none text-content-muted"
             >
               {label}
             </span>
@@ -159,7 +159,7 @@ export function SpendHeatmap() {
             {grid.marks.map((mk, w) => (
               <span
                 key={w}
-                className="h-3 w-max text-[9px] font-bold uppercase leading-none text-content-muted"
+                className="h-3 w-max text-chart-label font-bold uppercase leading-none text-content-muted"
               >
                 {mk ?? ''}
               </span>

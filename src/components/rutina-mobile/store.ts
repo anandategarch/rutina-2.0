@@ -1353,7 +1353,13 @@ export const useRutina = create<RutinaState>()(
 
   /** Catat otomatis salinan transaksi berulang yang jadwalnya sudah
    *  tiba (mingguan/bulanan), dari templat hingga hari ini — idempoten:
-   *  salinan baru melanjutkan rantai lewat recurOf. */
+   *  salinan baru melanjutkan rantai lewat recurOf.
+   *
+   *  v2.16 (audit T5-e #5): ts TEMPLAT dimajukan ke due terakhir yang
+   *  direncanakan — bukan hanya mengikuti rantai salinan yang tersisa.
+   *  Tanpa ini, menghapus salinan terbaru memundurkan kursor dan
+   *  salinan dengan tanggal yang sama dihidupkan ulang pada
+   *  materialisasi berikutnya (resurreksi). */
   materializeRecurring: () =>
     set((s) => {
       const today = todayFinISO()
@@ -1376,6 +1382,7 @@ export const useRutina = create<RutinaState>()(
             ? addDaysISO(iso, 7)
             : addMonthsISO(iso, 1)
         let due = step(cursor)
+        let planned = cursor
         while (due <= today && added < 200) {
           next.unshift({
             ...tpl,
@@ -1384,8 +1391,15 @@ export const useRutina = create<RutinaState>()(
             recurOf: tpl.id,
           })
           added++
+          planned = due
           cursor = due
           due = step(cursor)
+        }
+        if (added > 0) {
+          /* Majukan templat itu sendiri ke due terakhir yang direncanakan
+             sehingga penghapusan salinan tidak memundurkan kursor. */
+          const i = next.findIndex((t) => t.id === tpl.id)
+          if (i >= 0) next[i] = { ...next[i], ts: planned }
         }
       }
       return added > 0 ? { txs: next } : {}

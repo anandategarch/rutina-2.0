@@ -205,4 +205,24 @@ describe('batas pertahanan', () => {
     }))
     expect(syncStateSchema.safeParse({ ...state, txs: manyTxs }).success).toBe(false)
   })
+
+  /* v2.16 (audit T5-b #3): dua record tanpa batas kini ditolak. */
+  test('moodLogs & budgets: jumlah kunci dibatasi', () => {
+    const state = validState()
+    const day = (n: number) =>
+      new Date(Date.UTC(2000, 0, 1 + n)).toISOString().slice(0, 10)
+    const manyMoodLogs = Object.fromEntries(
+      Array.from({ length: MAX_TRACKED_DAYS + 1 }, (_, i) => [day(i), 'Ceria']),
+    )
+    expect(
+      syncStateSchema.safeParse({ ...state, moodLogs: manyMoodLogs }).success,
+    ).toBe(false)
+
+    const manyBudgets = Object.fromEntries(
+      Array.from({ length: MAX_TRACKED_DAYS + 1 }, (_, i) => [`cat-${i}`, 100_000]),
+    )
+    expect(
+      syncStateSchema.safeParse({ ...state, budgets: manyBudgets }).success,
+    ).toBe(false)
+  })
 })
