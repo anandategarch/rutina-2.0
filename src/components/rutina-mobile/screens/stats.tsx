@@ -27,7 +27,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Collapsible,
   CollapsibleContent,
@@ -41,6 +40,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
+import { useAnimePop } from '../anime-kit'
 import { Counter } from '../counter'
 import {
   DayDetailPanel,
@@ -87,7 +87,9 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import { motionTokens } from '@/lib/motion/tokens'
+import { barFill } from '@/lib/motion/transitions'
 import {
   cardioSummary,
   prBoard,
@@ -153,7 +155,7 @@ function categoryData(habits: Habit[]) {
 function SectionTitle({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="flex items-center gap-1.5 text-section font-semibold tracking-tight text-content-secondary">
+      <h2 className="flex items-center gap-1.5 text-section-lg font-bold tracking-tight text-content-primary">
         <span
           aria-hidden="true"
           className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
@@ -161,9 +163,85 @@ function SectionTitle({ title, hint }: { title: string; hint?: string }) {
         {title}
       </h2>
       {hint ? (
-        <span className="text-xs font-medium text-module-accent-strong">{hint}</span>
+        <span className="text-meta font-medium text-module-accent-strong">{hint}</span>
       ) : null}
     </div>
+  )
+}
+
+/** Bentuk data lencana — dipakai array `badges` dan kartu BadgeCard. */
+interface Badge {
+  icon: LucideIcon
+  name: string
+  desc: string
+  unlocked: boolean
+}
+
+/** Kartu lencana tunggal. Pop elastis (useAnimePop) ditempelkan di div
+    kartu dan terpicu tepat saat `unlocked` berubah menjadi true — hook
+    hidup di komponen ini karena tidak boleh dipanggil di dalam loop map.
+    Tombol (hover scale + focus ring) dipisah dari div kartu agar transisi
+    CSS transform tidak melawan animasi anime.js pada elemen yang sama. */
+function BadgeCard({ badge: b }: { badge: Badge }) {
+  const popRef = useAnimePop<HTMLDivElement>(null, b.unlocked, {
+    scale: 1.25,
+    back: 2.8,
+  })
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() =>
+            b.unlocked
+              ? toast.success(`Lencana "${b.name}" sudah terbuka`, {
+                  description: b.desc,
+                })
+              : toast.info(`Lencana "${b.name}" masih terkunci`, {
+                  description: b.desc,
+                })
+          }
+          aria-label={`Lencana ${b.name} — ${
+            b.unlocked ? 'terbuka' : 'terkunci'
+          }`}
+          className="block w-full cursor-pointer rounded-2xl text-left transition-transform duration-200 hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div
+            ref={popRef}
+            className="flex w-full items-center gap-2.5 rounded-2xl border border-border bg-hero-surface p-3 text-left shadow-soft"
+          >
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+                b.unlocked
+                  ? 'border-primary/45 bg-primary/20 text-pistachio'
+                  : 'border-hero-content/10 bg-hero-surface-raised text-hero-content/45'
+              }`}
+            >
+              <b.icon className="h-5 w-5" strokeWidth={1.9} />
+            </span>
+            <span className="min-w-0">
+              <span
+                className={`block text-meta font-semibold leading-tight line-clamp-2 ${
+                  b.unlocked ? 'text-hero-content' : 'text-hero-content-muted'
+                }`}
+              >
+                {b.name}
+              </span>
+              <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-hero-content-muted">
+                {b.desc}
+              </span>
+            </span>
+          </div>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className="rounded-xl border-border bg-surface-primary px-3 py-2 text-eyebrow font-medium text-content-primary"
+      >
+        <p className="font-semibold">{b.name}</p>
+        <p className="mt-0.5 text-content-muted">{b.desc}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -542,12 +620,7 @@ export default function StatsScreen() {
   const catData = categoryData(habits)
 
   /* Lencana jujur — seluruh syarat dihitung dari data nyata. */
-  const badges: {
-    icon: LucideIcon
-    name: string
-    desc: string
-    unlocked: boolean
-  }[] = [
+  const badges: Badge[] = [
     {
       icon: Sparkles,
       name: 'Langkah Pertama',
@@ -603,15 +676,20 @@ export default function StatsScreen() {
     bars.forEach((el) => {
       ;(el as HTMLElement).style.transform = 'scaleY(0)'
     })
-    /* Tanpa cleanup revert: animasi ini sekali-jalan dan tidak pernah
-       bertumpuk (period bukan lagi dependensi) — revert justru memulihkan
-       keadaan pra-animasi scaleY(0) dan membiarkan batang menghilang. */
-    animate(bars, {
+    /* Audit P0 (ticker bocor): simpan instansi dan panggil cancel() saat
+       effect dibongkar — cancel() menghentikan detak TANPA memulihkan gaya,
+       berbeda dari revert() yang justru memulihkan batang ke keadaan
+       pra-animasi scaleY(0) dan menghilangkannya. Tanpa ini animasi terus
+       berdetak ±1,2 dtk setelah layar dilepas. */
+    const anim = animate(bars, {
       scaleY: [0, 1],
       delay: stagger(55),
       duration: motionTokens.preset.chartRevealMs.duration,
       ease: 'outBack(1.3)',
     })
+    return () => {
+      anim.cancel()
+    }
   }, [chartInView, reducedMotion])
 
   return (
@@ -658,7 +736,7 @@ export default function StatsScreen() {
               Petualang Konsisten
             </p>
           </div>
-          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-cocoa px-3 text-eyebrow font-semibold text-pistachio shadow-soft">
+          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-hero-surface-raised px-3 text-eyebrow font-semibold text-pistachio shadow-soft">
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
@@ -760,7 +838,7 @@ export default function StatsScreen() {
               <p className="text-kpi-hero font-semibold leading-none tabular-nums text-content-primary">
                 {level}
               </p>
-              <span className="mt-2.5 rounded-full bg-cocoa px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
+              <span className="mt-2.5 rounded-full bg-hero-surface-raised px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
                 <Counter to={xp} /> XP
               </span>
             </div>
@@ -783,9 +861,9 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: i * 0.05 }}
-                  className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
+                  className="flex h-full flex-col rounded-lg border border-border bg-hero-surface p-4 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-chart-label font-semibold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="flex items-center gap-1.5 text-chart-label font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
                     <span
                       aria-hidden="true"
                       className="h-1 w-1 shrink-0 rounded-full bg-module-accent"
@@ -793,14 +871,14 @@ export default function StatsScreen() {
                     {tile.label}
                   </p>
                   <p className="mt-2.5 flex items-baseline gap-1">
-                    <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums text-content-inverse">
-                      {tile.value.toLocaleString('id-ID')}
+                    <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums text-hero-content">
+                      <Counter to={tile.value} />
                     </span>
-                    <span className="text-eyebrow font-semibold text-content-inverse/70">
+                    <span className="text-eyebrow font-semibold text-hero-content-muted">
                       {tile.unit}
                     </span>
                   </p>
-                  <p className="mt-auto truncate pt-2 text-eyebrow font-medium leading-snug text-content-inverse/70">
+                  <p className="mt-auto truncate pt-2 text-eyebrow font-medium leading-snug text-hero-content-muted">
                     {tile.caption}
                   </p>
                 </m.div>
@@ -820,47 +898,50 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
-              className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
+              className="flex h-full flex-col rounded-lg border border-border bg-hero-surface p-5 shadow-card"
               aria-label="Fokus periode grafik misi selesai"
             >
-              <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+              <p className="text-body font-semibold tracking-tight text-hero-content-muted">
                 Fokus Periode
               </p>
-              <Tabs
+              <RutinaTabs
                 value={period}
                 onValueChange={(v) =>
                   setPeriod({ statsPeriod: v as 'pekan' | 'bulan' })
                 }
               >
-                <TabsList className="h-[52px] w-full rounded-full bg-surface-inverse p-1">
-                  <TabsTrigger
+                <RutinaTabsList
+                  aria-label="Pilih periode misi selesai"
+                  className="w-full rounded-full border-transparent bg-hero-content/10"
+                >
+                  <RutinaTabsTrigger
                     value="pekan"
-                    className="h-11 flex-1 rounded-full px-4 text-note font-semibold text-content-inverse/75 data-[state=active]:bg-module-accent-strong data-[state=active]:text-module-accent-fg"
+                    className="flex-1 text-hero-content-muted"
                   >
                     Pekan
-                  </TabsTrigger>
-                  <TabsTrigger
+                  </RutinaTabsTrigger>
+                  <RutinaTabsTrigger
                     value="bulan"
-                    className="h-11 flex-1 rounded-full px-4 text-note font-semibold text-content-inverse/75 data-[state=active]:bg-module-accent-strong data-[state=active]:text-module-accent-fg"
+                    className="flex-1 text-hero-content-muted"
                   >
                     Bulan
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+                  </RutinaTabsTrigger>
+                </RutinaTabsList>
+              </RutinaTabs>
               <p className="mt-4 flex items-baseline gap-1.5">
-                <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
+                <span className="text-kpi-hero font-semibold leading-none tracking-tight text-hero-content">
                   <Counter to={chartTotal} />
                 </span>
-                <span className="text-sm font-medium text-content-inverse/70">
+                <span className="text-note font-medium text-hero-content-muted">
                   misi{period === 'pekan' ? ' / pekan' : ' / bulan'}
                 </span>
               </p>
-              <p className="mt-1.5 text-eyebrow font-medium text-content-inverse/70">
+              <p className="mt-1.5 text-eyebrow font-medium text-hero-content-muted">
                 {period === 'pekan'
                   ? 'Tujuh hari terakhir'
                   : 'Empat pekan terakhir — P4 pekan berjalan'}
               </p>
-              <p className="mt-auto border-t border-content-inverse/10 pt-3 text-eyebrow font-medium leading-relaxed text-content-inverse/70">
+              <p className="mt-auto border-t border-hero-content/10 pt-3 text-eyebrow font-medium leading-relaxed text-hero-content-muted">
                 {chartSummary}
               </p>
             </m.section>
@@ -874,14 +955,14 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ ...motionTokens.preset.data, delay: 0.06 }}
-              className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
+              className="flex h-full flex-col rounded-lg border border-border bg-hero-surface p-5 shadow-card"
               aria-label="Grafik misi selesai"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+                <p className="text-body font-semibold tracking-tight text-hero-content-muted">
                   Misi Selesai
                 </p>
-                <p className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-inverse/50">
+                <p className="text-chart-label font-semibold uppercase tracking-[0.14em] text-hero-content/50">
                   {period === 'pekan' ? 'per hari' : 'per pekan'}
                 </p>
               </div>
@@ -906,7 +987,7 @@ export default function StatsScreen() {
                         className={`w-full origin-bottom rounded-full ${
                           isPeak
                             ? 'bg-gradient-to-t from-chart-1 to-chart-4'
-                            : 'bg-content-inverse/15'
+                            : 'bg-hero-content/15'
                         }`}
                         style={{
                           height: `${
@@ -921,7 +1002,7 @@ export default function StatsScreen() {
                       />
                       <span
                         className={`text-chart-label font-semibold ${
-                          isPeak ? 'text-pistachio' : 'text-content-inverse/70'
+                          isPeak ? 'text-pistachio' : 'text-hero-content-muted'
                         }`}
                       >
                         {d.label}
@@ -948,21 +1029,21 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
-              className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+              className="rounded-lg border border-border bg-hero-surface p-5 shadow-soft"
             >
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+                  <p className="text-body font-semibold tracking-tight text-hero-content-muted">
                     Tren Penyelesaian
                   </p>
-                  <p className="mt-0.5 text-eyebrow font-medium text-content-inverse/60">
+                  <p className="mt-0.5 text-eyebrow font-medium text-hero-content-muted">
                     persentase misi selesai · 30 hari terakhir
                   </p>
                   <p className="mt-1.5 flex items-baseline gap-1.5">
-                    <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
+                    <span className="text-kpi-hero font-semibold leading-none tracking-tight text-hero-content">
                       <Counter to={trendAvg} decimals={1} />
                     </span>
-                    <span className="text-sm font-medium text-content-inverse/70">
+                    <span className="text-note font-medium text-hero-content-muted">
                       % rata-rata / hari
                     </span>
                   </p>
@@ -1001,7 +1082,7 @@ export default function StatsScreen() {
                         <XAxis
                           dataKey="d"
                           tick={{
-                            fill: 'color-mix(in oklab, var(--content-inverse) 70%, transparent)',
+                            fill: 'color-mix(in oklab, var(--hero-content) 70%, transparent)',
                             fontSize: 11,
                           }}
                           axisLine={false}
@@ -1013,15 +1094,15 @@ export default function StatsScreen() {
                         <RechartsTooltip
                           cursor={{
                             stroke:
-                              'color-mix(in oklab, var(--content-inverse) 20%, transparent)',
+                              'color-mix(in oklab, var(--hero-content) 20%, transparent)',
                           }}
                           contentStyle={{
-                            background: 'var(--surface-inverse)',
+                            background: 'var(--hero-surface-raised)',
                             border:
-                              '1px solid color-mix(in oklab, var(--content-inverse) 12%, transparent)',
+                              '1px solid color-mix(in oklab, var(--hero-content) 12%, transparent)',
                             borderRadius: 12,
                             fontSize: 11,
-                            color: 'var(--content-inverse)',
+                            color: 'var(--hero-content)',
                           }}
                           labelFormatter={(v) => `Hari ke-${v}`}
                           formatter={(value) => [`${value}%`, 'Selesai']}
@@ -1032,12 +1113,14 @@ export default function StatsScreen() {
                           stroke="var(--chart-4)"
                           strokeWidth={2.5}
                           fill="url(#trendFillDark)"
-                          isAnimationActive
+                          isAnimationActive={!reducedMotion}
+                          animationDuration={motionTokens.preset.chartRevealMs.duration}
+                          animationEasing="ease-out"
                         />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
-                  <p className="mt-2 text-eyebrow font-medium text-content-inverse/70">
+                  <p className="mt-2 text-eyebrow font-medium text-hero-content-muted">
                     Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
                   </p>
                 </m.div>
@@ -1059,12 +1142,12 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
-              className="h-full rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+              className="h-full rounded-lg border border-border bg-hero-surface p-5 shadow-soft"
             >
-              <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+              <p className="text-body font-semibold tracking-tight text-hero-content-muted">
                 Komposisi Kebiasaan Aktif
               </p>
-              <p className="mt-0.5 text-eyebrow font-medium text-content-inverse/60">
+              <p className="mt-0.5 text-eyebrow font-medium text-hero-content-muted">
                 jumlah kebiasaan per kategori — bukan aktivitas 30 hari
               </p>
               <div className="mt-3 flex items-center gap-4">
@@ -1079,7 +1162,9 @@ export default function StatsScreen() {
                         outerRadius={52}
                         paddingAngle={3}
                         stroke="none"
-                        isAnimationActive
+                        isAnimationActive={!reducedMotion}
+                        animationDuration={motionTokens.preset.chartRevealMs.duration}
+                        animationEasing="ease-out"
                       >
                         {catData.map((c) => (
                           <Cell key={c.name} fill={c.color} />
@@ -1088,10 +1173,10 @@ export default function StatsScreen() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
+                    <span className="text-kpi-sm font-semibold leading-none tabular-nums text-hero-content">
                       {activeHabits.length}
                     </span>
-                    <span className="mt-0.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
+                    <span className="mt-0.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-content-muted">
                       aktif
                     </span>
                   </div>
@@ -1107,10 +1192,10 @@ export default function StatsScreen() {
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: c.color }}
                       />
-                      <span className="flex-1 truncate font-medium text-content-inverse/80">
+                      <span className="flex-1 truncate font-medium text-hero-content-muted">
                         {c.name}
                       </span>
-                      <span className="shrink-0 font-semibold tabular-nums text-content-inverse">
+                      <span className="shrink-0 font-semibold tabular-nums text-hero-content">
                         {c.value}
                       </span>
                     </li>
@@ -1127,9 +1212,9 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ ...motionTokens.preset.data, delay: 0.06 }}
-              className="h-full rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+              className="h-full rounded-lg border border-border bg-hero-surface p-5 shadow-soft"
             >
-              <p className="text-body font-semibold tracking-tight text-content-inverse/80">
+              <p className="text-body font-semibold tracking-tight text-hero-content-muted">
                 Suasana Hati
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -1148,8 +1233,8 @@ export default function StatsScreen() {
                       className={
                         'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (selected
-                          ? 'animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
-                          : 'border-content-inverse/15 bg-surface-inverse text-content-inverse/75 hover:bg-surface-inverse/80')
+                          ? 'motion-safe:animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
+                          : 'border-hero-content/15 bg-hero-surface-raised text-hero-content-muted hover:bg-hero-surface-raised/80')
                       }
                     >
                       <MoodIcon className="h-4 w-4" />
@@ -1158,7 +1243,7 @@ export default function StatsScreen() {
                   )
                 })}
               </div>
-              <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
+              <p className="mt-3 text-eyebrow font-medium text-hero-content-muted">
                 {mood
                   ? `Kamu merasa ${mood.toLowerCase()} hari ini`
                   : 'Bagaimana perasaanmu?'}
@@ -1245,7 +1330,7 @@ export default function StatsScreen() {
                 <button
                   type="button"
                   aria-label={`Laporan bulanan ${monthLabel(viewYm)}${monthReport.hasActivity ? `, konsistensi ${monthReport.pct} persen` : ''} — buka untuk detail`}
-                  className="group flex w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
                     <CalendarDays aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -1286,11 +1371,12 @@ export default function StatsScreen() {
                       </p>
                       <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
                         <m.div
-                          initial={{ width: '0%' }}
-                          whileInView={{ width: `${monthReport.pct}%` }}
+                          initial={{ scaleX: 0 }}
+                          whileInView={{ scaleX: monthReport.pct / 100 }}
                           viewport={{ once: true, margin: '-16px' }}
-                          transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                          className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
+                          transition={barFill}
+                          style={{ width: '100%' }}
+                          className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
                         />
                       </div>
                     </div>
@@ -1325,11 +1411,12 @@ export default function StatsScreen() {
                                   </div>
                                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
                                     <m.div
-                                      initial={{ width: '0%' }}
-                                      whileInView={{ width: `${Math.min(100, c.share)}%` }}
+                                      initial={{ scaleX: 0 }}
+                                      whileInView={{ scaleX: Math.min(100, c.share) / 100 }}
                                       viewport={{ once: true, margin: '-16px' }}
-                                      transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                                      className="h-full rounded-full bg-clay"
+                                      transition={barFill}
+                                      style={{ width: '100%' }}
+                                      className="h-full origin-left rounded-full bg-clay"
                                     />
                                   </div>
                                   <p className="mt-1 text-eyebrow font-medium tabular-nums text-content-muted">
@@ -1369,11 +1456,12 @@ export default function StatsScreen() {
                                   </p>
                                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
                                     <m.div
-                                      initial={{ width: '0%' }}
-                                      whileInView={{ width: `${pctB}%` }}
+                                      initial={{ scaleX: 0 }}
+                                      whileInView={{ scaleX: pctB / 100 }}
                                       viewport={{ once: true, margin: '-16px' }}
-                                      transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                                      className={`h-full rounded-full ${over ? 'bg-destructive' : 'bg-module-accent'}`}
+                                      transition={barFill}
+                                      style={{ width: '100%' }}
+                                      className={`h-full origin-left rounded-full ${over ? 'bg-destructive' : 'bg-module-accent'}`}
                                     />
                                   </div>
                                   <p
@@ -1495,11 +1583,12 @@ export default function StatsScreen() {
                               role="presentation"
                             >
                               <m.div
-                                initial={{ width: 0 }}
-                                whileInView={{ width: `${prevW}%` }}
+                                initial={{ scaleX: 0 }}
+                                whileInView={{ scaleX: prevW / 100 }}
                                 viewport={{ once: true, margin: '-16px' }}
-                                transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                                className="h-full rounded-full bg-cocoa/40"
+                                transition={barFill}
+                                style={{ width: '100%' }}
+                                className="h-full origin-left rounded-full bg-content-secondary/40"
                               />
                             </div>
                             <span className="w-24 shrink-0 truncate text-right text-eyebrow font-medium tabular-nums text-content-muted">
@@ -1516,11 +1605,12 @@ export default function StatsScreen() {
                               role="presentation"
                             >
                               <m.div
-                                initial={{ width: 0 }}
-                                whileInView={{ width: `${curW}%` }}
+                                initial={{ scaleX: 0 }}
+                                whileInView={{ scaleX: curW / 100 }}
                                 viewport={{ once: true, margin: '-16px' }}
-                                transition={{ type: 'spring', stiffness: 110, damping: 21, delay: 0.06 }}
-                                className="h-full rounded-full bg-module-accent-strong"
+                                transition={{ ...barFill, delay: 0.06 }}
+                                style={{ width: '100%' }}
+                                className="h-full origin-left rounded-full bg-module-accent-strong"
                               />
                             </div>
                             <span className="w-24 shrink-0 truncate text-right text-eyebrow font-semibold tabular-nums text-content-primary">
@@ -1553,44 +1643,44 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={motionTokens.preset.data}
-                  className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+                  className="rounded-lg border border-border bg-hero-surface p-5 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-inverse/80">
+                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-hero-content-muted">
                     <Dumbbell className="h-3.5 w-3.5 text-pistachio" />
                     Latihan · 30 hari
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
+                      <p className="text-kpi-sm font-semibold leading-none tabular-nums text-hero-content">
                         {fitSessions}
                       </p>
-                      <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-content-inverse/70">
+                      <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-hero-content-muted">
                         sesi
                       </p>
                     </div>
                     <div>
-                      <p className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
+                      <p className="text-kpi-sm font-semibold leading-none tabular-nums text-hero-content">
                         {fitTonase >= 1000
                           ? `${(fitTonase / 1000).toFixed(1).replace('.', ',')}t`
                           : Math.round(fitTonase).toLocaleString('id-ID')}
                       </p>
-                      <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-content-inverse/70">
+                      <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-hero-content-muted">
                         kg tonase
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 space-y-1.5 border-t border-content-inverse/10 pt-3">
+                  <div className="mt-3 space-y-1.5 border-t border-hero-content/10 pt-3">
                     {topPr ? (
-                      <p className="text-meta font-medium text-content-inverse/80">
+                      <p className="text-meta font-medium text-hero-content-muted">
                         PR e1RM: <span className="font-semibold">{topPr.name}</span>{' '}
                         ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
                       </p>
                     ) : (
-                      <p className="text-meta font-medium text-content-inverse/70">
+                      <p className="text-meta font-medium text-hero-content-muted">
                         Belum ada PR — catat sesi beban pertamamu.
                       </p>
                     )}
-                    <p className="text-meta font-medium tabular-nums text-content-inverse/80">
+                    <p className="text-meta font-medium tabular-nums text-hero-content-muted">
                       Kardio: {cardio.km.toFixed(1).replace('.', ',')} km
                       {cardio.sessions > 0 &&
                         ` dari ${cardio.sessions} sesi jalan/lari`}
@@ -1604,28 +1694,28 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: 0.06 }}
-                  className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+                  className="rounded-lg border border-border bg-hero-surface p-5 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-inverse/80">
+                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-hero-content-muted">
                     <UtensilsCrossed className="h-3.5 w-3.5 text-gold" />
                     Asupan · 7 hari
                   </p>
                   {avgKcal > 0 ? (
                     <>
                       <p className="mt-3 flex items-baseline gap-1">
-                        <span className="text-kpi-lg font-semibold leading-none tabular-nums text-content-inverse">
+                        <span className="text-kpi-lg font-semibold leading-none tabular-nums text-hero-content">
                           {avgKcal.toLocaleString('id-ID')}
                         </span>
-                        <span className="text-meta font-semibold text-content-inverse/70">
+                        <span className="text-meta font-semibold text-hero-content-muted">
                           kkal/hari
                         </span>
                       </p>
-                      <p className="mt-1.5 text-eyebrow font-medium text-content-inverse/70">
+                      <p className="mt-1.5 text-eyebrow font-medium text-hero-content-muted">
                         rata-rata dari {last7Kcal.length} hari tercatat
                       </p>
                     </>
                   ) : (
-                    <p className="mt-3 text-meta font-medium leading-relaxed text-content-inverse/70">
+                    <p className="mt-3 text-meta font-medium leading-relaxed text-hero-content-muted">
                       Belum ada jurnal makan — isi di tab Bugar › Asupan untuk
                       melihat neraca kalori.
                     </p>
@@ -1638,38 +1728,38 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: 0.12 }}
-                  className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+                  className="rounded-lg border border-border bg-hero-surface p-5 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-inverse/80">
+                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-hero-content-muted">
                     <Activity className="h-3.5 w-3.5 text-gold" />
                     Tubuh · 7 hari
                   </p>
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center justify-between text-meta">
-                      <span className="font-medium text-content-inverse/75">
+                      <span className="font-medium text-hero-content-muted">
                         Tidur rata-rata
                       </span>
-                      <span className="font-semibold tabular-nums text-content-inverse">
+                      <span className="font-semibold tabular-nums text-hero-content">
                         {avgSleep != null
                           ? `${avgSleep.toFixed(1).replace('.', ',')} jam`
                           : '–'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-meta">
-                      <span className="font-medium text-content-inverse/75">
+                      <span className="font-medium text-hero-content-muted">
                         Energi rata-rata
                       </span>
-                      <span className="font-semibold tabular-nums text-content-inverse">
+                      <span className="font-semibold tabular-nums text-hero-content">
                         {avgEnergy != null
                           ? `${avgEnergy.toFixed(1).replace('.', ',')}/5`
                           : '–'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-meta">
-                      <span className="font-medium text-content-inverse/75">
+                      <span className="font-medium text-hero-content-muted">
                         Hidrasi rata-rata
                       </span>
-                      <span className="font-semibold tabular-nums text-content-inverse">
+                      <span className="font-semibold tabular-nums text-hero-content">
                         {avgWater != null
                           ? `${avgWater.toFixed(1).replace('.', ',')}/8 gelas`
                           : '–'}
@@ -1677,7 +1767,7 @@ export default function StatsScreen() {
                     </div>
                     {weightDelta != null && (
                       <div className="flex items-center justify-between text-meta">
-                        <span className="font-medium text-content-inverse/75">
+                        <span className="font-medium text-hero-content-muted">
                           Berat badan
                         </span>
                         <span
@@ -1695,7 +1785,7 @@ export default function StatsScreen() {
                       </div>
                     )}
                     {avgSleep == null && avgEnergy == null && (
-                      <p className="text-meta font-medium leading-relaxed text-content-inverse/70">
+                      <p className="text-meta font-medium leading-relaxed text-hero-content-muted">
                         Isi check-in harian di Bugar › Tubuh untuk memantau
                         pemulihan.
                       </p>
@@ -1718,7 +1808,7 @@ export default function StatsScreen() {
             <button
               type="button"
               aria-label={`Piala dan lencana, ${unlockedCount} dari 4 terbuka — buka untuk melihat koleksi`}
-              className="group flex w-full cursor-pointer items-center gap-3 rounded-[20px] border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/25 text-warning">
                 <Trophy aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -1740,57 +1830,7 @@ export default function StatsScreen() {
           <CollapsibleContent>
           <div className="mt-3 grid grid-cols-2 gap-2.5 @[36rem]:grid-cols-4">
                 {badges.map((b) => (
-                  <Tooltip key={b.name}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          b.unlocked
-                            ? toast.success(`Lencana "${b.name}" sudah terbuka`, {
-                                description: b.desc,
-                              })
-                            : toast.info(`Lencana "${b.name}" masih terkunci`, {
-                                description: b.desc,
-                              })
-                        }
-                        aria-label={`Lencana ${b.name} — ${
-                          b.unlocked ? 'terbuka' : 'terkunci'
-                        }`}
-                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-border bg-cocoa p-3 text-left shadow-soft transition-transform duration-200 hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                      >
-                        <span
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-                            b.unlocked
-                              ? 'border-primary/45 bg-primary/20 text-pistachio'
-                              : 'border-content-inverse/10 bg-surface-inverse text-content-inverse/45'
-                          }`}
-                        >
-                          <b.icon className="h-5 w-5" strokeWidth={1.9} />
-                        </span>
-                        <span className="min-w-0">
-                          <span
-                            className={`block text-meta font-semibold leading-tight line-clamp-2 ${
-                              b.unlocked
-                                ? 'text-content-inverse'
-                                : 'text-content-inverse/70'
-                            }`}
-                          >
-                            {b.name}
-                          </span>
-                          <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-inverse/70">
-                            {b.desc}
-                          </span>
-                        </span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="rounded-xl border-border bg-surface-primary px-3 py-2 text-eyebrow font-medium text-content-primary"
-                    >
-                      <p className="font-semibold">{b.name}</p>
-                      <p className="mt-0.5 text-content-muted">{b.desc}</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <BadgeCard key={b.name} badge={b} />
                 ))}
               </div>
           </CollapsibleContent>

@@ -29,8 +29,8 @@ import { AddTxSheet } from './finance/add-tx-sheet'
 import { TransferSheet } from './finance/transfer-sheet'
 import { ContributeGoalSheet, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
-import { DesignBoard } from './design-board'
 import { useSyncEngine } from './sync-engine'
+import dynamic from 'next/dynamic'
 import { WorkoutSheet } from './fitness/workout-sheet'
 import { FoodSheet } from './fitness/food-sheet'
 import { CONTENT_W } from './layout-widths'
@@ -42,7 +42,14 @@ import StatsScreen from './screens/stats'
 import ProfileScreen from './screens/profile'
 import BugarScreen from './screens/bugar'
 
+import { canvasFade } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
+/* Papan desain + lab CSS adalah alat internal (easter egg ketuk versi
+   5×) — dimuat malas agar ±40KB kode dev tidak ikut bundel utama. */
+const DesignBoard = dynamic(
+  () => import('./design-board').then((mod) => mod.DesignBoard),
+  { ssr: false },
+)
 /* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan).
    Kebiasaan menggantikan Jurnal sebagai tab ke-4; layar Jurnal tetap
    ada (dibuka lewat Quick Action Hub) namun bukan tab. Profil berada
@@ -163,7 +170,7 @@ export function RutinaApp() {
               className="absolute inset-0"
               initial={false}
               animate={{ backgroundColor: canvas }}
-              transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
+              transition={canvasFade}
             />
 
             {/* Cahaya ambien — tiga blob lembut bernuansa warna domain layar */}
@@ -172,19 +179,19 @@ export function RutinaApp() {
                 className="absolute -left-24 -top-24 h-72 w-72 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: glow[0] }}
-                transition={{ duration: 0.8 }}
+                transition={{ duration: motionTokens.duration.ambient }}
               />
               <m.div
                 className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: glow[1] }}
-                transition={{ duration: 0.8, delay: 0.06 }}
+                transition={{ duration: motionTokens.duration.ambient, delay: 0.06 }}
               />
               <m.div
                 className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: glow[2] }}
-                transition={{ duration: 0.8, delay: 0.1 }}
+                transition={{ duration: motionTokens.duration.ambient, delay: 0.1 }}
               />
             </div>
 

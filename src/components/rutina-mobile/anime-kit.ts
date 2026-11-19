@@ -22,6 +22,8 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { animate } from 'animejs'
 
+import { motionTokens } from '@/lib/motion/tokens'
+
 /* ------------------------------------------------------------------ */
 /* useAnimePop — pop elastis saat `trigger` berubah nilai.             */
 /* ------------------------------------------------------------------ */
@@ -31,7 +33,7 @@ export interface AnimePopOptions {
   scale?: number
   /** Putaran kecil di puncak (derajat). Default 0 (tanpa putaran). */
   rotate?: number
-  /** Durasi total (ms). Default 700. */
+  /** Durasi total (ms). Default mengikuti preset token valuePopMs (520). */
   duration?: number
   /** Kekuatan overshoot elastis. Default 2.4. */
   back?: number
@@ -49,7 +51,7 @@ export interface AnimePopOptions {
 export function useAnimePop<T extends Element>(
   externalRef: RefObject<T | null> | null,
   trigger: unknown,
-  { scale = 1.35, rotate = 0, duration = 700, back = 2.4 }: AnimePopOptions = {},
+  { scale = 1.35, rotate = 0, duration = motionTokens.preset.valuePopMs.duration, back = 2.4 }: AnimePopOptions = {},
 ) {
   const internal = useRef<T>(null)
   const ref = externalRef ?? internal

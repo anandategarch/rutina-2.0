@@ -30,6 +30,12 @@ export const sheetSpring: Transition = spring.sheet
 /** Umpan balik tekan tombol. */
 export const pressSnappy: Transition = spring.snappy
 
+/** Batang progres terisi (scaleX/width) — satu karakter gerak semua bar. */
+export const barFill: Transition = spring.bar
+
+/** Morph batang grafik saat periode berganti. */
+export const chartBar: Transition = spring.chart
+
 /** Perayaan (lencana, konfeti, hadiah). */
 export const celebrate: Transition = spring.playful
 

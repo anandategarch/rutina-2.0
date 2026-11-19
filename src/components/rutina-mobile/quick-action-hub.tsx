@@ -34,6 +34,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { motionTokens } from '@/lib/motion/tokens'
+import { pressSnappy } from '@/lib/motion/transitions'
 import { cn } from '@/lib/utils'
 
 import { useCheckInSheet } from './checkin-sheet'
@@ -136,7 +137,7 @@ const PRIMARY_ACTIONS: HubAction[] = [
     listLabel: 'Check-in harian',
     value: 'check in suasana hati mood energi tidur',
     icon: HeartPulse,
-    tint: 'bg-espresso/10 text-espresso',
+    tint: 'bg-module-journal/15 text-module-journal-strong',
     run: () => useCheckInSheet.getState().openCheckIn(),
   },
 ]
@@ -482,7 +483,7 @@ export function QuickActionHub() {
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {EXPLORE_ITEMS.map((item) => (
-                            <button
+                            <m.button
                               key={item.key}
                               type="button"
                               onClick={() =>
@@ -490,6 +491,10 @@ export function QuickActionHub() {
                                   useRutina.getState().setScreen(item.screen),
                                 )
                               }
+                              whileTap={{
+                                scale: 0.94,
+                                transition: pressSnappy,
+                              }}
                               className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3.5 text-meta font-semibold text-content-secondary transition-colors hover:border-primary/35 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                             >
                               <item.icon
@@ -498,7 +503,7 @@ export function QuickActionHub() {
                                 aria-hidden="true"
                               />
                               {item.label}
-                            </button>
+                            </m.button>
                           ))}
                         </div>
                       </div>

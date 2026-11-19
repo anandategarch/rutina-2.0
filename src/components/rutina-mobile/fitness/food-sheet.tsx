@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
 import { Minus, Plus, Search, Utensils } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
+import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
+import { RutinaEmptyState } from '../rutina-empty-state'
 import {
   MEAL_SLOTS,
   todayISO,
@@ -54,10 +56,42 @@ function fmt(n: number): string {
   return Math.round(n).toLocaleString('id-ID')
 }
 
+/** Baris makanan — dipakai hasil pencarian maupun “Sering dimakan”. */
+function FoodResultRow({ f, onPick }: { f: FoodItem; onPick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
+        <Utensils className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-body font-semibold text-content-primary">
+          {f.name}
+        </span>
+        <span className="block truncate text-eyebrow font-medium text-content-muted">
+          {f.cat} · {f.unit}
+        </span>
+      </span>
+      <span className="shrink-0 text-right">
+        <span className="block text-body font-bold tabular-nums text-content-primary">
+          {fmt(f.kcal)}
+        </span>
+        <span className="block text-chart-label font-semibold uppercase text-content-muted">
+          kkal
+        </span>
+      </span>
+    </button>
+  )
+}
+
 export function FoodSheet() {
   const open = useRutina((s) => s.foodSheetOpen)
   const closeFoodSheet = useRutina((s) => s.closeFoodSheet)
   const addFoodEntry = useRutina((s) => s.addFoodEntry)
+  const foodEntries = useRutina((s) => s.foodEntries)
 
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<FoodItem | null>(null)
@@ -91,6 +125,27 @@ export function FoodSheet() {
 
   const results = searchFoods(query)
 
+  /* Sering dimakan — 6 makanan unik terbaru dari riwayat jurnal sendiri
+     (pola “sering dipakai” cat-picker-sheet). Entri baru ditambahkan di
+     depan (newest-first); urutkan per tanggal secara defensif (pola
+     exStatOf), lalu ambil nama unik yang masih ada di master. */
+  const recent = useMemo(() => {
+    if (query.trim().length >= 2) return []
+    const seen = new Set<string>()
+    const names: string[] = []
+    for (const e of [...foodEntries].sort((a, b) =>
+      a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
+    )) {
+      if (seen.has(e.name)) continue
+      seen.add(e.name)
+      names.push(e.name)
+      if (names.length === 6) break
+    }
+    return names
+      .map((n) => FOOD_DB.find((f) => f.name === n))
+      .filter((f): f is FoodItem => f != null)
+  }, [foodEntries, query])
+
   const submit = () => {
     if (!picked) {
       toast.warning('Pilih makanan dari hasil pencarian dulu')
@@ -121,11 +176,11 @@ export function FoodSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeFoodSheet}
-            className="absolute inset-0 z-40 bg-espresso/40"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -145,8 +200,8 @@ export function FoodSheet() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            transition={sheetSpring}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -154,11 +209,11 @@ export function FoodSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             <div className="text-left">
-              <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+              <h2 className="text-lead font-semibold tracking-tight text-content-primary">
                 Tambah Asupan
               </h2>
               <p className="mt-0.5 text-note text-content-muted">
@@ -177,11 +232,11 @@ export function FoodSheet() {
                 }}
                 aria-label="Cari makanan"
                 placeholder="mis. nasi goreng, ayam geprek, es kopi…"
-                className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-sm text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+                className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-body text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
               />
             </div>
 
-            {/* Hasil pencarian */}
+            {/* Hasil pencarian & pintasan riwayat */}
             <AnimatePresence initial={false} mode="popLayout">
               {!picked && query.trim().length >= 2 && (
                 <m.div
@@ -193,46 +248,53 @@ export function FoodSheet() {
                   className="mt-3 space-y-2"
                 >
                   {results.map((f) => (
-                    <button
+                    <FoodResultRow
                       key={f.name}
-                      type="button"
-                      onClick={() => {
+                      f={f}
+                      onPick={() => {
                         setPicked(f)
                         setPortion(1)
                       }}
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
-                        <Utensils className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-body font-semibold text-content-primary">
-                          {f.name}
-                        </span>
-                        <span className="block truncate text-eyebrow font-medium text-content-muted">
-                          {f.cat} · {f.unit}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-body font-bold tabular-nums text-content-primary">
-                          {fmt(f.kcal)}
-                        </span>
-                        <span className="block text-chart-label font-semibold uppercase text-content-muted">
-                          kkal
-                        </span>
-                      </span>
-                    </button>
+                    />
                   ))}
                   {results.length === 0 && (
-                    <div className="rounded-2xl border-2 border-dashed border-border px-5 py-6 text-center">
-                      <p className="text-note font-semibold text-content-muted">
-                        Tidak ada “{query.trim()}” di master
-                      </p>
-                      <p className="mt-0.5 text-meta text-content-muted">
-                        Coba nama lain — mis. “nasi”, “ayam”, “kopi”.
-                      </p>
-                    </div>
+                    <RutinaEmptyState
+                      icon={<Search />}
+                      title={`Tidak ada “${query.trim()}” di master`}
+                      description="Coba nama lain — mis. “nasi”, “ayam”, “kopi”."
+                    />
                   )}
+                </m.div>
+              )}
+
+              {/* Sering dimakan — tampil saat kueri kosong/pendek;
+                  pintasan dari jurnal sendiri (pola “sering dipakai”). */}
+              {!picked && query.trim().length < 2 && recent.length > 0 && (
+                <m.div
+                  key="recent"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className="mt-3"
+                >
+                  <section aria-label="Makanan yang sering dimakan">
+                    <p className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
+                      Sering dimakan
+                    </p>
+                    <div className="mt-2 space-y-2">
+                      {recent.map((f) => (
+                        <FoodResultRow
+                          key={f.name}
+                          f={f}
+                          onPick={() => {
+                            setPicked(f)
+                            setPortion(1)
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 </m.div>
               )}
 

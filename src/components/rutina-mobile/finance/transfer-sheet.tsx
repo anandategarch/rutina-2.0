@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
-import { ArrowLeftRight, Delete } from 'lucide-react'
+import { ArrowLeftRight, ChevronDown, Delete } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { WalletPickerSheet } from './wallet-picker-sheet'
 import { formatIDR, walletBalance } from './utils'
 
 /**
@@ -31,6 +33,7 @@ export function TransferSheet() {
   const [toId, setToId] = useState('')
   const [digits, setDigits] = useState('')
   const [note, setNote] = useState('')
+  const [pickerFor, setPickerFor] = useState<'from' | 'to' | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -44,6 +47,7 @@ export function TransferSheet() {
       setToId(wallets[1]?.id ?? wallets[0]?.id ?? '')
       setDigits('')
       setNote('')
+      setPickerFor(null)
     }
   }
 
@@ -109,7 +113,7 @@ export function TransferSheet() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -129,19 +133,19 @@ export function TransferSheet() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            transition={sheetSpring}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             <div className="text-left">
-              <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-content-primary">
+              <h2 className="flex items-center gap-2 text-lead font-semibold tracking-tight text-content-primary">
                 <ArrowLeftRight className="h-4.5 w-4.5 text-warning" />
                 Transfer Antar-Dompet
               </h2>
@@ -150,24 +154,32 @@ export function TransferSheet() {
               </p>
             </div>
 
-            {/* Pemilih dompet */}
+            {/* Pemilih dompet — baris tombol (pengganti <select> native)
+                yang membuka lembar pemilih dompet: konsisten dengan
+                lembar transaksi, bisa cari + tambah dompet. */}
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <div className="space-y-1.5">
                 <Label htmlFor="tr-from" className="text-note font-semibold text-content-secondary">
                   Dari
                 </Label>
-                <select
+                <button
+                  type="button"
                   id="tr-from"
-                  value={fromId}
-                  onChange={(e) => setFromId(e.target.value)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  onClick={() => setPickerFor('from')}
+                  aria-haspopup="dialog"
+                  aria-label={`Dompet sumber: ${
+                    from?.name ?? 'belum dipilih'
+                  }. Ketuk untuk mengganti.`}
+                  className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface-sunken px-3 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
-                  {wallets.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
+                  <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                    {from?.name ?? 'Pilih dompet'}
+                  </span>
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 text-content-muted"
+                    aria-hidden="true"
+                  />
+                </button>
                 {from && (
                   <p className="text-eyebrow font-medium tabular-nums text-content-muted">
                     Saldo: {formatIDR(fromBal)}
@@ -178,18 +190,24 @@ export function TransferSheet() {
                 <Label htmlFor="tr-to" className="text-note font-semibold text-content-secondary">
                   Ke
                 </Label>
-                <select
+                <button
+                  type="button"
                   id="tr-to"
-                  value={toId}
-                  onChange={(e) => setToId(e.target.value)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  onClick={() => setPickerFor('to')}
+                  aria-haspopup="dialog"
+                  aria-label={`Dompet tujuan: ${
+                    to?.name ?? 'belum dipilih'
+                  }. Ketuk untuk mengganti.`}
+                  className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface-sunken px-3 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
-                  {wallets.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
+                  <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                    {to?.name ?? 'Pilih dompet'}
+                  </span>
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 text-content-muted"
+                    aria-hidden="true"
+                  />
+                </button>
                 {to && (
                   <p className="text-eyebrow font-medium text-content-muted">
                     Tujuan: {to.name}
@@ -260,11 +278,27 @@ export function TransferSheet() {
               type="button"
               onClick={submit}
               whileTap={{ scale: 0.98 }}
-              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Transfer Sekarang
             </m.button>
           </m.div>
+
+          {/* Lembar pemilih dompet — sumber & tujuan (tujuan mengecualikan
+              sumber agar transfer ke dompet sendiri tidak mungkin). */}
+          <WalletPickerSheet
+            open={pickerFor === 'from'}
+            selectedId={fromId}
+            onSelect={(id) => setFromId(id)}
+            onClose={() => setPickerFor(null)}
+          />
+          <WalletPickerSheet
+            open={pickerFor === 'to'}
+            selectedId={toId}
+            excludeId={fromId}
+            onSelect={(id) => setToId(id)}
+            onClose={() => setPickerFor(null)}
+          />
         </>
       )}
     </AnimatePresence>

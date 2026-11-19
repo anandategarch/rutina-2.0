@@ -5,6 +5,8 @@ import * as m from 'motion/react-m'
 import { createScope, createTimeline, stagger } from 'animejs'
 
 import { motionTokens } from '@/lib/motion/tokens'
+
+import { playfair } from './serif'
 /**
  * Layar pembuka — marka “r tunas” digambar garis demi garis (anime.js
  * timeline): goresan huruf r ditarik dari pangkal batang melewati bahu,
@@ -113,7 +115,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
       key="splash"
       ref={rootRef}
       exit={{ opacity: 0, scale: 1.06 }}
-      transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.navigation}
       onClick={finish}
       role="button"
       aria-label="Lewati layar pembuka"
@@ -138,9 +140,11 @@ export function Splash({ onDone }: { onDone: () => void }) {
         </g>
       </svg>
 
+      {/* Wordmark — momen editorial serif (Playfair) pada ukuran KPI
+          terbesar aplikasi: marka “rutina.” adalah momen brand terbesar. */}
       <h1
         ref={titleRef}
-        className="mt-7 text-[34px] font-bold tracking-tight"
+        className={`${playfair.className} mt-7 text-kpi-hero font-semibold tracking-tight`}
         aria-label="rutina"
       >
         {'rutina.'.split('').map((c, i) => (
@@ -158,12 +162,12 @@ export function Splash({ onDone }: { onDone: () => void }) {
       <p
         ref={tagRef}
         style={{ opacity: 0 }}
-        className="mt-2 text-[13px] font-medium text-primary-foreground/80"
+        className="mt-2 text-note font-medium text-primary-foreground/80"
       >
         Kebiasaan kecil, perubahan besar.
       </p>
 
-      <p className="absolute bottom-8 text-[9px] font-bold uppercase tracking-[0.28em] text-primary-foreground/50">
+      <p className="absolute bottom-8 text-chart-label font-bold uppercase tracking-[0.28em] text-primary-foreground/50">
         Earth Tone Edition
       </p>
     </m.div>

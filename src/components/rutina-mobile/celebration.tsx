@@ -6,6 +6,8 @@ import { Check } from 'lucide-react'
 
 import { useRutina } from './store'
 import { CONTENT_W } from './layout-widths'
+import { celebrate } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 
 /**
  * Perayaan konfeti saat semua tugas selesai.
@@ -70,7 +72,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
               rotate: p.rot,
               opacity: [1, 1, 0],
             }}
-            transition={{ duration: p.dur, delay: p.delay, ease: [0.4, 0.05, 0.8, 0.6] }}
+            transition={{ duration: p.dur, delay: p.delay, ease: motionTokens.easing.confettiFall }}
           />
         ))}
 
@@ -78,7 +80,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
           <m.div
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.1 }}
+            transition={{ ...celebrate, delay: 0.1 }}
             className="flex flex-col items-center gap-3 rounded-[28px] bg-surface-sunken/90 px-7 py-6 shadow-ink-deep backdrop-blur-[2px]"
           >
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-ink">

@@ -1,6 +1,10 @@
 'use client'
 
+import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
+
+import { chartBar, pressSnappy } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 import { EXPENSE, INCOME } from './cats'
 import type { PeriodPoint } from './utils'
 
@@ -17,7 +21,8 @@ const TRACK_H = 118 // ruang tumbuh batang (px)
 const LABEL_H = 24 // baris label di bawah
 const BAR_MIN = 5
 
-const EASE = [0.22, 1, 0.36, 1] as const
+/* Easing standar — dari motionTokens (governance: tanpa kurva bebas). */
+const EASE = motionTokens.easing.standard
 
 /** Ukuran batang & jarak antar batang menurut kepadatan deret.
  *  Audit visualisasi v2.12: batang 4px pada deret panjang sulit dibaca
@@ -56,6 +61,10 @@ export function FinChart({
     Math.max(BAR_MIN, Math.round((v / max) * (TRACK_H - 14)))
   const { bar: BAR_W, gap: BAR_GAP } = barMetrics(points.length)
   const every = labelEvery(points.length)
+
+  /* Reduced-motion: batang langsung dirender pada tinggi akhir
+     (initial={false}) — tanpa animasi reveal maupun morph. */
+  const reducedMotion = useReducedMotion()
 
   /* Ringkasan nonvisual — total masuk/keluar/selisih seluruh deret;
      pembaca layar mendapat gambaran umum tanpa menelusuri tiap kolom. */
@@ -118,7 +127,7 @@ export function FinChart({
                   aria-hidden="true"
                   layoutId="fin-active-col"
                   className="absolute inset-0 rounded-xl bg-primary/10"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  transition={pressSnappy}
                 />
               )}
 
@@ -129,14 +138,13 @@ export function FinChart({
               >
                 <m.span
                   aria-hidden="true"
-                  initial={{ height: BAR_MIN }}
+                  initial={reducedMotion ? false : { height: BAR_MIN }}
                   animate={{ height: h(p.masuk) }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 260,
-                    damping: 24,
-                    delay: Math.min(i * 0.045, 0.5),
-                  }}
+                  transition={
+                    reducedMotion
+                      ? chartBar
+                      : { ...chartBar, delay: Math.min(i * 0.045, 0.5) }
+                  }
                   style={{ backgroundColor: INCOME, width: BAR_W }}
                   className={`rounded-full transition-opacity duration-300 ${
                     isOn ? 'opacity-100' : 'opacity-60 group-hover:opacity-85'
@@ -144,14 +152,13 @@ export function FinChart({
                 />
                 <m.span
                   aria-hidden="true"
-                  initial={{ height: BAR_MIN }}
+                  initial={reducedMotion ? false : { height: BAR_MIN }}
                   animate={{ height: h(p.keluar) }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 260,
-                    damping: 24,
-                    delay: Math.min(i * 0.045 + 0.03, 0.53),
-                  }}
+                  transition={
+                    reducedMotion
+                      ? chartBar
+                      : { ...chartBar, delay: Math.min(i * 0.045 + 0.03, 0.53) }
+                  }
                   style={{ backgroundColor: EXPENSE, width: BAR_W }}
                   className={`rounded-full transition-opacity duration-300 ${
                     isOn ? 'opacity-100' : 'opacity-60 group-hover:opacity-85'
@@ -172,7 +179,7 @@ export function FinChart({
                     aria-hidden="true"
                     layoutId="fin-underline"
                     className="absolute bottom-0 h-[3px] w-5 rounded-full bg-gold"
-                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    transition={pressSnappy}
                   />
                 )}
               </span>

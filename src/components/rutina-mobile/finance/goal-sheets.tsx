@@ -8,17 +8,12 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
+import { fade, sheetSpring, barFill } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
+import { RutinaDialog } from '../rutina-dialog'
 import { useRutina } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
 import { formatIDR, formatIDRShort } from './utils'
@@ -91,7 +86,7 @@ export function ContributeGoalSheet() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -111,20 +106,20 @@ export function ContributeGoalSheet() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
+            transition={sheetSpring}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
                   Isi Tabungan
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">
@@ -198,10 +193,11 @@ export function ContributeGoalSheet() {
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-border">
                     <m.div
-                      className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
+                      className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
+                      style={{ width: '100%' }}
                       initial={false}
-                      animate={{ width: `${afterPct}%` }}
-                      transition={{ type: 'spring', stiffness: 160, damping: 22 }}
+                      animate={{ scaleX: afterPct / 100 }}
+                      transition={barFill}
                     />
                   </div>
                   <p className="mt-1.5 text-eyebrow text-content-muted">
@@ -238,7 +234,8 @@ export function ContributeGoalSheet() {
 }
 
 /* ================================================================= */
-/* Dialog "tujuan baru" — shadcn Dialog.                              */
+/* Dialog "tujuan baru" — RutinaDialog (tetap di dalam bingkai      */
+/* ponsel, tidak di-portal ke body).                                  */
 /* ================================================================= */
 
 const MIN_TARGET = 100_000
@@ -283,75 +280,71 @@ export function NewGoalDialog() {
   }
 
   return (
-    <Dialog
+    <RutinaDialog
       open={goalDialogOpen}
-      onOpenChange={(o) => {
-        if (!o) closeGoalDialog()
-      }}
+      onClose={closeGoalDialog}
+      label="Tujuan tabungan baru"
+      className="max-w-[400px] p-6"
     >
-      <DialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6 text-content-primary">
-        <DialogHeader className="text-left">
-          <DialogTitle className="flex items-center gap-2 text-lg tracking-tight">
-            <Sparkles className="h-5 w-5 text-success" />
-            Tujuan Tabungan Baru
-          </DialogTitle>
-          <DialogDescription className="text-note text-content-muted">
-            Tetapkan nama dan target — cincin progresnya muncul di tab Keuangan.
-          </DialogDescription>
-        </DialogHeader>
+      <h2 className="flex items-center gap-2 text-lead font-semibold tracking-tight text-content-primary">
+        <Sparkles className="h-5 w-5 text-success" />
+        Tujuan Tabungan Baru
+      </h2>
+      <p className="mt-0.5 text-note text-content-muted">
+        Tetapkan nama dan target — cincin progresnya muncul di tab Keuangan.
+      </p>
 
-        <div className="mt-2 space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-name" className="text-note font-semibold text-content-secondary">
-              Nama tujuan
-            </Label>
+      <div className="mt-2 space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="goal-name" className="text-note font-semibold text-content-secondary">
+            Nama tujuan
+          </Label>
+          <Input
+            id="goal-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="mis. DP rumah"
+            maxLength={24}
+            className="h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="goal-target" className="text-note font-semibold text-content-secondary">
+            Target <span className="font-normal text-content-muted">(min. Rp100 rb)</span>
+          </Label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-section font-semibold text-content-muted">
+              Rp
+            </span>
             <Input
-              id="goal-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="mis. DP rumah"
-              maxLength={24}
-              className="h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+              id="goal-target"
+              inputMode="numeric"
+              value={targetDigits ? Number(targetDigits).toLocaleString('id-ID') : ''}
+              onChange={(e) => setTarget(e.target.value)}
+              placeholder="5.000.000"
+              className="h-11 rounded-xl border-input bg-surface-sunken pl-10 text-right tabular-nums text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-target" className="text-note font-semibold text-content-secondary">
-              Target <span className="font-normal text-content-muted">(min. Rp100 rb)</span>
-            </Label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-section font-semibold text-content-muted">
-                Rp
-              </span>
-              <Input
-                id="goal-target"
-                inputMode="numeric"
-                value={targetDigits ? Number(targetDigits).toLocaleString('id-ID') : ''}
-                onChange={(e) => setTarget(e.target.value)}
-                placeholder="5.000.000"
-                className="h-11 rounded-xl border-input bg-surface-sunken pl-10 text-right tabular-nums text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
-              />
-            </div>
-          </div>
         </div>
+      </div>
 
-        <div className="mt-5 flex gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={closeGoalDialog}
-            className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            onClick={submit}
-            className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover"
-          >
-            Buat Tujuan
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <div className="mt-5 flex gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={closeGoalDialog}
+          className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
+        >
+          Batal
+        </Button>
+        <Button
+          type="button"
+          onClick={submit}
+          className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover"
+        >
+          Buat Tujuan
+        </Button>
+      </div>
+    </RutinaDialog>
   )
 }

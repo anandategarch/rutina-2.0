@@ -15,10 +15,10 @@ const WEEKS = 12
     tinta (level 0–3); level penuh memakai token grafik pistachio
     (var(--chart-4), satu sumber warna seluruh grafik). */
 const LEVEL_COLORS = [
-  'color-mix(in oklab, var(--primary) 15%, var(--surface-inverse))',
-  'color-mix(in oklab, var(--primary) 35%, var(--surface-inverse))',
-  'color-mix(in oklab, var(--primary) 60%, var(--surface-inverse))',
-  'color-mix(in oklab, var(--primary) 85%, var(--surface-inverse))',
+  'color-mix(in oklab, var(--primary) 15%, var(--hero-surface))',
+  'color-mix(in oklab, var(--primary) 35%, var(--hero-surface))',
+  'color-mix(in oklab, var(--primary) 60%, var(--hero-surface))',
+  'color-mix(in oklab, var(--primary) 85%, var(--hero-surface))',
   'var(--chart-4)',
 ]
 
@@ -59,7 +59,9 @@ export default function Heatmap() {
   // Kebijakan reduced-motion: sel langsung tampil tanpa gelombang.
   useEffect(() => {
     if (!rootRef.current) return
-    const cells = rootRef.current.querySelectorAll('button')
+    /* Selektor data-cell (bukan 'button') — tombol lain di masa depan
+       tidak ikut gelombang tanpa sengaja. */
+    const cells = rootRef.current.querySelectorAll('[data-cell]')
     if (!inView || reducedMotion) {
       /* Tanpa animasi (belum terlihat / reduce-motion): pastikan sel pada
          keadaan alami — termasuk membersihkan sisa scale(0) dari run sebelumnya
@@ -77,7 +79,10 @@ export default function Heatmap() {
     })
     const anim = animate(cells, {
       scale: [0, 1],
-      delay: stagger(6, { grid: [7, 12], from: 'first' }),
+      /* grid[0] = item per baris (12 kolom), grid[1] = baris (7 hari) —
+         DOM row-major d*w. (Audit v2.20: selama ini terbalik [7,12]
+         sehingga gelombang diagonal, bukan radial dari kiri-atas.) */
+      delay: stagger(6, { grid: [12, 7], from: 'first' }),
       duration: 420,
       ease: 'outBack(1.4)',
     })
@@ -103,12 +108,12 @@ export default function Heatmap() {
       initial={{ opacity: 0, y: 16 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
-      className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
+      className="rounded-2xl border border-border bg-hero-surface p-5 shadow-soft"
     >
-      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-inverse/70">
+      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
         Konsistensi
       </p>
-      <p className="mt-1 text-eyebrow font-medium text-content-inverse/70">
+      <p className="mt-1 text-eyebrow font-medium text-hero-content-muted">
         12 pekan terakhir
       </p>
 
@@ -127,13 +132,14 @@ export default function Heatmap() {
               <button
                 key={`${d}-${w}`}
                 type="button"
+                data-cell
                 aria-label={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
                 title={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
                 onClick={() => setSel({ w, d })}
                 className={
                   'h-5 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
-                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-cocoa'
+                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-hero-surface'
                     : '')
                 }
                 style={{ backgroundColor: LEVEL_COLORS[level] }}
@@ -145,7 +151,7 @@ export default function Heatmap() {
 
       {/* v2.16 (audit T5-d #5): umumkan pilihan sel ke pembaca layar —
           selaras dengan spend-heatmap & month-calendar. */}
-      <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-content-inverse/70">
+      <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-hero-content-muted">
         {sel && selEntry
           ? `Pekan ${WEEKS - sel.w}, ${cellText(selEntry)}`
           : 'Ketuk sel untuk melihat detail hari.'}
@@ -158,7 +164,7 @@ export default function Heatmap() {
         className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5"
         aria-label="Legenda intensitas: jumlah kebiasaan selesai per hari"
       >
-        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-inverse/70">
+        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-hero-content-muted">
           Selesai/hari
         </span>
         <span className="flex items-center gap-1.5">
@@ -168,7 +174,7 @@ export default function Heatmap() {
                 className="h-3 w-3 rounded-[3px]"
                 style={{ backgroundColor: c }}
               />
-              <span className="text-eyebrow font-semibold tabular-nums text-content-inverse/70">
+              <span className="text-eyebrow font-semibold tabular-nums text-hero-content-muted">
                 {LEVEL_LEGEND[i]}
               </span>
             </span>

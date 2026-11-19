@@ -9,12 +9,21 @@
  *   Perayaan lencana    → spring.playful
  *   Transisi halaman    → easing standard
  *   Progres             → spring.smooth / easing smooth
+ *
+ * LAPISAN CSS PRESS (di luar Motion, disengaja): umpan balik tekan murah
+ * di komponen dasar memakai kelas CSS `active:scale-*` + `duration-150`
+ * (rutina-button 0.97 · bottom-nav 0.94 · rutina-tabs 0.96). Ini BUKAN
+ * pelanggaran governance — CSS lebih murah dari Motion untuk press state.
+ * Konvensi skala tekan Motion: 0.96–0.97 elemen besar/kartu, 0.90–0.92
+ * ikon/FAB kecil.
  */
 
 export const motionTokens = {
   duration: {
     /** Reaksi instan (hover, focus ring). */
     instant: 0.1,
+    /** Crossfade cahaya ambien (blob kanvas) — sengaja paling lambat. */
+    ambient: 0.8,
     /** Mikro-interaksi (chip, ikon). */
     micro: 0.16,
     /** Reaksi cepat (tutup chip, tekan tombol). */
@@ -34,6 +43,8 @@ export const motionTokens = {
     smooth: [0.4, 0, 0.2, 1] as const,
     /** Entrance tegas — elemen "mendarat" dengan pasti. */
     entrance: [0.16, 1, 0.3, 1] as const,
+    /** Jatuh konfeti — akselerasi menuju lantai lalu memudar. */
+    confettiFall: [0.4, 0.05, 0.8, 0.6] as const,
   },
 
   spring: {
@@ -66,6 +77,26 @@ export const motionTokens = {
       type: 'spring' as const,
       stiffness: 55,
       damping: 16,
+    },
+    /** Batang progres terisi — SATU karakter gerak untuk semua bar
+     *  progres/skor lintas layar (konsolidasi audit v2.20: sebelumnya 4
+     *  varian bebas {110,20} {110,21} {90,20} tersebar di 16 titik). */
+    bar: {
+      type: 'spring' as const,
+      stiffness: 110,
+      damping: 21,
+    },
+    /** Morph batang grafik — tinggi/lebar berubah saat ganti periode. */
+    chart: {
+      type: 'spring' as const,
+      stiffness: 260,
+      damping: 24,
+    },
+    /** Ikon nav membesar saat tab aktif — pantulan kecil khas nav. */
+    navPop: {
+      type: 'spring' as const,
+      stiffness: 500,
+      damping: 26,
     },
   },
 

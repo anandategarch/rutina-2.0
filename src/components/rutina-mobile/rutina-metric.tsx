@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
+import { useAnimePop } from './anime-kit'
 
 /**
  * RutinaMetric — angka statistik standar (saldo, kalori, XP, progres).
@@ -11,10 +12,16 @@ import { cn } from '@/lib/utils'
  * `icon` menampilkan chip ikon bulat di sisi kiri — beri iconClassName
  * bertint domain (mis. bg-module-accent/15 text-module-accent-strong)
  * supaya metrik ikut identitas modulnya.
+ *
+ * `popOn` (v2.20): kirim nilai primitif yang berubah (saldo, total) agar
+ * angka meledak elastis ala anime.js saat nilainya berganti — render
+ * pertama tetap tenang (useAnimePop melewatkan mount awal).
  */
 export interface RutinaMetricProps {
   label: string
   value: ReactNode
+  /** Nilai pemicu pop elastis — kirim angka/string yang berubah. */
+  popOn?: string | number
   /** Satuan kecil di samping nilai (Rp, kkal, kg). */
   unit?: string
   /** Arah perubahan — memberi warna semantik, bukan hanya angka. */
@@ -35,6 +42,7 @@ export interface RutinaMetricProps {
 export function RutinaMetric({
   label,
   value,
+  popOn,
   unit,
   trend = 'neutral',
   caption,
@@ -44,6 +52,8 @@ export function RutinaMetric({
   align = 'left',
   className,
 }: RutinaMetricProps) {
+  const popRef = useAnimePop<HTMLSpanElement>(null, popOn ?? null)
+
   const body = (
     <>
       <p className="text-eyebrow font-semibold uppercase tracking-[0.08em] text-content-muted">
@@ -58,7 +68,7 @@ export function RutinaMetric({
           trend === 'neutral' && 'text-content-primary',
         )}
       >
-        <span>{value}</span>
+        <span ref={popRef} className="inline-block">{value}</span>
         {unit && (
           <span className="text-note font-semibold text-content-muted">
             {unit}
@@ -66,7 +76,7 @@ export function RutinaMetric({
         )}
       </p>
       {caption && (
-        <p className="mt-0.5 text-xs leading-snug text-content-muted">{caption}</p>
+        <p className="mt-0.5 text-meta leading-snug text-content-muted">{caption}</p>
       )}
     </>
   )

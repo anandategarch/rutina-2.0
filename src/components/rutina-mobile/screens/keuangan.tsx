@@ -46,6 +46,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   ResizableHandle,
   ResizablePanel,
@@ -94,6 +95,7 @@ import {
   type PeriodPoint,
 } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
+import { barFill } from '@/lib/motion/transitions'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
@@ -297,7 +299,7 @@ function PillAction({
 function SectionTitle({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 px-0.5">
-      <h2 className="text-section font-semibold tracking-tight text-content-secondary">
+      <h2 className="text-section-lg font-bold tracking-tight text-content-primary">
         {title}
       </h2>
       {action}
@@ -317,12 +319,12 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   const C = 2 * Math.PI * R
 
   return (
-    <Spotlight className="w-[188px] shrink-0 snap-start rounded-[22px] sm:w-full sm:shrink">
+    <Spotlight className="w-[188px] shrink-0 snap-start rounded-xl sm:w-full sm:shrink">
       <m.div
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ ...motionTokens.preset.data, delay: Math.min(index * 0.07, 0.28) }}
-        className="flex h-full min-h-[200px] flex-col rounded-[22px] bg-surface-primary p-4 text-content-primary shadow-ink transition-transform duration-300 hover:-translate-y-0.5"
+        className="flex h-full min-h-[200px] flex-col rounded-xl bg-surface-primary p-4 text-content-primary shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift"
       >
         <div className="flex items-center gap-3.5">
           <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
@@ -348,7 +350,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
                 animate={{
                   strokeDashoffset: C * (1 - Math.min(1, goal.saved / goal.target)),
                 }}
-                transition={{ type: 'spring', stiffness: 90, damping: 20 }}
+                transition={barFill}
               />
             </svg>
             <Icon className="relative h-5 w-5 text-content-secondary" />
@@ -441,7 +443,7 @@ const catMeta = useCatMeta()
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -32, scale: 0.97, transition: { ...motionTokens.preset.interaction } }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-      className="overflow-hidden rounded-[16px] bg-surface-primary text-content-primary shadow-ink"
+      className="overflow-hidden rounded-lg border border-border-default bg-surface-primary text-content-primary shadow-soft"
     >
       <m.button
         type="button"
@@ -552,9 +554,9 @@ const catMeta = useCatMeta()
                       Hapus
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6">
+                  <AlertDialogContent className="max-w-[400px] rounded-2xl border-border bg-surface-primary p-6">
                     <AlertDialogHeader className="text-left">
-                      <AlertDialogTitle className="text-lg tracking-tight text-content-primary">
+                      <AlertDialogTitle className="text-lead tracking-tight text-content-primary">
                         Hapus transaksi?
                       </AlertDialogTitle>
                       <AlertDialogDescription className="text-note text-content-muted">
@@ -830,9 +832,9 @@ const catMeta = useCatMeta()
               Hapus
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="max-w-[400px] rounded-[28px] border-border bg-surface-primary p-6">
+          <AlertDialogContent className="max-w-[400px] rounded-2xl border-border bg-surface-primary p-6">
             <AlertDialogHeader className="text-left">
-              <AlertDialogTitle className="text-lg tracking-tight text-content-primary">
+              <AlertDialogTitle className="text-lead tracking-tight text-content-primary">
                 Hapus transaksi?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-note text-content-muted">
@@ -988,7 +990,7 @@ const catMeta = useCatMeta()
         >
           <section
             aria-label="Buku mutasi"
-            className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-border bg-surface-primary shadow-soft"
+            className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface-primary shadow-soft"
           >
             <div className="shrink-0 space-y-2.5 border-b border-border p-4 pb-3">
               <div className="relative">
@@ -1024,7 +1026,7 @@ const catMeta = useCatMeta()
                       type="button"
                       aria-pressed={active}
                       onClick={() => setFilter({ mutasiFilter: f.id })}
-                      className={`h-8 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                      className={`h-8 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
                         active
                           ? 'border-module-accent/40 bg-module-accent/15 text-module-accent-strong'
                           : 'border-border text-content-secondary hover:bg-surface-sunken hover:text-content-primary'
@@ -1122,7 +1124,7 @@ const catMeta = useCatMeta()
         >
           <aside
             aria-label="Detail transaksi terpilih"
-            className="h-full min-h-0 overflow-hidden rounded-[24px] border border-border bg-surface-primary shadow-soft"
+            className="h-full min-h-0 overflow-hidden rounded-2xl border border-border bg-surface-primary shadow-soft"
           >
             <TxInspector
               tx={selectedTx}
@@ -1200,7 +1202,7 @@ function SaldoCard({
       onPointerLeave={onLeave}
       whileTap={{ scale: 0.985 }}
       style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
-      className="relative cursor-pointer overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] motion-safe:animate-pan p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      className="relative cursor-pointer overflow-hidden rounded-2xl bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] motion-safe:animate-pan p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
       <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
 
@@ -1210,11 +1212,25 @@ function SaldoCard({
         className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-gold/12 blur-3xl"
       />
 
-      {/* Baris merek */}
-      <p className="relative z-10 flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-accent">
-        <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
-        Rutina Vault
-      </p>
+      {/* Baris merek + aksi cepat tambah transaksi (pengganti FAB emas) */}
+      <div className="relative z-10 flex items-center justify-between gap-3">
+        <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-accent">
+          <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
+          Rutina Vault
+        </p>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAdd()
+          }}
+          aria-label="Tambah transaksi baru"
+          className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-hero-accent/20 px-4 text-note font-bold text-hero-accent transition-colors hover:bg-hero-accent/30 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.6} />
+          Transaksi
+        </button>
+      </div>
 
       {/* Saldo + perubahan periode */}
       <div className="relative z-10 mt-4">
@@ -1305,6 +1321,7 @@ const catMeta = useCatMeta()
   const setBudget = useRutina((s) => s.setBudget)
   const removeBudget = useRutina((s) => s.removeBudget)
   const [draft, setDraft] = useState('')
+  const [editOpen, setEditOpen] = useState(false)
 
   return (
     <div className="flex items-center gap-3">
@@ -1345,11 +1362,11 @@ const catMeta = useCatMeta()
             }`}
           >
             <m.div
-              initial={{ width: '0%' }}
-              animate={{ width: `${Math.min(100, pct)}%` }}
-              transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-              className="h-full rounded-full"
-              style={{ backgroundColor: barColor }}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: Math.min(100, pct) / 100 }}
+              transition={barFill}
+              className="h-full origin-left rounded-full"
+              style={{ width: '100%', backgroundColor: barColor }}
             />
           </div>
           <span className="shrink-0 text-meta tabular-nums text-content-secondary">
@@ -1368,68 +1385,76 @@ const catMeta = useCatMeta()
         </p>
       </div>
 
-      {/* Sunting batas */}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
+      {/* Sunting batas — dialog biasa (bukan alert): ini form, bukan
+          konfirmasi destruktif; semantik "alert" mengganggu pembaca layar. */}
+      <button
+        type="button"
+        aria-label={`Sunting anggaran ${catMeta(cat).label}`}
+        onClick={() => setEditOpen(true)}
+        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
+      <RutinaDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        label={`Sunting anggaran ${catMeta(cat).label}`}
+        className="max-w-[320px]"
+      >
+        <h2 className="text-section-lg font-bold tracking-tight text-content-primary">
+          Batas {catMeta(cat).label}
+        </h2>
+        <p className="mt-0.5 text-note leading-relaxed text-content-muted">
+          Terpakai {formatIDR(used)} bulan ini. Tentukan batas bulanan baru
+          (Rp).
+        </p>
+        <input
+          aria-label="Batas bulanan baru"
+          inputMode="numeric"
+          value={draft}
+          onChange={(e) =>
+            setDraft(e.target.value.replace(/\D/g, '').slice(0, 9))
+          }
+          placeholder={String(limit)}
+          className="mt-3 h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-section font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
+        />
+        <div className="mt-4 flex flex-row gap-2">
           <button
             type="button"
-            aria-label={`Sunting anggaran ${catMeta(cat).label}`}
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            onClick={() => {
+              removeBudget(cat)
+              setEditOpen(false)
+              toast(`${catMeta(cat).label} dihapus dari anggaran.`)
+            }}
+            className="h-10 flex-1 cursor-pointer rounded-full border border-destructive/35 text-note font-bold text-content-danger transition-colors hover:bg-destructive/10"
           >
-            <Pencil className="h-4 w-4" />
+            Hapus
           </button>
-        </AlertDialogTrigger>
-        <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-section-lg font-bold tracking-tight text-content-primary">
-              Batas {catMeta(cat).label}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-note leading-relaxed text-content-muted">
-              Terpakai {formatIDR(used)} bulan ini. Tentukan batas bulanan
-              baru (Rp).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <input
-            aria-label="Batas bulanan baru"
-            inputMode="numeric"
-            value={draft}
-            onChange={(e) =>
-              setDraft(e.target.value.replace(/\D/g, '').slice(0, 9))
-            }
-            placeholder={String(limit)}
-            className="h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-section font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
-          />
-          <AlertDialogFooter className="flex-row gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                removeBudget(cat)
-                toast(`${catMeta(cat).label} dihapus dari anggaran.`)
-              }}
-              className="h-10 flex-1 cursor-pointer rounded-full border border-destructive/35 text-note font-bold text-content-danger transition-colors hover:bg-destructive/10"
-            >
-              Hapus
-            </button>
-            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-note font-bold text-content-secondary">
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const v = Number(draft)
-                if (v > 0) {
-                  setBudget(cat, v)
-                  toast.success(
-                    `Batas ${catMeta(cat).label}: ${formatIDR(v)}/bulan`,
-                  )
-                }
-              }}
-              className="h-10 flex-1 rounded-full border-none bg-primary text-note font-bold text-primary-foreground hover:bg-action-hover"
-            >
-              Simpan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <button
+            type="button"
+            onClick={() => setEditOpen(false)}
+            className="h-10 flex-1 cursor-pointer rounded-full border border-border-strong text-note font-bold text-content-secondary transition-colors hover:bg-surface-secondary"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const v = Number(draft)
+              if (v > 0) {
+                setBudget(cat, v)
+                toast.success(
+                  `Batas ${catMeta(cat).label}: ${formatIDR(v)}/bulan`,
+                )
+              }
+              setEditOpen(false)
+            }}
+            className="h-10 flex-1 cursor-pointer rounded-full border-none bg-primary text-note font-bold text-primary-foreground transition-colors hover:bg-action-hover"
+          >
+            Simpan
+          </button>
+        </div>
+      </RutinaDialog>
     </div>
   )
 }
@@ -1448,7 +1473,7 @@ function WalletDialog() {
       open={open}
       onClose={close}
       label="Tambah dompet"
-      className="max-w-[320px] rounded-[24px] shadow-ink-deep"
+      className="max-w-[320px] rounded-2xl shadow-ink-deep"
     >
       <h2 className="text-section-lg font-bold tracking-tight text-content-primary">
         Dompet Baru
@@ -1458,22 +1483,22 @@ function WalletDialog() {
       </p>
       <div className="mt-4 space-y-3">
         <div className="space-y-1.5">
-          <label htmlFor="w-name" className="text-note font-semibold text-content-secondary">
+          <Label htmlFor="w-name" className="text-note font-semibold text-content-secondary">
             Nama dompet
-          </label>
-          <input
+          </Label>
+          <Input
             id="w-name"
             value={name}
             onChange={(e) => setName(e.target.value.slice(0, 20))}
             placeholder="mis. E-Wallet"
-            className="h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-body text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
+            className="h-11 rounded-xl border-input bg-surface-sunken px-3.5 text-body text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="w-init" className="text-note font-semibold text-content-secondary">
+          <Label htmlFor="w-init" className="text-note font-semibold text-content-secondary">
             Saldo awal (Rp)
-          </label>
-          <input
+          </Label>
+          <Input
             id="w-init"
             inputMode="numeric"
             value={initial}
@@ -1481,7 +1506,7 @@ function WalletDialog() {
               setInitial(e.target.value.replace(/\D/g, '').slice(0, 10))
             }
             placeholder="mis. 250000"
-            className="h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-body font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
+            className="h-11 rounded-xl border-input bg-surface-sunken px-3.5 text-body font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
           />
         </div>
       </div>
@@ -1895,33 +1920,22 @@ export default function KeuanganScreen() {
       <div className="mt-4 flex flex-col gap-[var(--layout-gap)]">
         {finTab === 'ringkasan' && (
           <>
-        {/* ===== LAPISAN 1 — SALDO: dompet espresso + FAB tambah ===== */}
+        {/* ===== LAPISAN 1 — SALDO: dompet espresso + aksi transaksi ===== */}
         <BlurFade>
-          <div className="relative">
-            <m.button
-              type="button"
-              onClick={openTxSheet}
-              whileTap={{ scale: 0.88 }}
-              aria-label="Tambah transaksi baru"
-              className="absolute -top-3 right-4 z-20 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-gold text-content-secondary shadow-gold transition-colors hover:bg-gold/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-            >
-              <Plus className="h-5 w-5" strokeWidth={2.6} />
-            </m.button>
-            <SaldoCard
-              saldo={saldo}
-              txCount={txCount}
-              delta={periodDelta}
-              deltaSuffix={PREV_SUFFIX[period]}
-              saldoRef={saldoRef}
-              onAdd={openTxSheet}
-            />
-          </div>
+          <SaldoCard
+            saldo={saldo}
+            txCount={txCount}
+            delta={periodDelta}
+            deltaSuffix={PREV_SUFFIX[period]}
+            saldoRef={saldoRef}
+            onAdd={openTxSheet}
+          />
         </BlurFade>
 
         {/* ===== LAPISAN 2 — ARUS KAS: periode + grafik interaktif ===== */}
         <BlurFade
           delay={0.06}
-          className="rounded-[24px] border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+          className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
         >
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-section font-semibold tracking-tight text-content-secondary">
@@ -2141,7 +2155,7 @@ export default function KeuanganScreen() {
                 }
               />
             ) : (
-              <div className="mt-3 rounded-[24px] border border-border bg-surface-primary p-4 shadow-soft">
+              <div className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft">
                 <div className="flex items-center justify-between gap-2">
                   <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
                     Terpakai {totalPct}%
@@ -2152,10 +2166,11 @@ export default function KeuanganScreen() {
                 </div>
                 <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-border">
                   <m.div
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${totalPct}%` }}
-                    transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: totalPct / 100 }}
+                    transition={barFill}
+                    className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
+                    style={{ width: '100%' }}
                   />
                 </div>
                 <div className="mt-4 space-y-4">
@@ -2214,7 +2229,7 @@ export default function KeuanganScreen() {
                     <button
                       type="button"
                       onClick={openGoalDialog}
-                      className="flex min-h-[200px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-[22px] border-2 border-dashed border-border-strong px-3 py-4 text-content-muted transition-all hover:border-gold hover:text-content-primary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold sm:w-full"
+                      className="flex min-h-[200px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border-strong px-3 py-4 text-content-muted transition-all hover:border-gold hover:text-content-primary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold sm:w-full"
                     >
                       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-sunken">
                         <Plus className="h-5 w-5" />
@@ -2228,7 +2243,7 @@ export default function KeuanganScreen() {
                   {/* Petunjuk geser — memudar di tepi kanan carousel */}
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-[22px] bg-gradient-to-l from-surface-primary to-transparent sm:hidden"
+                    className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-xl bg-gradient-to-l from-surface-primary to-transparent sm:hidden"
                   />
                 </div>
               </>
@@ -2260,9 +2275,11 @@ export default function KeuanganScreen() {
             />
           ) : (
             <div className="mt-3 space-y-2.5">
-              {recent.map((tx) => (
-                <TxRow key={tx.id} tx={tx} />
-              ))}
+              <AnimatePresence initial={false} mode="popLayout">
+                {recent.map((tx) => (
+                  <TxRow key={tx.id} tx={tx} />
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </BlurFade>
@@ -2306,7 +2323,7 @@ export default function KeuanganScreen() {
               {findings.map((f) => (
                 <li
                   key={f.key}
-                  className="rounded-[18px] border border-border bg-surface-primary p-4 shadow-soft"
+                  className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
                 >
                   <div className="flex gap-3">
                     <span
@@ -2394,7 +2411,7 @@ export default function KeuanganScreen() {
         {/* ===== ANGGARAN: batas per kategori, dapat diubah ===== */}
         {finTab === 'anggaran' && (
           <BlurFade delay={0.04}>
-            <div className="relative rounded-[24px] bg-surface-primary p-4 text-content-primary shadow-ink-deep">
+            <div className="relative rounded-2xl bg-surface-primary p-4 text-content-primary shadow-ink-deep">
               <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-section font-semibold tracking-tight text-content-secondary">
@@ -2418,10 +2435,11 @@ export default function KeuanganScreen() {
                   <div className="mt-3">
                     <div className="h-2.5 overflow-hidden rounded-full bg-border">
                       <m.div
-                        initial={{ width: '0%' }}
-                        animate={{ width: `${totalPct}%` }}
-                        transition={{ type: 'spring', stiffness: 110, damping: 21 }}
-                        className="h-full rounded-full bg-gradient-to-r from-primary to-pistachio"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: totalPct / 100 }}
+                        transition={barFill}
+                        className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
+                        style={{ width: '100%' }}
                       />
                     </div>
                     <div className="mt-1.5 flex justify-between text-eyebrow tabular-nums text-content-muted">
@@ -2477,7 +2495,7 @@ export default function KeuanganScreen() {
                       type="button"
                       onClick={openTransferSheet}
                       disabled={wallets.length < 2}
-                      className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-surface-inverse px-3.5 text-meta font-semibold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-surface-inverse px-3.5 text-meta font-semibold text-content-inverse transition-all hover:bg-surface-inverse-raised active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ArrowLeftRight className="h-3.5 w-3.5" />
                       Transfer
@@ -2513,7 +2531,7 @@ export default function KeuanganScreen() {
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ ...motionTokens.preset.layout, delay: i * 0.06 }}
-                      className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
+                      className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
                     >
                       <div className="flex items-center gap-3">
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
@@ -2619,9 +2637,11 @@ function MutasiPhoneList({
             </p>
           </div>
           <div className="space-y-2.5">
-            {g.txs.map((tx) => (
-              <TxRow key={tx.id} tx={tx} />
-            ))}
+            <AnimatePresence initial={false} mode="popLayout">
+              {g.txs.map((tx) => (
+                <TxRow key={tx.id} tx={tx} />
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       ))}

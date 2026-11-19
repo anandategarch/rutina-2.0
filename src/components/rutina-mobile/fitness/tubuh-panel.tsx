@@ -15,6 +15,8 @@ import {
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
+import { motionTokens } from '@/lib/motion/tokens'
+import { barFill } from '@/lib/motion/transitions'
 import { useCheckInSheet } from '../checkin-sheet'
 import { todayISO, useRutina, type BodyLogs } from '../store'
 import {
@@ -192,9 +194,9 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
         aria-label="Check-in harian tubuh"
-        className="rounded-[24px] border border-border bg-surface-primary p-5 shadow-soft"
+        className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
@@ -227,7 +229,7 @@ export function TubuhPanel() {
               onClick={() =>
                 logBodyCheckIn({ sleepH: Math.max(0, (sleepH ?? 7) - 0.5) })
               }
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -243,7 +245,7 @@ export function TubuhPanel() {
               onClick={() =>
                 logBodyCheckIn({ sleepH: Math.min(12, (sleepH ?? 7) + 0.5) })
               }
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -289,9 +291,9 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, delay: 0.06, ease: motionTokens.easing.standard }}
         aria-label="Kesiapan latihan"
-        className={`mt-3 overflow-hidden rounded-[24px] p-5 shadow-leaf ${
+        className={`mt-3 overflow-hidden rounded-2xl p-5 shadow-leaf ${
           readiness
             ? readiness.score >= 75
               ? 'bg-primary text-primary-foreground'
@@ -320,7 +322,7 @@ export function TubuhPanel() {
                     initial={false}
                     className="h-full rounded-full bg-primary-foreground"
                     animate={{ width: `${readiness.score}%` }}
-                    transition={{ type: 'spring', stiffness: 130, damping: 22 }}
+                    transition={barFill}
                   />
                 </div>
                 <p className="mt-2 text-meta leading-relaxed text-primary-foreground/85">
@@ -353,9 +355,9 @@ export function TubuhPanel() {
         <m.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.09, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.45, delay: 0.09, ease: motionTokens.easing.standard }}
           aria-label="Rincian kesiapan latihan"
-          className="mt-3 rounded-[24px] border border-border bg-surface-primary p-5 shadow-soft"
+          className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
         >
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
@@ -393,7 +395,7 @@ export function TubuhPanel() {
                           : 'bg-gradient-to-r from-primary to-pistachio'
                       }`}
                       animate={{ width: `${c.score}%` }}
-                      transition={{ type: 'spring', stiffness: 130, damping: 22 }}
+                      transition={barFill}
                     />
                   </div>
                 </div>
@@ -405,7 +407,7 @@ export function TubuhPanel() {
             <button
               type="button"
               onClick={openCheckIn}
-              className="mt-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl bg-surface-sunken p-3.5 text-left transition-colors hover:bg-secondary/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="mt-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl bg-surface-sunken p-3.5 text-left transition-all hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <ClipboardList
                 className="mt-0.5 h-4 w-4 shrink-0 text-content-muted"
@@ -427,9 +429,9 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, delay: 0.1, ease: motionTokens.easing.standard }}
         aria-label="Hidrasi hari ini"
-        className="mt-3 rounded-[24px] border border-border bg-surface-primary p-5 shadow-soft"
+        className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -450,7 +452,7 @@ export function TubuhPanel() {
               type="button"
               aria-label="Kurangi satu gelas"
               onClick={() => setWaterToday(-1)}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -483,7 +485,7 @@ export function TubuhPanel() {
                   scale: filled ? 1 : 0.85,
                   backgroundColor: filled ? 'var(--primary)' : 'var(--surface-sunken)',
                 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                transition={motionTokens.spring.snappy}
                 className={`flex h-9 w-9 items-center justify-center rounded-xl ${filled ? 'text-primary-foreground' : 'text-content-muted'}`}
               >
                 <Droplets className="h-4 w-4" />
@@ -496,7 +498,7 @@ export function TubuhPanel() {
             initial={false}
             className="h-full rounded-full bg-primary"
             animate={{ width: `${Math.min((water / WATER_TARGET) * 100, 100)}%` }}
-            transition={{ type: 'spring', stiffness: 130, damping: 22 }}
+            transition={barFill}
           />
         </div>
       </m.section>
@@ -505,9 +507,9 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, delay: 0.14, ease: motionTokens.easing.standard }}
         aria-label="Berat badan"
-        className="mt-3 rounded-[24px] border border-border bg-surface-primary p-5 shadow-soft"
+        className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">

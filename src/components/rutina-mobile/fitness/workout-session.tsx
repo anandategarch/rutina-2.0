@@ -10,6 +10,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
   Circle,
   Dumbbell,
   Minus,
@@ -27,14 +28,22 @@ import { toast } from 'sonner'
 
 import { Progress } from '@/components/ui/progress'
 import { motionTokens } from '@/lib/motion/tokens'
+import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
 import { playfair } from '../serif'
 import { useFocusTrap } from '../use-focus-trap'
+import { useAnimePop } from '../anime-kit'
 import { RutinaDialog } from '../rutina-dialog'
 import { deloadActive, doubleProgression, exStatOf } from './fit-utils'
-import { EX_LIB, EX_LEVELS, MUSCLE_GROUPS } from './data'
+import { EX_LIB, EX_LEVELS, exerciseLabel } from './data'
+import { GerakanPickerSheet } from './gerakan-picker-sheet'
 import { useRutina, type Workout, type WorkoutKind } from '../store'
-import { useSessionStore, type ActiveSession } from './session-store'
+import {
+  useSessionStore,
+  type ActiveSession,
+  type SessionExercise,
+  type SessionSet,
+} from './session-store'
 
 /**
  * Mode sesi latihan imersif — layar penuh tanpa navigasi utama.
@@ -54,12 +63,6 @@ const KIND_LABEL: Record<WorkoutKind, string> = {
   'lari-jalan': 'Lari + Jalan',
   badminton: 'Badminton',
 }
-
-/** Pilihan gerakan dikelompokkan per otot (konsisten dengan workout-sheet). */
-const EX_OPTIONS = MUSCLE_GROUPS.map((g) => ({
-  group: g,
-  items: EX_LIB.filter((e) => e.muscle === g).map((e) => e.name),
-}))
 
 const WEIGHT_STEP = 2.5
 const WEIGHT_MIN = 0
@@ -186,7 +189,7 @@ function Stepper({
   incLabel: string
 }) {
   return (
-    <div className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-3.5">
+    <div className="rounded-xl border border-hero-content/12 bg-hero-content/[0.06] p-3.5">
       <p
         aria-hidden="true"
         className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-content-muted"
@@ -295,7 +298,7 @@ function RestCard({
       transition={{ duration: 0.26, ease: motionTokens.easing.standard }}
       role="timer"
       aria-label={`Istirahat ${mmss(remaining)}`}
-      className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
+      className="rounded-xl border border-hero-content/12 bg-hero-content/[0.06] p-4"
     >
       <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-content-muted">
@@ -413,78 +416,173 @@ function AddExercisePanel({
 }) {
   const [name, setName] = useState('')
   const [targetSets, setTargetSets] = useState(3)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
-      className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
-    >
-      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-        Tambah Gerakan
-      </p>
-      <select
-        aria-label="Pilih gerakan untuk ditambahkan"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="mt-2.5 h-11 w-full cursor-pointer rounded-xl border border-hero-content/15 bg-hero-surface-raised px-3 text-body font-semibold text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+    <>
+      <m.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+        className="rounded-xl border border-hero-content/12 bg-hero-content/[0.06] p-4"
       >
-        <option value="">Pilih gerakan…</option>
-        {EX_OPTIONS.map((g) => (
-          <optgroup key={g.group} label={g.group}>
-            {g.items.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-note font-medium text-hero-content-muted">
-          Target set
+        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+          Tambah Gerakan
         </p>
-        <div className="flex h-11 items-center rounded-xl border border-hero-content/15">
-          <button
-            type="button"
-            aria-label="Kurangi target set"
-            onClick={() => setTargetSets((v) => Math.max(1, v - 1))}
-            className="flex h-full w-11 cursor-pointer items-center justify-center text-hero-content transition-colors hover:text-hero-accent active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-          <span className="w-10 text-center text-section-lg font-bold tabular-nums text-hero-content">
-            {targetSets}
+        {/* Pemicu pemilih gerakan — menggantikan <select> native;
+            katalog + pencarian + riwayat ada di GerakanPickerSheet. */}
+        <button
+          type="button"
+          aria-label={`Pilih gerakan untuk ditambahkan${
+            name ? `: ${exerciseLabel(name)}. Ketuk untuk mengganti.` : ''
+          }`}
+          onClick={() => setPickerOpen(true)}
+          className={`mt-2.5 flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border bg-hero-surface-raised px-3 text-left text-body font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+            name
+              ? 'border-primary text-hero-content'
+              : 'border-hero-content/15 text-hero-content-muted'
+          }`}
+        >
+          <span className="truncate">
+            {name ? exerciseLabel(name) : 'Pilih gerakan…'}
           </span>
+          <ChevronsUpDown
+            className="h-4 w-4 shrink-0 text-hero-content-muted"
+            aria-hidden="true"
+          />
+        </button>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-note font-medium text-hero-content-muted">
+            Target set
+          </p>
+          <div className="flex h-11 items-center rounded-xl border border-hero-content/15">
+            <button
+              type="button"
+              aria-label="Kurangi target set"
+              onClick={() => setTargetSets((v) => Math.max(1, v - 1))}
+              className="flex h-full w-11 cursor-pointer items-center justify-center text-hero-content transition-colors hover:text-hero-accent active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="w-10 text-center text-section-lg font-bold tabular-nums text-hero-content">
+              {targetSets}
+            </span>
+            <button
+              type="button"
+              aria-label="Tambah target set"
+              onClick={() => setTargetSets((v) => Math.min(12, v + 1))}
+              className="flex h-full w-11 cursor-pointer items-center justify-center text-hero-content transition-colors hover:text-hero-accent active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div className="mt-3.5 grid grid-cols-2 gap-2.5">
           <button
             type="button"
-            aria-label="Tambah target set"
-            onClick={() => setTargetSets((v) => Math.min(12, v + 1))}
-            className="flex h-full w-11 cursor-pointer items-center justify-center text-hero-content transition-colors hover:text-hero-accent active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            onClick={onCancel}
+            className="h-11 cursor-pointer rounded-full border border-hero-content/25 text-note font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <Plus className="h-4 w-4" />
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={() => onAdd(name, targetSets)}
+            disabled={!name}
+            className="h-11 cursor-pointer rounded-full bg-primary text-note font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Tambahkan
           </button>
         </div>
-      </div>
-      <div className="mt-3.5 grid grid-cols-2 gap-2.5">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="h-11 cursor-pointer rounded-full border border-hero-content/25 text-note font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          Batal
-        </button>
-        <button
-          type="button"
-          onClick={() => onAdd(name, targetSets)}
-          disabled={!name}
-          className="h-11 cursor-pointer rounded-full bg-primary text-note font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Tambahkan
-        </button>
-      </div>
-    </m.div>
+      </m.div>
+
+      {/* Pemilih gerakan — di luar kartu beranimasi (transform) agar
+          frame sheet diposisikan terhadap overlay sesi, bukan panel. */}
+      <GerakanPickerSheet
+        open={pickerOpen}
+        selectedId={name || undefined}
+        onSelect={(g) => setName(g)}
+        onClose={() => setPickerOpen(false)}
+      />
+    </>
+  )
+}
+
+/* ===== Umpan balik "set selesai" — pop elastis (anime.js) =====
+   Dua komponen baris: hook useAnimePop WAJIB hidup di dalam komponen
+   per-gerakan (bukan di loop induk) agar tiap baris punya memori
+   trigger-nya sendiri — pola yang sama dengan api streak. */
+
+/* Chip gerakan di deretan navigasi — penghitung set memantul elastis
+   setiap set selesai; umpan balik yang selalu terlihat. */
+function ExerciseNavChip({
+  ex,
+  active,
+  onClick,
+  chipRef,
+}: {
+  ex: SessionExercise
+  active: boolean
+  onClick: () => void
+  chipRef: (el: HTMLButtonElement | null) => void
+}) {
+  const done = ex.sets.length >= ex.targetSets
+  const countRef = useAnimePop<HTMLSpanElement>(null, ex.sets.length, {
+    scale: 1.2,
+    back: 2.6,
+  })
+  return (
+    <button
+      ref={chipRef}
+      type="button"
+      aria-current={active ? 'true' : undefined}
+      onClick={onClick}
+      className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+        active
+          ? 'bg-pistachio text-espresso'
+          : 'bg-hero-content/10 text-hero-content-muted hover:bg-hero-content/20'
+      }`}
+    >
+      {done && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
+      <span className="max-w-[140px] truncate">{ex.name}</span>
+      <span
+        ref={countRef}
+        className="text-eyebrow font-semibold tabular-nums opacity-70"
+      >
+        {ex.sets.length}/{ex.targetSets}
+      </span>
+    </button>
+  )
+}
+
+/* Deretan chip set gerakan aktif — chip TERAKHIR memantul setiap set
+   selesai. Jangkar tersembunyi menjaga pop pertama (0→1) tetap
+   terpicu meski chip belum ada. */
+function SetChipRow({ sets }: { sets: SessionSet[] }) {
+  const popRef = useAnimePop<HTMLSpanElement>(null, sets.length, {
+    scale: 1.2,
+    back: 2.6,
+  })
+  return (
+    <div
+      className={
+        sets.length === 0 ? 'hidden' : 'mt-3 flex flex-wrap gap-1.5'
+      }
+    >
+      {sets.length === 0 ? (
+        <span ref={popRef} className="hidden" aria-hidden="true" />
+      ) : (
+        sets.map((s, i) => (
+          <span
+            key={i}
+            ref={i === sets.length - 1 ? popRef : undefined}
+            className="rounded-full bg-hero-content/10 px-2.5 py-1 text-eyebrow font-semibold tabular-nums text-hero-content-muted"
+          >
+            {fmtKg(s.weight)} × {s.reps}
+          </span>
+        ))
+      )}
+    </div>
   )
 }
 
@@ -743,37 +841,22 @@ function SessionView({
           className="shrink-0 px-5"
         >
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
-            {session.exercises.map((e, i) => {
-              const active = i === session.currentIdx
-              const done = e.sets.length >= e.targetSets
-              return (
-                <button
-                  key={e.id}
-                  ref={(el) => {
-                    chipRefs.current[i] = el
-                  }}
-                  type="button"
-                  aria-current={active ? 'true' : undefined}
-                  onClick={() => {
-                    setDir(
-                      i > session.currentIdx ? 1 : i < session.currentIdx ? -1 : 0,
-                    )
-                    goToExercise(i)
-                  }}
-                  className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    active
-                      ? 'bg-pistachio text-espresso'
-                      : 'bg-hero-content/10 text-hero-content-muted hover:bg-hero-content/20'
-                  }`}
-                >
-                  {done && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
-                  <span className="max-w-[140px] truncate">{e.name}</span>
-                  <span className="text-eyebrow font-semibold tabular-nums opacity-70">
-                    {e.sets.length}/{e.targetSets}
-                  </span>
-                </button>
-              )
-            })}
+            {session.exercises.map((e, i) => (
+              <ExerciseNavChip
+                key={e.id}
+                ex={e}
+                active={i === session.currentIdx}
+                onClick={() => {
+                  setDir(
+                    i > session.currentIdx ? 1 : i < session.currentIdx ? -1 : 0,
+                  )
+                  goToExercise(i)
+                }}
+                chipRef={(el) => {
+                  chipRefs.current[i] = el
+                }}
+              />
+            ))}
             <button
               type="button"
               onClick={() => setAdding(true)}
@@ -878,18 +961,9 @@ function SessionView({
                 {prevLabel}
               </p>
 
-              {ex.sets.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {ex.sets.map((s, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full bg-hero-content/10 px-2.5 py-1 text-eyebrow font-semibold tabular-nums text-hero-content-muted"
-                    >
-                      {fmtKg(s.weight)} × {s.reps}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {/* Chip set tercatat — chip terakhir memantul setiap set
+                  selesai (umpan balik "SET SELESAI"). */}
+              <SetChipRow sets={ex.sets} />
 
               {/* Saran Coach — chip progresi di samping daftar set */}
               {advice && (
@@ -1032,7 +1106,7 @@ function SessionView({
         onClose={() => setConfirmOpen(false)}
         label="Akhiri sesi latihan"
       >
-        <h3 className="text-lg font-semibold tracking-tight text-content-primary">
+        <h3 className="text-lead font-semibold tracking-tight text-content-primary">
           Akhiri sesi latihan?
         </h3>
         <p className="mt-1.5 text-note leading-relaxed text-content-muted">
@@ -1105,6 +1179,7 @@ function SessionCelebration({
     const root = rootRef.current
     const card = root?.querySelector('[data-celebrate-card]') ?? null
     const pop = root?.querySelector('[data-celebrate-pop]') ?? null
+    const kpi = root?.querySelector('[data-celebrate-kpi]') ?? null
     const stats = root
       ? Array.from(root.querySelectorAll('[data-celebrate-stat]'))
       : []
@@ -1130,6 +1205,17 @@ function SessionCelebration({
             ease: 'outBack(2.1)',
           },
           rm ? 0 : 120,
+        )
+      /* Angka besar "N set" — meletup setelah trofi mendarat. */
+      if (kpi)
+        tl.add(
+          kpi,
+          {
+            scale: [0.5, 1],
+            duration: d(520),
+            ease: 'outBack(2.4)',
+          },
+          rm ? 0 : 200,
         )
       if (stats.length > 0)
         tl.add(
@@ -1163,13 +1249,13 @@ function SessionCelebration({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={fade}
           className="fixed inset-0 z-[75] flex items-center justify-center bg-hero-surface px-5 text-hero-content"
         >
           <div
             data-celebrate-card
             style={{ opacity: 0 }}
-            className={`w-full rounded-[28px] border border-hero-content/12 bg-hero-surface-raised p-7 text-center shadow-ink-deep ${CONTENT_W} max-w-[calc(100%-1rem)]`}
+            className={`w-full rounded-2xl border border-hero-content/12 bg-hero-surface-raised p-7 text-center shadow-ink-deep ${CONTENT_W} max-w-[calc(100%-1rem)]`}
           >
             <span
               data-celebrate-pop
@@ -1181,7 +1267,12 @@ function SessionCelebration({
             <p className="mt-4 text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-accent">
               Sesi Latihan Tersimpan
             </p>
-            <p className="mt-2 text-kpi-lg font-bold leading-none tabular-nums text-hero-content">
+            {/* KPI utama — meletup elastis di timeline perayaan. */}
+            <p
+              data-celebrate-kpi
+              style={{ scale: '0.5' }}
+              className="mt-2 text-kpi-lg font-bold leading-none tabular-nums text-hero-content"
+            >
               {summary.sets} set
             </p>
             <div className="mt-5 grid grid-cols-3 gap-2 border-t border-hero-content/12 pt-4">
@@ -1250,7 +1341,7 @@ export function SessionPickerSheet({
   const startSession = useSessionStore((s) => s.startSession)
 
   const [plan, setPlan] = useState<PickerItem[]>([])
-  const [pick, setPick] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -1263,7 +1354,7 @@ export function SessionPickerSheet({
     setPrevOpen(open)
     if (open) {
       setPlan([])
-      setPick('')
+      setPickerOpen(false)
     }
   }
 
@@ -1335,7 +1426,7 @@ export function SessionPickerSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center">
             <m.div
@@ -1356,8 +1447,8 @@ export function SessionPickerSheet({
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-              className={`pointer-events-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
+              transition={sheetSpring}
+              className={`pointer-events-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
             >
               {/* Pegangan seret */}
               <div
@@ -1365,11 +1456,11 @@ export function SessionPickerSheet({
                 className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
                 aria-hidden="true"
               >
-                <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+                <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
               </div>
 
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
                   Mulai Sesi Latihan
                 </h2>
                 <p className="mt-0.5 text-note leading-relaxed text-content-muted">
@@ -1420,32 +1511,23 @@ export function SessionPickerSheet({
 
               {/* Tambah gerakan dari pustaka */}
               <div className="mt-4">
-                <label
-                  htmlFor="session-add-ex"
-                  className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary"
-                >
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
                   Tambah Gerakan
-                </label>
-                <select
-                  id="session-add-ex"
-                  value={pick}
-                  onChange={(e) => {
-                    addFromSelect(e.target.value)
-                    setPick('')
-                  }}
-                  className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-surface-sunken px-3 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                </p>
+                {/* Pemicu pemilih gerakan — menggantikan <select> native;
+                    katalog + pencarian + riwayat ada di GerakanPickerSheet. */}
+                <button
+                  type="button"
+                  aria-label="Pilih gerakan untuk ditambahkan ke sesi"
+                  onClick={() => setPickerOpen(true)}
+                  className="mt-2 flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border bg-surface-sunken px-3 text-left text-body font-semibold text-content-muted transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
-                  <option value="">Pilih gerakan…</option>
-                  {EX_OPTIONS.map((g) => (
-                    <optgroup key={g.group} label={g.group}>
-                      {g.items.map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  <span className="truncate">Pilih gerakan…</span>
+                  <ChevronsUpDown
+                    className="h-4 w-4 shrink-0 text-content-muted"
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
 
               {/* Rencana sesi */}
@@ -1547,6 +1629,14 @@ export function SessionPickerSheet({
               </div>
             </m.div>
           </div>
+
+          {/* Pemilih gerakan — overlay di atas lembar susun sesi;
+              katalog barbel tertutup (tanpa tambah baru). */}
+          <GerakanPickerSheet
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            onSelect={(g) => addFromSelect(g)}
+          />
         </>
       )}
     </AnimatePresence>

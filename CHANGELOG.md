@@ -3,6 +3,94 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.20] — Deep Review Frontend: motion.dev, anime.js & shadcn/ui (4 Agent Audit + 6 Agent Perbaikan)
+
+Permintaan pengguna: "full deep review front end, motion.dev anime.js.
+dan shandc ui dan lainnya lagi yang banyak" — empat agent audit paralel
+(motion.dev · anime.js v4 · shadcn/ui konsistensi · polish visual)
+menyisir ±70 file, lalu enam agent perbaikan mengeksekusi temuannya.
+
+### Bug nyata yang diperbaiki
+- **Exit animasi transaksi mati** (Keuangan): daftar TxRow tidak
+  dibungkus `AnimatePresence` sehingga transaksi yang dihapus menghilang
+  seketika — kini `mode="popLayout"` di kedua daftar (Ringkasan & Mutasi).
+- **Sumbu grid stagger heatmap terbalik**: `grid: [7,12]` → `[12,7]`
+  (grid[0] = item per baris) — gelombang sel kini radial dari kiri-atas,
+  bukan diagonal acak (terverifikasi empiris terhadap engine anime.js).
+- **Kebocoran animasi statistik**: `animate()` tanpa cleanup terus
+  berjalan ±1,2 dtk pasca-unmount — kini `anim.cancel()` (bukan revert,
+  agar batang tidak menghilang).
+- **Kelas CSS tidak valid** `outline-offset--2` (dobel tanda minus) di
+  stepper set workout — focus ring tak pernah diterapkan.
+- **13 permukaan `bg-cocoa` di Statistik/Heatmap** — token primitive
+  yang tidak di-inversi dark mode (teks nyaris tak terbaca saat gelap);
+  seluruhnya dimigrasi ke keluarga hero token (dark-safe).
+- **Judul ganda "Profil." → "Profil"** di layar Profil dihapus.
+- **`theme_color` manifest** (#749B58) ≠ meta viewport (#F5F3EE) —
+  diseragamkan ke sand.
+
+### Spesifikasi "satu pola picker" akhirnya ditegakkan
+- **GerakanPickerSheet** (baru): pencarian nama/otot + bagian "Terakhir
+  dilatih" dari histori nyata + daftar terkelompok per otot — mengganti
+  **3 `<select>` native** (form catat, panel dalam sesi, susun sesi).
+- **WalletPickerSheet** (baru): pola cat-picker penuh — cari + "Sering
+  dipakai" berbasis frekuensi transaksi nyata (Kas 140×, CIMB 90×…) +
+  daftar saldo + tambah dompet inline — mengganti **2 `<select>` native**
+  di transfer dan chip scroll di form transaksi.
+- **Pemicu "Susun Kebiasaan"** dirampingkan: chip-wall tanpa batas →
+  satu baris pemicu + panel terkurasi (cari + listbox max-h-64).
+- Empty state Bugar (riwayat/PR/pustaka) yang dibuat tangan →
+  `RutinaEmptyState` + tombol aksi.
+
+### motion.dev (motion v14) — governance dijalankan
+- 9 preset mati di `transitions.ts` kini dipakai nyata: 12 sheet →
+  `sheetSpring`/`fade`, kanvas → `canvasFade`, perayaan → `celebrate`;
+  token baru `spring.bar` (konsolidasi 4 varian bebas di 16 titik),
+  `spring.chart`, `spring.navPop`, `easing.confettiFall`,
+  `duration.ambient`; 14 literal easing → token.
+- **RutinaTabs pil meluncur**: varian segment kini memakai `layoutId`
+  (context + useId per instance) — indikator aktif meluncur antar tab
+  di Keuangan, Bugar, dan Statistik (menggantikan Tabs shadcn mentah).
+- Progress bar `width` → `scaleX` transform-only (16+ titik); recharts
+  tunduk token `chartRevealMs` + guard reduced-motion; KPI Statistik
+  memakai `Counter` count-up.
+- 3 kelas `animate-*` tanpa `motion-safe:` diberi guard; guard
+  reduced-motion ditambahkan ke titik "Menyimpan…" jurnal.
+
+### anime.js v4 — momen "hidup" baru
+- **Plate "clink"** barbel: piring bermunculan stagger `outBack` saat
+  beban berubah; hasil 1RM & tangga pemanasan pop elastis.
+- **"SET SELESAI" pop**: chip set terakhir + counter `{n}/{target}`
+  meledak elastis setiap set tercatat; KPI "N set" ikut timeline
+  perayaan sesi.
+- **Lencana Statistik** pop saat unlock; nilai asupan & saldo pop saat
+  berubah (`RutinaMetric` kini punya prop `popOn`); default `useAnimePop`
+  selaras preset `valuePopMs` (520ms).
+- Spend heatmap keuangan kini bergelombang seperti heatmap kebiasaan.
+
+### shadcn/ui & konsistensi UI
+- Dialog portal (Tujuan Tabungan, Tentang) → `RutinaDialog` in-frame;
+  form-dalam-AlertDialog (edit anggaran) → RutinaDialog semantik benar;
+  input mentah WalletDialog → `Input`/`Label` shadcn.
+- Segmented tulisan tangan (rentang riwayat Bugar, periode Statistik) →
+  `RutinaTabs`; food sheet punya bagian "Sering dimakan" dari histori.
+- Backdrop sheet diseragamkan `bg-espresso/45` + pegangan
+  `bg-content-secondary/25`; hover tombol gelap → token baru
+  `surface-inverse-raised` (dark-mode-safe); FAB gold melanggar peran
+  warna → chip `hero-accent` di dalam SaldoCard.
+- **Kode mati dihapus**: focus-widget, streak-widget, punch-card,
+  rutina-field, rutina-icon-button, rutina-list-item (0 importer);
+  DesignBoard + CssLab kini dimuat malas (dynamic import) — tidak lagi
+  ikut bundel utama.
+
+### Polish visual
+- Sistem radius diikat ke skala (±101 `rounded-[Npx]` arbitrer →
+  `rounded-lg/xl/2xl`); 48 kebocoran tipografi → token
+  (`text-lead/body/meta`); MOOD_TONE hex lepas → token + satu sumber
+  bersama journal; kartu identitas Profil mendapat permukaan hero;
+  splash memakai skala token + Playfair untuk wordmark; tepi fade strip
+  taman; `text-pretty` untuk paragraf panjang.
+
 ## [2.19] — Data Asli Saja: Seed Demo Dihapus Total & Pemolesan Visual
 
 Permintaan pengguna: "cek data asli ku dan data dummy, data dummy hapus

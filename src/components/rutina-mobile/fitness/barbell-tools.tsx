@@ -1,12 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, useDragControls } from 'motion/react'
+import {
+  AnimatePresence,
+  useDragControls,
+  useReducedMotion,
+} from 'motion/react'
 import * as m from 'motion/react-m'
+import { animate, stagger } from 'animejs'
 import { Check, Dumbbell } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
+import { fade, sheetSpring } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 import { cn } from '@/lib/utils'
+import { useAnimePop } from '../anime-kit'
 import { CONTENT_W } from '../layout-widths'
 import { useFocusTrap } from '../use-focus-trap'
 import {
@@ -76,6 +84,7 @@ function Plate({ spec, count }: { spec: PlateSpec; count: number }) {
   const size = plateSize(spec.kg)
   return (
     <span
+      data-plate
       className="relative inline-flex shrink-0 items-center justify-center rounded-full ring-1 ring-cocoa/30"
       style={{ backgroundColor: spec.color, width: size, height: size }}
     >
@@ -110,6 +119,46 @@ function PlateLoaderTab() {
   }, [total, barKg])
 
   const invalid = total.trim() !== '' && load === null
+
+  /* MOMEN KHAS — "clink" piring: saat beban berubah, piring kiri-kanan
+     terpasang satu per satu (scale 0→1, stagger 40 ms, outBack). Pola
+     pre-hide + guard reduced-motion mengikuti heatmap.tsx — tanpa
+     animasi, piring langsung tampil pada keadaan alami. */
+  const reducedMotion = useReducedMotion()
+  const barRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = barRef.current
+    if (!root) return
+    const plates = root.querySelectorAll('[data-plate]')
+    if (reducedMotion || plates.length === 0) {
+      plates.forEach((el) => {
+        ;(el as HTMLElement).style.transform = ''
+      })
+      return
+    }
+    /* Sembunyikan SEBELUM memicu stagger — tanpa ini piring terakhir
+       sempat tampil penuh lalu melompat ke 0 sebelum tumbuh (kilatan
+       awal). */
+    plates.forEach((el) => {
+      ;(el as HTMLElement).style.transform = 'scale(0)'
+    })
+    const anim = animate(plates, {
+      scale: [0, 1],
+      delay: stagger(40),
+      duration: 380,
+      ease: 'outBack(2.4)',
+    })
+    return () => {
+      anim.revert()
+    }
+  }, [load, reducedMotion])
+
+  /* Angka "Tercapai" ikut berdenyut saat susunan piring dihitung ulang. */
+  const achievedRef = useAnimePop<HTMLSpanElement>(
+    null,
+    load ? load.achieved : null,
+    { scale: 1.18, back: 2.2 },
+  )
 
   return (
     <div>
@@ -172,6 +221,7 @@ function PlateLoaderTab() {
 
       {/* Visual barbel */}
       <div
+        ref={barRef}
         className="mt-3.5 rounded-2xl border border-border bg-surface-sunken p-4"
         aria-hidden="true"
       >
@@ -198,7 +248,10 @@ function PlateLoaderTab() {
             <div className="mt-3.5 text-center">
               <p className="text-meta font-semibold text-content-secondary">
                 Tercapai{' '}
-                <span className="font-bold tabular-nums text-content-primary">
+                <span
+                  ref={achievedRef}
+                  className="inline-block font-bold tabular-nums text-content-primary"
+                >
                   {fmtKg(load.achieved)} kg
                 </span>
                 <span className="mx-1 text-content-muted">·</span>
@@ -261,6 +314,13 @@ function OneRmTab() {
     [parsed],
   )
 
+  /* Estimasi 1RM — pop elastis tiap hitungan ulang (render pertama
+     diabaikan; kemunculan blok tetap ranah Motion). */
+  const e1rmRef = useAnimePop<HTMLSpanElement>(null, e1rm, {
+    scale: 1.18,
+    back: 2.2,
+  })
+
   return (
     <div>
       <p className="text-note leading-relaxed text-content-muted">
@@ -312,7 +372,9 @@ function OneRmTab() {
               Estimasi 1RM
             </p>
             <p className="mt-1 text-kpi-hero font-bold leading-none tabular-nums text-content-primary">
-              {fmtKg(e1rm)}
+              <span ref={e1rmRef} className="inline-block">
+                {fmtKg(e1rm)}
+              </span>
               <span className="ml-1 text-section font-semibold text-content-muted">
                 kg
               </span>
@@ -347,6 +409,27 @@ function OneRmTab() {
 }
 
 /* ===== Tab: Tangga Pemanasan ===== */
+
+/** Angka kg satu langkah — pop elastis saat tangga dihitung ulang.
+ *  Key baris memakai label (bukan kg) agar komponen bertahan antar
+ *  perhitungan dan pop benar-benar terjadi. */
+function LadderKg({ kg }: { kg: number }) {
+  const ref = useAnimePop<HTMLSpanElement>(null, kg, {
+    scale: 1.18,
+    back: 2.2,
+  })
+  return (
+    <span
+      ref={ref}
+      className="shrink-0 text-section font-bold tabular-nums text-content-primary"
+    >
+      {fmtKg(kg)}
+      <span className="ml-0.5 text-chart-label font-semibold text-content-muted">
+        kg
+      </span>
+    </span>
+  )
+}
 
 function WarmupTab() {
   const [work, setWork] = useState('')
@@ -395,7 +478,7 @@ function WarmupTab() {
               const isDone = done.includes(i)
               return (
                 <button
-                  key={`${s.label}-${s.kg}`}
+                  key={s.label}
                   type="button"
                   aria-pressed={isDone}
                   aria-label={`${s.label} — ${fmtKg(s.kg)} kg${isDone ? ' (selesai)' : ''}`}
@@ -439,12 +522,7 @@ function WarmupTab() {
                         : 'naik bertahap, jaga teknik'}
                     </span>
                   </span>
-                  <span className="shrink-0 text-section font-bold tabular-nums text-content-primary">
-                    {fmtKg(s.kg)}
-                    <span className="ml-0.5 text-chart-label font-semibold text-content-muted">
-                      kg
-                    </span>
-                  </span>
+                  <LadderKg kg={s.kg} />
                 </button>
               )
             })}
@@ -503,17 +581,24 @@ export function BarbellToolsSheet({
     <AnimatePresence>
       {open && (
         <>
+          {/* absolute (bukan fixed): lembar ini dipasang langsung di
+              dalam layar Bugar (bugar.tsx), bukan di overlay sesi latihan
+              yang memang sengaja fixed. Wadah layar (absolute inset-0 di
+              rutina-app) sudah positioned, jadi absolute tetap berada DI
+              DALAM bingkai aplikasi — tidak menutupi bilah sisi desktop —
+              dan lolos dari kontainer gulir Bugar karena containing block
+              berada di luar scroller. */}
           <m.div
             key="backdrop"
             aria-hidden="true"
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-espresso/45"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
-          <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center">
+          <div className="pointer-events-none absolute inset-0 z-50 flex items-end justify-center">
             <m.div
               key="panel"
               ref={panelRef}
@@ -532,8 +617,8 @@ export function BarbellToolsSheet({
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-              className={`pointer-events-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
+              transition={sheetSpring}
+              className={`pointer-events-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
             >
               {/* Pegangan seret */}
               <div
@@ -541,11 +626,11 @@ export function BarbellToolsSheet({
                 className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
                 aria-hidden="true"
               >
-                <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+                <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
               </div>
 
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
                   Alat Barbel
                 </h2>
                 <p className="mt-0.5 text-note leading-relaxed text-content-muted">
@@ -578,7 +663,7 @@ export function BarbellToolsSheet({
                           aria-hidden="true"
                           layoutId="bb-tab-pill"
                           className="absolute inset-0 z-[-1] rounded-full bg-surface-primary shadow-soft"
-                          transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                          transition={motionTokens.spring.snappy}
                         />
                       )}
                       {t.label}
@@ -594,7 +679,10 @@ export function BarbellToolsSheet({
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{
+                      duration: 0.24,
+                      ease: motionTokens.easing.standard,
+                    }}
                     className="mt-4"
                   >
                     <PlateLoaderTab />
@@ -605,7 +693,10 @@ export function BarbellToolsSheet({
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{
+                      duration: 0.24,
+                      ease: motionTokens.easing.standard,
+                    }}
                     className="mt-4"
                   >
                     <OneRmTab />
@@ -616,7 +707,10 @@ export function BarbellToolsSheet({
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{
+                      duration: 0.24,
+                      ease: motionTokens.easing.standard,
+                    }}
                     className="mt-4"
                   >
                     <WarmupTab />

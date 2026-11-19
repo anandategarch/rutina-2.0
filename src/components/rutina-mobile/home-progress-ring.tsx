@@ -30,7 +30,7 @@ export function HomeProgressRing({ pct }: { pct: number }) {
   /* Pop perayaan saat cincin BARU saja penuh (bukan saat tetap 100). */
   const ringRef = useAnimePop<SVGSVGElement>(null, complete, {
     scale: 1.12,
-    duration: 850,
+    duration: motionTokens.preset.chartRevealMs.duration,
     back: 2.2,
   })
 

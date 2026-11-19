@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   BatteryLow,
@@ -514,6 +514,11 @@ function CanvasPanel() {
 /* ===== Indikator autosave ===== */
 
 function SaveIndicator({ status }: { status: SaveStatus }) {
+  /* Loop denyut opacity tidak sempatan oleh MotionConfig reducedMotion
+     (hanya mematikan transform/layout) — titik "Menyimpan" dirender
+     statis saat pengguna memilih kurangi gerak. */
+  const reduceMotion = useReducedMotion()
+
   if (status === 'idle') return null
 
   if (status === 'saving') {
@@ -521,19 +526,26 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
       <span className="flex items-center gap-1 text-meta font-semibold text-content-muted">
         Menyimpan
         <span className="flex items-center gap-0.5" aria-hidden="true">
-          {[0, 1, 2].map((i) => (
-            <m.span
-              key={i}
-              className="h-1 w-1 rounded-full bg-content-muted"
-              animate={{ opacity: [0.25, 1, 0.25] }}
-              transition={{
-                duration: 1.1,
-                repeat: Infinity,
-                delay: i * 0.18,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
+          {[0, 1, 2].map((i) =>
+            reduceMotion ? (
+              <span
+                key={i}
+                className="h-1 w-1 rounded-full bg-content-muted"
+              />
+            ) : (
+              <m.span
+                key={i}
+                className="h-1 w-1 rounded-full bg-content-muted"
+                animate={{ opacity: [0.25, 1, 0.25] }}
+                transition={{
+                  duration: 1.1,
+                  repeat: Infinity,
+                  delay: i * 0.18,
+                  ease: 'easeInOut',
+                }}
+              />
+            ),
+          )}
         </span>
       </span>
     )

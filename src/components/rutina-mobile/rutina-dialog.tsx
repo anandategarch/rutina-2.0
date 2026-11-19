@@ -5,6 +5,7 @@ import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 
 import { cn } from '@/lib/utils'
+import { fade, pressSnappy } from '@/lib/motion/transitions'
 import { CONTENT_W } from './layout-widths'
 import { useFocusTrap } from './use-focus-trap'
 
@@ -57,7 +58,7 @@ export function RutinaDialog({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={fade}
           />
           <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center p-5">
             <m.div
@@ -71,7 +72,7 @@ export function RutinaDialog({
               initial={{ opacity: 0, scale: 0.94, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 6 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              transition={pressSnappy}
               className={cn(
                 'pointer-events-auto w-full rounded-2xl border border-border-default bg-surface-primary p-5 shadow-ink',
                 CONTENT_W,

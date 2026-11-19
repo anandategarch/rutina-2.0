@@ -6,6 +6,7 @@ import * as m from 'motion/react-m'
 import { Check, Plus, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { Input } from '@/components/ui/input'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type TxType } from '../store'
@@ -131,7 +132,7 @@ export function CatPickerSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -151,8 +152,8 @@ export function CatPickerSheet({
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-[60] mx-auto flex max-h-[86%] w-full flex-col rounded-t-[28px] bg-surface-primary pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            transition={sheetSpring}
+            className={`absolute inset-x-0 bottom-0 z-[60] mx-auto flex max-h-[86%] w-full flex-col rounded-t-sheet bg-surface-primary pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -160,12 +161,12 @@ export function CatPickerSheet({
               className="mx-auto flex h-7 w-full shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             <div className="flex shrink-0 items-start justify-between gap-3 px-5">
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
                   Pilih Kategori
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">

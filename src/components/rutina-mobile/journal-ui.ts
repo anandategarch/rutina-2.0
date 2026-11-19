@@ -13,13 +13,27 @@ import { useRutina, type FolderKey, type Note } from './store'
  * level ini — pola toko zustand modul-level, tanpa menyentuh store utama.
  */
 
-/** Titik warna suasana hati — padanan earth-tone untuk MOODS di store. */
-export const MOOD_DOT: Record<string, string> = {
-  Ceria: 'bg-gold',
-  Baik: 'bg-primary',
-  Biasa: 'bg-cocoa/40',
-  Lelah: 'bg-espresso/40',
+/**
+ * Tone suasana hati — SATU sumber kebenaran lintas layar (Profil & Jurnal):
+ * kelas teks (ikon/label mood di Profil) + titik warna (kartu & sheet baca
+ * catatan) padanan earth-tone untuk MOODS di store. Semua kelas merujuk
+ * token --color-* di globals.css sehingga ikut aman di mode gelap.
+ */
+export const MOOD_TONE: Record<
+  string,
+  { text: string; dot: string }
+> = {
+  Ceria: { text: 'text-matcha', dot: 'bg-gold' },
+  Baik: { text: 'text-pistachio', dot: 'bg-primary' },
+  Biasa: { text: 'text-content-secondary', dot: 'bg-cocoa/40' },
+  Lelah: { text: 'text-content-muted', dot: 'bg-espresso/40' },
 }
+
+/** Titik warna suasana hati — diturunkan dari MOOD_TONE (jangan diedit
+ *  langsung; tambah/ubah mood lewat MOOD_TONE agar tetap satu sumber). */
+export const MOOD_DOT: Record<string, string> = Object.fromEntries(
+  Object.entries(MOOD_TONE).map(([mood, tone]) => [mood, tone.dot]),
+)
 
 interface JournalUiState {
   /** Kanvas menulis terbuka? */

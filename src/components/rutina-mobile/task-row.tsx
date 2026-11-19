@@ -27,6 +27,7 @@ import { PlantGlyph } from './plant-glyph'
 import { type Habit, todayISO, useRutina } from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { pressSnappy } from '@/lib/motion/transitions'
 /**
  * Baris kebiasaan: geser kanan untuk menandai selesai, geser kiri untuk
  * membatalkan. Area klik DIPISAHKAN tegas:
@@ -94,7 +95,7 @@ export function TaskRow({
     <m.div
       layout
       className={
-        'relative overflow-hidden rounded-[16px] border transition-colors duration-300 ' +
+        'relative overflow-hidden rounded-lg border transition-colors duration-300 ' +
         (done ? 'border-primary/20' : 'border-border') +
         ' bg-surface-primary shadow-soft'
       }
@@ -193,7 +194,7 @@ export function TaskRow({
             key={String(done)}
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+            transition={pressSnappy}
             aria-hidden="true"
             className="flex"
           >

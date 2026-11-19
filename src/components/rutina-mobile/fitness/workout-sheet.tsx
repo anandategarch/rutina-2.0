@@ -8,6 +8,7 @@ import {
 import * as m from 'motion/react-m'
 import {
   AlertTriangle,
+  ChevronsUpDown,
   Dumbbell,
   Footprints,
   Minus,
@@ -19,6 +20,8 @@ import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { fade, pressSnappy, sheetSpring } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 import { CONTENT_W } from '../layout-widths'
 import {
   deloadActive,
@@ -26,7 +29,8 @@ import {
   exStatOf,
   paceOf,
 } from './fit-utils'
-import { EX_LIB, MUSCLE_GROUPS, exerciseLabel } from './data'
+import { exerciseLabel } from './data'
+import { GerakanPickerSheet } from './gerakan-picker-sheet'
 import {
   shortDateLabel,
   todayISO,
@@ -77,16 +81,6 @@ const emptyBlock = (): SetBlock => ({
   count: 3,
 })
 
-/** Gerakan dikelompokkan per otot untuk pemilih native yang ringkas —
- *  label utama nama Indonesia (idName), nama Inggris kecil di belakang. */
-const EX_OPTIONS = MUSCLE_GROUPS.map((g) => ({
-  group: g,
-  items: EX_LIB.filter((e) => e.muscle === g).map((e) => ({
-    name: e.name,
-    label: `${e.idName} (${e.name})`,
-  })),
-}))
-
 /** Pilihan jenis dalam mode Lari & Jalan — kombinasi tetap satu catatan. */
 const CARDIO_KINDS: { kind: WorkoutKind; label: string; hint: string }[] = [
   { kind: 'jalan', label: 'Jalan', hint: 'jalan santai / cepat' },
@@ -115,6 +109,8 @@ export function WorkoutSheet() {
   const [badCondition, setBadCondition] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [blocks, setBlocks] = useState<SetBlock[]>([emptyBlock()])
+  /* Indeks blok yang sedang membuka pemilih gerakan — null = tertutup. */
+  const [pickerFor, setPickerFor] = useState<number | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -290,11 +286,11 @@ export function WorkoutSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeWorkoutSheet}
-            className="absolute inset-0 z-40 bg-espresso/40"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -315,8 +311,8 @@ export function WorkoutSheet() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-[28px] bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            transition={sheetSpring}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -324,12 +320,12 @@ export function WorkoutSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
-                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
                   Catat Aktivitas
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">
@@ -367,7 +363,7 @@ export function WorkoutSheet() {
                         aria-hidden="true"
                         layoutId="wo-mode-pill"
                         className="absolute inset-0 z-[-1] rounded-full bg-surface-primary shadow-soft"
-                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        transition={pressSnappy}
                       />
                     )}
                     <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -414,7 +410,7 @@ export function WorkoutSheet() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
                   className="mt-4"
                 >
                   {/* Jenis kardio — kombinasi lari+jalan TETAP satu catatan;
@@ -477,7 +473,7 @@ export function WorkoutSheet() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
                   className="mt-4"
                 >
                   <p className="text-meta leading-relaxed text-content-muted">
@@ -517,7 +513,7 @@ export function WorkoutSheet() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
                   className="mt-4"
                 >
                   <div className="flex items-center justify-between px-0.5">
@@ -568,25 +564,33 @@ export function WorkoutSheet() {
                         className="rounded-2xl border border-border bg-surface-primary p-3.5"
                       >
                         <div className="flex items-center gap-2">
-                          <select
-                            aria-label={`Gerakan blok ${i + 1}`}
-                            value={b.exercise}
-                            onChange={(e) => patchBlock(i, { exercise: e.target.value })}
-                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-surface-sunken px-2.5 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
-                              b.exercise ? 'border-primary' : 'border-border text-content-muted'
+                          {/* Pemicu pemilih gerakan — menggantikan <select>
+                              native; katalog + pencarian + riwayat ada di
+                              GerakanPickerSheet (v2.20). */}
+                          <button
+                            type="button"
+                            aria-label={`Pilih gerakan blok ${i + 1}${
+                              b.exercise
+                                ? `: ${exerciseLabel(b.exercise)}. Ketuk untuk mengganti.`
+                                : ''
+                            }`}
+                            onClick={() => setPickerFor(i)}
+                            className={`flex h-10 min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-xl border bg-surface-sunken px-3 text-left text-body font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+                              b.exercise
+                                ? 'border-primary text-content-primary'
+                                : 'border-border text-content-muted'
                             }`}
                           >
-                            <option value="">Pilih gerakan…</option>
-                            {EX_OPTIONS.map((g) => (
-                              <optgroup key={g.group} label={g.group}>
-                                {g.items.map((n) => (
-                                  <option key={n.name} value={n.name}>
-                                    {n.label}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                            <span className="truncate">
+                              {b.exercise
+                                ? exerciseLabel(b.exercise)
+                                : 'Pilih gerakan…'}
+                            </span>
+                            <ChevronsUpDown
+                              className="h-4 w-4 shrink-0 text-content-muted"
+                              aria-hidden="true"
+                            />
+                          </button>
                           <button
                             type="button"
                             aria-label={`Hapus blok ${i + 1}`}
@@ -655,7 +659,7 @@ export function WorkoutSheet() {
                                 onClick={() =>
                                   patchBlock(i, { count: Math.max(1, b.count - 1) })
                                 }
-                                className="flex h-full w-8 cursor-pointer items-center justify-center text-content-secondary transition-colors hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-primary"
+                                className="flex h-full w-8 cursor-pointer items-center justify-center text-content-secondary transition-colors hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
@@ -668,7 +672,7 @@ export function WorkoutSheet() {
                                 onClick={() =>
                                   patchBlock(i, { count: Math.min(12, b.count + 1) })
                                 }
-                                className="flex h-full w-8 cursor-pointer items-center justify-center text-content-secondary transition-colors hover:text-success focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-primary"
+                                className="flex h-full w-8 cursor-pointer items-center justify-center text-content-secondary transition-colors hover:text-success focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -739,6 +743,21 @@ export function WorkoutSheet() {
               Simpan Aktivitas
             </m.button>
           </m.div>
+
+          {/* Lembar pemilih gerakan — overlay di atas lembar catat
+              aktivitas; katalog barbel tertutup (tanpa tambah baru). */}
+          <GerakanPickerSheet
+            open={pickerFor != null}
+            selectedId={
+              pickerFor != null
+                ? blocks[pickerFor]?.exercise || undefined
+                : undefined
+            }
+            onSelect={(g) => {
+              if (pickerFor != null) patchBlock(pickerFor, { exercise: g })
+            }}
+            onClose={() => setPickerFor(null)}
+          />
         </>
       )}
     </AnimatePresence>

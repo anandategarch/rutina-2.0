@@ -17,6 +17,9 @@ import {
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
+import { motionTokens } from '@/lib/motion/tokens'
+import { barFill } from '@/lib/motion/transitions'
+import { useAnimePop } from '../anime-kit'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,7 +110,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
       className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary p-3 shadow-soft"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
@@ -142,14 +145,14 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </AlertDialogTrigger>
-        <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border p-6 sm:max-w-[320px]">
+        <AlertDialogContent className="max-w-[320px] rounded-2xl border-border p-6 sm:max-w-[320px]">
           <AlertDialogHeader>
             <div className="mb-1 flex justify-center">
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-content-danger">
                 <Trash2 className="h-5 w-5" />
               </span>
             </div>
-            <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
+            <AlertDialogTitle className="text-center text-lead font-bold tracking-tight text-content-primary">
               Hapus dari jurnal makan?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-note leading-relaxed text-content-muted">
@@ -230,15 +233,27 @@ export function AsupanPanel() {
   const remaining = allowance - sum.kcal
   const pct = Math.min((sum.kcal / Math.max(allowance, 1)) * 100, 100)
 
+  /* Ledakan elastis dua angka paling terlihat — kalori tercatat (hero)
+     dan energi terbakar. useAnimePop melewati render pertama; pop hanya
+     saat nilai berubah (entri ditambah/dihapus, sesi dicatat). */
+  const kcalRef = useAnimePop<HTMLSpanElement>(null, sum.kcal, {
+    scale: 1.2,
+    back: 2.4,
+  })
+  const burnedRef = useAnimePop<HTMLSpanElement>(null, burned, {
+    scale: 1.2,
+    back: 2.4,
+  })
+
   return (
     <div>
       {/* Neraca kalori hari ini */}
       <m.section
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
         aria-label="Neraca kalori hari ini"
-        className="overflow-hidden rounded-[24px] bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
+        className="overflow-hidden rounded-2xl bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -247,10 +262,13 @@ export function AsupanPanel() {
               Asupan hari ini
             </p>
             <p className="mt-2 flex items-baseline gap-1.5">
-              <span className="text-kpi-hero font-semibold leading-none tracking-tight tabular-nums">
+              <span
+                ref={kcalRef}
+                className="inline-block text-kpi-hero font-semibold leading-none tracking-tight tabular-nums"
+              >
                 {fmt(sum.kcal)}
               </span>
-              <span className="text-lg font-medium text-module-accent-fg/85">
+              <span className="text-lead font-medium text-module-accent-fg/85">
                 / {fmt(allowance)} kkal
               </span>
             </p>
@@ -276,7 +294,7 @@ export function AsupanPanel() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
               className="overflow-hidden"
             >
               <div className="mt-3 flex items-center gap-2 rounded-2xl bg-espresso/35 p-2.5 backdrop-blur-sm">
@@ -336,7 +354,7 @@ export function AsupanPanel() {
             initial={false}
             className="h-full rounded-full bg-module-accent-fg"
             animate={{ width: `${pct}%` }}
-            transition={{ type: 'spring', stiffness: 130, damping: 22 }}
+            transition={barFill}
           />
         </div>
 
@@ -347,7 +365,7 @@ export function AsupanPanel() {
             Energi terbakar
           </p>
           <p className="text-note font-bold tabular-nums text-module-accent-fg">
-            +{fmt(burned)}
+            +<span ref={burnedRef} className="inline-block">{fmt(burned)}</span>
             <span className="ml-0.5 text-chart-label font-semibold text-module-accent-fg/75">
               kkal
             </span>
@@ -479,8 +497,8 @@ export function AsupanPanel() {
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        transition={{ duration: 0.4, delay: 0.06, ease: motionTokens.easing.standard }}
+        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
         Tambah Asupan
@@ -540,8 +558,8 @@ export function AsupanPanel() {
             <m.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-[20px] border-2 border-dashed border-primary/30 px-6 py-9 text-center"
+              transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+              className="rounded-xl border-2 border-dashed border-primary/30 px-6 py-9 text-center"
             >
               <Apple className="mx-auto h-6 w-6 text-content-muted" />
               <p className="mt-2 text-note font-semibold text-content-muted">
@@ -568,7 +586,7 @@ export function AsupanPanel() {
             target {fmt(calorieTarget)} kkal
           </span>
         </div>
-        <div className="mt-3 rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft">
+        <div className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft">
           {/* Zona batang + garis target — tinggi batang & posisi garis
               memakai skala yang sama (maks deret ∪ target). */}
           <div className="relative">
@@ -618,7 +636,7 @@ export function AsupanPanel() {
                       transition={{
                         duration: 0.5,
                         delay: i * 0.05,
-                        ease: [0.22, 1, 0.36, 1],
+                        ease: motionTokens.easing.standard,
                       }}
                       className={`w-full rounded-t-lg transition-colors ${
                         kcal === 0

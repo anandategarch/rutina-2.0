@@ -207,7 +207,7 @@ function HabitDetailPanel({
               }
               caption="susun kebiasaan"
               icon={Link2}
-              iconClassName="bg-espresso/10 text-espresso"
+              iconClassName="bg-secondary/70 text-content-secondary"
               size="sm"
             />
           )}
@@ -568,7 +568,7 @@ export default function KebiasaanScreen() {
                     <m.div
                       key={`missed-${card.habit.id}`}
                       variants={journalCard}
-                      className="rounded-[16px] border border-gold/40 bg-gold/15 p-3.5"
+                      className="rounded-lg border border-gold/40 bg-gold/15 p-3.5"
                     >
                       <div className="flex items-start gap-3">
                         <span
@@ -620,7 +620,7 @@ export default function KebiasaanScreen() {
                     <m.div
                       key={`gold-${card.habit.id}`}
                       variants={journalCard}
-                      className="flex items-start gap-3 rounded-[16px] border border-border bg-surface-primary p-3.5 shadow-soft"
+                      className="flex items-start gap-3 rounded-lg border border-border bg-surface-primary p-3.5 shadow-soft"
                     >
                       <span
                         aria-hidden="true"
@@ -628,7 +628,7 @@ export default function KebiasaanScreen() {
                           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full ' +
                           (card.advice.tone === 'naik'
                             ? 'bg-secondary text-success'
-                            : 'bg-espresso/10 text-espresso')
+                            : 'bg-secondary/70 text-content-secondary')
                         }
                       >
                         {card.advice.tone === 'naik' ? (
@@ -839,7 +839,7 @@ export default function KebiasaanScreen() {
                               key={h.id}
                               onClick={() => setSelectedId(h.id)}
                               className={
-                                'rounded-[16px] transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 xl:ring-2 ' +
+                                'rounded-lg transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 xl:ring-2 ' +
                                 (selectedHabit?.id === h.id
                                   ? 'xl:ring-primary/60'
                                   : 'xl:ring-transparent')

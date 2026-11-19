@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from './layout-widths'
 import { MOOD_DOT, useJournalUi } from './journal-ui'
 import { FOLDER_SHORT, useRutina } from './store'
@@ -70,11 +71,11 @@ export function ReadingSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeReading}
-            className="absolute inset-0 z-40 bg-espresso/40"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -94,7 +95,7 @@ export function ReadingSheet() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
+            transition={sheetSpring}
             className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[calc(100%-1.5rem)] w-full overflow-y-auto no-scrollbar overscroll-contain rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
@@ -103,7 +104,7 @@ export function ReadingSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             {/* Kepala editorial — metadata lalu judul serif */}
@@ -218,7 +219,7 @@ export function ReadingSheet() {
                 <AlertDialogTrigger asChild>
                   <Button
                     type="button"
-                    className="h-11 flex-1 rounded-full bg-surface-inverse font-semibold text-content-inverse hover:bg-espresso-soft"
+                    className="h-11 flex-1 rounded-full bg-surface-inverse font-semibold text-content-inverse hover:bg-surface-inverse-raised"
                   >
                     <Trash2 className="h-4 w-4" />
                     Hapus

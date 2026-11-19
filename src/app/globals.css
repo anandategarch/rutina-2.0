@@ -66,6 +66,11 @@
   --surface-secondary: var(--palette-linen);
   --surface-sunken: var(--palette-sand);
   --surface-inverse: var(--palette-espresso);
+  /* Varian "terangkat" permukaan inverse — untuk hover tombol gelap
+     (espresso → espresso-soft). Di dark mode surface-inverse menjadi
+     parchment, jadi varian terangkatnya parchment 85% (bukan espresso-soft
+     yang justru menggelap — perbaikan audit v2.20). */
+  --surface-inverse-raised: var(--palette-espresso-soft);
 
   /* Konten teks */
   --content-primary: var(--palette-espresso);
@@ -220,6 +225,7 @@
   --surface-secondary: #352e2b;
   --surface-sunken: #1c1817;
   --surface-inverse: var(--palette-parchment);
+  --surface-inverse-raised: rgb(250 249 246 / 85%);
 
   --content-primary: var(--palette-parchment);
   --content-secondary: #d8cfc4;
@@ -365,6 +371,7 @@
   --color-surface-secondary: var(--surface-secondary);
   --color-surface-sunken: var(--surface-sunken);
   --color-surface-inverse: var(--surface-inverse);
+  --color-surface-inverse-raised: var(--surface-inverse-raised);
   --color-content-primary: var(--content-primary);
   --color-content-secondary: var(--content-secondary);
   --color-content-muted: var(--content-muted);

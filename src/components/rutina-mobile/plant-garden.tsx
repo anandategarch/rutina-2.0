@@ -87,30 +87,42 @@ export function PlantGarden({
       ) : (
         header
       )}
-      <div
-        role="list"
-        aria-label="Tahap pertumbuhan tiap kebiasaan"
-        className={listClass}
-      >
-        {active.map((h) => {
-          const p = plantStageOf(h, completions, today)
-          /* Bar penuh di tahap akhir; selain itu total/ambang berikutnya. */
-          const pct = p.nextAt ? Math.min(p.total / p.nextAt, 1) : 1
-          const counter = p.nextAt
-            ? `${p.total}/${p.nextAt}`
-            : 'Tahap akhir'
-          return (
-            <PlantCard
-              key={h.id}
-              title={h.title}
-              stage={p.stage.key}
-              stageLabel={p.stage.label}
-              counter={counter}
-              pct={pct}
-              bed={beds}
-            />
-          )
-        })}
+      <div className="relative">
+        <div
+          role="list"
+          aria-label="Tahap pertumbuhan tiap kebiasaan"
+          className={listClass}
+        >
+          {active.map((h) => {
+            const p = plantStageOf(h, completions, today)
+            /* Bar penuh di tahap akhir; selain itu total/ambang berikutnya. */
+            const pct = p.nextAt ? Math.min(p.total / p.nextAt, 1) : 1
+            const counter = p.nextAt
+              ? `${p.total}/${p.nextAt}`
+              : 'Tahap akhir'
+            return (
+              <PlantCard
+                key={h.id}
+                title={h.title}
+                stage={p.stage.key}
+                stageLabel={p.stage.label}
+                counter={counter}
+                pct={pct}
+                bed={beds}
+              />
+            )
+          })}
+        </div>
+        {/* Tepi pudar kanan — penanda strip masih bisa digulir (senada
+            daftar filter Jurnal). Mode bedeng berhenti menggulir di ruang
+            kerja lebar, tepi ikut disembunyikan. */}
+        <div
+          aria-hidden="true"
+          className={
+            'pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface-primary to-transparent' +
+            (beds ? ' @[52rem]:hidden' : '')
+          }
+        />
       </div>
       <p className="mt-2 px-0.5 text-eyebrow font-medium text-content-muted">
         {PLANT_STAGES.map((s) => s.label).join(' → ')} — tumbuh dari total
@@ -144,7 +156,7 @@ function PlantCard({
     <div
       role="listitem"
       className={
-        'w-[156px] shrink-0 snap-start rounded-[18px] border border-border bg-surface-primary p-3 shadow-soft transition-transform duration-300 hover:-translate-y-0.5' +
+        'w-[156px] shrink-0 snap-start rounded-xl border border-border bg-surface-primary p-3 shadow-soft transition-transform duration-300 hover:-translate-y-0.5' +
         (bed ? ' @[52rem]:w-[168px]' : '')
       }
     >

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { JournalCanvas } from './journal-canvas'
 import { CONTENT_W } from './layout-widths'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from './store'
@@ -79,11 +80,11 @@ export function ComposeSheet() {
             key="backdrop"
             aria-hidden="true"
             onClick={closeCompose}
-            className="absolute inset-0 z-40 bg-espresso/40"
+            className="absolute inset-0 z-40 bg-espresso/45"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={fade}
           />
           <m.div
             key="panel"
@@ -103,7 +104,7 @@ export function ComposeSheet() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 340, damping: 34 }}
+            transition={sheetSpring}
             className={`absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
@@ -112,7 +113,7 @@ export function ComposeSheet() {
               className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
-              <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
             <div className="text-left">
@@ -159,7 +160,7 @@ export function ComposeSheet() {
                 <span className="text-note font-semibold text-content-secondary">
                   Kategori
                 </span>
-                <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                   {FOLDERS.map((f) => (
                     <button
                       key={f.key}

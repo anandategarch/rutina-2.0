@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { AnimatePresence, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { AnimatePresence, useScroll, useTransform } from 'motion/react'
 import * as m from 'motion/react-m'
-import { animate } from 'animejs'
 import {
   Archive,
   ArchiveRestore,
@@ -54,6 +53,8 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
+import { barFill, pressSnappy } from '@/lib/motion/transitions'
+import { useAnimePop } from '../anime-kit'
 import {
   addDaysISO,
   bestStreak,
@@ -134,10 +135,7 @@ function weekDoneCount(c: Completions, habitId: string, iso: string): number {
   return n
 }
 
-/** Total misi selesai seluruh kebiasaan sepanjang pekan (Senin s.d. iso).
- *  (Audit visualisasi v2.12: tile misi-pekan di Insight hari ini dihapus —
- *  grafik FocusWidget menampilkan informasi yang sama; fungsi dipertahankan
- *  untuk FocusWidget bila kelak butuh derivasi serupa.) */
+/** Total misi selesai seluruh kebiasaan sepanjang pekan (Senin s.d. iso). */
 
 /** Riwayat 14 hari terakhir berakhir pada tanggal yang dilihat. */
 function recentDays(c: Completions, habitId: string, iso: string): boolean[] {
@@ -328,8 +326,14 @@ export default function HomeScreen() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
-  const giftRef = useRef<HTMLSpanElement>(null)
-  const prevBonusRef = useRef(bonusClaimed)
+  /* Ledakan elastis ikon hadiah saat bonus diklaim — useAnimePop melewati
+     render pertama & menghormati reduced-motion (klaim tetap tercatat
+     tanpa ledakan). */
+  const giftRef = useAnimePop<HTMLSpanElement>(null, bonusClaimed, {
+    scale: 1.4,
+    rotate: -14,
+    back: 2.2,
+  })
 
   const today = todayISO()
   const viewingToday = selectedDate === today
@@ -441,26 +445,6 @@ export default function HomeScreen() {
     return out.slice(0, 3)
   }, [todayHabits, completions, today])
 
-  /* anime.js — ledakan elastis pada ikon hadiah tepat saat bonus diklaim.
-     Kebijakan reduced-motion: klaim tetap tercatat tanpa ledakan. */
-  const reducedMotion = useReducedMotion()
-  useEffect(() => {
-    if (bonusClaimed && !prevBonusRef.current && giftRef.current) {
-      prevBonusRef.current = true
-      if (reducedMotion) return
-      const anim = animate(giftRef.current, {
-        scale: [1, 1.4, 1],
-        rotate: [0, -14, 9, 0],
-        duration: 750,
-        ease: 'outBack(2.2)',
-      })
-      return () => {
-        anim.revert()
-      }
-    }
-    prevBonusRef.current = bonusClaimed
-  }, [bonusClaimed, reducedMotion])
-
   /* Header menyusut halus saat layar digulir — transform & opacity saja. */
   const { scrollY } = useScroll({ container: scrollRef })
   const headerScale = useTransform(scrollY, [0, 120], [1, 0.96])
@@ -497,7 +481,7 @@ export default function HomeScreen() {
       data-layout="daybook"
       /* Ritme daybook: tiap bagian utama dipisah --layout-gap (1.75rem).
          Aturan anak-berikutnya menimpa mt-* internal komponen asing
-         (HomeFinanceCard mt-8, PunchCard mt-3) secara deterministik
+         (HomeFinanceCard mt-8, PlantGarden mt-8) secara deterministik
          lewat spesifisitas. */
       className="h-full overflow-y-auto no-scrollbar px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
     >
@@ -653,10 +637,11 @@ export default function HomeScreen() {
                       aria-valuemax={XP_TARGET}
                     >
                       <m.div
-                        initial={false}
-                        className="h-full rounded-full bg-secondary"
-                        animate={{ width: `${xpProgress * 100}%` }}
-                        transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+                        className="h-full origin-left rounded-full bg-secondary"
+                        style={{ width: '100%' }}
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: xpProgress }}
+                        transition={barFill}
                       />
                     </div>
                   </div>
@@ -667,8 +652,8 @@ export default function HomeScreen() {
 
           {/* Insight hari ini — tile pendamping hero (audit visualisasi
               v2.12: tile streak & misi-pekan dihapus — keduanya sudah
-              terbaca di chip hero, FocusWidget, dan StreakWidget pada
-              Insight pekan; saldo bersih dipertahankan karena informasinya
+              terbaca di chip hero dan Rekap Pekan; saldo bersih
+              dipertahankan karena informasinya
               berbeda dan tidak digambarkan grafik lain). */}
           <RutinaBentoItem span="feature">
             <section aria-label="Insight hari ini" className="h-full">
@@ -742,13 +727,14 @@ export default function HomeScreen() {
                         ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
                         : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
                     </p>
-                    <button
+                    <m.button
                       type="button"
                       onClick={() => setSelectedDate(today)}
+                      whileTap={{ scale: 0.96, transition: pressSnappy }}
                       className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-eyebrow font-semibold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Hari ini
-                    </button>
+                    </m.button>
                   </div>
                 )}
 
@@ -767,7 +753,7 @@ export default function HomeScreen() {
                       <Button
                         type="button"
                         onClick={openHabitCreate}
-                        className="h-10 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground hover:bg-action-hover"
+                        className="h-11 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground hover:bg-action-hover"
                       >
                         <Plus className="h-4 w-4" />
                         Tambah kebiasaan
@@ -902,7 +888,7 @@ export default function HomeScreen() {
                       type="button"
                       onClick={openHabitCreate}
                       aria-label="Tambah kebiasaan baru"
-                      className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong px-4 py-3.5 text-note font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border-strong px-4 py-3.5 text-note font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Plus className="h-4 w-4" strokeWidth={2.5} />
                       Tambah kebiasaan
@@ -913,10 +899,11 @@ export default function HomeScreen() {
                 {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan */}
                 {archivedHabits.length > 0 && (
                   <div className="mt-4">
-                    <button
+                    <m.button
                       type="button"
                       onClick={() => setShowArchive((v) => !v)}
                       aria-expanded={showArchive}
+                      whileTap={{ scale: 0.96, transition: pressSnappy }}
                       className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <span className="flex items-center gap-2 text-meta font-bold text-content-secondary">
@@ -931,7 +918,7 @@ export default function HomeScreen() {
                       >
                         <ChevronDown className="h-4 w-4" />
                       </m.span>
-                    </button>
+                    </m.button>
                     {showArchive && (
                       <m.div
                         initial={{ opacity: 0, y: -6 }}
@@ -1002,7 +989,7 @@ export default function HomeScreen() {
                 transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
                 aria-label="Pengingat jangan bolong dua kali"
               >
-                <div className="rounded-[20px] border border-gold/45 bg-gold/15 p-4">
+                <div className="rounded-xl border border-gold/45 bg-gold/15 p-4">
                   <div className="flex items-start gap-3">
                     <span
                       aria-hidden="true"
@@ -1014,7 +1001,7 @@ export default function HomeScreen() {
                       <h3 className="text-body font-semibold text-content-primary">
                         Jangan bolong dua kali
                       </h3>
-                      <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
+                      <p className="mt-0.5 text-pretty text-meta leading-relaxed text-content-muted">
                         Terlewat kemarin tak apa — selesaikan hari ini supaya
                         tidak bolong dua kali berturut-turut.
                       </p>
@@ -1035,7 +1022,7 @@ export default function HomeScreen() {
                             toggleHabit(h.id, today)
                             toast.success(`"${h.title}" selesai — streak kembali berjalan.`)
                           }}
-                          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-eyebrow font-semibold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          className="h-11 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-eyebrow font-semibold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                           Selesaikan sekarang
                         </button>
@@ -1069,7 +1056,7 @@ export default function HomeScreen() {
                     return (
                       <div
                         key={h.id}
-                        className="flex items-start gap-3 rounded-[16px] border border-border bg-surface-primary p-3.5 shadow-soft"
+                        className="flex items-start gap-3 rounded-lg border border-border bg-surface-primary p-3.5 shadow-soft"
                       >
                         <span
                           aria-hidden="true"
@@ -1086,7 +1073,7 @@ export default function HomeScreen() {
                           <p className="text-note font-semibold text-content-primary">
                             {advice.title}
                           </p>
-                          <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
+                          <p className="mt-0.5 text-pretty text-meta leading-relaxed text-content-muted">
                             {advice.text}
                           </p>
                         </div>
@@ -1118,7 +1105,7 @@ export default function HomeScreen() {
             toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
           }}
           className={
-            'flex w-full cursor-pointer items-center gap-3.5 rounded-[18px] border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+            'flex w-full cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
             (bonusClaimed
               ? 'border-primary/15 bg-secondary/60'
               : 'border-dashed border-primary/45 bg-surface-primary hover:-translate-y-0.5 hover:shadow-leaf')
@@ -1173,10 +1160,10 @@ export default function HomeScreen() {
           komposisi ruang kerja lebar (≥52rem), ponsel menumpuk rekap →
           finance (perjalanan pertumbuhan didahulukan). mt-8 internal
           HomeFinanceCard dinetralkan agar tepi atas kedua tile sejajar.
-          v2.14: Rekap Pekan menggantikan "Insight pekan" (FocusWidget +
-          StreakWidget) — strip perjalanan 7 hari, perbandingan vs pekan
-          lalu, dan chip visual lintas modul; kartu stempel pekan yang
-          terlipat ikut diserap ke strip perjalanan. */}
+          v2.14: Rekap Pekan menggantikan panel "Insight pekan" — strip
+          perjalanan 7 hari, perbandingan vs pekan lalu, dan chip visual
+          lintas modul; kartu stempel pekan yang terlipat ikut diserap ke
+          strip perjalanan. */}
       <RutinaBentoGrid>
         <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
           <WeeklyRecapCard />
@@ -1198,7 +1185,7 @@ export default function HomeScreen() {
         viewport={{ once: true, margin: '-20px' }}
         transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
         aria-label="Jurnal dan catatan"
-        className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
+        className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
       >
         <div className="flex items-center gap-3.5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
@@ -1273,7 +1260,7 @@ export default function HomeScreen() {
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
         aria-label="Refleksi hari ini"
-        className="rounded-[20px] bg-surface-inverse p-6 text-content-inverse shadow-ink"
+        className="rounded-xl bg-surface-inverse p-6 text-content-inverse shadow-ink"
       >
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">
@@ -1307,7 +1294,7 @@ export default function HomeScreen() {
               >
                 &ldquo;{quote.text}&rdquo;
               </p>
-              <p className="mt-3 text-xs font-medium text-content-inverse/75">
+              <p className="mt-3 text-meta font-medium text-content-inverse/75">
                 — {quote.author}
               </p>
             </m.div>

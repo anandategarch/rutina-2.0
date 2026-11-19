@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
-import { BookOpen, Feather, PenLine, Pin, Search } from 'lucide-react'
+import { Feather, PenLine, Pin, Search } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
+import { pressSnappy } from '@/lib/motion/transitions'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
 
@@ -119,7 +120,7 @@ export default function JournalScreen() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Cari judul atau isi catatan…"
           aria-label="Cari catatan jurnal"
-          className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-sm text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
+          className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-body text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
         />
       </m.div>
 
@@ -140,13 +141,15 @@ export default function JournalScreen() {
             const count =
               f.key === 'semua' ? total : folderCount(notes, f.key)
             return (
-              <button
+              <m.button
                 key={f.key}
                 type="button"
                 aria-pressed={active}
                 onClick={() => setJournalFilter(f.key)}
+                whileTap={{ scale: 0.96 }}
+                transition={pressSnappy}
                 className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                   (active
                     ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
                     : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -156,7 +159,7 @@ export default function JournalScreen() {
                 <span className="ml-1.5 tabular-nums opacity-60">
                   {count}
                 </span>
-              </button>
+              </m.button>
             )
           })}
         </div>
@@ -220,17 +223,24 @@ export default function JournalScreen() {
                 className="mt-2"
               />
             ) : (
-              <div className="flex flex-col items-center py-14 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-module-accent/15">
-                  <BookOpen className="h-6 w-6 text-module-accent-strong" />
-                </span>
-                <p className="mt-4 text-section font-semibold text-content-primary">
-                  Tidak ada catatan yang cocok
-                </p>
-                <p className="mt-1 text-xs text-content-muted">
-                  Coba kata kunci lain atau ganti kategori.
-                </p>
-              </div>
+              <RutinaEmptyState
+                icon={<Search />}
+                title="Tidak ada catatan yang cocok"
+                description="Coba kata kunci lain atau ganti kategori."
+                className="mt-2"
+                action={
+                  query.trim() !== '' ? (
+                    <m.button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex h-10 cursor-pointer items-center rounded-full border border-border bg-surface-primary px-5 text-note font-semibold text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      Hapus pencarian
+                    </m.button>
+                  ) : undefined
+                }
+              />
             )}
           </>
         )}
@@ -326,7 +336,7 @@ function NoteCard({
       variants={journalCard}
       /* Tanpa whileTap pada article: Motion menyuntikkan tabindex pada
          elemen non-interaktif — umpan balik ketuk hidup di tombol buka. */
-      className="relative rounded-[16px] border border-border bg-surface-primary p-4 transition-shadow duration-300 hover:shadow-soft [content-visibility:auto] [contain-intrinsic-size:auto_120px]"
+      className="relative rounded-lg border border-border bg-surface-primary p-4 transition-shadow duration-300 hover:shadow-soft [content-visibility:auto] [contain-intrinsic-size:auto_120px]"
     >
       {/* A11Y: tombol "baca catatan" absolut inset-0 (z-0) di bawah konten;
           tombol aksi relative z-10 — dua kontrol bersaudara tanpa tombol
@@ -336,7 +346,7 @@ function NoteCard({
         type="button"
         aria-label={`Baca catatan: ${note.title || 'tanpa judul'}`}
         onClick={onOpen}
-        className="absolute inset-0 z-0 cursor-pointer rounded-[16px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="absolute inset-0 z-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       />
       <div className="pointer-events-none relative z-10">
         <div className="flex items-start justify-between gap-1">

@@ -214,14 +214,14 @@ function NavTab({
           aria-hidden="true"
           className="absolute inset-x-3 inset-y-[6px] rounded-full"
           style={{ backgroundColor: accent.pill }}
-          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          transition={motionTokens.spring.snappy}
         />
       )}
       <m.span
         aria-hidden="true"
         className="relative z-10 flex"
         animate={{ y: active ? -1 : 0, scale: active ? 1.08 : 1 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 26 }}
+        transition={motionTokens.spring.navPop}
       >
         <tab.icon
           className="h-[19px] w-[19px] text-content-muted transition-colors duration-300"
