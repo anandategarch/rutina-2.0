@@ -57,6 +57,16 @@ function parseSets(json: string): WorkoutWire['sets'] {
   }
 }
 
+/** Aman baca JSON objek dari AppSetting — null saat kosong/rusak. */
+function parseJsonSetting<T>(raw: string | undefined, fallback: T): T {
+  if (!raw) return fallback
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
+
 /* ===== Baca snapshot penuh ===== */
 
 export async function readFullState(): Promise<FullStateResult> {
@@ -77,6 +87,7 @@ export async function readFullState(): Promise<FullStateResult> {
     moodLogs,
     settings,
     customCats,
+    habitGroups,
   ] = await Promise.all([
     db.habit.findMany(),
     db.habitLog.findMany(),
@@ -91,6 +102,7 @@ export async function readFullState(): Promise<FullStateResult> {
     db.moodLog.findMany(),
     db.appSetting.findMany(),
     db.finCategory.findMany(),
+    db.habitGroup.findMany(),
   ])
 
   const settingsMap = new Map(settings.map((s) => [s.key, s.value]))
@@ -105,10 +117,11 @@ export async function readFullState(): Promise<FullStateResult> {
   }
   if (!initialized) return result
 
-  /* completions[tanggal][habitId] = true */
+  /* completions[tanggal][habitId] = true | number (progres parsial — v2.22). */
   const completions: SyncState['completions'] = {}
   for (const log of logs) {
-    ;(completions[log.date] ??= {})[log.habitId] = true
+    ;(completions[log.date] ??= {})[log.habitId] =
+      log.value == null ? true : log.value
   }
 
   /* bodyLogs[tanggal] */
@@ -141,6 +154,9 @@ export async function readFullState(): Promise<FullStateResult> {
     restDays: parseRestDays(h.restDays),
     afterId: h.afterId ?? null,
     mini: h.mini ?? '',
+    target: h.target ?? null,
+    unit: h.unit ?? null,
+    groupId: h.groupId ?? null,
     archived: h.archived,
     createdAt: h.createdAt,
   }))
@@ -204,6 +220,27 @@ export async function readFullState(): Promise<FullStateResult> {
   const moodRaw = settingsMap.get(SYNC_SETTING_KEYS.mood)
   const deloadRaw = settingsMap.get(SYNC_SETTING_KEYS.deloadUntil)
   const quoteDateRaw = settingsMap.get(SYNC_SETTING_KEYS.quoteSavedDate)
+  const catRenames = parseJsonSetting<SyncState['catRenames']>(
+    settingsMap.get(SYNC_SETTING_KEYS.catRenames),
+    {},
+  )
+  const hiddenCats = parseJsonSetting<SyncState['hiddenCats']>(
+    settingsMap.get(SYNC_SETTING_KEYS.hiddenCats),
+    [],
+  )
+  const fitTargets = parseJsonSetting<SyncState['fitTargets']>(
+    settingsMap.get(SYNC_SETTING_KEYS.fitTargets),
+    {
+      minutes: 150,
+      sessions: 3,
+      water: 8,
+      protein: 110,
+      carb: 250,
+      fat: 60,
+      weightGoal: 0,
+      heightCm: 0,
+    },
+  )
 
   result.initialized = true
   result.state = {
@@ -233,6 +270,15 @@ export async function readFullState(): Promise<FullStateResult> {
     quoteSaved: settingsMap.get(SYNC_SETTING_KEYS.quoteSaved) === 'true',
     quoteSavedDate:
       quoteDateRaw && quoteDateRaw.length > 0 ? quoteDateRaw : null,
+    /* ===== Tambahan v2.22 ===== */
+    habitGroups: habitGroups.map((g) => ({
+      id: g.id,
+      name: g.name,
+      color: g.color,
+    })),
+    catRenames,
+    hiddenCats,
+    fitTargets,
   }
   return result
 }
@@ -256,12 +302,17 @@ export interface WriteCounts {
 export async function writeFullState(state: SyncState): Promise<WriteCounts> {
   /* v2.18: pastikan skema backend mutakhir sebelum menulis. */
   await ensureSchema()
-  /* Log hanya untuk kebiasaan yang masih ada (jaga FK habitId → habit.id). */
+  /* Log hanya untuk kebiasaan yang masih ada (jaga FK habitId → habit.id).
+     Nilai completions (v2.22): true = selesai penuh (value null); number
+     > 0 = progres parsial kebiasaan terukur (disimpan di kolom value). */
   const habitIds = new Set(state.habits.map((h) => h.id))
-  const logRows: { habitId: string; date: string }[] = []
+  const logRows: { habitId: string; date: string; value: number | null }[] = []
   for (const [date, day] of Object.entries(state.completions)) {
     for (const [habitId, done] of Object.entries(day)) {
-      if (done && habitIds.has(habitId)) logRows.push({ habitId, date })
+      if (!habitIds.has(habitId)) continue
+      if (done === true) logRows.push({ habitId, date, value: null })
+      else if (typeof done === 'number' && done > 0)
+        logRows.push({ habitId, date, value: done })
     }
   }
 
@@ -297,6 +348,19 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     },
     { key: SYNC_SETTING_KEYS.bonusClaimed, value: String(state.bonusClaimed) },
     { key: SYNC_SETTING_KEYS.quoteSaved, value: String(state.quoteSaved) },
+    /* v2.22: ganti nama kategori, kategori tersembunyi, sasaran bugar. */
+    {
+      key: SYNC_SETTING_KEYS.catRenames,
+      value: JSON.stringify(state.catRenames ?? {}),
+    },
+    {
+      key: SYNC_SETTING_KEYS.hiddenCats,
+      value: JSON.stringify(state.hiddenCats ?? []),
+    },
+    {
+      key: SYNC_SETTING_KEYS.fitTargets,
+      value: JSON.stringify(state.fitTargets),
+    },
     { key: SYNC_SETTING_KEYS.initialized, value: 'true' },
     { key: SYNC_SETTING_KEYS.lastPushAt, value: now },
   ]
@@ -306,6 +370,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
   await db.$transaction([
     db.habitLog.deleteMany(),
     db.habit.deleteMany(),
+    db.habitGroup.deleteMany(),
     db.journalNote.deleteMany(),
     db.wallet.deleteMany(),
     db.transaction.deleteMany(),
@@ -330,8 +395,22 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               restDays: JSON.stringify(h.restDays ?? []),
               afterId: h.afterId ?? null,
               mini: h.mini ?? '',
+              target: h.target ?? null,
+              unit: h.unit ?? null,
+              groupId: h.groupId ?? null,
               archived: h.archived,
               createdAt: h.createdAt,
+            })),
+          }),
+        ]
+      : []),
+    ...(state.habitGroups?.length
+      ? [
+          db.habitGroup.createMany({
+            data: state.habitGroups.map((g) => ({
+              id: g.id,
+              name: g.name,
+              color: g.color,
             })),
           }),
         ]
@@ -475,6 +554,7 @@ export async function resetAllData(): Promise<void> {
   await db.$transaction([
     db.habitLog.deleteMany(),
     db.habit.deleteMany(),
+    db.habitGroup.deleteMany(),
     db.journalNote.deleteMany(),
     db.wallet.deleteMany(),
     db.transaction.deleteMany(),

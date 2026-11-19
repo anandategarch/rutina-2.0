@@ -349,3 +349,161 @@ export function spendByDay(txs: Tx[]): Record<string, DaySpend> {
   }
   return out
 }
+
+/* ===== Jatah harian & proyeksi anggaran (v2.22) ===== */
+
+export interface AllowanceInfo {
+  /** Total anggaran bulan berjalan (Rp). */
+  budgetTotal: number
+  /** Pengeluaran kategori teranggarkan bulan ini s.d. hari ini (Rp). */
+  spent: number
+  /** Sisa anggaran (Rp) — bisa negatif bila sudah lewat batas. */
+  remaining: number
+  /** Hari tersisa bulan ini (termasuk hari ini). */
+  daysLeft: number
+  /** Jatah aman per hari: sisa anggaran ÷ hari tersisa (Rp). */
+  daily: number
+  /** Rata-rata belanja harian sejauh ini (Rp). */
+  avgDaily: number
+  /** Proyeksi total belanja akhir bulan bila laju tetap (Rp). */
+  projection: number
+  /** Vonis proyeksi terhadap total anggaran. */
+  verdict: 'aman' | 'waspada' | 'lewat'
+  /** Persentase anggaran terpakai (0–100+, dibatasi tampilan). */
+  pacePct: number
+  /** Persentase "ideal" — porsi bulan yang sudah berlalu (0–100). */
+  idealPct: number
+}
+
+/** Jatah harian + proyeksi akhir bulan dari anggaran & pengeluaran nyata
+ *  (v2.22 — reinkarnasi "Jatah Harian" Rutina 1.0 dalam bahasa desain 2.0).
+ *  Mengembalikan null bila belum ada anggaran sama sekali. */
+export function allowanceInfo(
+  budgets: Record<string, number>,
+  txs: Tx[],
+  today = todayISO(),
+): AllowanceInfo | null {
+  const budgetCats = Object.keys(budgets).filter((c) => (budgets[c] ?? 0) > 0)
+  if (budgetCats.length === 0) return null
+  const budgetTotal = budgetCats.reduce((a, c) => a + (budgets[c] ?? 0), 0)
+
+  const ym = today.slice(0, 7)
+  const r = monthRange(ym)
+  let spent = 0
+  for (const t of txs) {
+    if (t.type !== 'keluar') continue
+    if (t.ts < r.start || t.ts > r.end || t.ts > today) continue
+    if (budgetCats.includes(t.cat)) spent += t.amount
+  }
+
+  const now = fromISO(today)
+  const dayOfMonth = now.getDate()
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const daysLeft = daysInMonth - dayOfMonth + 1
+  const remaining = budgetTotal - spent
+  const daily = Math.max(0, Math.round(remaining / Math.max(1, daysLeft)))
+  const avgDaily = Math.round(spent / Math.max(1, dayOfMonth))
+  /* Proyeksi jujur: belanja hari ini sudah termasuk di `spent`; sisa
+     hari (daysLeft - 1) berjalan pada laju rata-rata. */
+  const projTotal = spent + avgDaily * (daysLeft - 1)
+  const verdict =
+    projTotal <= budgetTotal
+      ? 'aman'
+      : projTotal <= budgetTotal * 1.1
+        ? 'waspada'
+        : 'lewat'
+  const pacePct = budgetTotal > 0 ? (spent / budgetTotal) * 100 : 0
+  const idealPct = (dayOfMonth / daysInMonth) * 100
+  return {
+    budgetTotal,
+    spent,
+    remaining,
+    daysLeft,
+    daily,
+    avgDaily,
+    projection: Math.round(projTotal),
+    verdict,
+    pacePct: Math.min(999, Math.round(pacePct)),
+    idealPct: Math.round(idealPct),
+  }
+}
+
+/* ===== Arus dana per dompet (v2.22) ===== */
+
+export interface WalletFlow {
+  masuk: number
+  keluar: number
+  net: number
+  count: number
+}
+
+/** Mutasi masuk/keluar satu dompet pada bulan tertentu (transfer dihitung
+ *  sebagai perpindahan: keluar dari asal, masuk ke tujuan). */
+export function walletFlow(txs: Tx[], walletId: string, ym: string): WalletFlow {
+  const r = monthRange(ym)
+  let masuk = 0
+  let keluar = 0
+  let count = 0
+  for (const t of txs) {
+    if (t.ts < r.start || t.ts > r.end) continue
+    if (t.type === 'transfer') {
+      if (t.walletId === walletId) {
+        keluar += t.amount
+        count++
+      }
+      if (t.toWalletId === walletId) {
+        masuk += t.amount
+        count++
+      }
+      continue
+    }
+    if (t.walletId !== walletId) continue
+    count++
+    if (t.type === 'masuk') masuk += t.amount
+    else keluar += t.amount
+  }
+  return { masuk, keluar, net: masuk - keluar, count }
+}
+
+/* ===== Langganan aktif (v2.22) — agregasi transaksi berulang ===== */
+
+export interface Subscription {
+  id: string
+  cat: string
+  amount: number
+  recurrence: 'mingguan' | 'bulanan'
+  /** Setara biaya per bulan (mingguan × 52/12). */
+  monthly: number
+  /** Pencatatan terakhir dalam rantai (templat atau salinan terbaru). */
+  lastTs: string
+  count: number
+}
+
+/** Daftar langganan aktif dari templat transaksi berulang + total per
+ *  bulan — dasar kartu "Langgananmu" (v2.22). */
+export function subscriptionsOf(txs: Tx[]): {
+  items: Subscription[]
+  monthlyTotal: number
+} {
+  const templates = txs.filter((t) => t.recurrence && !t.recurOf)
+  const items: Subscription[] = templates.map((tpl) => {
+    const chain = txs.filter((t) => t.id === tpl.id || t.recurOf === tpl.id)
+    const lastTs = chain.reduce((latest, t) => (t.ts > latest ? t.ts : latest), tpl.ts)
+    const recurrence = (tpl.recurrence ?? 'bulanan') as 'mingguan' | 'bulanan'
+    return {
+      id: tpl.id,
+      cat: tpl.cat,
+      amount: tpl.amount,
+      recurrence,
+      monthly:
+        recurrence === 'bulanan'
+          ? tpl.amount
+          : Math.round((tpl.amount * 52) / 12),
+      lastTs,
+      count: chain.length,
+    }
+  })
+  items.sort((a, b) => b.monthly - a.monthly)
+  const monthlyTotal = items.reduce((a, s) => a + s.monthly, 0)
+  return { items, monthlyTotal }
+}

@@ -39,6 +39,12 @@ model Habit {
   restDays    String     @default("[]") // JSON: string[] — ISO jeda runtun terjadwal
   afterId     String? // Susun Kebiasaan — id kebiasaan pemicu
   mini        String     @default("") // Versi 2 Menit
+  /* Kebiasaan terukur (v2.22): target jumlah + satuan per hari —
+     mis. "8 gelas", "20 halaman". null = kebiasaan centang biasa. */
+  target      Int? // target jumlah per hari
+  unit        String? // satuan ("gelas", "halaman", "menit")
+  /* Kelompok kebiasaan custom (v2.22) — id HabitGroup, null = tanpa kelompok. */
+  groupId     String?
   archived    Boolean    @default(false)
   createdAt   String // ISO yyyy-mm-dd — batas hitung streak
   logs        HabitLog[]
@@ -46,11 +52,24 @@ model Habit {
   @@map("rutina_habits")
 }
 
+/// Kelompok kebiasaan buatan pengguna (v2.22) — mis. "Pagi", "Gym",
+/// dengan warna chip dari palet earth-tone.
+model HabitGroup {
+  id    String @id
+  name  String
+  color String // token warna CSS, mis. "--habit-cat-kebiasaan"
+
+  @@map("rutina_habit_groups")
+}
+
 /// completions[tanggalISO][habitId] = true — satu baris per centang.
+/// value (v2.22): progres parsial kebiasaan terukur (mis. 5 dari 8 gelas);
+/// null = kebiasaan centang biasa yang selesai penuh.
 model HabitLog {
   id      String @id @default(cuid())
   habitId String
   date    String // ISO yyyy-mm-dd
+  value   Float? // progres parsial kebiasaan terukur
   habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   @@unique([habitId, date])

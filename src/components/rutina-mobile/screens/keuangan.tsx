@@ -24,6 +24,8 @@ import {
   ScrollText,
   Search,
   ShieldCheck,
+  Sparkles,
+  Trash2,
   TrendingDown,
   TrendingUp,
   Wallet,
@@ -31,6 +33,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 
 import {
   AlertDialog,
@@ -73,6 +76,9 @@ import {
 import { FinChart } from '../finance/fin-chart'
 import { BUDGETABLE_CATS, catMetaOf } from '../finance/cats'
 import { useCatMeta } from '../finance/use-cat-meta'
+import { AllowanceCard } from '../finance/allowance-card'
+import { ManageCatsSheet } from '../finance/manage-cats-sheet'
+import { FinDrillSheet } from '../finance/fin-drill-sheet'
 import { SpendHeatmap } from '../spend-heatmap'
 import {
   buildSeries,
@@ -88,8 +94,10 @@ import {
   periodScope,
   spentByCat,
   shiftMonthKey,
+  subscriptionsOf,
   totalSaldo,
   walletBalance,
+  walletFlow,
   WEEKDAY_LABELS,
   yearWindow,
   type PeriodPoint,
@@ -426,6 +434,7 @@ const catMeta = useCatMeta()
   const expanded = useRutina((s) => s.expandedTxId === tx.id)
   const toggleExpandedTx = useRutina((s) => s.toggleExpandedTx)
   const deleteTx = useRutina((s) => s.deleteTx)
+  const openTxEdit = useRutina((s) => s.openTxEdit)
   const wallets = useRutina((s) => s.wallets)
   const income = tx.type === 'masuk'
   const isTransfer = tx.type === 'transfer'
@@ -545,6 +554,23 @@ const catMeta = useCatMeta()
               )}
 
               <div className="mt-3.5 flex gap-2">
+                {/* Sunting (v2.22) — transfer tidak bisa disunting dari
+                    lembar ini (butuh dua sisi dompet); hapus-tulis ulang
+                    lewat lembar transfer bila perlu. */}
+                {!isTransfer && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      toggleExpandedTx(tx.id)
+                      openTxEdit(tx.id)
+                    }}
+                    className="h-9 flex-1 rounded-full border-primary/40 text-note font-semibold text-success hover:bg-secondary hover:text-success"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Sunting
+                  </Button>
+                )}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -1459,27 +1485,51 @@ const catMeta = useCatMeta()
   )
 }
 
-/* ===== Dialog tambah dompet ===== */
+/* ===== Dialog tambah/sunting dompet (v2.22: mode sunting) ===== */
 
 function WalletDialog() {
   const open = useRutina((s) => s.walletDialogOpen)
   const close = useRutina((s) => s.closeWalletDialog)
   const addWallet = useRutina((s) => s.addWallet)
+  const updateWallet = useRutina((s) => s.updateWallet)
+  const wallets = useRutina((s) => s.wallets)
+  const walletEditId = useRutina((s) => s.walletEditId)
   const [name, setName] = useState('')
   const [initial, setInitial] = useState('')
+  const [prevOpen, setPrevOpen] = useState(false)
+
+  const editing = walletEditId
+    ? (wallets.find((w) => w.id === walletEditId) ?? null)
+    : null
+
+  /* Prefill saat dibuka — mode sunting membawa nilai lama (v2.22). */
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      if (editing) {
+        setName(editing.name)
+        setInitial(String(editing.initial))
+      } else {
+        setName('')
+        setInitial('')
+      }
+    }
+  }
 
   return (
     <RutinaDialog
       open={open}
       onClose={close}
-      label="Tambah dompet"
+      label={editing ? 'Sunting dompet' : 'Tambah dompet'}
       className="max-w-[320px] rounded-2xl shadow-ink-deep"
     >
       <h2 className="text-section-lg font-bold tracking-tight text-content-primary">
-        Dompet Baru
+        {editing ? 'Sunting Dompet' : 'Dompet Baru'}
       </h2>
       <p className="mt-0.5 text-note leading-relaxed text-content-muted">
-        Sumber dana terpisah — tunai, bank, atau e-wallet.
+        {editing
+          ? 'Saldo berjalan otomatis mengikuti saldo awal + seluruh mutasi.'
+          : 'Sumber dana terpisah — tunai, bank, atau e-wallet.'}
       </p>
       <div className="mt-4 space-y-3">
         <div className="space-y-1.5">
@@ -1521,6 +1571,18 @@ function WalletDialog() {
         <button
           type="button"
           onClick={() => {
+            if (editing) {
+              if (!name.trim()) {
+                toast.warning('Nama dompet tidak boleh kosong')
+                return
+              }
+              updateWallet(editing.id, {
+                name,
+                initial: Number(initial || '0'),
+              })
+              toast.success(`Dompet "${name.trim()}" diperbarui`)
+              return
+            }
             if (!name.trim()) {
               toast.warning('Beri nama dompetmu dulu')
               return
@@ -1532,10 +1594,391 @@ function WalletDialog() {
           }}
           className="h-11 flex-1 cursor-pointer rounded-full bg-primary text-note font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98]"
         >
-          Buat Dompet
+          {editing ? 'Simpan Perubahan' : 'Buat Dompet'}
         </button>
       </div>
     </RutinaDialog>
+  )
+}
+
+/* ===== Kartu dompet (v2.22) — saldo + arus bulan ini + aksi kelola =====
+   Ketuk badan kartu membuka drill dompet (FinDrillSheet); tombol pensil
+   membuka dialog sunting; hapus dikonfirmasi dengan info jumlah
+   transaksi yang akan kehilangan tautan dompet. */
+
+function WalletCard({ wallet }: { wallet: FinWallet }) {
+  const txs = useRutina((s) => s.txs)
+  const openWalletEdit = useRutina((s) => s.openWalletEdit)
+  const deleteWallet = useRutina((s) => s.deleteWallet)
+  const openFinDrill = useRutina((s) => s.openFinDrill)
+  const balance = walletBalance(txs, wallet)
+  const flow = useMemo(
+    () => walletFlow(txs, wallet.id, currentMonthKey()),
+    [txs, wallet.id],
+  )
+  const maxFlow = Math.max(flow.masuk, flow.keluar, 1)
+  const linkedCount = txs.filter(
+    (t) => t.walletId === wallet.id || t.toWalletId === wallet.id,
+  ).length
+
+  return (
+    <m.div
+      layout
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -24, scale: 0.97 }}
+      transition={{ ...motionTokens.preset.layout }}
+      className="overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+    >
+      {/* Badan kartu — ketuk untuk drill dompet */}
+      <button
+        type="button"
+        onClick={() => openFinDrill('wallet', wallet.id)}
+        aria-label={`Bedah dompet ${wallet.name} — arus bulan ini & riwayat`}
+        className="flex w-full cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
+          <Wallet className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-1 break-words text-body font-semibold leading-snug text-content-primary">
+            {wallet.name}
+          </p>
+          <p className="text-eyebrow font-medium text-content-muted">
+            Saldo awal {formatIDRShort(wallet.initial)} · {linkedCount} mutasi
+          </p>
+        </div>
+        <p
+          className={`shrink-0 text-lead font-bold tabular-nums ${
+            balance < 0 ? 'text-content-danger' : 'text-content-primary'
+          }`}
+        >
+          {balance < 0 ? '−' : ''}
+          {formatIDRShort(Math.abs(balance))}
+        </p>
+      </button>
+
+      {/* Arus dana bulan berjalan (v2.22) */}
+      <div className="px-4 pb-3">
+        <div className="flex items-center justify-between text-eyebrow font-semibold text-content-muted">
+          <span className="text-success">+{formatIDRShort(flow.masuk)}</span>
+          <span className="text-eyebrow font-medium">arus bulan ini</span>
+          <span className="text-content-danger">−{formatIDRShort(flow.keluar)}</span>
+        </div>
+        <div className="mt-1.5 flex h-1.5 gap-1 overflow-hidden rounded-full bg-border">
+          <m.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: flow.masuk / maxFlow }}
+            transition={barFill}
+            className="h-full origin-left rounded-l-full bg-pistachio"
+            style={{ width: '50%' }}
+          />
+          <m.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: flow.keluar / maxFlow }}
+            transition={barFill}
+            className="ml-auto h-full origin-right rounded-r-full bg-clay"
+            style={{ width: '50%' }}
+          />
+        </div>
+      </div>
+
+      {/* Aksi kelola (v2.22) */}
+      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+        <span className="text-eyebrow font-medium text-content-muted">
+          net{' '}
+          <span
+            className={
+              flow.net >= 0 ? 'font-bold text-success' : 'font-bold text-content-danger'
+            }
+          >
+            {flow.net >= 0 ? '+' : '−'}
+            {formatIDRShort(Math.abs(flow.net))}
+          </span>
+        </span>
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => openWalletEdit(wallet.id)}
+            aria-label={`Sunting dompet ${wallet.name}`}
+            title="Sunting dompet"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Hapus dompet ${wallet.name}`}
+                title="Hapus dompet"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-[400px] rounded-2xl border-border bg-surface-primary p-6">
+              <AlertDialogHeader className="text-left">
+                <AlertDialogTitle className="text-lead tracking-tight text-content-primary">
+                  Hapus dompet &quot;{wallet.name}&quot;?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-note text-content-muted">
+                  {linkedCount > 0
+                    ? `${linkedCount} transaksi terkait akan kehilangan tautan dompet ini (tetap ada sebagai "tanpa dompet") dan saldo total menyesuaikan.`
+                    : 'Dompet ini belum memiliki transaksi terkait.'}{' '}
+                  Tindakan ini tidak bisa dibatalkan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-3 flex flex-row gap-2">
+                <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-note font-semibold text-content-secondary hover:bg-surface-secondary">
+                  Batal
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    deleteWallet(wallet.id)
+                    toast.success(`Dompet "${wallet.name}" dihapus`)
+                  }}
+                  className="h-10 flex-1 rounded-full bg-destructive text-note font-semibold text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Hapus
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </span>
+      </div>
+    </m.div>
+  )
+}
+
+/* ===== Donut komposisi pengeluaran + kartu langganan (v2.22) =====
+   Pasangan bento Ringkasan: donut interaktif (hover irisan mengganti
+   pusat; klik membuka drill kategori) + agregasi langganan berulang. */
+
+const DONUT_COLORS = [
+  'var(--palette-gold)',
+  'var(--palette-pistachio)',
+  'var(--palette-clay)',
+  'var(--palette-eucalyptus)',
+  'var(--palette-bronze)',
+  'var(--palette-mauve)',
+  'var(--palette-slate)',
+]
+
+function CompositionDonut() {
+  const catMeta = useCatMeta()
+  const txs = useRutina((s) => s.txs)
+  const openFinDrill = useRutina((s) => s.openFinDrill)
+  const reducedMotion = useReducedMotion()
+  const [hovered, setHovered] = useState<number | null>(null)
+
+  const { slices, total } = useMemo(() => {
+    const byCat = monthSpendByCat(txs, currentMonthKey())
+    const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1])
+    const top = entries.slice(0, 6)
+    const rest = entries.slice(6).reduce((a, [, v]) => a + v, 0)
+    const slices = top.map(([cat, value], i) => ({
+      cat,
+      value,
+      color: DONUT_COLORS[i % DONUT_COLORS.length],
+    }))
+    if (rest > 0)
+      slices.push({
+        cat: 'lainnya',
+        value: rest,
+        color: DONUT_COLORS[6],
+      })
+    return {
+      slices,
+      total: entries.reduce((a, [, v]) => a + v, 0),
+    }
+  }, [txs])
+
+  if (slices.length === 0)
+    return (
+      <>
+        <RutinaSectionHeader
+          title="Komposisi Pengeluaran"
+          description="Bulan ini — tanpa transfer."
+        />
+        <RutinaEmptyState
+          className="mt-3"
+          icon={<Receipt />}
+          title="Belum ada pengeluaran bulan ini"
+          description="Catat pengeluaran pertamamu — komposisi per kategori tergambar di sini."
+        />
+      </>
+    )
+
+  const active = hovered != null ? slices[hovered] : null
+
+  return (
+    <>
+      <RutinaSectionHeader
+        title="Komposisi Pengeluaran"
+        description="Bulan ini — tanpa transfer. Ketuk irisan untuk membedah."
+      />
+      <div className="mt-3 flex items-center gap-4">
+        {/* Donut — pusat menampilkan total / kategori yang di-hover */}
+        <div className="relative h-32 w-32 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={slices}
+                dataKey="value"
+                nameKey="cat"
+                innerRadius={40}
+                outerRadius={60}
+                paddingAngle={2}
+                stroke="none"
+                isAnimationActive={!reducedMotion}
+                animationDuration={motionTokens.preset.chartRevealMs.duration}
+                animationEasing="ease-out"
+                onMouseEnter={(_, i) => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                onClick={(_, i) => {
+                  const s = slices[i]
+                  if (s) openFinDrill('cat', s.cat)
+                }}
+              >
+                {slices.map((s) => (
+                  <Cell
+                    key={s.cat}
+                    fill={s.color}
+                    opacity={hovered == null || slices[hovered]?.cat === s.cat ? 1 : 0.45}
+                    className="cursor-pointer"
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <m.div
+                key={active?.cat ?? 'total'}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={motionTokens.preset.interaction}
+                className="flex max-w-full flex-col items-center px-2"
+              >
+                <span className="max-w-full truncate text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  {active ? catMeta(active.cat).label : 'Total'}
+                </span>
+                <span className="text-kpi-sm font-bold tabular-nums text-content-primary">
+                  {formatIDRShort(active?.value ?? total)}
+                </span>
+              </m.div>
+            </AnimatePresence>
+          </div>
+        </div>
+        {/* Legenda */}
+        <ul className="min-w-0 flex-1 space-y-1.5">
+          {slices.map((s, i) => (
+            <li key={s.cat}>
+              <button
+                type="button"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                onClick={() => openFinDrill('cat', s.cat)}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
+                  {catMeta(s.cat).label}
+                </span>
+                <span className="shrink-0 text-eyebrow font-semibold tabular-nums text-content-muted">
+                  {total > 0 ? Math.round((s.value / total) * 100) : 0}%
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
+}
+
+function SubscriptionsCard() {
+  const catMeta = useCatMeta()
+  const txs = useRutina((s) => s.txs)
+  const { items, monthlyTotal } = useMemo(() => subscriptionsOf(txs), [txs])
+
+  if (items.length === 0)
+    return (
+      <>
+        <RutinaSectionHeader
+          title="Langgananmu"
+          description="Dari transaksi berulang aktif."
+        />
+        <RutinaEmptyState
+          className="mt-3"
+          icon={<Repeat />}
+          title="Belum ada langganan tercatat"
+          description={`Beri jadwal “berulang” saat mencatat transaksi — langgananmu terpantau di sini otomatis.`}
+        />
+      </>
+    )
+
+  return (
+    <>
+      <RutinaSectionHeader
+        title="Langgananmu"
+        description={`${items.length} langganan aktif — dari transaksi berulang.`}
+      />
+      <div className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+            Total per bulan
+          </p>
+          <p className="text-lead font-bold tabular-nums text-content-primary">
+            {formatIDRShort(monthlyTotal)}
+          </p>
+        </div>
+        <ul className="mt-3 space-y-2">
+          {items.slice(0, 5).map((s) => {
+            const meta = catMeta(s.cat)
+            const Icon = meta.icon
+            return (
+              <li
+                key={s.id}
+                className="flex items-center gap-3 rounded-xl bg-surface-sunken px-3 py-2.5"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-module-accent/15 text-module-accent-strong">
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-note font-semibold text-content-primary">
+                    {meta.label}
+                  </p>
+                  <p className="text-eyebrow font-medium text-content-muted">
+                    {s.recurrence === 'bulanan' ? 'Bulanan' : 'Mingguan'} · terakhir{' '}
+                    {fmtDate(s.lastTs)}
+                  </p>
+                </div>
+                <p className="shrink-0 text-note font-bold tabular-nums text-content-primary">
+                  {formatIDRShort(s.monthly)}
+                  <span className="font-medium text-content-muted">/bln</span>
+                </p>
+              </li>
+            )
+          })}
+        </ul>
+        {items.length > 5 && (
+          <p className="mt-2 text-eyebrow font-medium text-content-muted">
+            +{items.length - 5} langganan lagi
+          </p>
+        )}
+        <p className="mt-3 text-eyebrow leading-relaxed text-content-muted">
+          Pastikan semua langganan ini masih dipakai — berhenti berlangganan
+          yang jarang dipakai adalah penghematan paling mudah.
+        </p>
+      </div>
+    </>
   )
 }
 
@@ -1600,6 +2043,7 @@ export default function KeuanganScreen() {
   const openGoalDialog = useRutina((s) => s.openGoalDialog)
   const openTransferSheet = useRutina((s) => s.openTransferSheet)
   const openWalletDialog = useRutina((s) => s.openWalletDialog)
+  const openCatManage = useRutina((s) => s.openCatManage)
   const setBudget = useRutina((s) => s.setBudget)
 
   /* Tab & periode grafik di uiPrefs — bertahan saat berpindah layar.
@@ -1930,6 +2374,12 @@ export default function KeuanganScreen() {
             saldoRef={saldoRef}
             onAdd={openTxSheet}
           />
+        </BlurFade>
+
+        {/* ===== LAPISAN 1b — JATAH HARI INI (v2.22): jatah aman/hari,
+              proyeksi akhir bulan, bar laju vs posisi ideal ===== */}
+        <BlurFade delay={0.03}>
+          <AllowanceCard />
         </BlurFade>
 
         {/* ===== LAPISAN 2 — ARUS KAS: periode + grafik interaktif ===== */}
@@ -2284,6 +2734,19 @@ export default function KeuanganScreen() {
           )}
         </BlurFade>
 
+        {/* ===== KOMPOSISI + LANGGANAN (v2.22) — pasangan bento donut
+              interaktif & agregasi langganan berulang ===== */}
+        <BlurFade delay={0.13}>
+          <RutinaBentoGrid>
+            <RutinaBentoItem span="wide" className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
+              <CompositionDonut />
+            </RutinaBentoItem>
+            <RutinaBentoItem span="feature">
+              <SubscriptionsCard />
+            </RutinaBentoItem>
+          </RutinaBentoGrid>
+        </BlurFade>
+
         {/* ===== PETA PANAS + TEMUAN — pasangan bento desktop (wide 8 +
               feature 4); urutan DOM dipertahankan, ponsel tetap bertumpuk.
               (audit #9 & #10) ===== */}
@@ -2417,9 +2880,19 @@ export default function KeuanganScreen() {
                 <h2 className="text-section font-semibold tracking-tight text-content-secondary">
                   Anggaran {currentMonthLabel()}
                 </h2>
-                <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
-                  Terpakai {totalPct}%
-                </Badge>
+                <span className="flex items-center gap-2">
+                  <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
+                    Terpakai {totalPct}%
+                  </Badge>
+                  <button
+                    type="button"
+                    onClick={openCatManage}
+                    aria-label="Kelola kategori — ganti nama, sembunyikan, atau hapus"
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </span>
               </div>
 
               {budgetRows.length === 0 ? (
@@ -2525,35 +2998,14 @@ export default function KeuanganScreen() {
                 />
               ) : (
                 <div className="mt-3 space-y-2.5">
-                  {wallets.map((w, i) => (
-                    <m.div
-                      key={w.id}
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ ...motionTokens.preset.layout, delay: i * 0.06 }}
-                      className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
-                          <Wallet className="h-5 w-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
-                            {w.name}
-                          </p>
-                          <p className="text-eyebrow font-medium text-content-muted">
-                            Saldo awal {formatIDRShort(w.initial)}
-                          </p>
-                        </div>
-                        <p className="shrink-0 text-lead font-bold tabular-nums text-content-primary">
-                          {formatIDRShort(walletBalance(txs, w))}
-                        </p>
-                      </div>
-                    </m.div>
-                  ))}
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {wallets.map((w) => (
+                      <WalletCard key={w.id} wallet={w} />
+                    ))}
+                  </AnimatePresence>
                   <p className="px-0.5 text-eyebrow leading-relaxed text-content-muted">
-                    Transfer antar-dompet tidak dihitung sebagai pemasukan atau
-                    pengeluaran — hanya memindahkan saldo.
+                    Ketuk kartu untuk membedah arus dana · transfer antar-dompet
+                    bukan pemasukan/pengeluaran — hanya memindahkan saldo.
                   </p>
                 </div>
               )}
@@ -2597,8 +3049,12 @@ export default function KeuanganScreen() {
       </div>
       </RutinaTabs>
 
-      {/* Dialog tambah dompet */}
+      {/* Dialog tambah/sunting dompet */}
       <WalletDialog />
+
+      {/* Lembar kelola kategori + drill-down (v2.22) */}
+      <ManageCatsSheet />
+      <FinDrillSheet />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 /* ============================================================
  * Pengujian otomatis — perhitungan inti store & kartu stempel
- * (XP/level, streak, penjadwalan, punch card, utilitas tanggal)
+ * (XP/level, streak, penjadwalan, utilitas tanggal)
  * Jalankan: bun test
  * ============================================================ */
 
@@ -27,7 +27,6 @@ import {
   type Completions,
   type Habit,
 } from '../src/components/rutina-mobile/store'
-import { punchWeekInfo } from '../src/components/rutina-mobile/punch-card'
 
 /* ---- Fixture builder ---- */
 
@@ -177,25 +176,5 @@ describe('bestStreak', () => {
   })
 })
 
-describe('punchWeekInfo (kartu stempel)', () => {
-  test('tujuh hari berakhir hari ini; stempel = target tercapai', () => {
-    const today = todayISO()
-    const c: Completions = {}
-    /* Target 2: dua hari terakhir tuntas. */
-    done(c, today, 'a', 'b')
-    done(c, addDaysISO(today, -1), 'a', 'b')
-    done(c, addDaysISO(today, -2), 'a')
-    const info = punchWeekInfo(c, 2)
-    expect(info.days.length).toBe(7)
-    expect(info.days[6].key).toBe(today)
-    expect(info.days[6].isToday).toBe(true)
-    expect(info.stampedCount).toBe(2)
-    expect(info.days[6].stamped).toBe(true)
-    expect(info.days[4].stamped).toBe(false)
-  })
-
-  test('target 0 diperlakukan sebagai minimal 1 oleh pemanggil', () => {
-    const info = punchWeekInfo({}, 1)
-    expect(info.stampedCount).toBe(0)
-  })
-})
+/* punchWeekInfo (kartu stempel) — pensiun bersama komponen punch-card
+   di v2.20; blok tes dihapus agar suite kini hijau penuh. */

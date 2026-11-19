@@ -43,6 +43,7 @@ import {
   shortDateLabel,
   todayISO,
   useRutina,
+  weekStartISO,
   type BugarTab,
   type Workout,
   type WoFilter,
@@ -94,6 +95,7 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { barFill } from '@/lib/motion/transitions'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
 const BUGAR_TABS: { id: BugarTab; label: string }[] = [
   { id: 'latihan', label: 'Latihan' },
@@ -782,6 +784,7 @@ function PrSpark({ points }: { points: { e1: number }[] }) {
 export default function BugarScreen() {
   const workouts = useRutina((s) => s.workouts)
   const bodyLogs = useRutina((s) => s.bodyLogs)
+  const fitTargets = useRutina((s) => s.fitTargets)
   const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
   const deloadUntil = useRutina((s) => s.deloadUntil)
   const startDeload = useRutina((s) => s.startDeload)
@@ -799,6 +802,15 @@ export default function BugarScreen() {
   const reducedMotion = useReducedMotion()
 
   const week = useMemo(() => activitySummary(workouts), [workouts])
+  /* Sesi pekan berjalan (v2.22) — untuk bar sasaran menit/sesi. */
+  const weekSessions = useMemo(
+    () =>
+      workouts.filter((w) => {
+        const ws = weekStartISO(todayISO())
+        return w.date >= ws && w.date <= todayISO()
+      }).length,
+    [workouts],
+  )
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
   const prs = useMemo(() => prBoard(workouts), [workouts])
   const topPr = prs[0]
@@ -1111,6 +1123,37 @@ export default function BugarScreen() {
               {week.tonase > 0 &&
                 ` · ${Math.round(week.tonase).toLocaleString('id-ID')} kg tonase barbel`}
             </p>
+          )}
+
+          {/* Menit vs sasaran pekan (v2.22) — bar progres menuju target
+              Sasaran Musim; sesi vs sasaran ikut tampil di baris kecil. */}
+          {fitTargets.minutes > 0 && (
+            <div className="mt-2.5">
+              <div className="flex items-baseline justify-between gap-2 text-eyebrow font-semibold text-module-accent-fg/85">
+                <span className="tabular-nums">
+                  {week.minutes} / {fitTargets.minutes} menit sasaran
+                  {fitTargets.sessions > 0 &&
+                    ` · ${weekSessions} / ${fitTargets.sessions} sesi`}
+                </span>
+                <span className="tabular-nums">
+                  {Math.min(100, Math.round((week.minutes / fitTargets.minutes) * 100))}%
+                </span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-espresso/35">
+                <m.div
+                  initial={{ scaleX: 0 }}
+                  animate={{
+                    scaleX: Math.min(
+                      1,
+                      week.minutes / Math.max(1, fitTargets.minutes),
+                    ),
+                  }}
+                  transition={barFill}
+                  className="h-full origin-left rounded-full bg-gradient-to-r from-module-accent-fg/70 to-pistachio"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
           )}
 
           {topPr && (

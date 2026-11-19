@@ -13,6 +13,8 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Gauge,
+  Layers,
   Link2,
   Minus,
   Plus,
@@ -45,6 +47,7 @@ import { CONTENT_W } from './layout-widths'
 import {
   addDaysISO,
   HABIT_CATS,
+  HABIT_GROUP_COLORS,
   scheduledOn,
   shortDateLabel,
   todayISO,
@@ -70,6 +73,9 @@ const EMPTY_DRAFT: Draft = {
   restDays: [],
   afterId: null,
   mini: '',
+  target: null,
+  unit: null,
+  groupId: null,
 }
 
 /**
@@ -82,6 +88,9 @@ export function HabitSheet() {
   const mode = useRutina((s) => s.habitSheetMode)
   const habitId = useRutina((s) => s.habitSheetId)
   const habits = useRutina((s) => s.habits)
+  const habitGroups = useRutina((s) => s.habitGroups)
+  const addHabitGroup = useRutina((s) => s.addHabitGroup)
+  const deleteHabitGroup = useRutina((s) => s.deleteHabitGroup)
   const addHabit = useRutina((s) => s.addHabit)
   const updateHabit = useRutina((s) => s.updateHabit)
   const setHabitArchived = useRutina((s) => s.setHabitArchived)
@@ -95,6 +104,11 @@ export function HabitSheet() {
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT)
   const [reminderOn, setReminderOn] = useState(false)
+  const [measuredOn, setMeasuredOn] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupColor, setNewGroupColor] = useState<string>(
+    HABIT_GROUP_COLORS[0].token,
+  )
   const [prevKey, setPrevKey] = useState('')
   /* Pemilih pemicu "Susun Kebiasaan" — panel kandidat dibuka manual lewat
      "Ubah"; kueri cari menyaring daftar yang panjang. */
@@ -112,6 +126,7 @@ export function HabitSheet() {
     setPrevKey(openKey)
     setPickTriggerOpen(false)
     setTriggerQuery('')
+    setNewGroupName('')
     if (open) {
       if (editing) {
         setDraft({
@@ -126,11 +141,16 @@ export function HabitSheet() {
           restDays: [...(editing.restDays ?? [])],
           afterId: editing.afterId ?? null,
           mini: editing.mini ?? '',
+          target: editing.target ?? null,
+          unit: editing.unit ?? null,
+          groupId: editing.groupId ?? null,
         })
         setReminderOn(Boolean(editing.reminder))
+        setMeasuredOn(Boolean(editing.target))
       } else {
         setDraft(EMPTY_DRAFT)
         setReminderOn(false)
+        setMeasuredOn(false)
       }
     }
   }
@@ -207,6 +227,14 @@ export function HabitSheet() {
       reminder: reminderOn ? draft.reminder ?? '07:00' : null,
       mini: draft.mini.trim(),
       afterId: draft.afterId || null,
+      /* Kebiasaan terukur (v2.22): hanya hidup bila diaktifkan dengan
+         target > 0; satuan wajib bila terukur. */
+      target: measuredOn && (draft.target ?? 0) > 0 ? draft.target : null,
+      unit:
+        measuredOn && (draft.target ?? 0) > 0
+          ? (draft.unit ?? '').trim() || 'kali'
+          : null,
+      groupId: draft.groupId || null,
       /* Jeda Runtun dikelola langsung lewat bagiannya (scheduleRestDay /
          cancelRestDay memutasi store saat itu juga) — kirim nilai TERKINI
          milik kebiasaan, bukan draf yang mungkin basi. */
@@ -352,6 +380,140 @@ export function HabitSheet() {
                 </div>
               </div>
 
+              {/* Kelompok kebiasaan custom (v2.22) — bedeng kebunmu
+                  sendiri: "Pagi", "Gym", dsb. dengan warna chip. */}
+              <div className="space-y-1.5">
+                <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
+                  <Layers
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 text-primary"
+                  />
+                  Kelompok{' '}
+                  <span className="font-normal text-content-muted">
+                    (opsional)
+                  </span>
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDraft((p) => ({ ...p, groupId: null }))}
+                    aria-pressed={draft.groupId === null}
+                    className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      draft.groupId === null
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'
+                    }`}
+                  >
+                    Tanpa kelompok
+                  </button>
+                  {habitGroups.map((g) => (
+                    <span key={g.id} className="relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraft((p) => ({
+                            ...p,
+                            groupId: p.groupId === g.id ? null : g.id,
+                          }))
+                        }
+                        aria-pressed={draft.groupId === g.id}
+                        className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          draft.groupId === g.id
+                            ? 'text-content-primary shadow-soft'
+                            : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'
+                        }`}
+                        style={
+                          draft.groupId === g.id
+                            ? { backgroundColor: g.color }
+                            : undefined
+                        }
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: g.color }}
+                        />
+                        {g.name}
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                {/* Buat kelompok baru — nama + warna */}
+                <div className="space-y-2 rounded-xl border border-dashed border-border-strong p-2.5">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value.slice(0, 24))}
+                      placeholder="mis. Rutin Pagi"
+                      aria-label="Nama kelompok baru"
+                      className="h-10 rounded-xl border-border bg-surface-primary text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+                    />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {HABIT_GROUP_COLORS.map((c) => (
+                        <button
+                          key={c.token}
+                          type="button"
+                          onClick={() => setNewGroupColor(c.token)}
+                          aria-label={`Warna kelompok ${c.label}`}
+                          aria-pressed={newGroupColor === c.token}
+                          title={c.label}
+                          className={`h-6 w-6 cursor-pointer rounded-full transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            newGroupColor === c.token
+                              ? 'scale-110 ring-2 ring-primary ring-offset-2 ring-offset-surface-primary'
+                              : 'hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: c.token }}
+                        />
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!newGroupName.trim()}
+                      onClick={() => {
+                        const g = addHabitGroup(newGroupName, newGroupColor)
+                        if (g) {
+                          setDraft((p) => ({ ...p, groupId: g.id }))
+                          setNewGroupName('')
+                          toast.success(`Kelompok "${g.name}" dibuat`)
+                        } else {
+                          toast.info('Nama kelompok sudah dipakai')
+                        }
+                      }}
+                      className="h-10 shrink-0 rounded-xl px-3 text-meta font-bold"
+                    >
+                      Buat
+                    </Button>
+                  </div>
+                  {habitGroups.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-eyebrow font-medium text-content-muted">
+                        Kelola:
+                      </span>
+                      {habitGroups.map((g) => (
+                        <button
+                          key={g.id}
+                          type="button"
+                          onClick={() => {
+                            deleteHabitGroup(g.id)
+                            if (draft.groupId === g.id)
+                              setDraft((p) => ({ ...p, groupId: null }))
+                            toast.info(
+                              `Kelompok "${g.name}" dihapus — anggotanya kembali tanpa kelompok`,
+                            )
+                          }}
+                          aria-label={`Hapus kelompok ${g.name}`}
+                          className="flex h-7 items-center gap-1 rounded-full border border-border px-2.5 text-eyebrow font-semibold text-content-muted transition-colors hover:border-destructive/40 hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          {g.name}
+                          <Trash2 className="h-3 w-3" aria-hidden="true" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Jadwal berulang */}
               <div className="space-y-1.5">
                 <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
@@ -442,6 +604,121 @@ export function HabitSheet() {
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+              </div>
+
+              {/* Kebiasaan terukur (v2.22) — target jumlah + satuan per
+                  hari: "8 gelas", "20 halaman". Centang biasa tetap bisa
+                  menandai selesai penuh sekali ketuk. */}
+              <div className="space-y-1.5">
+                <span className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
+                    <Gauge
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 text-primary"
+                    />
+                    Kebiasaan terukur
+                  </span>
+                  <Switch
+                    checked={measuredOn}
+                    onCheckedChange={(on) => {
+                      setMeasuredOn(on)
+                      /* Aktifkan → pastikan target & satuan terisi bawaan
+                         (stepper tampil 8 namun nilai draf harus ikut). */
+                      if (on) {
+                        setDraft((p) => ({
+                          ...p,
+                          target: p.target && p.target > 0 ? p.target : 8,
+                          unit: p.unit ?? 'kali',
+                        }))
+                      }
+                    }}
+                    aria-label="Aktifkan kebiasaan terukur (target jumlah per hari)"
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </span>
+                {measuredOn && (
+                  <m.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={fade}
+                    className="space-y-2 rounded-xl border border-border bg-surface-primary px-3.5 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        aria-label="Kurangi target harian"
+                        disabled={(draft.target ?? 0) <= 1}
+                        onClick={() =>
+                          setDraft((p) => ({
+                            ...p,
+                            target: Math.max(1, (p.target ?? 1) - 1),
+                          }))
+                        }
+                        className="h-10 w-10 shrink-0 rounded-full border-border p-0 text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <p className="flex flex-1 items-baseline justify-center gap-1">
+                        <span className="text-kpi-sm font-bold tabular-nums text-content-primary">
+                          {draft.target ?? 8}
+                        </span>
+                        <span className="text-meta font-semibold text-content-muted">
+                          {draft.unit?.trim() || 'kali'} / hari
+                        </span>
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        aria-label="Tambah target harian"
+                        onClick={() =>
+                          setDraft((p) => ({
+                            ...p,
+                            target: Math.min(1000, (p.target ?? 0) + 1),
+                          }))
+                        }
+                        className="h-10 w-10 shrink-0 rounded-full border-border p-0 text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['gelas', 'halaman', 'menit', 'langkah', 'kali'].map(
+                        (u) => (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => setDraft((p) => ({ ...p, unit: u }))}
+                            aria-pressed={draft.unit === u}
+                            className={`h-8 cursor-pointer rounded-full px-3 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                              draft.unit === u
+                                ? 'bg-primary text-primary-foreground'
+                                : 'border border-border bg-surface-sunken text-content-secondary hover:bg-secondary'
+                            }`}
+                          >
+                            {u}
+                          </button>
+                        ),
+                      )}
+                      <Input
+                        value={draft.unit ?? ''}
+                        onChange={(e) =>
+                          setDraft((p) => ({
+                            ...p,
+                            unit: e.target.value.slice(0, 12),
+                          }))
+                        }
+                        placeholder="satuan sendiri…"
+                        aria-label="Satuan kustom"
+                        className="h-8 w-28 rounded-full border-border bg-surface-sunken px-3 text-eyebrow text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+                      />
+                    </div>
+                    <p className="text-meta leading-relaxed text-content-muted">
+                      Agenda menampilkan stepper + bar progres — capai target
+                      berarti selesai penuh (streak tetap jalan).
+                    </p>
+                  </m.div>
+                )}
               </div>
 
               {/* Pengingat */}

@@ -186,6 +186,7 @@ export function AsupanPanel() {
   const foodEntries = useRutina((s) => s.foodEntries)
   const calorieTarget = useRutina((s) => s.calorieTarget)
   const setCalorieTarget = useRutina((s) => s.setCalorieTarget)
+  const fitTargets = useRutina((s) => s.fitTargets)
   const openFoodSheet = useRutina((s) => s.openFoodSheet)
   const workouts = useRutina((s) => s.workouts)
   const bodyLogs = useRutina((s) => s.bodyLogs)
@@ -462,6 +463,12 @@ export function AsupanPanel() {
             </p>
             <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               protein
+              {/* Target makro dari Sasaran Musim (v2.22) */}
+              {fitTargets.protein > 0 && (
+                <span className="ml-1 normal-case text-module-accent-fg/55">
+                  / {fitTargets.protein} g
+                </span>
+              )}
             </p>
           </div>
           <div className="text-center">
@@ -470,6 +477,11 @@ export function AsupanPanel() {
             </p>
             <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               karbohidrat
+              {fitTargets.carb > 0 && (
+                <span className="ml-1 normal-case text-module-accent-fg/55">
+                  / {fitTargets.carb} g
+                </span>
+              )}
             </p>
           </div>
           <div className="text-center">
@@ -478,6 +490,11 @@ export function AsupanPanel() {
             </p>
             <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               lemak
+              {fitTargets.fat > 0 && (
+                <span className="ml-1 normal-case text-module-accent-fg/55">
+                  / {fitTargets.fat} g
+                </span>
+              )}
             </p>
           </div>
           </div>

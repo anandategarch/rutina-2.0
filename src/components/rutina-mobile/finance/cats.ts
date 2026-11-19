@@ -164,12 +164,25 @@ export interface CatMeta {
 /** Meta kategori AMAN untuk slug apa pun (v2.17): kategori bawaan →
  *  CAT_META; kategori buatan → nama pengguna + ikon tag; slug asing
  *  (mis. data luar) → label kapitalisasi. UI tidak lagi perlu
- *  CAT_META[cat] langsung yang bisa melempar undefined. */
-export function catMetaOf(cat: string, customCats: CustomCat[] = []): CatMeta {
-  const builtin = (CAT_META as Record<string, CatMeta | undefined>)[cat]
-  if (builtin) return builtin
+ *  CAT_META[cat] langsung yang bisa melempar undefined.
+ *
+ *  v2.22: renames (slug → label) dipakai lebih dulu untuk kategori
+ *  bawaan yang diganti namanya — menular ke seluruh tampilan tanpa
+ *  menyentuh data transaksi. */
+export function catMetaOf(
+  cat: string,
+  customCats: CustomCat[] = [],
+  renames: Record<string, string> = {},
+): CatMeta {
   const custom = customCats.find((c) => c.id === cat)
   if (custom) return { label: custom.name, icon: CUSTOM_CAT_ICON }
+  const builtin = (CAT_META as Record<string, CatMeta | undefined>)[cat]
+  if (builtin) {
+    const renamed = renames[cat]
+    return renamed
+      ? { label: renamed, icon: builtin.icon }
+      : builtin
+  }
   const pretty = cat
     .split('-')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -178,10 +191,18 @@ export function catMetaOf(cat: string, customCats: CustomCat[] = []): CatMeta {
 }
 
 /** Seluruh kategori untuk satu arus — bawaan + buatan (v2.18:
- *  FLAT, semua kategori buatan setara — tidak ada subkategori). */
-export function allCatsOf(type: TxType, customCats: CustomCat[]): string[] {
+ *  FLAT, semua kategori buatan setara — tidak ada subkategori).
+ *  v2.22: kategori yang disembunyikan (hiddenCats) dikeluarkan dari
+ *  pemilih — histori transaksinya tetap utuh. */
+export function allCatsOf(
+  type: TxType,
+  customCats: CustomCat[],
+  hiddenCats: string[] = [],
+): string[] {
   const custom = customCats.filter((c) => c.type === type).map((c) => c.id)
-  return [...CATS_BY_TYPE[type], ...custom]
+  return [...CATS_BY_TYPE[type], ...custom].filter(
+    (c) => !hiddenCats.includes(c),
+  )
 }
 
 /** Kategori yang sering dipakai (v2.17) — dihitung dari frekuensi

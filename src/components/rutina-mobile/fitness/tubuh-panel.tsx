@@ -9,8 +9,10 @@ import {
   Minus,
   Moon,
   Plus,
+  RotateCcw,
   Scale,
   Sparkles,
+  Target,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -18,7 +20,12 @@ import { Input } from '@/components/ui/input'
 import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { useCheckInSheet } from '../checkin-sheet'
-import { todayISO, useRutina, type BodyLogs } from '../store'
+import {
+  FIT_TARGETS_DEFAULT,
+  todayISO,
+  useRutina,
+  type BodyLogs,
+} from '../store'
 import {
   latestWeight,
   readinessOf,
@@ -165,15 +172,38 @@ export function TubuhPanel() {
   const logWeightToday = useRutina((s) => s.logWeightToday)
   const logBodyCheckIn = useRutina((s) => s.logBodyCheckIn)
   const openCheckIn = useCheckInSheet((s) => s.openCheckIn)
+  const fitTargets = useRutina((s) => s.fitTargets)
+  const setFitTargets = useRutina((s) => s.setFitTargets)
 
   const today = todayISO()
   const log = bodyLogs[today]
   const water = log?.water ?? 0
   const sleepH = log?.sleepH
   const energy = log?.energy
+  /* Target air dinamis dari Sasaran Musim (v2.22). */
+  const waterTarget = fitTargets.water > 0 ? fitTargets.water : WATER_TARGET
 
   const readiness = useMemo(() => readinessOf(bodyLogs), [bodyLogs])
   const weight = useMemo(() => latestWeight(bodyLogs), [bodyLogs])
+  /* BMI & delta vs tujuan (v2.22) — hanya bila data lengkap. */
+  const bmi =
+    weight != null && fitTargets.heightCm > 0
+      ? Math.round((weight / (fitTargets.heightCm / 100) ** 2) * 10) / 10
+      : null
+  const bmiLabel =
+    bmi == null
+      ? null
+      : bmi < 18.5
+        ? 'kurus'
+        : bmi < 25
+          ? 'ideal'
+          : bmi < 30
+            ? 'berlebih'
+            : 'obesitas'
+  const weightDelta =
+    weight != null && fitTargets.weightGoal > 0
+      ? Math.round((weight - fitTargets.weightGoal) * 10) / 10
+      : null
 
   const [weightDraft, setWeightDraft] = useState('')
 
@@ -443,7 +473,8 @@ export function TubuhPanel() {
                 Hidrasi
               </p>
               <p className="text-meta font-medium text-content-muted">
-                {water} dari {WATER_TARGET} gelas (≈2 liter)
+                {water} dari {waterTarget} gelas
+                {waterTarget === 8 ? ' (≈2 liter)' : ''}
               </p>
             </div>
           </div>
@@ -461,7 +492,7 @@ export function TubuhPanel() {
               aria-label="Tambah satu gelas"
               onClick={() => {
                 setWaterToday(1)
-                if (water + 1 === WATER_TARGET) {
+                if (water + 1 === waterTarget) {
                   toast.success('Target hidrasi tercapai — kerja bagus!')
                 }
               }}
@@ -475,7 +506,7 @@ export function TubuhPanel() {
 
         {/* Visual gelas */}
         <div className="mt-3.5 flex flex-wrap gap-1.5" aria-hidden="true">
-          {Array.from({ length: Math.max(WATER_TARGET, water) }, (_, i) => {
+          {Array.from({ length: Math.max(waterTarget, water) }, (_, i) => {
             const filled = i < water
             return (
               <m.span
@@ -497,7 +528,7 @@ export function TubuhPanel() {
           <m.div
             initial={false}
             className="h-full rounded-full bg-primary"
-            animate={{ width: `${Math.min((water / WATER_TARGET) * 100, 100)}%` }}
+            animate={{ width: `${Math.min((water / waterTarget) * 100, 100)}%` }}
             transition={barFill}
           />
         </div>
@@ -523,6 +554,27 @@ export function TubuhPanel() {
               {weight != null
                 ? `Terakhir tercatat ${weight.toString().replace('.', ',')} kg`
                 : 'Belum pernah ditimbang'}
+              {bmi != null && (
+                <span className="text-content-secondary">
+                  {' '}
+                  · BMI {bmi.toString().replace('.', ',')} ({bmiLabel})
+                </span>
+              )}
+              {weightDelta != null && (
+                <span
+                  className={
+                    weightDelta > 0 ? 'text-content-danger' : 'text-success'
+                  }
+                >
+                  {' '}
+                  ·{' '}
+                  {weightDelta > 0
+                    ? `${weightDelta.toString().replace('.', ',')} kg dari tujuan`
+                    : weightDelta < 0
+                      ? `${Math.abs(weightDelta).toString().replace('.', ',')} kg di bawah tujuan`
+                      : 'tepat di tujuan'}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -552,6 +604,159 @@ export function TubuhPanel() {
         <div className="mt-4">
           <WeightSpark logs={bodyLogs} />
         </div>
+      </m.section>
+
+      {/* Sasaran Musim (v2.22) — delapan target bugar lengkap:
+          menit/sesi per pekan, air, makro (protein/karbo/lemak), berat
+          tujuan, dan tinggi badan (dasar BMI). Semua dipakai lintas
+          panel: Latihan (menit vs sasaran), Asupan (makro), Tubuh ini. */}
+      <m.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.16, ease: motionTokens.easing.standard }}
+        aria-label="Sasaran bugar musim ini"
+        className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
+              <Target className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <p className="text-body font-semibold text-content-primary">
+                Sasaran Musim
+              </p>
+              <p className="text-meta font-medium text-content-muted">
+                Dipakai di Latihan, Asupan &amp; Tubuh — bukan angka hiasan
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFitTargets({ ...FIT_TARGETS_DEFAULT })
+              toast.success('Sasaran dikembalikan ke bawaan')
+            }}
+            aria-label="Kembalikan sasaran ke bawaan"
+            className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <RotateCcw className="h-3 w-3" aria-hidden="true" />
+            Bawaan
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3.5">
+          {(
+            [
+              {
+                key: 'minutes' as const,
+                label: 'Menit gerak / pekan',
+                step: 15,
+                min: 0,
+                max: 1200,
+                unit: 'mnt',
+              },
+              {
+                key: 'sessions' as const,
+                label: 'Sesi latihan / pekan',
+                step: 1,
+                min: 0,
+                max: 14,
+                unit: 'sesi',
+              },
+              {
+                key: 'water' as const,
+                label: 'Gelas air / hari',
+                step: 1,
+                min: 1,
+                max: 20,
+                unit: 'gelas',
+              },
+              {
+                key: 'protein' as const,
+                label: 'Protein / hari',
+                step: 5,
+                min: 0,
+                max: 400,
+                unit: 'g',
+              },
+              {
+                key: 'carb' as const,
+                label: 'Karbo / hari',
+                step: 10,
+                min: 0,
+                max: 1000,
+                unit: 'g',
+              },
+              {
+                key: 'fat' as const,
+                label: 'Lemak / hari',
+                step: 5,
+                min: 0,
+                max: 300,
+                unit: 'g',
+              },
+              {
+                key: 'weightGoal' as const,
+                label: 'Berat tujuan (kg)',
+                step: 1,
+                min: 0,
+                max: 200,
+                unit: 'kg',
+              },
+              {
+                key: 'heightCm' as const,
+                label: 'Tinggi badan (cm)',
+                step: 1,
+                min: 0,
+                max: 230,
+                unit: 'cm',
+              },
+            ]
+          ).map((f) => (
+            <div key={f.key} className="min-w-0">
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
+                {f.label}
+              </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={`Kurangi ${f.label}`}
+                  onClick={() =>
+                    setFitTargets({
+                      [f.key]: Math.max(f.min, fitTargets[f.key] - f.step),
+                    })
+                  }
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <p className="min-w-0 flex-1 truncate text-center text-note font-bold tabular-nums text-content-primary">
+                  {fitTargets[f.key]}
+                  <span className="ml-0.5 text-eyebrow font-semibold text-content-muted">
+                    {f.unit}
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  aria-label={`Tambah ${f.label}`}
+                  onClick={() =>
+                    setFitTargets({
+                      [f.key]: Math.min(f.max, fitTargets[f.key] + f.step),
+                    })
+                  }
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-eyebrow leading-relaxed text-content-muted">
+          Tinggi badan menghidupkan BMI di kartu Berat; berat tujuan
+          menampilkan jarakmu darinya; makro dipakai bar target di tab Asupan.
+        </p>
       </m.section>
     </div>
   )

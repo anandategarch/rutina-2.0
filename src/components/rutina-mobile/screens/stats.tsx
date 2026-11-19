@@ -8,12 +8,16 @@ import {
   Activity,
   ArrowDownRight,
   ArrowUpRight,
+  Award,
   BatteryLow,
+  CalendarCheck,
   CalendarDays,
   ChevronDown,
   Dumbbell,
   Flame,
+  Footprints,
   Laugh,
+  Leaf,
   Medal,
   Meh,
   Minus,
@@ -175,6 +179,8 @@ interface Badge {
   name: string
   desc: string
   unlocked: boolean
+  /** Progres menuju syarat — tampil sebagai hint pada lencana terkunci. */
+  progress?: string
 }
 
 /** Kartu lencana tunggal. Pop elastis (useAnimePop) ditempelkan di div
@@ -619,7 +625,35 @@ export default function StatsScreen() {
 
   const catData = categoryData(habits)
 
-  /* Lencana jujur — seluruh syarat dihitung dari data nyata. */
+  /* ===== Lencana jujur (v2.22: 4 → 8) — seluruh syarat dihitung dari
+     data nyata; progres tampil pada lencana yang masih terkunci. ===== */
+  /* Hari terpadat sepanjang histori (≥1 misi selesai). */
+  const busiestDay = useMemo(() => {
+    let best = 0
+    for (const day of Object.values(completions)) {
+      const n = Object.values(day).filter((v) => v === true).length
+      if (n > best) best = n
+    }
+    return best
+  }, [completions])
+  /* Total penyelesaian per kebiasaan aktif. */
+  const habitTotals = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const day of Object.values(completions)) {
+      for (const [id, v] of Object.entries(day)) {
+        if (v === true) totals.set(id, (totals.get(id) ?? 0) + 1)
+      }
+    }
+    return totals
+  }, [completions])
+  const championTotal = habitTotals.size
+    ? Math.max(...habitTotals.values())
+    : 0
+  const habitsWith30 = [...habitTotals.values()].filter((t) => t >= 30).length
+  const cardioSessions = workouts.filter((w) =>
+    ['jalan', 'lari', 'lari-jalan'].includes(w.kind),
+  ).length
+
   const badges: Badge[] = [
     {
       icon: Sparkles,
@@ -632,18 +666,49 @@ export default function StatsScreen() {
       name: 'Momentum 7',
       desc: 'Jaga streak aktif hingga tujuh hari.',
       unlocked: best.streak >= 7,
+      progress: best.streak > 0 ? `streak ${best.streak}/7` : undefined,
     },
     {
       icon: Trophy,
       name: 'Api 30 Hari',
       desc: 'Capai rekor streak 30 hari tanpa putus.',
       unlocked: best.record >= 30,
+      progress: best.record > 0 ? `rekor ${best.record}/30` : undefined,
     },
     {
       icon: Medal,
       name: 'Kolektor Catatan',
       desc: `Kumpulkan 100 catatan (sekarang ${notes.length}).`,
       unlocked: notes.length >= 100,
+      progress: `${notes.length}/100`,
+    },
+    {
+      icon: CalendarCheck,
+      name: 'Hari Terpadat',
+      desc: `Selesaikan 5+ kebiasaan dalam satu hari (rekor ${busiestDay}).`,
+      unlocked: busiestDay >= 5,
+      progress: `rekor ${busiestDay}/5`,
+    },
+    {
+      icon: Leaf,
+      name: 'Trio 30',
+      desc: `Tiga kebiasaan masing-masing 30+ penyelesaian (sekarang ${habitsWith30}).`,
+      unlocked: habitsWith30 >= 3,
+      progress: `${habitsWith30}/3 kebiasaan`,
+    },
+    {
+      icon: Award,
+      name: 'Penjaga Andalan',
+      desc: `Satu kebiasaan menembus 30+ total penyelesaian (juara ${championTotal}).`,
+      unlocked: championTotal >= 30,
+      progress: `juara ${championTotal}/30`,
+    },
+    {
+      icon: Footprints,
+      name: 'Pelari 10×',
+      desc: `Catat 10 sesi kardio — lari, jalan, atau kombinasi (sekarang ${cardioSessions}).`,
+      unlocked: cardioSessions >= 10,
+      progress: `${cardioSessions}/10 sesi`,
     },
   ]
   const unlockedCount = badges.filter((b) => b.unlocked).length
@@ -1807,7 +1872,7 @@ export default function StatsScreen() {
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              aria-label={`Piala dan lencana, ${unlockedCount} dari 4 terbuka — buka untuk melihat koleksi`}
+              aria-label={`Piala dan lencana, ${unlockedCount} dari ${badges.length} terbuka — buka untuk melihat koleksi`}
               className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/25 text-warning">

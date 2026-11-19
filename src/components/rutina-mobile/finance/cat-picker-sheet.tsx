@@ -12,6 +12,7 @@ import { CONTENT_W } from '../layout-widths'
 import { useRutina, type TxType } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
 import { allCatsOf, catMetaOf, frequentCats } from './cats'
+import { Settings2 } from 'lucide-react'
 
 /**
  * Pemilih kategori (v2.17) — SATU sistem kategori terpadu: bawaan 2.0,
@@ -39,7 +40,10 @@ export function CatPickerSheet({
 }) {
   const txs = useRutina((s) => s.txs)
   const customCats = useRutina((s) => s.customCats)
+  const catRenames = useRutina((s) => s.catRenames)
+  const hiddenCats = useRutina((s) => s.hiddenCats)
   const addCustomCat = useRutina((s) => s.addCustomCat)
+  const openCatManage = useRutina((s) => s.openCatManage)
 
   const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
@@ -86,14 +90,15 @@ export function CatPickerSheet({
     [txs, type, q],
   )
 
-  /* Daftar lengkap — bawaan + buatan, difilter pencarian. */
+  /* Daftar lengkap — bawaan + buatan, kategori tersembunyi dikeluarkan,
+     difilter pencarian (sadar ganti nama — v2.22). */
   const list = useMemo(() => {
-    const all = allCatsOf(type, customCats)
+    const all = allCatsOf(type, customCats, hiddenCats)
     if (!q) return all
     return all.filter((c) =>
-      catMetaOf(c, customCats).label.toLowerCase().includes(q),
+      catMetaOf(c, customCats, catRenames).label.toLowerCase().includes(q),
     )
-  }, [type, customCats, q])
+  }, [type, customCats, hiddenCats, catRenames, q])
 
   const pick = (cat: string) => {
     onSelect(cat)
@@ -208,7 +213,7 @@ export function CatPickerSheet({
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {frequent.map(({ cat, count }) => {
-                      const meta = catMetaOf(cat, customCats)
+                      const meta = catMetaOf(cat, customCats, catRenames)
                       const Icon = meta.icon
                       const on = selected === cat
                       return (
@@ -240,7 +245,7 @@ export function CatPickerSheet({
                 </p>
                 <ul className="mt-2 space-y-1.5">
                   {list.map((cat) => {
-                    const meta = catMetaOf(cat, customCats)
+                    const meta = catMetaOf(cat, customCats, catRenames)
                     const Icon = meta.icon
                     const on = selected === cat
                     return (
@@ -294,7 +299,7 @@ export function CatPickerSheet({
               </section>
             </div>
 
-            {/* 4 — Tombol tambah kategori */}
+            {/* 4 — Tombol tambah kategori + pintu kelola (v2.22) */}
             <div className="shrink-0 border-t border-border px-5 pt-3">
               {adding ? (
                 <div className="flex gap-2">
@@ -317,14 +322,28 @@ export function CatPickerSheet({
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setAdding(true)}
-                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-dashed border-primary/40 text-note font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  <Plus className="h-4 w-4" aria-hidden="true" />
-                  Tambah kategori baru
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdding(true)}
+                    className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-dashed border-primary/40 text-note font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Tambah kategori
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      openCatManage()
+                    }}
+                    aria-label="Kelola kategori — ganti nama, sembunyikan, atau hapus"
+                    title="Kelola kategori"
+                    className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <Settings2 className="h-4.5 w-4.5" aria-hidden="true" />
+                  </button>
+                </div>
               )}
             </div>
           </m.div>

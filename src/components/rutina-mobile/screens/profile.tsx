@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
+  Archive,
   ArrowLeft,
   BatteryLow,
   Check,
@@ -10,6 +11,8 @@ import {
   Cloud,
   CloudDownload,
   Download,
+  FileJson,
+  FileSpreadsheet,
   Fingerprint,
   Globe,
   HardDrive,
@@ -27,6 +30,8 @@ import {
   Smile,
   Sparkles,
   Target,
+  TriangleAlert,
+  Upload,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -72,7 +77,8 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import { motionTokens } from '@/lib/motion/tokens'
-import { forcePull, syncStatus } from '../sync-engine'
+import { exportBackup, forcePull, importBackup, syncStatus } from '../sync-engine'
+import { catMetaOf } from '../finance/cats'
 import {
   activeSinceISO,
   addDaysISO,
@@ -134,6 +140,9 @@ export default function ProfileScreen() {
   const notes = useRutina((s) => s.notes)
   const habits = useRutina((s) => s.habits)
   const txs = useRutina((s) => s.txs)
+  const wallets = useRutina((s) => s.wallets)
+  const customCats = useRutina((s) => s.customCats)
+  const catRenames = useRutina((s) => s.catRenames)
   const completions = useRutina((s) => s.completions)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const dailyGoal = useRutina((s) => s.dailyGoal)
@@ -194,6 +203,91 @@ export default function ProfileScreen() {
       toast.error('Gagal menarik data cloud', {
         description: 'Periksa koneksi internet lalu coba lagi.',
       })
+    }
+  }
+
+  /* ===== Ekspor & impor cadangan (v2.22) ===== */
+
+  const stamp = todayISO().replace(/-/g, '')
+
+  /* Unduh berkas dari string — jalur bersama JSON & CSV. */
+  const downloadText = (filename: string, text: string, mime: string) => {
+    const blob = new Blob([text], { type: mime })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  /* Cadangan JSON penuh — bentuk identik dengan snapshot /api/state. */
+  const downloadJsonBackup = () => {
+    const backup = exportBackup()
+    downloadText(
+      `rutina-cadangan-${stamp}.json`,
+      JSON.stringify(backup, null, 2),
+      'application/json',
+    )
+    toast.success('Cadangan JSON diunduh', {
+      description: `${backup.habits.length} kebiasaan · ${backup.txs.length} transaksi · ${backup.notes.length} catatan.`,
+    })
+  }
+
+  /* CSV transaksi — kolom tanggal/arus/kategori/nominal/dompet/catatan. */
+  const downloadCsv = () => {
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
+    const rows = [
+      ['Tanggal', 'Arus', 'Kategori', 'Nominal', 'Dompet', 'Catatan'].join(','),
+      ...[...txs]
+        .sort((a, b) => (a.ts === b.ts ? a.id.localeCompare(b.id) : a.ts < b.ts ? -1 : 1))
+        .map((t) => {
+          const w = wallets.find((x) => x.id === t.walletId)
+          return [
+            t.ts,
+            t.type,
+            esc(catMetaOf(t.cat, customCats, catRenames).label),
+            String(t.amount),
+            esc(w?.name ?? ''),
+            esc(t.note),
+          ].join(',')
+        }),
+    ]
+    downloadText(
+      `rutina-transaksi-${stamp}.csv`,
+      '\uFEFF' + rows.join('\n'),
+      'text/csv;charset=utf-8',
+    )
+    toast.success(`CSV ${txs.length} transaksi diunduh`)
+  }
+
+  /* Pulihkan cadangan JSON — validasi bentuk lalu terapkan + push. */
+  const [importing, setImporting] = useState(false)
+  const handleImportFile = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || importing) return
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const error = await importBackup(text)
+      if (error) {
+        toast.error('Impor gagal', { description: error })
+      } else {
+        toast.success('Cadangan dipulihkan', {
+          description: 'Data kini aktif di perangkat dan tersinkron ke cloud.',
+        })
+      }
+    } catch {
+      toast.error('Impor gagal', {
+        description: 'Berkas tidak bisa dibaca.',
+      })
+    } finally {
+      setImporting(false)
     }
   }
 
@@ -883,6 +977,91 @@ export default function ProfileScreen() {
               )}
               {pulling ? 'Menarik data…' : 'Tarik ulang dari cloud'}
             </button>
+          </div>
+        </m.section>
+
+        {/* ===== Ekspor & cadangan (v2.22) — unduh JSON penuh + CSV
+            transaksi; pulihkan cadangan JSON lewat berkas. ===== */}
+        <m.section
+          variants={slideInRow}
+          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
+          aria-label="Ekspor dan cadangan"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+              <Archive className="h-4 w-4" />
+            </span>
+            <div className="flex-1">
+              <p className="text-body font-semibold text-content-primary">
+                Ekspor &amp; Cadangan
+              </p>
+              <p className="text-eyebrow font-medium text-content-muted">
+                Simpan salinan di luar aplikasi — data milikmu sepenuhnya
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={downloadJsonBackup}
+              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-note font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <FileJson className="h-4 w-4" />
+              Cadangan JSON
+            </button>
+            <button
+              type="button"
+              onClick={downloadCsv}
+              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-note font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Transaksi (CSV)
+            </button>
+          </div>
+          <div className="mt-2">
+            <label
+              htmlFor="import-backup"
+              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong text-note font-bold text-content-secondary transition-all hover:border-primary/50 hover:bg-surface-sunken active:scale-[0.98] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary"
+            >
+              <Upload className="h-4 w-4" />
+              {importing ? 'Memulihkan…' : 'Pulihkan dari cadangan JSON'}
+              <input
+                id="import-backup"
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                disabled={importing}
+                onChange={handleImportFile}
+              />
+            </label>
+            <p className="mt-2 text-eyebrow leading-relaxed text-content-muted">
+              Impor mengganti seluruh data saat ini dengan isi berkas
+              cadangan lalu tersinkron ke cloud — pastikan memilih berkas
+              yang benar.
+            </p>
+          </div>
+        </m.section>
+
+        {/* Zona bahaya — mulai dari awal */}
+        <m.section
+          variants={slideInRow}
+          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
+          aria-label="Zona bahaya"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-clay/25 text-content-danger">
+              <TriangleAlert className="h-4 w-4" />
+            </span>
+            <div className="flex-1">
+              <p className="text-body font-semibold text-content-primary">
+                Zona Bahaya
+              </p>
+              <p className="text-eyebrow font-medium text-content-muted">
+                Mulai dari awal menghapus semuanya secara permanen
+              </p>
+            </div>
+          </div>
+          <div className="mt-3">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button

@@ -3,6 +3,96 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.22] — Gelombang Paritas Rutina 1.0: P0 + Kilat + P1
+
+Permintaan pengguna: adaptasi fitur Rutina 1.0 yang belum ada di 2.0
+(hanya fiturnya — desain tetap earth-tone 2.0: motion.dev, anime.js,
+shadcn/ui) — hasil analisa gap 21 fitur + riset aplikasi relevan.
+
+### P0 — Fondasi fungsional (5 fitur kritis)
+- **Sunting transaksi**: lembar transaksi kini punya MODE SUNTING
+  (`txEditId`) — terbuka terisi nilai lama (arus, kategori, nominal,
+  catatan, dompet, jadwal berulang); tombol "Sunting" di detail baris
+  mutasi (transfer dikecualikan — butuh dua sisi dompet); salinan
+  otomatis berulang menjelaskan ikut-templatnya.
+- **Kebiasaan terukur** (target & satuan/hari, mis. "8 gelas"):
+  completions kini bernilai `true | angka` — angka = progres parsial,
+  mencapai target otomatis menjadi `true` sehingga streak & statistik
+  lama tak berubah semantik; stepper ± + bar progres + persen di baris
+  agenda ( klik cepat akurat — dibaca dari state segar); lembar
+  kebiasaan mendapat saklar "Kebiasaan terukur" + stepper target +
+  chip satuan (gelas/halaman/menit/langkah/kali) + satuan bebas.
+- **Kelola dompet**: sunting nama & saldo awal (dialog mode sunting);
+  hapus dengan konfirmasi informatif — transaksi terkait jadi "tanpa
+  dompet" (tidak ada catatan hilang); kartu dompet baru: arus
+  masuk/keluar bulan ini + bar proporsi + net + ketuk untuk drill.
+- **Kelola kategori**: lembar "Kelola Kategori" (dari pemilih kategori
+  & tab Anggaran) — ganti nama kategori bawaan menular ke seluruh
+  tampilan via `catRenames` (data transaksi tak tersentuh), sembunyi-
+  kan dari pemilih (`hiddenCats`), hapus kategori buatan (transaksinya
+  pindah ke "Lainnya"); jumlah transaksi + total nominal nyata per
+  kategori ditampilkan sebagai dasar keputusan.
+- **Jatah harian + proyeksi + pace**: kartu "Jatah Hari Ini" (Keuangan
+  › Ringkasan) — jatah aman per hari (count-up), vonis proyeksi akhir
+  bulan (aman/waspada/lewat), bar laju belanja dengan PENANDA POSISI
+  IDEAL hari ini, tiga statistik (sisa/rata²/proyeksi); ringkas
+  "Jatah hari ini ±Rp X" di kartu Arus Kas Beranda.
+
+### Kilat — nilai besar, effort kecil
+- **Kartu Langgananmu**: agregasi templat transaksi berulang — daftar
+  langganan aktif + setara biaya per bulan (mingguan ×52/12) +
+  "terakhir tercatat" + total/bulan + saran berhenti langganan.
+- **Ekspor & cadangan** (Profil): unduh cadangan JSON penuh (bentuk
+  identik snapshot /api/state), unduh transaksi CSV (BOM UTF-8, label
+  kategori sadar rename), pulihkan cadangan JSON (validasi bentuk,
+  terapkan + push otomatis); "Mulai dari awal" dipindah ke seksi
+  Zona Bahaya tersendiri.
+
+### P1 — Kedalaman modul
+- **Kelompok kebiasaan custom**: buat kelompok bernama + warna chip
+  earth-tone (6 pilihan) langsung dari lembar kebiasaan; layar
+  Kebiasaan otomatis beralih mengelompokkan per kelompok (sisanya
+  "Tanpa kelompok") saat ada yang memakainya; kelola/hapus kelompok
+  inline.
+- **Pohon Kebun** (reinkarnasi pohon konsistensi 1.0): SATU pohon
+  line-art 2.0 di Beranda yang tumbuh dari hari aktif seluruh kebun
+  (ambang 1/7/30/90 — Benih→Berbunga), sway idle halus, koreografi
+  pertumbuhan anime.js + toast saat naik tahap, bar progres antar
+  tahap; hormat reduced-motion.
+- **Sasaran bugar lengkap** (8 target): kartu "Sasaran Musim" di tab
+  Tubuh (menit/pekan, sesi/pekan, gelas air/hari, protein/karbo/lemak
+  g/hari, berat tujuan, tinggi badan) + kembalikan bawaan; bar
+  menit/sesi vs sasaran di hero Latihan; target makro "x / y g" di
+  tab Asupan; BMI + delta vs berat tujuan di kartu Berat; target air
+  hidrasi ikut sasaran.
+- **Donat komposisi interaktif**: pengeluaran bulan ini per kategori
+  (Recharts, top-6 + "Lainnya") — hover irisan mengganti pusat
+  (kategori & nominal), klik irisan/legenda membuka drill kategori.
+- **Drill-down universal**: lembar bedah KATEGORI (dari donut) &
+  DOMPET (dari kartu dompet) — statistik bulan berjalan, bar
+  pemakaian anggaran / proporsi arus, daftar transaksi terkait (maks
+  30) + ringkasan sepanjang masa.
+- **Lencana 4 → 8**: + Hari Terpadat (5+ misi sehari), Trio 30 (tiga
+  kebiasaan 30+ penyelesaian), Penjaga Andalan (juara 30+), Pelari
+  10× (10 sesi kardio) — progres terkunci tampil di deskripsi.
+
+### Fondasi data & sinkronisasi
+- Prisma: `Habit.target/unit/groupId`, `HabitLog.value`, tabel
+  `HabitGroup` baru; db-migrate DDL idempoten (ALTER + CREATE IF NOT
+  EXISTS) menyembuhkan drift otomatis.
+- Wire & server: `habitGroups`, `catRenames`, `hiddenCats`,
+  `fitTargets` (Zod + GET/PUT /api/state + AppSetting JSON);
+  completions union `boolean | number` (log `value` REAL).
+- Store: `updateTx/openTxEdit`, `updateWallet/deleteWallet/
+  openWalletEdit`, `renameCat/hideCat/unhideCat/deleteCustomCat`,
+  `setHabitValue`, `addHabitGroup/deleteHabitGroup`, `setFitTargets`,
+  `openFinDrill/closeFinDrill` — semua ikut DOMAIN_KEYS sinkronisasi
+  & persist lokal (migrasi aman untuk data lama).
+- `doneCountOn` kini hanya menghitung `true` (progres parsial belum
+  selesai) — streak/heatmap/takaran hari tak berubah perilaku.
+- Tes punch-card mati (sisa v2.20) dibersihkan — suite hijau penuh
+  133 tes.
+
 ## [2.21] — Audit Menyeluruh "Bug Terpotong" UI/UX
 
 Permintaan pengguna: "cari bug terpotong ui UX menyeluruh" — detektor

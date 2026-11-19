@@ -188,6 +188,13 @@ export interface Habit {
   afterId: string | null
   /** Versi 2 Menit — bentuk terkecil kebiasaan yang mudah dimulai. */
   mini: string
+  /** Kebiasaan terukur (v2.22): target jumlah per hari, mis. 8 gelas.
+   *  null = kebiasaan centang biasa. */
+  target: number | null
+  /** Satuan kebiasaan terukur, mis. "gelas", "halaman", "menit". */
+  unit: string | null
+  /** Kelompok custom (v2.22) — id HabitGroup, null = tanpa kelompok. */
+  groupId: string | null
   archived: boolean
   /** Tanggal ISO mulai kebiasaan dijalankan (batas hitung streak). */
   createdAt: string
@@ -204,10 +211,60 @@ export interface HabitInput {
   restDays: string[]
   afterId: string | null
   mini: string
+  target: number | null
+  unit: string | null
+  groupId: string | null
 }
 
-/** completions[tanggalISO][habitId] = true — sumber tunggal histori. */
-export type Completions = Record<string, Record<string, boolean>>
+/* ===== Kelompok kebiasaan custom (v2.22) ===== */
+
+export interface HabitGroup {
+  id: string
+  name: string
+  /** Token warna CSS dari palet earth-tone (lihat HABIT_GROUP_COLORS). */
+  color: string
+}
+
+/** Palet warna kelompok — token CSS earth-tone yang aman mode gelap. */
+export const HABIT_GROUP_COLORS = [
+  { token: 'var(--habit-cat-kebiasaan)', label: 'Matcha' },
+  { token: 'var(--habit-cat-kerja)', label: 'Slate' },
+  { token: 'var(--habit-cat-kesehatan)', label: 'Eucalyptus' },
+  { token: 'var(--habit-cat-pribadi)', label: 'Rose Clay' },
+  { token: 'var(--habit-cat-belajar)', label: 'Gold' },
+  { token: 'var(--palette-pistachio)', label: 'Pistachio' },
+] as const
+
+/** completions[tanggalISO][habitId] — sumber tunggal histori. Nilai:
+ *  - true  → selesai penuh (kebiasaan centang ATAU terukur yang mencapai target)
+ *  - angka → progres parsial kebiasaan terukur (mis. 5 dari 8 gelas);
+ *            belum dihitung selesai sampai nilainya mencapai target.
+ *  Semantik lama (boolean) tetap utuh sehingga streak, statistik, dan
+ *  histori Rutina 1.0 tidak berubah perilaku. */
+export type Completions = Record<string, Record<string, boolean | number>>
+
+/** Nilai mentah sebuah kebiasaan pada tanggal tertentu. */
+export function habitValueOn(
+  c: Completions,
+  dateISO: string,
+  habitId: string,
+): boolean | number | undefined {
+  return c[dateISO]?.[habitId]
+}
+
+/** Progres terukur sebuah kebiasaan pada tanggal tertentu — angka murni
+ *  untuk stepper/bar: true dianggap target penuh, angka dipakai apa adanya,
+ *  tanpa catatan = 0. */
+export function habitProgressOn(
+  h: Pick<Habit, 'id' | 'target'>,
+  c: Completions,
+  dateISO: string,
+): number {
+  const v = c[dateISO]?.[h.id]
+  if (v === true) return h.target ?? 1
+  if (typeof v === 'number') return v
+  return 0
+}
 
 /* --- Utilitas tanggal (ISO yyyy-mm-dd, aman zona waktu lokal) --- */
 
@@ -315,9 +372,10 @@ export function habitsOn(habits: Habit[], dateISO: string): Habit[] {
   return habits.filter((h) => scheduledOn(h, dateISO))
 }
 
-/** Jumlah kebiasaan selesai pada sebuah tanggal. */
+/** Jumlah kebiasaan selesai pada sebuah tanggal — hanya nilai `true`
+ *  (progres parsial kebiasaan terukur belum dihitung selesai). */
 export function doneCountOn(c: Completions, dateISO: string): number {
-  return Object.values(c[dateISO] ?? {}).filter(Boolean).length
+  return Object.values(c[dateISO] ?? {}).filter((v) => v === true).length
 }
 
 /** Streak aktif sebuah kebiasaan — hari terjadwal berturut yang selesai,
@@ -733,7 +791,37 @@ export interface FoodEntryInput {
   fat: number | null
 }
 
-/* ===== Domain Bugar — tubuh & pemulihan ===== */
+/* ===== Domain Bugar — tubuh & pemeliharaan ===== */
+
+/** Sasaran bugar lengkap (v2.22) — delapan target musim, dipakai tab
+ *  Tubuh (kartu Sasaran), Asupan (target makro), dan Latihan (menit/pekan). */
+export interface FitTargets {
+  /** Menit gerak per pekan. */
+  minutes: number
+  /** Sesi latihan per pekan. */
+  sessions: number
+  /** Gelas air per hari. */
+  water: number
+  /** Target makro harian — gram. */
+  protein: number
+  carb: number
+  fat: number
+  /** Berat tujuan (kg) — 0 = belum ditetapkan. */
+  weightGoal: number
+  /** Tinggi badan (cm) — dasar BMI; 0 = belum diisi. */
+  heightCm: number
+}
+
+export const FIT_TARGETS_DEFAULT: FitTargets = {
+  minutes: 150,
+  sessions: 3,
+  water: 8,
+  protein: 110,
+  carb: 250,
+  fat: 60,
+  weightGoal: 0,
+  heightCm: 0,
+}
 
 /** Satu catatan tubuh per tanggal (UPSERT harian) — hidrasi, berat,
  *  tidur & energi jadi satu sumber kebenaran untuk kesiapan latihan. */
@@ -848,6 +936,8 @@ interface RutinaState {
   /* Kebiasaan & histori */
   habits: Habit[]
   completions: Completions
+  /** Kelompok kebiasaan custom (v2.22) — mis. "Pagi", "Gym". */
+  habitGroups: HabitGroup[]
   /** Tanggal yang sedang dilihat di kalender Beranda (ISO). */
   selectedDate: string
   habitSheetMode: HabitSheetMode
@@ -883,10 +973,24 @@ interface RutinaState {
   budgets: Budgets
   /** Kategori buatan pengguna — satu daftar terpadu (v2.17). */
   customCats: CustomCat[]
+  /** Ganti nama kategori bawaan — slug → label tampilan (v2.22).
+   *  Menular ke seluruh tampilan tanpa menyentuh data transaksi. */
+  catRenames: Record<string, string>
+  /** Kategori bawaan yang disembunyikan dari pemilih (v2.22) — histori
+   *  transaksinya tetap utuh. */
+  hiddenCats: string[]
   finPeriod: FinPeriod
   txSheetOpen: boolean
+  /** ID transaksi yang sedang disunting (v2.22) — null = mode tambah. */
+  txEditId: string | null
   transferSheetOpen: boolean
   walletDialogOpen: boolean
+  /** ID dompet yang sedang disunting di dialog (v2.22) — null = tambah. */
+  walletEditId: string | null
+  /** Lembar kelola kategori terbuka (v2.22). */
+  catManageOpen: boolean
+  /** Drill-down keuangan terbuka: kategori / dompet (v2.22). */
+  finDrill: { kind: 'cat' | 'wallet'; id: string } | null
   goalSheetId: string | null
   goalDialogOpen: boolean
   expandedTxId: string | null
@@ -904,6 +1008,8 @@ interface RutinaState {
   calorieTarget: number
   /* Bugar — tubuh */
   bodyLogs: BodyLogs
+  /** Sasaran bugar lengkap — delapan target musim (v2.22). */
+  fitTargets: FitTargets
   /* Papan sistem desain — overlay spesifikasi visual (UI state, tak dipersist) */
   boardOpen: boolean
   openBoard: () => void
@@ -915,6 +1021,9 @@ interface RutinaState {
   setUiPref: (patch: Partial<UiPrefs>) => void
   openTxSheet: () => void
   closeTxSheet: () => void
+  /** Buka lembar transaksi dalam MODE SUNTING (v2.22) — lembar terisi
+   *  nilai transaksi lama; simpan memperbarui baris yang sama. */
+  openTxEdit: (id: string) => void
   addTx: (input: {
     type: TxType
     cat: string
@@ -923,6 +1032,19 @@ interface RutinaState {
     walletId?: string
     recurrence?: Recurrence | null
   }) => void
+  /** Perbarui transaksi yang sudah ada (v2.22) — sunting kategori,
+   *  nominal, catatan, dompet, arus, dan jadwal berulang. */
+  updateTx: (
+    id: string,
+    patch: {
+      type?: TxType
+      cat?: string
+      amount?: number
+      note?: string
+      walletId?: string
+      recurrence?: Recurrence | null
+    },
+  ) => void
   deleteTx: (id: string) => void
   toggleExpandedTx: (id: string) => void
   /* Kategori buatan — satu sistem kategori terpadu (v2.17) */
@@ -931,8 +1053,25 @@ interface RutinaState {
     type: TxType
   }) => CustomCat | null
   removeCustomCat: (id: string) => void
+  /* Kelola kategori (v2.22): ganti nama bawaan menular ke tampilan,
+   *  sembunyikan dari pemilih, hapus kategori buatan (transaksinya
+   *  dipindahkan ke "lainnya"). */
+  renameCat: (slug: string, newName: string) => void
+  hideCat: (slug: string) => void
+  unhideCat: (slug: string) => void
+  deleteCustomCat: (id: string) => void
+  openCatManage: () => void
+  closeCatManage: () => void
+  /* Drill-down keuangan (v2.22). */
+  openFinDrill: (kind: 'cat' | 'wallet', id: string) => void
+  closeFinDrill: () => void
   /* Dompet & transfer */
   addWallet: (name: string, initial: number) => void
+  /** Sunting dompet yang sudah ada (v2.22) — nama & saldo awal. */
+  updateWallet: (id: string, patch: { name?: string; initial?: number }) => void
+  /** Hapus dompet (v2.22) — transaksi terkait kehilangan tautan dompet
+   *  (tetap ada, menjadi "tanpa dompet"); saldo total menyesuaikan. */
+  deleteWallet: (id: string) => void
   openTransferSheet: () => void
   closeTransferSheet: () => void
   addTransfer: (input: {
@@ -942,6 +1081,7 @@ interface RutinaState {
     note: string
   }) => void
   openWalletDialog: () => void
+  openWalletEdit: (id: string) => void
   closeWalletDialog: () => void
   /* Anggaran */
   setBudget: (cat: string, limit: number) => void
@@ -974,6 +1114,8 @@ interface RutinaState {
     soreness?: number
     stress?: number
   }) => void
+  /** Perbarui sasaran bugar (v2.22) — patch dangkal atas FitTargets. */
+  setFitTargets: (patch: Partial<FitTargets>) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
   openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
@@ -981,6 +1123,9 @@ interface RutinaState {
   /* Aksi kebiasaan */
   setSelectedDate: (iso: string) => void
   toggleHabit: (id: string, dateISO: string) => void
+  /** Set progres terukur kebiasaan (v2.22): mencapai target → tercatat
+   *  selesai penuh (true); di bawahnya → angka parsial; 0 → hapus catatan. */
+  setHabitValue: (id: string, dateISO: string, value: number) => void
   addHabit: (input: HabitInput) => void
   updateHabit: (id: string, patch: Partial<HabitInput>) => void
   setHabitArchived: (id: string, archived: boolean) => void
@@ -988,6 +1133,9 @@ interface RutinaState {
   openHabitCreate: () => void
   openHabitEdit: (id: string) => void
   closeHabitSheet: () => void
+  /* Kelompok kebiasaan custom (v2.22). */
+  addHabitGroup: (name: string, color: string) => HabitGroup | null
+  deleteHabitGroup: (id: string) => void
   /* Jeda Runtun Aman (streak freeze) */
   scheduleRestDay: (
     id: string,
@@ -1027,6 +1175,7 @@ export const useRutina = create<RutinaState>()(
   composeFolder: 'pribadi',
   habits: [],
   completions: {},
+  habitGroups: [],
   selectedDate: todayISO(),
   habitSheetMode: 'closed',
   habitSheetId: null,
@@ -1051,10 +1200,16 @@ export const useRutina = create<RutinaState>()(
   wallets: [],
   budgets: { ...DEFAULT_BUDGETS },
   customCats: [],
+  catRenames: {},
+  hiddenCats: [],
   finPeriod: 'bulan',
   txSheetOpen: false,
+  txEditId: null,
   transferSheetOpen: false,
   walletDialogOpen: false,
+  walletEditId: null,
+  catManageOpen: false,
+  finDrill: null,
   goalSheetId: null,
   goalDialogOpen: false,
   expandedTxId: null,
@@ -1067,6 +1222,7 @@ export const useRutina = create<RutinaState>()(
   foodSheetOpen: false,
   calorieTarget: 2000,
   bodyLogs: {},
+  fitTargets: { ...FIT_TARGETS_DEFAULT },
   boardOpen: false,
 
   openBoard: () => set({ boardOpen: true }),
@@ -1093,9 +1249,12 @@ export const useRutina = create<RutinaState>()(
   setUiPref: (patch) =>
     set((s) => ({ uiPrefs: { ...s.uiPrefs, ...patch } })),
 
-  openTxSheet: () => set({ txSheetOpen: true }),
+  openTxSheet: () => set({ txSheetOpen: true, txEditId: null }),
 
-  closeTxSheet: () => set({ txSheetOpen: false }),
+  closeTxSheet: () => set({ txSheetOpen: false, txEditId: null }),
+
+  /* Mode sunting transaksi (v2.22) — lembar terisi nilai lama. */
+  openTxEdit: (id) => set({ txSheetOpen: true, txEditId: id }),
 
   addTx: ({ type, cat, amount, note, walletId, recurrence }) =>
     set((s) => ({
@@ -1144,6 +1303,69 @@ export const useRutina = create<RutinaState>()(
       customCats: s.customCats.filter((c) => c.id !== id),
     })),
 
+  /* --- Kelola kategori (v2.22) --- */
+
+  /* Ganti nama kategori bawaan — override label tersimpan terpisah
+     (catRenames) sehingga data transaksi tak tersentuh & tetap aman
+     bila nama dikembalikan. Kategori buatan diubah langsung di
+     customCats. */
+  renameCat: (slug, newName) => {
+    const clean = newName.trim().slice(0, 40)
+    if (!clean) return
+    set((s) => {
+      /* Kategori buatan: ubah namanya langsung. */
+      const custom = s.customCats.find((c) => c.id === slug)
+      if (custom) {
+        return {
+          customCats: s.customCats.map((c) =>
+            c.id === slug ? { ...c, name: clean } : c,
+          ),
+        }
+      }
+      /* Kategori bawaan: simpan override (hapus bila sama dengan nama asli). */
+      const renames = { ...s.catRenames }
+      const original = CATS_UNIFIED_LABELS[slug]
+      if (original && original.toLowerCase() === clean.toLowerCase()) {
+        delete renames[slug]
+      } else {
+        renames[slug] = clean
+      }
+      return { catRenames: renames }
+    })
+  },
+
+  hideCat: (slug) =>
+    set((s) => ({
+      hiddenCats: s.hiddenCats.includes(slug)
+        ? s.hiddenCats
+        : [...s.hiddenCats, slug],
+    })),
+
+  unhideCat: (slug) =>
+    set((s) => ({ hiddenCats: s.hiddenCats.filter((c) => c !== slug) })),
+
+  /* Hapus kategori buatan — transaksinya dipindah ke "lainnya" agar
+     histori tidak yatim; anggarannya dibuang bila ada. */
+  deleteCustomCat: (id) =>
+    set((s) => {
+      const budgets = { ...s.budgets }
+      delete budgets[id]
+      return {
+        customCats: s.customCats.filter((c) => c.id !== id),
+        txs: s.txs.map((t) => (t.cat === id ? { ...t, cat: 'lainnya' } : t)),
+        budgets,
+        hiddenCats: s.hiddenCats.filter((c) => c !== id),
+      }
+    }),
+
+  openCatManage: () => set({ catManageOpen: true }),
+
+  closeCatManage: () => set({ catManageOpen: false }),
+
+  openFinDrill: (kind, id) => set({ finDrill: { kind, id } }),
+
+  closeFinDrill: () => set({ finDrill: null }),
+
   /* --- Dompet & transfer --- */
 
   addWallet: (name, initial) =>
@@ -1153,6 +1375,42 @@ export const useRutina = create<RutinaState>()(
         { id: `w-${Date.now()}`, name: name.trim(), initial },
       ],
       walletDialogOpen: false,
+      walletEditId: null,
+    })),
+
+  /* Sunting dompet (v2.22) — saldo berjalan otomatis mengikuti karena
+     selalu dihitung dari initial + mutasi. */
+  updateWallet: (id, patch) =>
+    set((s) => ({
+      wallets: s.wallets.map((w) =>
+        w.id === id
+          ? {
+              ...w,
+              ...(patch.name !== undefined
+                ? { name: patch.name.trim().slice(0, 20) || w.name }
+                : {}),
+              ...(patch.initial !== undefined ? { initial: patch.initial } : {}),
+            }
+          : w,
+      ),
+      walletDialogOpen: false,
+      walletEditId: null,
+    })),
+
+  /* Hapus dompet (v2.22) — transaksi terkait menjadi "tanpa dompet"
+     (walletId/toWalletId dibersihkan); tidak ada catatan yang hilang. */
+  deleteWallet: (id) =>
+    set((s) => ({
+      wallets: s.wallets.filter((w) => w.id !== id),
+      txs: s.txs.map((t) => ({
+        ...t,
+        ...(t.walletId === id ? { walletId: undefined } : {}),
+        ...(t.toWalletId === id ? { toWalletId: undefined } : {}),
+      })),
+      walletDialogOpen: false,
+      walletEditId: null,
+      finDrill:
+        s.finDrill?.kind === 'wallet' && s.finDrill.id === id ? null : s.finDrill,
     })),
 
   openTransferSheet: () => set({ transferSheetOpen: true }),
@@ -1180,9 +1438,11 @@ export const useRutina = create<RutinaState>()(
       transferSheetOpen: false,
     })),
 
-  openWalletDialog: () => set({ walletDialogOpen: true }),
+  openWalletDialog: () => set({ walletDialogOpen: true, walletEditId: null }),
 
-  closeWalletDialog: () => set({ walletDialogOpen: false }),
+  openWalletEdit: (id) => set({ walletDialogOpen: true, walletEditId: id }),
+
+  closeWalletDialog: () => set({ walletDialogOpen: false, walletEditId: null }),
 
   /* --- Anggaran --- */
 
@@ -1251,6 +1511,32 @@ export const useRutina = create<RutinaState>()(
       }
       return added > 0 ? { txs: next } : {}
     }),
+
+  /* Sunting transaksi yang sudah ada (v2.22) — arus boleh berubah
+     (keluar↔masuk); salinan otomatis berulang ikut membawa kategori &
+     nominal baru saat materialisasi berikutnya. */
+  updateTx: (id, patch) =>
+    set((s) => ({
+      txs: s.txs.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              ...(patch.type !== undefined ? { type: patch.type } : {}),
+              ...(patch.cat !== undefined ? { cat: patch.cat } : {}),
+              ...(patch.amount !== undefined ? { amount: patch.amount } : {}),
+              ...(patch.note !== undefined ? { note: patch.note.trim() } : {}),
+              ...(patch.walletId !== undefined
+                ? { walletId: patch.walletId || undefined }
+                : {}),
+              ...(patch.recurrence !== undefined
+                ? { recurrence: patch.recurrence }
+                : {}),
+            }
+          : t,
+      ),
+      txSheetOpen: false,
+      txEditId: null,
+    })),
 
   deleteTx: (id) =>
     set((s) => ({
@@ -1383,6 +1669,9 @@ export const useRutina = create<RutinaState>()(
       return { bodyLogs: { ...s.bodyLogs, [key]: next } }
     }),
 
+  setFitTargets: (patch) =>
+    set((s) => ({ fitTargets: { ...s.fitTargets, ...patch } })),
+
   setJournalFilter: (journalFilter) => set({ journalFilter }),
 
   openFolder: (folder) => set({ screen: 'jurnal', journalFilter: folder }),
@@ -1414,6 +1703,28 @@ export const useRutina = create<RutinaState>()(
     })
   },
 
+  /** Set progres terukur kebiasaan (v2.22): capai target → `true`
+   *  (selesai penuh — konsisten dengan streak & statistik); di bawah
+   *  target → angka parsial; nol → hapus catatan hari itu. */
+  setHabitValue: (id, dateISO, value) => {
+    if (dateISO > todayISO()) return
+    const h = useRutina.getState().habits.find((x) => x.id === id)
+    const target = h?.target ?? 1
+    set((s) => {
+      const day = { ...(s.completions[dateISO] ?? {}) }
+      if (value <= 0) {
+        delete day[id]
+      } else if (value >= target) {
+        day[id] = true
+      } else {
+        day[id] = Math.round(value * 10) / 10
+      }
+      const completions = { ...s.completions, [dateISO]: day }
+      if (Object.keys(day).length === 0) delete completions[dateISO]
+      return { completions }
+    })
+  },
+
   addHabit: (input) =>
     set((s) => ({
       habits: [
@@ -1429,6 +1740,9 @@ export const useRutina = create<RutinaState>()(
           restDays: [...(input.restDays ?? [])].sort(),
           afterId: input.afterId || null,
           mini: (input.mini ?? '').trim(),
+          target: input.target && input.target > 0 ? input.target : null,
+          unit: input.target && input.target > 0 ? (input.unit ?? '').trim() || null : null,
+          groupId: input.groupId || null,
           archived: false,
           createdAt: todayISO(),
         },
@@ -1447,6 +1761,11 @@ export const useRutina = create<RutinaState>()(
         if (patch.desc !== undefined) next.desc = patch.desc.trim()
         if (patch.mini !== undefined) next.mini = patch.mini.trim()
         if (patch.afterId !== undefined) next.afterId = patch.afterId || null
+        if (patch.target !== undefined)
+          next.target = patch.target && patch.target > 0 ? patch.target : null
+        if (patch.unit !== undefined)
+          next.unit = patch.unit ? patch.unit.trim() || null : null
+        if (patch.groupId !== undefined) next.groupId = patch.groupId || null
         return next
       }),
     })),
@@ -1479,6 +1798,32 @@ export const useRutina = create<RutinaState>()(
   openHabitEdit: (id) => set({ habitSheetMode: 'edit', habitSheetId: id }),
 
   closeHabitSheet: () => set({ habitSheetMode: 'closed', habitSheetId: null }),
+
+  /* --- Kelompok kebiasaan custom (v2.22) --- */
+
+  addHabitGroup: (name, color) => {
+    const clean = name.trim().slice(0, 24)
+    if (!clean) return null
+    const s = get()
+    if (s.habitGroups.some((g) => g.name.toLowerCase() === clean.toLowerCase()))
+      return null
+    const group: HabitGroup = {
+      id: `hg-${Date.now()}`,
+      name: clean,
+      color,
+    }
+    set((st) => ({ habitGroups: [...st.habitGroups, group] }))
+    return group
+  },
+
+  /* Hapus kelompok — kebiasaan anggotanya kembali tanpa kelompok. */
+  deleteHabitGroup: (id) =>
+    set((s) => ({
+      habitGroups: s.habitGroups.filter((g) => g.id !== id),
+      habits: s.habits.map((h) =>
+        h.groupId === id ? { ...h, groupId: null } : h,
+      ),
+    })),
 
   /* --- Jeda Runtun Aman (streak freeze) --- */
 
@@ -1639,8 +1984,10 @@ export const useRutina = create<RutinaState>()(
          dirender dari seed, lalu state tersimpan dipulihkan di klien —
          bebas hydration mismatch. RutinaApp memanggil rehydrate(). */
       skipHydration: true,
-      /* Migrasi v1 → v2: isi field baru (Jeda Runtun, Susun Kebiasaan,
-         Versi 2 Menit, moodLogs, identitas, deload, kutipan harian). */
+      /* Migrasi v1 → v2 → v2.22: isi field baru (Jeda Runtun, Susun
+         Kebiasaan, Versi 2 Menit, moodLogs, identitas, deload, kutipan
+         harian, kelompok kebiasaan, kategori rename/sembunyi, sasaran
+         bugar, kebiasaan terukur). */
       migrate: (persisted) => {
         const p = persisted as Record<string, unknown> & {
           habits?: Record<string, unknown>[]
@@ -1651,12 +1998,22 @@ export const useRutina = create<RutinaState>()(
             restDays: Array.isArray(h.restDays) ? h.restDays : [],
             afterId: h.afterId ?? null,
             mini: typeof h.mini === 'string' ? h.mini : '',
+            target: typeof h.target === 'number' ? h.target : null,
+            unit: typeof h.unit === 'string' ? h.unit : null,
+            groupId: typeof h.groupId === 'string' ? h.groupId : null,
           }))
         }
         if (!p.moodLogs || typeof p.moodLogs !== 'object') p.moodLogs = {}
         if (typeof p.identityText !== 'string') p.identityText = ''
         if (typeof p.deloadUntil !== 'string') p.deloadUntil = null
         if (typeof p.quoteSavedDate !== 'string') p.quoteSavedDate = null
+        if (!Array.isArray(p.habitGroups)) p.habitGroups = []
+        if (!p.catRenames || typeof p.catRenames !== 'object') p.catRenames = {}
+        if (!Array.isArray(p.hiddenCats)) p.hiddenCats = []
+        p.fitTargets = {
+          ...FIT_TARGETS_DEFAULT,
+          ...(typeof p.fitTargets === 'object' && p.fitTargets ? p.fitTargets : {}),
+        }
         return p as unknown as RutinaState
       },
       /* Hanya state domain yang dipersist — state UI sesaat (tab aktif,
@@ -1664,16 +2021,20 @@ export const useRutina = create<RutinaState>()(
       partialize: (s) => ({
         habits: s.habits,
         completions: s.completions,
+        habitGroups: s.habitGroups,
         notes: s.notes,
         txs: s.txs,
         goals: s.goals,
         wallets: s.wallets,
         budgets: s.budgets,
         customCats: s.customCats,
+        catRenames: s.catRenames,
+        hiddenCats: s.hiddenCats,
         workouts: s.workouts,
         foodEntries: s.foodEntries,
         calorieTarget: s.calorieTarget,
         bodyLogs: s.bodyLogs,
+        fitTargets: s.fitTargets,
         dailyGoal: s.dailyGoal,
         mood: s.mood,
         moodLogs: s.moodLogs,

@@ -36,6 +36,12 @@ const DDL_STATEMENTS: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS "rutina_fin_categories_type_idx"
    ON "rutina_fin_categories"("type")`,
+  /* v2.22: kelompok kebiasaan custom — id, nama, warna chip. */
+  `CREATE TABLE IF NOT EXISTS "rutina_habit_groups" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "color" TEXT NOT NULL
+  )`,
 ]
 
 /** Janji tunggal per proses — pemanggil paralel berbagi satu eksekusi. */
@@ -70,13 +76,26 @@ async function runDdl(): Promise<void> {
   const cardioCols: [string, string][] = [
     ['rutina_workout_sessions', 'distance'],
     ['rutina_workout_sessions', 'kcal'],
+    /* v2.22: kebiasaan terukur (target + satuan) & kelompok custom. */
+    ['rutina_habits', 'target'],
+    ['rutina_habits', 'unit'],
+    ['rutina_habits', 'groupId'],
+    /* v2.22: progres parsial kebiasaan terukur di log. */
+    ['rutina_habit_logs', 'value'],
   ]
+  const COL_TYPES: Record<string, string> = {
+    distance: 'REAL',
+    target: 'INTEGER',
+    unit: 'TEXT',
+    groupId: 'TEXT',
+    value: 'REAL',
+  }
   for (const [table, column] of cardioCols) {
     if (await hasColumn(table, column)) continue
     try {
       await db.$executeRawUnsafe(
         `ALTER TABLE "${table}" ADD COLUMN "${column}" ${
-          column === 'distance' ? 'REAL' : 'INTEGER'
+          COL_TYPES[column] ?? 'INTEGER'
         }`,
       )
     } catch (error) {

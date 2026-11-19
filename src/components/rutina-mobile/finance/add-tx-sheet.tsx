@@ -29,22 +29,30 @@ import { catMetaOf, PRIMARY_CATS_BY_TYPE } from './cats'
 import { formatIDR } from './utils'
 
 /**
- * Lembar tambah transaksi (v2.17) — keypad khas aplikasi keuangan
- * dengan pemilih kategori DROPDOWN: form tetap pendek, hanya menampilkan
- * kategori terpilih; daftar lengkap (bawaan 2.0 + impor 1.0 + buatan,
- * tanpa penanda asal) hidup di CatPickerSheet bersama pencarian,
- * kategori sering dipakai, dan tombol tambah.
+ * Lembar tambah/sunting transaksi (v2.17, v2.22) — keypad khas
+ * aplikasi keuangan dengan pemilih kategori DROPDOWN: form tetap pendek,
+ * hanya menampilkan kategori terpilih; daftar lengkap (bawaan 2.0 +
+ * impor 1.0 + buatan, tanpa penanda asal) hidup di CatPickerSheet bersama
+ * pencarian, kategori sering dipakai, dan tombol tambah.
  * v2.18: subkategori dihapus — kategori saja cukup.
+ * v2.22: MODE SUNTING — txEditId terisi → lembar terbuka membawa nilai
+ * transaksi lama; simpan memperbarui baris yang sama (bukan menambah).
  */
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'back']
 
 export function AddTxSheet() {
   const open = useRutina((s) => s.txSheetOpen)
+  const txEditId = useRutina((s) => s.txEditId)
+  const txs = useRutina((s) => s.txs)
   const closeTxSheet = useRutina((s) => s.closeTxSheet)
   const addTx = useRutina((s) => s.addTx)
+  const updateTx = useRutina((s) => s.updateTx)
   const wallets = useRutina((s) => s.wallets)
   const customCats = useRutina((s) => s.customCats)
+
+  /* Transaksi yang sedang disunting (v2.22) — null = mode tambah. */
+  const editing = txEditId ? (txs.find((t) => t.id === txEditId) ?? null) : null
 
   const [type, setType] = useState<TxType>('keluar')
   const [cat, setCat] = useState<string>('makan')
@@ -61,18 +69,30 @@ export function AddTxSheet() {
   /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
   useFocusTrap(open, panelRef)
 
-  /* Draf di-reset setiap kali lembar dibuka. */
+  /* Draf di-reset setiap kali lembar dibuka — mode sunting membawa nilai
+     transaksi lama (v2.22). */
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      setType('keluar')
-      setCat('makan')
+      if (editing) {
+        setType(editing.type === 'masuk' ? 'masuk' : 'keluar')
+        setCat(editing.cat)
+        setDigits(editing.amount > 0 ? String(editing.amount) : '')
+        setNote(editing.note)
+        setWalletId(editing.walletId ?? '')
+        /* Berulang hanya bisa diubah pada templat asli — salinan otomatis
+           mengikuti templatnya. */
+        setRecurrence(editing.recurOf ? null : (editing.recurrence ?? null))
+      } else {
+        setType('keluar')
+        setCat('makan')
+        setDigits('')
+        setNote('')
+        setWalletId(wallets[0]?.id ?? '')
+        setRecurrence(null)
+      }
       setPickerOpen(false)
       setWalletPickerOpen(false)
-      setDigits('')
-      setNote('')
-      setWalletId(wallets[0]?.id ?? '')
-      setRecurrence(null)
     }
   }
 
@@ -107,6 +127,21 @@ export function AddTxSheet() {
   const submit = () => {
     if (!amount) {
       toast.warning('Masukkan nominal terlebih dahulu')
+      return
+    }
+    /* Mode sunting (v2.22): perbarui baris yang sama. */
+    if (editing) {
+      updateTx(editing.id, {
+        type,
+        cat,
+        amount,
+        note,
+        walletId: walletId || undefined,
+        /* Salinan otomatis tidak menyimpan jadwal sendiri. */
+        recurrence: editing.recurOf ? undefined : recurrence,
+      })
+      closeTxSheet()
+      toast.success(`Transaksi ${formatIDR(amount)} diperbarui`)
       return
     }
     addTx({
@@ -178,10 +213,12 @@ export function AddTxSheet() {
             <div className="flex items-start justify-between gap-3">
               <div className="text-left">
                 <h2 className="text-lead font-semibold tracking-tight text-content-primary">
-                  Transaksi Baru
+                  {editing ? 'Sunting Transaksi' : 'Transaksi Baru'}
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">
-                  Catat arus uang — {shortDateLabel(todayISO())}.
+                  {editing
+                    ? `Perubahan langsung menggantikan catatan lama — ${shortDateLabel(editing.ts)}.`
+                    : `Catat arus uang — ${shortDateLabel(todayISO())}.`}
                 </p>
               </div>
             </div>
@@ -326,14 +363,22 @@ export function AddTxSheet() {
               </div>
             )}
 
-            {/* Transaksi berulang */}
+            {/* Transaksi berulang — tidak untuk salinan otomatis (recurOf). */}
             <div className="mt-4 space-y-1.5" role="group" aria-label="Transaksi berulang">
               <span className="text-note font-semibold text-content-secondary">
                 Berulang{' '}
                 <span className="font-normal text-content-muted">
-                  (tercatat otomatis tiap jadwal)
+                  {editing?.recurOf
+                    ? '(salinan otomatis — ikut templatnya)'
+                    : '(tercatat otomatis tiap jadwal)'}
                 </span>
               </span>
+              {editing?.recurOf ? (
+                <p className="rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta leading-relaxed text-content-muted">
+                  Ini salinan otomatis dari transaksi berulang. Ubah jadwalnya
+                  di templat asal (baris dengan ikon panah melingkar).
+                </p>
+              ) : (
               <div className="flex gap-2">
                 {([null, 'mingguan', 'bulanan'] as const).map((r) => {
                   const on = recurrence === r
@@ -354,6 +399,7 @@ export function AddTxSheet() {
                   )
                 })}
               </div>
+              )}
             </div>
 
             {/* Keypad */}
@@ -404,7 +450,7 @@ export function AddTxSheet() {
                 disabled={!amount}
                 className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover disabled:opacity-45"
               >
-                Simpan Transaksi
+                {editing ? 'Simpan Perubahan' : 'Simpan Transaksi'}
               </Button>
             </div>
           </m.div>

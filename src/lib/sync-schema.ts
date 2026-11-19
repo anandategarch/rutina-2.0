@@ -27,6 +27,12 @@ export const SYNC_SETTING_KEYS = {
   deloadUntil: 'app.deloadUntil',
   /** Tanggal kutipan harian terakhir yang disimpan. */
   quoteSavedDate: 'app.quoteSavedDate',
+  /** Ganti nama kategori bawaan — JSON Record<slug, label> (v2.22). */
+  catRenames: 'app.catRenames',
+  /** Kategori bawaan yang disembunyikan dari pemilih — JSON string[] (v2.22). */
+  hiddenCats: 'app.hiddenCats',
+  /** Sasaran bugar lengkap — JSON FitTargets (v2.22). */
+  fitTargets: 'app.fitTargets',
   /** Penanda "dataset pernah diunggah" — dasar kebijakan server-menang. */
   initialized: 'sync.initialized',
   lastPushAt: 'sync.lastPushAt',
@@ -58,16 +64,31 @@ export const habitSchema = z.object({
   afterId: z.string().max(64).nullable().default(null),
   /** Versi 2 Menit — bentuk terkecil kebiasaan. */
   mini: z.string().max(300).default(''),
+  /** Kebiasaan terukur (v2.22): target jumlah per hari. */
+  target: z.number().int().min(1).max(1000).nullable().default(null),
+  /** Kebiasaan terukur (v2.22): satuan, mis. "gelas". */
+  unit: z.string().max(16).nullable().default(null),
+  /** Kelompok kebiasaan custom (v2.22) — id HabitGroup. */
+  groupId: z.string().max(64).nullable().default(null),
   archived: z.boolean(),
   createdAt: isoDate,
 })
 export const habitInputSchema = habitSchema.omit({ id: true, archived: true, createdAt: true })
 export const habitPatchSchema = habitInputSchema.partial()
 
-/** completions[tanggalISO][habitId] = true */
+/** Kelompok kebiasaan buatan pengguna (v2.22). */
+export const habitGroupSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(40),
+  /** Token warna CSS dari palet earth-tone. */
+  color: z.string().min(1).max(48),
+})
+
+/** completions[tanggalISO][habitId] = true (selesai) | number (progres
+ *  parsial kebiasaan terukur, mis. 5 dari 8 gelas — v2.22). */
 export const completionsSchema = z.record(
   isoDate,
-  z.record(z.string().min(1).max(64), z.boolean()),
+  z.record(z.string().min(1).max(64), z.union([z.boolean(), z.number().min(0).max(100_000)])),
 )
 
 /* ===== Domain: jurnal ===== */
@@ -211,6 +232,24 @@ export const moodLogsSchema = z
 
 /* ===== Snapshot penuh ===== */
 
+/** Sasaran bugar lengkap (v2.22) — delapan target musim. */
+export const fitTargetsSchema = z.object({
+  /** Menit gerak per pekan. */
+  minutes: z.number().int().min(0).max(3000),
+  /** Sesi latihan per pekan. */
+  sessions: z.number().int().min(0).max(21),
+  /** Gelas air per hari. */
+  water: z.number().int().min(0).max(30),
+  /** Target makro harian — gram. */
+  protein: z.number().int().min(0).max(500),
+  carb: z.number().int().min(0).max(1500),
+  fat: z.number().int().min(0).max(500),
+  /** Berat tujuan (kg). */
+  weightGoal: z.number().int().min(0).max(300),
+  /** Tinggi badan (cm) — dasar BMI. */
+  heightCm: z.number().int().min(0).max(250),
+})
+
 export const syncStateSchema = z.object({
   habits: z.array(habitSchema).max(500),
   completions: completionsSchema,
@@ -237,6 +276,24 @@ export const syncStateSchema = z.object({
   quoteSaved: z.boolean(),
   /** Tanggal kutipan harian terakhir disimpan. */
   quoteSavedDate: isoDate.nullable().default(null),
+  /* ===== Tambahan v2.22 ===== */
+  /** Kelompok kebiasaan custom. */
+  habitGroups: z.array(habitGroupSchema).max(50).default([]),
+  /** Ganti nama kategori bawaan — slug → label tampilan. */
+  catRenames: z.record(z.string().min(1).max(64), z.string().min(1).max(60)).default({}),
+  /** Kategori bawaan yang disembunyikan dari pemilih. */
+  hiddenCats: z.array(z.string().min(1).max(64)).max(100).default([]),
+  /** Sasaran bugar lengkap. */
+  fitTargets: fitTargetsSchema.default({
+    minutes: 150,
+    sessions: 3,
+    water: 8,
+    protein: 110,
+    carb: 250,
+    fat: 60,
+    weightGoal: 0,
+    heightCm: 0,
+  }),
 })
 
 /** Muatan PUT /api/state — { state: SyncState }. */
@@ -245,6 +302,7 @@ export const syncPutSchema = z.object({ state: syncStateSchema })
 /** Bentuk TypeScript snapshot (hasil inferensi Zod). */
 export type SyncState = z.infer<typeof syncStateSchema>
 export type HabitWire = z.infer<typeof habitSchema>
+export type HabitGroupWire = z.infer<typeof habitGroupSchema>
 export type NoteWire = z.infer<typeof noteSchema>
 export type TxWire = z.infer<typeof txSchema>
 export type WalletWire = z.infer<typeof walletSchema>
@@ -253,3 +311,4 @@ export type GoalWire = z.infer<typeof goalSchema>
 export type WorkoutWire = z.infer<typeof workoutSchema>
 export type FoodEntryWire = z.infer<typeof foodEntrySchema>
 export type BodyLogWire = z.infer<typeof bodyLogSchema>
+export type FitTargetsWire = z.infer<typeof fitTargetsSchema>

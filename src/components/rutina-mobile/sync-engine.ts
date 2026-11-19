@@ -30,6 +30,7 @@ import type {
   TxType,
   WorkoutKind,
 } from './store'
+import { FIT_TARGETS_DEFAULT } from './store'
 import type { SyncState } from '@/lib/sync-schema'
 
 /* ===== Konfigurasi ===== */
@@ -61,6 +62,11 @@ const DOMAIN_KEYS = [
   'bonusClaimed',
   'quoteSaved',
   'quoteSavedDate',
+  /* v2.22 */
+  'habitGroups',
+  'catRenames',
+  'hiddenCats',
+  'fitTargets',
 ] as const
 
 type DomainKey = (typeof DOMAIN_KEYS)[number]
@@ -148,6 +154,9 @@ function applyServerState(remote: SyncState): void {
       restDays: [...(h.restDays ?? [])],
       afterId: h.afterId ?? null,
       mini: h.mini ?? '',
+      target: h.target ?? null,
+      unit: h.unit ?? null,
+      groupId: h.groupId ?? null,
     })),
     completions: remote.completions,
     notes: remote.notes.map((n) => ({ ...n, folder: n.folder as FolderKey })),
@@ -202,6 +211,11 @@ function applyServerState(remote: SyncState): void {
     bonusClaimed: remote.bonusClaimed,
     quoteSaved: remote.quoteSaved,
     quoteSavedDate: remote.quoteSavedDate ?? null,
+    /* v2.22 */
+    habitGroups: (remote.habitGroups ?? []).map((g) => ({ ...g })),
+    catRenames: { ...(remote.catRenames ?? {}) },
+    hiddenCats: [...(remote.hiddenCats ?? [])],
+    fitTargets: { ...(remote.fitTargets ?? FIT_TARGETS_DEFAULT) },
   })
 }
 
@@ -430,4 +444,73 @@ export async function forcePull(): Promise<boolean> {
     console.warn('[sync] forcePull gagal:', error)
     return false
   }
+}
+
+/* ===== Ekspor & impor cadangan (v2.22) ===== */
+
+/** Snapshot domain saat ini dalam bentuk wire SyncState — dipakai tombol
+ *  "Unduh cadangan JSON" di Profil. Bentuk identik dengan yang dipush ke
+ *  /api/state sehingga hasil unduhan bisa langsung dipulihkan lewat
+ *  importBackup() atau PUT manual. */
+export function exportBackup(): SyncState {
+  return snapshot()
+}
+
+/** Pulihkan cadangan JSON ke store — validasi bentuk minimal di sisi
+ *  klien (berasal dari berkas pengguna sendiri), lalu terapkan lewat jalur
+ *  yang sama dengan applyServerState sehingga pemetaan tipe konsisten.
+ *  Mengembalikan pesan error bila berkas tidak dikenali. */
+export async function importBackup(raw: string): Promise<string | null> {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return 'Berkas bukan JSON yang valid.'
+  }
+  /* Terima dua bentuk: snapshot murni ATAU pembungkus { state } yang
+     persis seperti format PUT /api/state. */
+  const candidate =
+    parsed && typeof parsed === 'object' && 'state' in (parsed as Record<string, unknown>)
+      ? (parsed as { state: unknown }).state
+      : parsed
+  const c = candidate as Partial<SyncState> | null
+  if (!c || typeof c !== 'object' || !Array.isArray(c.habits) || !Array.isArray(c.txs)) {
+    return 'Berkas bukan cadangan Rutina yang dikenali.'
+  }
+  suppress = true
+  try {
+    applyServerState({
+      habits: [],
+      completions: {},
+      notes: [],
+      txs: [],
+      goals: [],
+      wallets: [],
+      budgets: {},
+      customCats: [],
+      workouts: [],
+      foodEntries: [],
+      calorieTarget: c.calorieTarget ?? 2000,
+      bodyLogs: {},
+      dailyGoal: c.dailyGoal ?? 4,
+      mood: c.mood ?? null,
+      moodLogs: c.moodLogs ?? {},
+      identityText: c.identityText ?? '',
+      deloadUntil: c.deloadUntil ?? null,
+      bonusClaimed: c.bonusClaimed ?? false,
+      quoteSaved: c.quoteSaved ?? false,
+      quoteSavedDate: c.quoteSavedDate ?? null,
+      habitGroups: c.habitGroups ?? [],
+      catRenames: c.catRenames ?? {},
+      hiddenCats: c.hiddenCats ?? [],
+      fitTargets: c.fitTargets ?? FIT_TARGETS_DEFAULT,
+      ...c,
+    } as SyncState)
+    patchMeta({ lastEditAt: Date.now() })
+  } finally {
+    suppress = false
+  }
+  /* Perubahan domain tercatat; push terjadwal lewat langganan store. */
+  schedulePush()
+  return null
 }

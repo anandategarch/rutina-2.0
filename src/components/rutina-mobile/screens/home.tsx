@@ -37,6 +37,7 @@ import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { TaskRow } from '../task-row'
 import { HomeProgressRing } from '../home-progress-ring'
+import { GardenTree } from '../garden-tree'
 import { HomeFinanceCard } from '../home-finance-card'
 import { DailyHighlightCard } from '../daily-highlight-card'
 import { WeeklyRecapCard } from '../weekly-recap-card'
@@ -810,6 +811,7 @@ export default function HomeScreen() {
                                   weekDone={weekDoneCount(completions, h.id, selectedDate)}
                                   expanded={expandedTaskId === h.id}
                                   readOnly={selectedDate > today}
+                                  viewDate={selectedDate}
                                   xp={XP_PER_TASK}
                                   onToggle={() => {
                                     /* Misi dari kelompok terbuka selalu berarti "selesai" —
@@ -876,6 +878,7 @@ export default function HomeScreen() {
                                     weekDone={weekDoneCount(completions, h.id, selectedDate)}
                                     expanded={expandedTaskId === h.id}
                                     readOnly={selectedDate > today}
+                                    viewDate={selectedDate}
                                     xp={XP_PER_TASK}
                                     onToggle={() => toggleHabit(h.id, selectedDate)}
                                     onExpand={() => toggleExpandedTask(h.id)}
@@ -1251,10 +1254,15 @@ export default function HomeScreen() {
       {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap
           kebiasaan, berendam di permukaan kebun (garden-surface) sebagai
           bedeng lembut. mt-8 internal PlantGarden dinetralkan agar
-          ritme jarak mengikuti --layout-gap dari tumpukan utama. */}
+          ritme jarak mengikuti --layout-gap dari tumpukan utama.
+          v2.22: dibuka oleh Pohon Kebun — SATU pohon konsistensi global
+          yang tumbuh dari hari aktif seluruh kebun. */}
       {hasActiveHabits && (
-        <div className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-6 [&>section]:mt-0">
-          <PlantGarden />
+        <div className="space-y-[var(--layout-gap)]">
+          <GardenTree />
+          <div className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-6 [&>section]:mt-0">
+            <PlantGarden />
+          </div>
         </div>
       )}
 

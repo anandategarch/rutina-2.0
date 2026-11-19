@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import * as m from 'motion/react-m'
 import {
   ChevronRight,
+  Gauge,
   Scale,
   TrendingDown,
   TrendingUp,
@@ -12,7 +13,7 @@ import {
 
 import { motionTokens } from '@/lib/motion/tokens'
 import { useCatMeta } from './finance/use-cat-meta'
-import { formatIDR, formatIDRShort } from './finance/utils'
+import { allowanceInfo, formatIDR, formatIDRShort } from './finance/utils'
 import { RutinaCard } from './rutina-card'
 import { RutinaSectionHeader } from './rutina-section-header'
 import { todayISO, useRutina } from './store'
@@ -26,9 +27,16 @@ import { todayISO, useRutina } from './store'
 export function HomeFinanceCard() {
   const catMeta = useCatMeta()
   const txs = useRutina((s) => s.txs)
+  const budgets = useRutina((s) => s.budgets)
   const setScreen = useRutina((s) => s.setScreen)
 
   const today = todayISO()
+
+  /* Jatah aman hari ini (v2.22) — sisa anggaran ÷ hari tersisa. */
+  const allowance = useMemo(
+    () => allowanceInfo(budgets, txs, today),
+    [budgets, txs, today],
+  )
 
   const todayTxs = useMemo(
     () => txs.filter((t) => t.ts === today && t.type !== 'transfer'),
@@ -91,6 +99,17 @@ export function HomeFinanceCard() {
               Catat pemasukan dan pengeluaranmu agar arus kas hari ini
               tergambar di sini.
             </p>
+            {/* Jatah hari ini tetap tampil walau belum belanja (v2.22) */}
+            {allowance && (
+              <button
+                type="button"
+                onClick={() => setScreen('keuangan')}
+                className="mt-3 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-secondary px-4 text-meta font-bold text-success transition-colors hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <Gauge aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.4} />
+                Jatah hari ini ±{formatIDRShort(allowance.daily)}
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -138,6 +157,42 @@ export function HomeFinanceCard() {
                 </p>
               </div>
             </div>
+
+            {/* Jatah aman hari ini (v2.22) — strip di bawah metrik */}
+            {allowance && (
+              <button
+                type="button"
+                onClick={() => setScreen('keuangan')}
+                aria-label={`Jatah aman hari ini sekitar ${formatIDR(allowance.daily)} — buka tab Keuangan`}
+                className="mt-4 flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-left transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <Gauge
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0 text-module-accent-strong"
+                    strokeWidth={2.2}
+                  />
+                  <span className="min-w-0 truncate text-note font-semibold text-content-primary">
+                    Jatah hari ini ±{formatIDRShort(allowance.daily)}
+                  </span>
+                </span>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-eyebrow font-bold ${
+                    allowance.verdict === 'aman'
+                      ? 'bg-secondary text-success'
+                      : allowance.verdict === 'waspada'
+                        ? 'bg-gold/25 text-warning'
+                        : 'bg-clay/25 text-content-danger'
+                  }`}
+                >
+                  {allowance.verdict === 'aman'
+                    ? 'proyeksi aman'
+                    : allowance.verdict === 'waspada'
+                      ? 'proyeksi waspada'
+                      : 'proyeksi lewat batas'}
+                </span>
+              </button>
+            )}
 
             {/* Top 3 kategori pengeluaran */}
             {topCats.length > 0 && (

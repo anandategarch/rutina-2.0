@@ -374,17 +374,50 @@ export default function KebiasaanScreen() {
     return [...missed, ...tips]
   }, [habits, completions, today, activeHabits])
 
-  /* Semua kebiasaan aktif — dikelompokkan per kategori. */
-  const catGroups = useMemo(
-    () =>
-      HABIT_CATS.map((cat) => ({
-        cat,
-        items: activeHabits
-          .filter((h) => h.cat === cat)
-          .sort((a, b) => a.title.localeCompare(b.title)),
-      })).filter((g) => g.items.length > 0),
-    [activeHabits],
-  )
+  /* Semua kebiasaan aktif — dikelompokkan per KATEGORI, atau per
+     KELOMPOK CUSTOM bila ada yang memakainya (v2.22): bedeng kebun
+     buatan pengguna ("Pagi", "Gym"…) dengan warna chip masing-masing,
+     sisanya jatuh ke "Tanpa kelompok". Satu bentuk data {key,label,color}
+     dipakai render — tak ada cabang JSX ganda. */
+  const habitGroups = useRutina((s) => s.habitGroups)
+  const catGroups = useMemo(() => {
+    const sorted = (xs: typeof activeHabits) =>
+      [...xs].sort((a, b) => a.title.localeCompare(b.title))
+    const groupIds = new Set(habitGroups.map((g) => g.id))
+    const usesGroups = activeHabits.some(
+      (h) => h.groupId && groupIds.has(h.groupId),
+    )
+    if (!usesGroups) {
+      return HABIT_CATS.map((cat) => ({
+        key: cat,
+        label: cat,
+        color: HABIT_CAT_COLORS[cat],
+        items: sorted(activeHabits.filter((h) => h.cat === cat)),
+      })).filter((g) => g.items.length > 0)
+    }
+    const sections = habitGroups
+      .map((g) => ({
+        key: g.id,
+        label: g.name,
+        color: g.color,
+        items: sorted(activeHabits.filter((h) => h.groupId === g.id)),
+      }))
+      .filter((g) => g.items.length > 0)
+    const ungrouped = sorted(
+      activeHabits.filter(
+        (h) => !h.groupId || !groupIds.has(h.groupId),
+      ),
+    )
+    if (ungrouped.length > 0) {
+      sections.push({
+        key: 'tanpa-kelompok',
+        label: 'Tanpa kelompok',
+        color: 'var(--content-muted, #8a8577)',
+        items: ungrouped,
+      })
+    }
+    return sections
+  }, [activeHabits, habitGroups])
 
   /* Kebiasaan efektif untuk panel detail: id terpilih bila masih aktif,
      jatuh ke baris pertama daftar sebagai bawaan. Dihitung langsung saat
@@ -698,6 +731,7 @@ export default function KebiasaanScreen() {
                           recent={recentDays(completions, h.id, today)}
                           weekDone={weekDoneCount(completions, h.id, today)}
                           expanded={expandedTaskId === h.id}
+                          viewDate={today}
                           xp={XP_PER_TASK}
                           onToggle={() => {
                             /* Centang dari daftar terbuka memindahkan baris
@@ -761,6 +795,7 @@ export default function KebiasaanScreen() {
                                 weekDone={weekDoneCount(completions, h.id, today)}
                                 expanded={expandedTaskId === h.id}
                                 xp={XP_PER_TASK}
+                                viewDate={today}
                                 onToggle={() => toggleHabit(h.id, today)}
                                 onExpand={() => toggleExpandedTask(h.id)}
                                 onEdit={() => openHabitEdit(h.id)}
@@ -814,15 +849,15 @@ export default function KebiasaanScreen() {
                     className="mt-4 space-y-5"
                   >
                     {catGroups.map((g) => (
-                      <m.div key={g.cat} variants={journalCard}>
+                      <m.div key={g.key} variants={journalCard}>
                         <div className="mb-2.5 flex items-center gap-2 border-l-2 border-module-accent pl-2.5">
                           <span
                             aria-hidden="true"
                             className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: HABIT_CAT_COLORS[g.cat] }}
+                            style={{ backgroundColor: g.color }}
                           />
                           <h3 className="text-body font-semibold tracking-tight text-content-secondary">
-                            {g.cat}
+                            {g.label}
                           </h3>
                           <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold text-content-secondary">
                             {g.items.length}
@@ -853,6 +888,7 @@ export default function KebiasaanScreen() {
                                 weekDone={weekDoneCount(completions, h.id, today)}
                                 expanded={expandedTaskId === h.id}
                                 xp={XP_PER_TASK}
+                                viewDate={today}
                                 onToggle={() => toggleHabit(h.id, today)}
                                 onExpand={() => {
                                   toggleExpandedTask(h.id)

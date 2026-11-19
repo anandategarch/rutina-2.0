@@ -13,6 +13,7 @@ import {
   Check,
   ChevronDown,
   Flame,
+  Gauge,
   Link2,
   Pencil,
   Repeat,
@@ -24,7 +25,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { PLANT_STAGES, plantStageOf, triggerLabelOf } from './habit-coach'
 import { PlantGlyph } from './plant-glyph'
-import { type Habit, todayISO, useRutina } from './store'
+import {
+  habitProgressOn,
+  type Habit,
+  todayISO,
+  useRutina,
+} from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
 import { pressSnappy } from '@/lib/motion/transitions'
@@ -44,6 +50,7 @@ export function TaskRow({
   xp,
   expanded,
   readOnly = false,
+  viewDate,
   onToggle,
   onExpand,
   onEdit,
@@ -60,6 +67,9 @@ export function TaskRow({
   expanded: boolean
   /** true bila tanggal yang dilihat masa depan — centang dimatikan. */
   readOnly?: boolean
+  /** Tanggal yang sedang dilihat (v2.22) — dasar stepper kebiasaan
+   *  terukur; default hari ini. */
+  viewDate?: string
   onToggle: () => void
   onExpand: () => void
   onEdit: () => void
@@ -70,7 +80,9 @@ export function TaskRow({
      dari store agar baris tetap ringkas tanpa prop tambahan dari induk. */
   const allHabits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
+  const setHabitValue = useRutina((s) => s.setHabitValue)
   const today = todayISO()
+  const viewISO = viewDate ?? today
   const triggerLabel = habit.afterId
     ? triggerLabelOf(allHabits, habit)
     : null
@@ -81,6 +93,28 @@ export function TaskRow({
   const nextStageLabel = plant.nextAt
     ? PLANT_STAGES[plant.index + 1]?.label
     : null
+
+  /* Kebiasaan terukur (v2.22): progres hari yang dilihat — true dianggap
+     target penuh, angka dipakai apa adanya, tanpa catatan = 0. */
+  const isMeasured = habit.target != null && habit.target > 0
+  const progress = useMemo(
+    () => (isMeasured ? habitProgressOn(habit, completions, viewISO) : 0),
+    [isMeasured, habit, completions, viewISO],
+  )
+  const measuredPct = isMeasured
+    ? Math.min(100, Math.round((progress / Math.max(1, habit.target ?? 1)) * 100))
+    : 0
+
+  const stepValue = (delta: number) => {
+    /* Baca progres SEGAR dari store saat klik (bukan closure render) —
+       klik cepat berturut-turut tetap akurat tanpa nilai terlewat. */
+    const cur = habitProgressOn(
+      habit,
+      useRutina.getState().completions,
+      viewISO,
+    )
+    setHabitValue(habit.id, viewISO, cur + delta)
+  }
 
   const x = useMotionValue(0)
   /* Isi hijau yang terkuak saat menggeser ke kanan (tandai selesai) */
@@ -280,6 +314,77 @@ export function TaskRow({
         </AnimatePresence>
       </m.div>
 
+      {/* Stepper kebiasaan terukur (v2.22) — strip khusus di bawah baris
+          utama: tombol ±, bar progres, dan angka "x/target satuan".
+          Mencapai target = selesai penuh (setHabitValue menyimpan true). */}
+      {isMeasured && (
+        <div
+          className={`relative z-10 flex items-center gap-2.5 border-t px-3 py-2 ${
+            done
+              ? 'border-primary/15 bg-secondary/60'
+              : 'border-border bg-surface-sunken/50'
+          }`}
+        >
+          <button
+            type="button"
+            disabled={readOnly || progress <= 0}
+            onClick={() => stepValue(-1)}
+            aria-label="Kurangi progres"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span aria-hidden="true" className="text-note font-bold">
+              −
+            </span>
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className={`text-eyebrow font-bold tabular-nums ${
+                  done ? 'text-success' : 'text-content-secondary'
+                }`}
+              >
+                {progress}
+                <span className="font-medium text-content-muted">
+                  /{habit.target} {habit.unit ?? 'kali'}
+                </span>
+              </span>
+              <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                {measuredPct}%
+              </span>
+            </div>
+            <div
+              className="mt-1 h-1.5 overflow-hidden rounded-full bg-border"
+              role="progressbar"
+              aria-label={`Progres ${habit.title}: ${progress} dari ${habit.target} ${habit.unit ?? 'kali'}`}
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={habit.target ?? 1}
+            >
+              <m.div
+                className={`h-full origin-left rounded-full ${
+                  done ? 'bg-primary' : 'bg-secondary'
+                }`}
+                style={{ width: '100%' }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: measuredPct / 100 }}
+                transition={pressSnappy}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={readOnly || done}
+            onClick={() => stepValue(1)}
+            aria-label="Tambah progres"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-primary/40 bg-secondary text-success transition-all hover:bg-secondary/80 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span aria-hidden="true" className="text-note font-bold">
+              +
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Detail yang bisa dibuka-tutup */}
       <AnimatePresence initial={false}>
         {expanded && (
@@ -309,6 +414,15 @@ export function TaskRow({
 
               {/* Meta jadwal, pengingat, target pekanan */}
               <dl className="mt-3 grid grid-cols-1 gap-1.5">
+                {isMeasured && (
+                  <div className="flex items-center gap-2 text-eyebrow font-medium text-content-muted">
+                    <Gauge aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span>
+                      Target {habit.target} {habit.unit ?? 'kali'} / hari ·
+                      progres hari ini {progress}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-eyebrow font-medium text-content-muted">
                   <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
                   <span>
