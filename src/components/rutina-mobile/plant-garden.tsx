@@ -166,7 +166,7 @@ function PlantCard({
       >
         <PlantGlyph stage={stage} className="h-8 w-8" />
       </div>
-      <p className="mt-2.5 line-clamp-2 break-words text-left text-meta font-semibold leading-snug text-content-primary">
+      <p className="mt-2.5 line-clamp-3 break-words text-left text-meta font-semibold leading-snug text-content-primary">
         {title}
       </p>
       <p className="mt-0.5 truncate text-eyebrow font-medium text-content-muted">

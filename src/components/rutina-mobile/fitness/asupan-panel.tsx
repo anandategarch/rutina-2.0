@@ -117,7 +117,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
         <Utensils className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-note font-semibold text-content-primary">
+        <p className="line-clamp-2 break-words text-note font-semibold leading-snug text-content-primary">
           {entry.name}
         </p>
         <p className="text-eyebrow font-medium text-content-muted">

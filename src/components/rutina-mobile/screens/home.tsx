@@ -187,15 +187,22 @@ function DateStrip() {
 
   const stripRef = useRef<HTMLDivElement>(null)
 
-  /* Gulir mulus ke hari ini begitu strip siap. */
+  /* Gulir mulus ke hari ini begitu strip siap. Pusatkan chip SECARA
+     HORIZONTAL saja lewat scrollTo pada stripnya sendiri — scrollIntoView
+     (block:'nearest') terbukti ikut menggeser gulir VERTIKAL halaman
+     ±84px saat chip dekat tepi bawah liang pandang, memotong sapaan di
+     atas layar (audit "terpotong" v2.21). */
   useEffect(() => {
-    if (!stripRef.current) return
-    const el = stripRef.current.querySelector('[data-today="true"]')
-    el?.scrollIntoView({
-      inline: 'center',
-      block: 'nearest',
-      behavior: 'smooth',
-    })
+    const strip = stripRef.current
+    if (!strip) return
+    const el = strip.querySelector('[data-today="true"]')
+    if (!(el instanceof HTMLElement)) return
+    const left =
+      strip.scrollLeft +
+      el.getBoundingClientRect().left -
+      strip.getBoundingClientRect().left -
+      (strip.clientWidth - el.clientWidth) / 2
+    strip.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
   }, [])
 
   const goal = Math.max(dailyGoal, 1)
@@ -1195,7 +1202,7 @@ export default function HomeScreen() {
             <p className="text-body font-semibold text-content-primary">
               Jurnal &amp; Catatan
             </p>
-            <p className="mt-0.5 truncate text-meta font-medium text-content-muted">
+            <p className="mt-0.5 line-clamp-2 break-words text-meta font-medium text-content-muted">
               {notes.length} catatan di {FOLDERS.length} folder
             </p>
           </div>

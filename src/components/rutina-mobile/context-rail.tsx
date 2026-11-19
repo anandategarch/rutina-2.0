@@ -219,7 +219,7 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
             <p className="text-eyebrow font-semibold uppercase tracking-[0.08em] tabular-nums text-content-muted">
               {next.reminder}
             </p>
-            <p className="mt-0.5 truncate text-body font-semibold leading-tight text-content-primary">
+            <p className="mt-0.5 line-clamp-2 break-words text-body font-semibold leading-tight text-content-primary">
               {next.title}
             </p>
             <p className="mt-1 flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">

@@ -274,7 +274,7 @@ function DayDetailBody({
                           {habitIcon(row)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-note font-semibold text-content-primary">
+                          <span className="block line-clamp-2 break-words text-note font-semibold leading-snug text-content-primary">
                             {row.title}
                           </span>
                           <span className="mt-0.5 block text-eyebrow font-medium text-content-muted">
@@ -308,7 +308,7 @@ function DayDetailBody({
                             aria-hidden="true"
                             className="h-3.5 w-3.5 shrink-0 text-primary"
                           />
-                          <span className="truncate">{n.title}</span>
+                          <span className="min-w-0 line-clamp-2 break-words leading-snug">{n.title}</span>
                         </p>
                         <p className="mt-1 line-clamp-1 text-meta leading-relaxed text-content-muted">
                           {n.body}
@@ -352,7 +352,7 @@ function DayDetailBody({
                           key={tx.id}
                           className="flex items-center gap-2.5 rounded-2xl bg-surface-sunken px-3 py-2"
                         >
-                          <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
+                          <span className="min-w-0 flex-1 line-clamp-2 break-words text-meta font-semibold leading-snug text-content-primary">
                             {tx.note || catMeta(tx.cat).label}
                           </span>
                           <span className="shrink-0 rounded-full bg-surface-primary px-2 py-0.5 text-chart-label font-semibold text-content-muted">

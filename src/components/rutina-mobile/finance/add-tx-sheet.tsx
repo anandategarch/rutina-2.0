@@ -253,7 +253,7 @@ export function AddTxSheet() {
                 onClick={() => setPickerOpen(true)}
                 aria-haspopup="dialog"
                 aria-label={`Kategori terpilih: ${catMetaOf(cat, customCats).label}. Ketuk untuk mengganti.`}
-                className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {(() => {
                   const meta = catMetaOf(cat, customCats)
@@ -263,7 +263,7 @@ export function AddTxSheet() {
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
                         <Icon className="h-4.5 w-4.5" aria-hidden="true" />
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                      <span className="min-w-0 flex-1 line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                         {meta.label}
                       </span>
                       <ChevronRight
@@ -310,12 +310,12 @@ export function AddTxSheet() {
                   aria-label={`Dompet terpilih: ${
                     wallets.find((w) => w.id === walletId)?.name ?? 'tanpa dompet'
                   }. Ketuk untuk mengganti.`}
-                  className="flex h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
                     <Wallet className="h-4.5 w-4.5" aria-hidden="true" />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                  <span className="min-w-0 flex-1 line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                     {wallets.find((w) => w.id === walletId)?.name ?? 'Tanpa dompet'}
                   </span>
                   <ChevronRight

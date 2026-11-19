@@ -170,9 +170,9 @@ export function TransferSheet() {
                   aria-label={`Dompet sumber: ${
                     from?.name ?? 'belum dipilih'
                   }. Ketuk untuk mengganti.`}
-                  className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface-sunken px-3 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface-sunken px-3 py-1.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
-                  <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                  <span className="min-w-0 flex-1 line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                     {from?.name ?? 'Pilih dompet'}
                   </span>
                   <ChevronDown
@@ -198,9 +198,9 @@ export function TransferSheet() {
                   aria-label={`Dompet tujuan: ${
                     to?.name ?? 'belum dipilih'
                   }. Ketuk untuk mengganti.`}
-                  className="flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface-sunken px-3 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-surface-sunken px-3 py-1.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
-                  <span className="min-w-0 flex-1 truncate text-body font-semibold text-content-primary">
+                  <span className="min-w-0 flex-1 line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                     {to?.name ?? 'Pilih dompet'}
                   </span>
                   <ChevronDown

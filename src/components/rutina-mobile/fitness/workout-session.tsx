@@ -544,7 +544,7 @@ function ExerciseNavChip({
       }`}
     >
       {done && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
-      <span className="max-w-[140px] truncate">{ex.name}</span>
+      <span className="min-w-0 max-w-[200px] truncate">{ex.name}</span>
       <span
         ref={countRef}
         className="text-eyebrow font-semibold tabular-nums opacity-70"
@@ -617,6 +617,9 @@ function SessionView({
   const [dir, setDir] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([])
+  /* Wadah deretan chip — dipakai pemusatan horizontal chip aktif tanpa
+     menggeser gulir vertikal halaman (audit "terpotong" v2.21). */
+  const chipRowRef = useRef<HTMLDivElement>(null)
 
   useFocusTrap(true, panelRef)
 
@@ -643,13 +646,20 @@ function SessionView({
     setReps(last ? last.reps : ex.hintReps > 0 ? ex.hintReps : 8)
   }
 
-  /* Chip aktif selalu terlihat di deretan yang bisa digulir. */
+  /* Chip aktif selalu terlihat di deretan yang bisa digulir — dipusatkan
+     horizontal pada wadahnya sendiri; scrollIntoView(block:'nearest')
+     dapat ikut menggeser gulir vertikal bila chip dekat tepi liang
+     pandang, membuat layar sesi "melompat" (audit "terpotong" v2.21). */
   useEffect(() => {
-    chipRefs.current[session.currentIdx]?.scrollIntoView({
-      block: 'nearest',
-      inline: 'center',
-      behavior: 'smooth',
-    })
+    const row = chipRowRef.current
+    const el = chipRefs.current[session.currentIdx]
+    if (!row || !(el instanceof HTMLElement)) return
+    const left =
+      row.scrollLeft +
+      el.getBoundingClientRect().left -
+      row.getBoundingClientRect().left -
+      (row.clientWidth - el.clientWidth) / 2
+    row.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
   }, [session.currentIdx])
 
   /* Keyboard: Escape = konfirmasi akhiri, panah = pindah gerakan. */
@@ -840,7 +850,7 @@ function SessionView({
           aria-label="Gerakan dalam sesi ini"
           className="shrink-0 px-5"
         >
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
+          <div ref={chipRowRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
             {session.exercises.map((e, i) => (
               <ExerciseNavChip
                 key={e.id}
@@ -1491,7 +1501,7 @@ export function SessionPickerSheet({
                           }`}
                         >
                           {on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />}
-                          <span className="max-w-[150px] truncate">{r.name}</span>
+                          <span className="min-w-0 max-w-[200px] truncate">{r.name}</span>
                           <span
                             className={`text-eyebrow font-semibold tabular-nums ${on ? 'opacity-80' : 'text-content-muted'}`}
                           >

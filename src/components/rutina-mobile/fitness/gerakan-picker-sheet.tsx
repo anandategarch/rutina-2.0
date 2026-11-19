@@ -227,7 +227,7 @@ export function GerakanPickerSheet({
                               : 'border-border bg-surface-sunken text-content-secondary hover:border-primary/40'
                           }`}
                         >
-                          <span className="max-w-[150px] truncate">
+                          <span className="min-w-0 max-w-[200px] truncate">
                             {exerciseLabel(r.name)}
                           </span>
                           <span className="text-content-muted/70 tabular-nums">

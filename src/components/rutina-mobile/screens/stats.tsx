@@ -878,7 +878,7 @@ export default function StatsScreen() {
                       {tile.unit}
                     </span>
                   </p>
-                  <p className="mt-auto truncate pt-2 text-eyebrow font-medium leading-snug text-hero-content-muted">
+                  <p className="mt-auto line-clamp-2 break-words pt-2 text-eyebrow font-medium leading-snug text-hero-content-muted">
                     {tile.caption}
                   </p>
                 </m.div>

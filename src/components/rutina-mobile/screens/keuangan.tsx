@@ -2538,7 +2538,7 @@ export default function KeuanganScreen() {
                           <Wallet className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-body font-semibold text-content-primary">
+                          <p className="line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                             {w.name}
                           </p>
                           <p className="text-eyebrow font-medium text-content-muted">
@@ -2575,13 +2575,14 @@ export default function KeuanganScreen() {
                         className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
                       >
                         <ArrowLeftRight className="h-4 w-4 shrink-0 text-warning" />
-                        <p className="min-w-0 flex-1 truncate text-note font-semibold text-content-primary">
-                          {fromW?.name ?? 'Dompet'} → {toW?.name ?? 'Dompet'}
-                          <span className="font-medium text-content-muted">
-                            {' '}
-                            · {fmtDate(t.ts)}
-                          </span>
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words text-note font-semibold leading-snug text-content-primary">
+                            {fromW?.name ?? 'Dompet'} → {toW?.name ?? 'Dompet'}
+                          </p>
+                          <p className="text-eyebrow font-medium text-content-muted">
+                            {fmtDate(t.ts)}
+                          </p>
+                        </div>
                         <p className="shrink-0 text-note font-bold tabular-nums text-content-muted">
                           {formatIDRShort(t.amount)}
                         </p>

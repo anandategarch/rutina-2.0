@@ -538,7 +538,7 @@ export function HabitSheet() {
                         <span className="block text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                           Pemicu
                         </span>
-                        <span className="block truncate text-note font-semibold text-content-primary">
+                        <span className="block line-clamp-2 break-words text-note font-semibold leading-snug text-content-primary">
                           {triggerTitle ?? 'Tanpa pemicu'}
                         </span>
                       </span>
@@ -618,7 +618,7 @@ export function HabitSheet() {
                                       : 'bg-surface-primary text-content-secondary hover:bg-secondary hover:text-content-primary')
                                   }
                                 >
-                                  <span className="min-w-0 flex-1 truncate">
+                                  <span className="min-w-0 flex-1 line-clamp-2 break-words text-left leading-snug">
                                     {x.title}
                                   </span>
                                   {draft.afterId === x.id && (

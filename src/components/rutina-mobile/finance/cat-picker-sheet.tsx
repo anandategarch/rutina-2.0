@@ -217,15 +217,15 @@ export function CatPickerSheet({
                           type="button"
                           onClick={() => pick(cat)}
                           aria-pressed={on}
-                          className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border pl-2.5 pr-3 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          className={`flex h-9 min-w-0 max-w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-full border pl-2.5 pr-3 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                             on
                               ? 'border-primary bg-secondary text-success shadow-leaf'
                               : 'border-border bg-surface-sunken text-content-secondary hover:border-primary/40'
                           }`}
                         >
                           <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          {meta.label}
-                          <span className="text-content-muted/70 tabular-nums">{count}×</span>
+                          <span className="min-w-0 truncate">{meta.label}</span>
+                          <span className="shrink-0 text-content-muted/70 tabular-nums">{count}×</span>
                         </button>
                       )
                     })}
@@ -264,7 +264,7 @@ export function CatPickerSheet({
                               <Icon className="h-4.5 w-4.5" aria-hidden="true" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-body font-semibold text-content-primary">
+                              <span className="block line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                                 {meta.label}
                               </span>
                               {on && (

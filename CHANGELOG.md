@@ -3,6 +3,67 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.21] — Audit Menyeluruh "Bug Terpotong" UI/UX
+
+Permintaan pengguna: "cari bug terpotong ui UX menyeluruh" — detektor
+overflow terprogram (scrollWidth/clientHeight × bounding rect) dijalankan
+di browser pada **390px, 320px, dan 1280px**, menyisir seluruh 7 layar +
+tab + 12 lembar (picker, form, detail hari) dalam dua kondisi: keadaan
+kosong dan data uji string-panjang (nama dompet/kategori/makanan/kebiasaan
+ekstrem), divalidasi visual per-screenshot dengan VLM.
+
+### Bug terpotong yang diperbaiki (16 lokasi, 15 file)
+- **Sapaan Beranda terpotong 19px di atas layar saat dimuat** (paling
+  sering dilihat pengguna): `scrollIntoView(block:'nearest')` pada chip
+  "hari ini" strip kalender ikut menggeser gulir VERTIKAL halaman ±84px
+  karena chip berada dekat tepi bawah liang pandang — kini pemusatan
+  horizontal murni via `scrollTo` pada stripnya sendiri; pola sama di
+  deretan chip sesi workout diperbaiki (chip aktif tak lagi membuat
+  layar sesi "melompat").
+- **Riwayat Transfer (Dompet)**: baris "Dompet A → Dompet B · tanggal"
+  terpotong hingga 260px di 320px — dompet TUJUAN seluruhnya tak
+  terlihat. Kini nama kedua dompet selalu utuh (wrap penuh), tanggal
+  pindah ke baris kecil tersendiri.
+- **Kartu dompet**: nama dompet panjang (`truncate`) kini wrap 2 baris.
+- **Jurnal makan (Asupan)**: nama makanan terpotong hingga 257px ("Nasi
+  goreng spesial dengan telur mata sapi da…") — kini 2 baris; kalibrasi
+  diverifikasi terhadap 179 nama master terpanjang (54 karakter, muat).
+- **KPI Statistik**: caption tile (`truncate`) memotong "Belum ada
+  jadwal kebiasaan", judul kebiasaan terbaik, "dalam 30 hari terakhir"
+  — kini 2 baris.
+- **Kartu Jurnal Beranda**: subtitle "3 catatan di 4 folder" terpotong
+  48px di antara dua tombol — kini wrap 2 baris.
+- **Chip "Sering dipakai"** (picker dompet): terpotong KERAS tanpa
+  elipsis ("…Keluarla") karena span tanpa `min-w-0` — elipsis kini
+  bekerja; chip picker kategori (tanpa proteksi apa pun) mendapat
+  `min-w-0 truncate` + `max-w-full`.
+- **Baris daftar picker** (dompet & kategori): `truncate` satu baris →
+  2 baris pada baris pilihan lengkap.
+- **Pemilih di form transaksi/transfer**: baris kategori & dompet
+  terpilih (`h-12` + `truncate`) → `min-h-12` + wrap 2 baris.
+- **Lembar Detail Hari (Statistik)**: judul kebiasaan (terpotong 240px),
+  judul catatan, dan catatan transaksi (164px) → wrap 2 baris.
+- **Pemicu "Susun Kebiasaan"**: judul kebiasaan di ringkasan & daftar
+  kandidat (terpotong 206px) → wrap 2 baris.
+- **Rail konteks desktop**: judul kebiasaan "Berikutnya" (terpotong
+  128px di 1280px) → wrap 2 baris.
+- **Kartu tanaman Kebiasaan**: judul `line-clamp-2` → `line-clamp-3`
+  (kartu sekilas 156px).
+- **Baris kebiasaan (TaskRow)**: judul kini TANPA clamp saat baris
+  dikembangkan — judul penuh selalu terlihat saat detail terbuka.
+- **Chip gerakan** (sesi barbel & picker): batas keras `max-w-[140px]` →
+  `200px` — nama gerakan panjang ("Dorong barbel terlentang") tak lagi
+  terpotong.
+
+### Metode
+Deteksi programatik (bukan hanya review statis): elemen dengan
+`scrollWidth > clientWidth` + `truncate/line-clamp` aktif, konten
+terpotong tanpa sinyal visual, dan elemen melewati tepi viewport —
+dijalankan setelah pemicuan seluruh section `whileInView`; temuan
+divalidasi visual (VLM) per screenshot; data uji panjang disuntik ke
+localStorage dengan sinkronisasi server di-blok (dataset produksi
+sandbox tetap kosong, dibersihkan penuh pasca-audit).
+
 ## [2.20] — Deep Review Frontend: motion.dev, anime.js & shadcn/ui (4 Agent Audit + 6 Agent Perbaikan)
 
 Permintaan pengguna: "full deep review front end, motion.dev anime.js.

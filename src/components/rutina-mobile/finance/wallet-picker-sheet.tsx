@@ -229,7 +229,7 @@ export function WalletPickerSheet({
                           }`}
                         >
                           <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          <span className="truncate">{w.name}</span>
+                          <span className="min-w-0 truncate">{w.name}</span>
                           <span className="text-content-muted/70 tabular-nums">{count}×</span>
                         </button>
                       )
@@ -267,7 +267,7 @@ export function WalletPickerSheet({
                               <Wallet className="h-4.5 w-4.5" aria-hidden="true" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-body font-semibold text-content-primary">
+                              <span className="block line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
                                 {w.name}
                               </span>
                               <span className="mt-0.5 block text-eyebrow tabular-nums text-content-muted">

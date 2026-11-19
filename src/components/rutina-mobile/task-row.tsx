@@ -208,7 +208,8 @@ export function TaskRow({
             baris kedua alih-alih menjepit judul menjadi ±24px. */}
         <span
           className={
-            'min-w-0 flex-1 basis-36 text-left text-section font-medium leading-snug break-words line-clamp-2 transition-colors duration-300 ' +
+            'min-w-0 flex-1 basis-36 text-left text-section font-medium leading-snug break-words transition-colors duration-300 ' +
+            (expanded ? '' : 'line-clamp-2 ') +
             (done
               ? 'text-content-muted line-through'
               : 'text-content-primary')
