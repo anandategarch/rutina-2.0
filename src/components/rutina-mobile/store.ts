@@ -779,20 +779,15 @@ export interface Tx {
   recurrence?: Recurrence | null
   /** ID templat asal — salinan otomatis transaksi berulang. */
   recurOf?: string
-  /** Subkategori opsional — label bebas di bawah kategori induk
-   *  (v2.17: satu sistem kategori + subkategori). */
-  subcat?: string
 }
 
 /** Kategori keuangan buatan pengguna (v2.17) — satu daftar terpadu
- *  bersama kategori bawaan + impor Rutina 1.0. Tanpa parentKey =
- *  kategori utama; parentKey (slug FinCat bawaan / id kategori lain)
- *  = subkategori. */
+ *  bersama kategori bawaan + impor Rutina 1.0. v2.18: FLAT — tanpa
+ *  subkategori, kategori saja cukup. */
 export interface CustomCat {
   id: string
   name: string
   type: TxType
-  parentKey?: string
 }
 
 /** Sumber dana / dompet — saldo dihitung dari saldo awal + mutasi. */
@@ -872,6 +867,16 @@ export interface WorkoutSeed {
   name: string
   count: number
   reps: number
+}
+
+/** Petunjuk mode awal lembar Catat Aktivitas (v2.18) — dipakai tombol
+ *  pintasan di tab Bugar ("Lari", "Jalan", "Badminton", "Barbel")
+ *  agar template yang tepat terbuka SEKETIKA, tanpa pengguna harus
+ *  mencari saklar mode di dalam lembar. */
+export interface WorkoutSheetHint {
+  mode?: 'beban' | 'kardio' | 'badminton'
+  /** Jenis kardio pra-pilih (jalan|lari|lari-jalan) — hanya mode kardio. */
+  cardioKind?: 'jalan' | 'lari' | 'lari-jalan'
 }
 
 /* ===== Domain Bugar — asupan makan (master 179 item Indonesia) ===== */
@@ -1128,6 +1133,8 @@ interface RutinaState {
   workoutSheetOpen: boolean
   /** Praisai lembar sesi saat dibuka dari program/pustaka. */
   workoutSheetSeed: WorkoutSeed[] | null
+  /** Petunjuk mode awal lembar aktivitas — lihat WorkoutSheetHint (v2.18). */
+  workoutSheetHint: WorkoutSheetHint | null
   /* Bugar — asupan */
   foodEntries: FoodEntry[]
   foodSheetOpen: boolean
@@ -1153,7 +1160,6 @@ interface RutinaState {
     note: string
     walletId?: string
     recurrence?: Recurrence | null
-    subcat?: string
   }) => void
   deleteTx: (id: string) => void
   toggleExpandedTx: (id: string) => void
@@ -1161,7 +1167,6 @@ interface RutinaState {
   addCustomCat: (input: {
     name: string
     type: TxType
-    parentKey?: string
   }) => CustomCat | null
   removeCustomCat: (id: string) => void
   /* Dompet & transfer */
@@ -1188,7 +1193,7 @@ interface RutinaState {
   closeGoalDialog: () => void
   addGoal: (name: string, target: number) => void
   /* Aksi bugar */
-  openWorkoutSheet: (seed?: WorkoutSeed[]) => void
+  openWorkoutSheet: (seed?: WorkoutSeed[], hint?: WorkoutSheetHint) => void
   closeWorkoutSheet: () => void
   addWorkout: (input: WorkoutInput) => void
   deleteWorkout: (id: string) => void
@@ -1297,6 +1302,7 @@ export const useRutina = create<RutinaState>()(
   workouts: [],
   workoutSheetOpen: false,
   workoutSheetSeed: null,
+  workoutSheetHint: null,
   foodEntries: [],
   foodSheetOpen: false,
   calorieTarget: 2000,
@@ -1331,7 +1337,7 @@ export const useRutina = create<RutinaState>()(
 
   closeTxSheet: () => set({ txSheetOpen: false }),
 
-  addTx: ({ type, cat, amount, note, walletId, recurrence, subcat }) =>
+  addTx: ({ type, cat, amount, note, walletId, recurrence }) =>
     set((s) => ({
       txs: [
         {
@@ -1343,7 +1349,6 @@ export const useRutina = create<RutinaState>()(
           ts: todayFinISO(),
           walletId,
           recurrence: recurrence ?? null,
-          subcat: subcat?.trim() || undefined,
         },
         ...s.txs,
       ],
@@ -1354,7 +1359,7 @@ export const useRutina = create<RutinaState>()(
      Nama harus unik per arus terhadap kategori bawaan maupun buatan
      lain (case-insensitive) agar tidak lahir duplikat; mengembalikan
      null bila ditolak sehingga UI bisa memberi umpan balik. */
-  addCustomCat: ({ name, type, parentKey }) => {
+  addCustomCat: ({ name, type }) => {
     const clean = name.trim().slice(0, 40)
     if (!clean) return null
     const s = get()
@@ -1369,7 +1374,6 @@ export const useRutina = create<RutinaState>()(
       id: `fcat-${Date.now()}`,
       name: clean,
       type,
-      ...(parentKey ? { parentKey } : {}),
     }
     set((st) => ({ customCats: [...st.customCats, cat] }))
     return cat
@@ -1377,9 +1381,7 @@ export const useRutina = create<RutinaState>()(
 
   removeCustomCat: (id) =>
     set((s) => ({
-      customCats: s.customCats.filter(
-        (c) => c.id !== id && c.parentKey !== id,
-      ),
+      customCats: s.customCats.filter((c) => c.id !== id),
     })),
 
   /* --- Dompet & transfer --- */
@@ -1526,11 +1528,19 @@ export const useRutina = create<RutinaState>()(
 
   /* --- Aksi bugar --- */
 
-  openWorkoutSheet: (seed) =>
-    set({ workoutSheetOpen: true, workoutSheetSeed: seed ?? null }),
+  openWorkoutSheet: (seed, hint) =>
+    set({
+      workoutSheetOpen: true,
+      workoutSheetSeed: seed ?? null,
+      workoutSheetHint: hint ?? null,
+    }),
 
   closeWorkoutSheet: () =>
-    set({ workoutSheetOpen: false, workoutSheetSeed: null }),
+    set({
+      workoutSheetOpen: false,
+      workoutSheetSeed: null,
+      workoutSheetHint: null,
+    }),
 
   addWorkout: ({ kind, date, duration, note, sets, distance, kcal }) =>
     set((s) => ({

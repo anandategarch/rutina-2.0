@@ -479,7 +479,7 @@ const catMeta = useCatMeta()
           <span className="mt-0.5 block break-words text-eyebrow leading-snug text-content-muted">
             {isTransfer
               ? `${fromW?.name ?? 'Dompet'} → ${toW?.name ?? 'Dompet'} · ${fmtDate(tx.ts)}`
-              : `${catMeta(tx.cat).label}${tx.subcat ? ` · ${tx.subcat}` : ''}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
+              : `${catMeta(tx.cat).label}${fromW ? ` · ${fromW.name}` : ''} · ${fmtDate(tx.ts)}`}
           </span>
         </span>
         <span
@@ -515,7 +515,7 @@ const catMeta = useCatMeta()
           >
             <div className="border-t border-border px-3.5 pb-3.5 pt-3">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <DetailCell label="Kategori" value={`${catMeta(tx.cat).label}${tx.subcat ? ` · ${tx.subcat}` : ''}`} />
+                <DetailCell label="Kategori" value={catMeta(tx.cat).label} />
                 <DetailCell label="Tanggal" value={fmtDate(tx.ts)} />
                 <DetailCell label="Dompet" value={walletLabel} />
                 <DetailCell
@@ -777,7 +777,7 @@ const catMeta = useCatMeta()
             </dt>
             <dd className="flex min-w-0 items-center gap-1.5 text-note font-semibold text-content-primary">
               <Icon className="h-3.5 w-3.5 shrink-0 text-content-secondary" strokeWidth={2.1} />
-              <span className="truncate">{catMeta(tx.cat).label}{tx.subcat ? ` · ${tx.subcat}` : ''}</span>
+              <span className="truncate">{catMeta(tx.cat).label}</span>
             </dd>
           </div>
           <div className="ledger-row flex items-center justify-between gap-3 py-2.5">
@@ -2441,10 +2441,10 @@ export default function KeuanganScreen() {
 
               {/* Tambah kategori yang belum dianggarkan — bawaan +
                   kategori buatan pengguna, satu sistem (v2.17) */}
-              {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar' && !cc.parentKey).map((cc) => cc.id)]
+              {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id)]
                 .filter((c) => !(c in budgets)).length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2 pt-1">
-                  {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar' && !cc.parentKey).map((cc) => cc.id)]
+                  {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id)]
                     .filter((c) => !(c in budgets)).map((c) => (
                     <button
                       key={c}

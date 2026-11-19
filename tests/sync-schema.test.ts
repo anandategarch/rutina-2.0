@@ -172,19 +172,24 @@ describe('penolakan muatan tidak valid', () => {
     expect(workoutSchema.safeParse({ ...base, kcal: -5 }).success).toBe(false)
   })
 
-  test('v2.17: tx subkategori opsional (maks 60 karakter)', () => {
+  test('v2.18: tx TANPA subkategori — kunci subcat asing di-strip', () => {
     const base = validState()
-    expect(txSchema.safeParse({ ...base.txs[0], subcat: 'Sarapan' }).success).toBe(true)
-    expect(txSchema.safeParse({ ...base.txs[0], subcat: null }).success).toBe(true)
-    expect(txSchema.safeParse({ ...base.txs[0], subcat: 'x'.repeat(61) }).success).toBe(false)
+    /* v2.17 pernah menerima subcat; v2.18 menghapusnya (kategori saja
+     * cukup). Zod object default melepas kunci asing — klien lama yang
+     * masih mengirim subcat tidak ditolak, nilainya dibuang. */
+    const clean = txSchema.safeParse({ ...base.txs[0] })
+    expect(clean.success).toBe(true)
+    const stripped = txSchema.safeParse({ ...base.txs[0], subcat: 'Sarapan' })
+    expect(stripped.success).toBe(true)
+    expect(stripped.success && 'subcat' in stripped.data).toBe(false)
   })
 
-  test('v2.17: customCats — kategori buatan tervalidasi', () => {
+  test('v2.18: customCats FLAT — tanpa parentKey, tervalidasi', () => {
     const base = validState()
     const ok = syncStateSchema.safeParse({
       ...base,
       customCats: [
-        { id: 'fcat-1', name: 'Kebun', type: 'keluar', parentKey: null },
+        { id: 'fcat-1', name: 'Kebun', type: 'keluar' },
         { id: 'fcat-2', name: 'Freelance', type: 'masuk' },
       ],
     })

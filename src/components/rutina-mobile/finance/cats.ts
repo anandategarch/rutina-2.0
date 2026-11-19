@@ -147,19 +147,9 @@ export const CATS_BY_TYPE: Record<TxType, FinCat[]> = {
   transfer: [],
 }
 
-/** Subkategori bawaan (v2.17) — rincian opsional DI BAWAH kategori
- *  induk; hanya untuk kategori bawaan 2.0 dan sengaja tidak menabrak
- *  nama kategori impor 1.0 yang sudah berdiri sendiri (mis. Bensin,
- *  Parkir, Tagihan Air). Kategori buatan bisa punya subkategori
- *  sendiri lewat CustomCat.parentKey. */
-export const BUILT_IN_SUBCATS: Partial<Record<FinCat, string[]>> = {
-  makan: ['Sarapan', 'Makan Siang', 'Makan Malam', 'Camilan'],
-  transport: ['Ojek Online', 'KRL/MRT', 'Bus', 'Taksi'],
-  belanja: ['Kebutuhan Rumah', 'Pakaian', 'Elektronik', 'Hadiah'],
-  hiburan: ['Streaming', 'Game', 'Bioskop', 'Buku'],
-  tagihan: ['Internet', 'Langganan', 'Sewa'],
-  kesehatan: ['Obat', 'Dokter', 'Vitamin', 'Lab'],
-}
+/** Subkategori bawaan (v2.17) — DIHAPUS di v2.18 atas permintaan
+ *  pengguna: kategori saja cukup. Rincian (mis. "Sarapan", "Ojek
+ *  Online") cukup ditulis di kolom catatan transaksi. */
 
 /** Ikon kategori buatan & fallback (slug tak dikenal). */
 export const CUSTOM_CAT_ICON = Tag
@@ -185,22 +175,11 @@ export function catMetaOf(cat: string, customCats: CustomCat[] = []): CatMeta {
   return { label: pretty, icon: CUSTOM_CAT_ICON }
 }
 
-/** Seluruh kategori utama untuk satu arus — bawaan + buatan (v2.17). */
+/** Seluruh kategori untuk satu arus — bawaan + buatan (v2.18:
+ *  FLAT, semua kategori buatan setara — tidak ada subkategori). */
 export function allCatsOf(type: TxType, customCats: CustomCat[]): string[] {
-  const custom = customCats
-    .filter((c) => c.type === type && !c.parentKey)
-    .map((c) => c.id)
+  const custom = customCats.filter((c) => c.type === type).map((c) => c.id)
   return [...CATS_BY_TYPE[type], ...custom]
-}
-
-/** Subkategori yang tersedia untuk satu kategori: bawaan (curated)
- *  + buatan dengan parentKey kategori tersebut. */
-export function subcatsOf(cat: string, customCats: CustomCat[]): string[] {
-  const builtin = (BUILT_IN_SUBCATS as Record<string, string[] | undefined>)[cat] ?? []
-  const custom = customCats
-    .filter((c) => c.parentKey === cat)
-    .map((c) => c.name)
-  return [...builtin, ...custom]
 }
 
 /** Kategori yang sering dipakai (v2.17) — dihitung dari frekuensi

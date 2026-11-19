@@ -5,6 +5,7 @@ import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   AlertTriangle,
+  ArrowLeftRight,
   Calculator,
   ChevronDown,
   ChevronRight,
@@ -1036,6 +1037,57 @@ export default function BugarScreen() {
               </p>
             </div>
           </div>
+          {/* Pintasan template aktivitas (v2.18) — jawaban langsung
+              "template lari/jalan mana?": lima pintasan membuka lembar
+              Catat Aktivitas tepat di mode yang dimaksud. */}
+          <div
+            role="group"
+            aria-label="Catat aktivitas baru"
+            className="mt-4 flex flex-wrap gap-1.5"
+          >
+            {([
+              {
+                label: 'Lari',
+                icon: Zap,
+                hint: { mode: 'kardio', cardioKind: 'lari' } as const,
+              },
+              {
+                label: 'Jalan',
+                icon: Footprints,
+                hint: { mode: 'kardio', cardioKind: 'jalan' } as const,
+              },
+              {
+                label: 'Lari + Jalan',
+                icon: ArrowLeftRight,
+                hint: { mode: 'kardio', cardioKind: 'lari-jalan' } as const,
+              },
+              {
+                label: 'Badminton',
+                icon: Volleyball,
+                hint: { mode: 'badminton' } as const,
+              },
+              {
+                label: 'Barbel',
+                icon: Dumbbell,
+                hint: { mode: 'beban' } as const,
+              },
+            ]).map((a) => {
+              const Icon = a.icon
+              return (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => openWorkoutSheet(undefined, { ...a.hint })}
+                  aria-label={`Catat ${a.label}`}
+                  className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-espresso/25 px-3.5 text-eyebrow font-bold text-module-accent-fg backdrop-blur-sm transition-all hover:bg-espresso/40 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {a.label}
+                </button>
+              )
+            })}
+          </div>
+
           {week.minutes > 0 && (
             <p className="mt-2.5 text-eyebrow font-medium text-module-accent-fg/80">
               Total {Math.round(week.minutes / 60 * 10) / 10 === 0 ? `${week.minutes} menit` : `${(week.minutes / 60).toFixed(1).replace('.', ',')} jam`} bergerak pekan ini
@@ -1065,7 +1117,8 @@ export default function BugarScreen() {
         </div>
       </m.section>
 
-      {/* Tombol mulai sesi imersif + pintasan catat aktivitas (v2.17) */}
+      {/* Tombol mulai sesi imersif — template catat cepat (lari, jalan,
+          badminton, barbel) sudah tersedia sebagai chip di hero atas. */}
       <m.button
         type="button"
         onClick={() => setSessionPickerOpen(true)}
@@ -1078,14 +1131,6 @@ export default function BugarScreen() {
         <Play className="h-5 w-5" strokeWidth={2.5} />
         Mulai Sesi Barbel
       </m.button>
-      <button
-        type="button"
-        onClick={() => openWorkoutSheet()}
-        className="mx-auto mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-note font-semibold text-content-muted underline-offset-4 transition-colors hover:text-content-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-        Catat aktivitas lain — lari, jalan, badminton, barbel
-      </button>
               </RutinaBentoItem>
               <RutinaBentoItem span="feature">
       {/* ===== Coach Bugar — kesiapan, deload, guard, alat ===== */}

@@ -2,13 +2,13 @@
  * Pengujian otomatis — registry kategori Keuangan (finance/cats.ts)
  * v2.15: impor kategori Rutina 1.0 dari Turso.
  * v2.17: SATU SISTEM KATEGORI — bawaan 2.0 + impor 1.0 + buatan
- * menyatu tanpa penanda asal, plus subkategori & kategori buatan.
+ * menyatu tanpa penanda asal.
+ * v2.18: subkategori DIHAPUS — kategori saja cukup (flat).
  * Menjaga invarian yang dipakai UI:
  *   - CAT_META[cat] selalu ada untuk semua kategori yang bisa dipilih
  *   - CATS_BY_TYPE bebas duplikat & elemen pertama = default form
  *   - BUDGETABLE_CATS ⊆ kategori keluar
  *   - catMetaOf aman untuk slug apa pun (bawaan / buatan / asing)
- *   - subkategori tidak menabrak nama kategori utama
  * Jalankan: bun test
  * ============================================================ */
 
@@ -16,14 +16,12 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   BUDGETABLE_CATS,
-  BUILT_IN_SUBCATS,
   CAT_META,
   CATS_BY_TYPE,
   CATS_UNIFIED_LABELS,
   allCatsOf,
   catMetaOf,
   frequentCats,
-  subcatsOf,
 } from '../src/components/rutina-mobile/finance/cats'
 import type { CustomCat, FinCat, TxType } from '../src/components/rutina-mobile/store'
 
@@ -121,23 +119,6 @@ describe('BUDGETABLE_CATS — kategori anggaran', () => {
   })
 })
 
-describe('BUILT_IN_SUBCATS — subkategori bawaan (v2.17)', () => {
-  test('kunci subkategori adalah kategori pengeluaran bawaan 2.0', () => {
-    for (const key of Object.keys(BUILT_IN_SUBCATS) as FinCat[]) {
-      expect(CATS_BY_TYPE.keluar.includes(key)).toBe(true)
-    }
-  })
-
-  test('nama subkategori tidak menabrak label kategori utama (anti duplikat)', () => {
-    const labels = new Set(ALL.map((c) => CAT_META[c].label.toLowerCase()))
-    for (const subs of Object.values(BUILT_IN_SUBCATS)) {
-      for (const sub of subs ?? []) {
-        expect(labels.has(sub.toLowerCase())).toBe(false)
-      }
-    }
-  })
-})
-
 describe('catMetaOf — lookup aman untuk slug apa pun (v2.17)', () => {
   test('kategori bawaan → meta CAT_META', () => {
     expect(catMetaOf('makan').label).toBe('Makan & Minum')
@@ -159,11 +140,10 @@ describe('catMetaOf — lookup aman untuk slug apa pun (v2.17)', () => {
   })
 })
 
-describe('allCatsOf / subcatsOf / frequentCats — kategori buatan menyatu', () => {
+describe('allCatsOf / frequentCats — kategori buatan menyatu (v2.18: flat)', () => {
   const custom: CustomCat[] = [
     { id: 'fcat-1', name: 'Kebun', type: 'keluar' },
     { id: 'fcat-2', name: 'Freelance', type: 'masuk' },
-    { id: 'fcat-3', name: 'Bibit', type: 'keluar', parentKey: 'fcat-1' },
   ]
 
   test('allCatsOf menggabungkan bawaan + buatan per arus', () => {
@@ -171,14 +151,6 @@ describe('allCatsOf / subcatsOf / frequentCats — kategori buatan menyatu', () 
     expect(keluar.slice(0, CATS_BY_TYPE.keluar.length)).toEqual(CATS_BY_TYPE.keluar)
     expect(keluar).toContain('fcat-1')
     expect(keluar).not.toContain('fcat-2')
-    /* Subkategori (punya parentKey) tidak muncul sebagai kategori utama. */
-    expect(keluar).not.toContain('fcat-3')
-  })
-
-  test('subcatsOf: bawaan + buatan di bawah induk yang tepat', () => {
-    expect(subcatsOf('makan', custom)).toEqual(BUILT_IN_SUBCATS.makan)
-    expect(subcatsOf('fcat-1', custom)).toEqual(['Bibit'])
-    expect(subcatsOf('lainnya', custom)).toEqual([])
   })
 
   test('frequentCats mengurutkan dari frekuensi pemakaian nyata', () => {

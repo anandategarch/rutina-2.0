@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { ensureSchema } from '@/lib/db-migrate'
 import { txInputSchema } from '@/lib/sync-schema'
 import { fail, guard, newId, ok, parseWith, readJson, todayJakartaISO } from '@/lib/api'
 
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
   const q = parsed.data
 
   return guard(async () => {
+    await ensureSchema()
     const where = {
       ...(q.type ? { type: q.type } : {}),
       ...(q.walletId ? { walletId: q.walletId } : {}),
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
   const input = parsed.data
 
   return guard(async () => {
+    await ensureSchema()
     const tx = await db.transaction.create({
       data: {
         id: input.id ?? newId('tx'),
@@ -65,7 +68,6 @@ export async function POST(req: Request) {
         toWalletId: input.toWalletId ?? null,
         recurrence: input.recurrence ?? null,
         recurOf: input.recurOf ?? null,
-        subcat: input.subcat ?? '',
       },
     })
     return ok({ transaction: tx }, 201)

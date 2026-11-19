@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { ensureSchema } from '@/lib/db-migrate'
 import { workoutInputSchema } from '@/lib/sync-schema'
 import { fail, guard, newId, ok, parseWith, readJson, todayJakartaISO } from '@/lib/api'
 
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
   const q = parsed.data
 
   return guard(async () => {
+    await ensureSchema()
     const [workouts, total] = await Promise.all([
       db.workoutSession.findMany({
         orderBy: [{ date: 'desc' }, { id: 'desc' }],
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
   const input = parsed.data
 
   return guard(async () => {
+    await ensureSchema()
     const workout = await db.workoutSession.create({
       data: {
         id: input.id ?? newId('wo'),

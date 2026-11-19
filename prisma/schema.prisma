@@ -97,7 +97,6 @@ model Transaction {
   toWalletId String? // dompet tujuan — khusus transfer
   recurrence String? // mingguan|bulanan — templat berulang
   recurOf    String? // ID templat asal — salinan otomatis
-  subcat     String  @default("") // subkategori opsional (v2.17)
 
   @@index([ts])
   @@index([type])
@@ -107,15 +106,13 @@ model Transaction {
 }
 
 /// Kategori keuangan buatan pengguna — satu sistem kategori terpadu
-/// bersama kategori bawaan + impor Rutina 1.0 (v2.17). Baris tanpa
-/// parentKey adalah kategori utama; parentKey mengacu slug FinCat
-/// bawaan atau id kategori buatan lain (subkategori).
+/// bersama kategori bawaan + impor Rutina 1.0 (v2.17). v2.18: FLAT —
+/// tanpa subkategori (permintaan pengguna: kategori saja cukup).
 model FinCategory {
-  id        String  @id // fcat-<ts>
-  name      String // nama tampilan (unik per arus)
-  type      String // 'keluar' | 'masuk'
-  parentKey String? // kunci induk — null = kategori utama
-  archived  Boolean @default(false)
+  id       String  @id // fcat-<ts>
+  name     String // nama tampilan (unik per arus)
+  type     String // 'keluar' | 'masuk'
+  archived Boolean @default(false)
 
   @@index([type])
 

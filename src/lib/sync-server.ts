@@ -1,4 +1,5 @@
 import { db, isTurso } from '@/lib/db'
+import { ensureSchema } from '@/lib/db-migrate'
 import {
   SYNC_SETTING_KEYS,
   type SyncState,
@@ -59,6 +60,9 @@ function parseSets(json: string): WorkoutWire['sets'] {
 /* ===== Baca snapshot penuh ===== */
 
 export async function readFullState(): Promise<FullStateResult> {
+  /* v2.18: pastikan skema backend mutakhir (tabel/kolom baru dibuat
+     otomatis — menyembuhkan drift Turso tanpa token push). */
+  await ensureSchema()
   const [
     habits,
     logs,
@@ -162,7 +166,6 @@ export async function readFullState(): Promise<FullStateResult> {
     toWalletId: t.toWalletId ?? null,
     recurrence: (t.recurrence as TxWire['recurrence']) ?? null,
     recurOf: t.recurOf ?? null,
-    subcat: t.subcat || null,
   }))
 
   const workoutWires: WorkoutWire[] = workouts.map((w) => ({
@@ -182,7 +185,6 @@ export async function readFullState(): Promise<FullStateResult> {
       id: c.id,
       name: c.name,
       type: c.type as CustomCatWire['type'],
-      parentKey: c.parentKey ?? null,
     }))
 
   const foodWires: FoodEntryWire[] = foods.map((f) => ({
@@ -253,6 +255,8 @@ export interface WriteCounts {
 }
 
 export async function writeFullState(state: SyncState): Promise<WriteCounts> {
+  /* v2.18: pastikan skema backend mutakhir sebelum menulis. */
+  await ensureSchema()
   /* Log hanya untuk kebiasaan yang masih ada (jaga FK habitId → habit.id). */
   const habitIds = new Set(state.habits.map((h) => h.id))
   const logRows: { habitId: string; date: string }[] = []
@@ -375,7 +379,6 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               toWalletId: t.toWalletId ?? null,
               recurrence: t.recurrence ?? null,
               recurOf: t.recurOf ?? null,
-              subcat: t.subcat ?? '',
             })),
           }),
         ]
@@ -388,7 +391,6 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               id: c.id,
               name: c.name,
               type: c.type,
-              parentKey: c.parentKey ?? null,
               archived: false,
             })),
           }),

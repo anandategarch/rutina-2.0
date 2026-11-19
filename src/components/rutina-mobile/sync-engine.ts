@@ -161,7 +161,6 @@ function applyServerState(remote: SyncState): void {
       toWalletId: t.toWalletId ?? undefined,
       recurrence: (t.recurrence ?? null) as Recurrence | null,
       recurOf: t.recurOf ?? undefined,
-      subcat: t.subcat ?? undefined,
     })),
     goals: remote.goals.map((g) => ({ ...g })),
     wallets: remote.wallets.map((w) => ({ ...w })),
@@ -169,7 +168,6 @@ function applyServerState(remote: SyncState): void {
     customCats: (remote.customCats ?? []).map((c) => ({
       ...c,
       type: c.type as TxType,
-      parentKey: c.parentKey ?? undefined,
     })),
     workouts: remote.workouts.map((w) => ({
       ...w,

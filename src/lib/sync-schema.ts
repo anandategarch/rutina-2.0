@@ -97,8 +97,6 @@ export const txSchema = z.object({
   toWalletId: z.string().max(64).nullable().optional(),
   recurrence: z.enum(['mingguan', 'bulanan']).nullable().optional(),
   recurOf: z.string().max(64).nullable().optional(),
-  /** Subkategori opsional (v2.17) — label bebas di bawah kategori. */
-  subcat: z.string().max(60).nullable().optional(),
 })
 /** Input POST — id & tanggal dibuat server bila absen. */
 export const txInputSchema = txSchema.omit({ id: true }).extend({
@@ -113,13 +111,12 @@ export const walletSchema = z.object({
 export const walletInputSchema = walletSchema.omit({ id: true })
 
 /** Kategori keuangan buatan pengguna (v2.17) — satu sistem terpadu
- *  bersama kategori bawaan + impor Rutina 1.0. */
+ *  bersama kategori bawaan + impor Rutina 1.0. v2.18: FLAT, tanpa
+ *  subkategori — kategori saja cukup. */
 export const customCatSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(60),
   type: z.enum(['keluar', 'masuk']),
-  /** Kunci induk (slug bawaan / id buatan lain) — null = utama. */
-  parentKey: z.string().max(64).nullable().optional(),
 })
 export const customCatInputSchema = customCatSchema.omit({ id: true })
 

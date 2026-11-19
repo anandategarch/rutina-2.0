@@ -3,6 +3,65 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.18] — Pemulihan Histori Rutina 1.0, Tanpa Subkategori & Pintasan Template Aktivitas
+
+Tiga hal sekaligus: **(1)** histori keuangan & kebiasaan Rutina 1.0 yang
+"hilang" dipulihkan — akar masalahnya bukan impor, melainkan drift skema:
+v2.17 menambah kolom `subcat`, tabel `rutina_fin_categories`, dan kolom
+`distance`/`kcal` ke kode, tetapi DDL-nya tidak pernah sampai ke Turso
+produksi (kredensial push hilang dari sandbox) sehingga
+`/api/transactions`, `/api/workouts`, dan `/api/state` produksi mati —
+data impor yang sejak v2.16 tersimpan di Turso (19 kebiasaan, 281
+transaksi, 4 dompet nyata) tidak bisa dibaca sama sekali. **(2)**
+Subkategori dihapus atas permintaan pengguna — kategori saja cukup;
+kebetulan juga menyembuhkan drift `subcat`. **(3)** Template lari/jalan
+kini terbuka SEKETIKA lewat chip pintasan di hero Bugar.
+
+### Pemulihan produksi — auto-migrasi skema (`src/lib/db-migrate.ts`)
+- **`ensureSchema()`** — DDL idempoten berjalan sekali per proses server
+  sebelum query pertama: `CREATE TABLE IF NOT EXISTS rutina_fin_categories`
+  + indeks, dan `ALTER TABLE rutina_workout_sessions ADD COLUMN
+  distance/kcal` (dijaga `PRAGMA table_info` agar bebas noise log).
+  Dipanggil dari `readFullState`/`writeFullState` + route
+  transactions/workouts. Tanpa ini, deploy tanpa `db:push-turso`
+  (butuh token) kembali merusak produksi.
+- **Dipanggil dari** `/api/state` (GET/PUT), `/api/transactions`,
+  `/api/workouts` — cold-start pertama pasca-deploy menyembuhkan Turso
+  secara otomatis; histori Rutina 1.0 langsung terbaca lagi.
+- **Verifikasi pasca-deploy**: `GET /api/health` → `connected: true`;
+  `GET /api/state` → `initialized: true` (bukan lagi 500 "Gagal membaca
+  state").
+
+### Subkategori dihapus — kategori saja cukup
+- **Skema**: kolom `Transaction.subcat` dan `FinCategory.parentKey`
+  dihapus; `CustomCat` kini FLAT (id, name, type). Rincian seperti
+  "Sarapan" atau "Ojek Online" cukup ditulis di catatan transaksi.
+- **UI**: seksi subkategori dihilangkan dari lembar transaksi, pemilih
+  kategori (kini daftar flat: cari → sering dipakai → semua → tambah),
+  detail transaksi, dan detail harian; pemilih anggaran menyederhanakan
+  filter kategori buatan.
+- **Migrasi aman**: klien lama yang masih mengirim `subcat`/`parentKey`
+  di-strip Zod di server (tidak ditolak); data lama tanpa kolom tetap
+  terbaca. Kategori buatan yang pernah jadi subkategori kini tampil
+  setara (di-hash `parentKey` lama dibuang saat db push).
+
+### Bugar — pintasan template aktivitas di hero
+- **Chip "Catat Lari / Jalan / Lari + Jalan / Badminton / Barbel"**
+  langsung di kartu Ringkasan Aktivitas: `openWorkoutSheet(seed?, hint?)`
+  menerima `{ mode, cardioKind }` sehingga lembar terbuka pada template
+  yang dimaksud — menjawab "template lari/jalan mana?" tanpa mencari.
+- **Seed program kini membuka mode Barbel otomatis** (dulu selalu
+  kardio); hint eksplisit menang atas seed.
+- Teks link kecil "Catat aktivitas lain" dihapus (chip menggantikannya).
+
+### Lain-lain
+- `bun run verify` hijau: typecheck + lint + **135 tes** (registry
+  kategori diuji ulang tanpa subkategori; skema wire menguji strip
+  `subcat` & customCats flat).
+- Dev sandbox: `db/custom.db` dimigrasi (`subcat`/`parentKey` di-drop,
+  baris kategori "Kebun" selamat); dev server wajib restart setelah
+  `prisma db push` (client lama memuat kolom lama).
+
 ## [2.17] — Bugar: Pusat Catatan Aktivitas & Keuangan: Satu Sistem Kategori
 
 Dua redesain arah pengguna. **Bugar** kini PUSAT CATATAN aktivitas &

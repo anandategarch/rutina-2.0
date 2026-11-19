@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
-import { Check, ChevronDown, Plus, Search, X } from 'lucide-react'
+import { Check, Plus, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import { CONTENT_W } from '../layout-widths'
-import { useRutina, type CustomCat, type TxType } from '../store'
+import { useRutina, type TxType } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
-import { allCatsOf, catMetaOf, frequentCats, subcatsOf } from './cats'
+import { allCatsOf, catMetaOf, frequentCats } from './cats'
 
 /**
  * Pemilih kategori (v2.17) — SATU sistem kategori terpadu: bawaan 2.0,
@@ -18,8 +18,8 @@ import { allCatsOf, catMetaOf, frequentCats, subcatsOf } from './cats'
  * tanpa penanda asal.
  *
  * Isi sesuai rancangan: (1) kolom pencarian, (2) kategori yang sering
- * dipakai, (3) daftar lengkap yang bisa diluas, (4) subkategori muncul
- * setelah kategori induk dipilih, (5) tombol tambah kategori.
+ * dipakai, (3) daftar lengkap, (4) tombol tambah kategori.
+ * v2.18: subkategori dihapus — kategori saja cukup.
  * Form transaksi tetap pendek — hanya menampilkan kategori terpilih.
  */
 
@@ -33,8 +33,7 @@ export function CatPickerSheet({
   open: boolean
   type: TxType
   selected: string
-  /** Dipanggil dengan kategori (dan subkategori opsional bila dipilih). */
-  onSelect: (cat: string, subcat?: string) => void
+  onSelect: (cat: string) => void
   onClose: () => void
 }) {
   const txs = useRutina((s) => s.txs)
@@ -42,7 +41,6 @@ export function CatPickerSheet({
   const addCustomCat = useRutina((s) => s.addCustomCat)
 
   const [query, setQuery] = useState('')
-  const [expanded, setExpanded] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [prevOpen, setPrevOpen] = useState(false)
@@ -57,7 +55,6 @@ export function CatPickerSheet({
     setPrevOpen(open)
     if (open) {
       setQuery('')
-      setExpanded(null)
       setAdding(false)
       setNewName('')
     }
@@ -97,22 +94,9 @@ export function CatPickerSheet({
     )
   }, [type, customCats, q])
 
-  const pick = (cat: string, subcat?: string) => {
-    onSelect(cat, subcat)
+  const pick = (cat: string) => {
+    onSelect(cat)
     onClose()
-  }
-
-  /** Ketuk baris kategori: pilih; bila punya subkategori → luaskan
-   *  (tetap terpilih, subkategori opsional). Tanpa subkategori → tutup. */
-  const tapCat = (cat: string) => {
-    const subs = subcatsOf(cat, customCats)
-    if (subs.length > 0) {
-      setExpanded(expanded === cat ? null : cat)
-      /* Pilih induk seketika agar pratinjau form ikut berubah. */
-      onSelect(cat)
-      return
-    }
-    pick(cat)
   }
 
   const submitNewCat = () => {
@@ -248,7 +232,7 @@ export function CatPickerSheet({
                 </section>
               )}
 
-              {/* 3 — Daftar lengkap yang bisa diluas */}
+              {/* 3 — Daftar lengkap (v2.18: flat, tanpa subkategori) */}
               <section aria-label="Daftar kategori" className="mt-4 pb-2">
                 <p className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
                   Semua kategori
@@ -258,8 +242,6 @@ export function CatPickerSheet({
                     const meta = catMetaOf(cat, customCats)
                     const Icon = meta.icon
                     const on = selected === cat
-                    const subs = subcatsOf(cat, customCats)
-                    const isOpen = expanded === cat
                     return (
                       <li key={cat}>
                         <div
@@ -269,9 +251,8 @@ export function CatPickerSheet({
                         >
                           <button
                             type="button"
-                            onClick={() => tapCat(cat)}
+                            onClick={() => pick(cat)}
                             aria-pressed={on}
-                            aria-expanded={subs.length > 0 ? isOpen : undefined}
                             className="flex w-full cursor-pointer items-center gap-3 px-3.5 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
                             <span
@@ -289,60 +270,10 @@ export function CatPickerSheet({
                                 <span className="mt-0.5 flex items-center gap-1 text-eyebrow font-semibold text-success">
                                   <Check className="h-3 w-3" aria-hidden="true" />
                                   terpilih
-                                  {subs.length > 0 && ' — bisa pilih subkategori'}
                                 </span>
                               )}
                             </span>
-                            {subs.length > 0 && (
-                              <m.span
-                                aria-hidden="true"
-                                animate={{ rotate: isOpen ? 180 : 0 }}
-                                transition={{ duration: 0.25 }}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center text-content-muted"
-                              >
-                                <ChevronDown className="h-4 w-4" />
-                              </m.span>
-                            )}
                           </button>
-
-                          {/* 4 — Subkategori setelah induk dipilih */}
-                          <AnimatePresence initial={false}>
-                            {isOpen && subs.length > 0 && (
-                              <m.div
-                                key="subs"
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-                                className="overflow-hidden"
-                              >
-                                <div className="border-t border-border bg-surface-sunken/60 px-3.5 py-3">
-                                  <p className="text-eyebrow font-semibold text-content-muted">
-                                    Subkategori (opsional)
-                                  </p>
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => pick(cat)}
-                                      className="h-8 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-eyebrow font-bold text-content-secondary transition-all active:scale-[0.96] hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                                    >
-                                      Tanpa subkategori
-                                    </button>
-                                    {subs.map((sub) => (
-                                      <button
-                                        key={sub}
-                                        type="button"
-                                        onClick={() => pick(cat, sub)}
-                                        className="h-8 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-eyebrow font-bold text-content-secondary transition-all active:scale-[0.96] hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                                      >
-                                        {sub}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              </m.div>
-                            )}
-                          </AnimatePresence>
                         </div>
                       </li>
                     )
@@ -362,7 +293,7 @@ export function CatPickerSheet({
               </section>
             </div>
 
-            {/* 5 — Tombol tambah kategori */}
+            {/* 4 — Tombol tambah kategori */}
             <div className="shrink-0 border-t border-border px-5 pt-3">
               {adding ? (
                 <div className="flex gap-2">

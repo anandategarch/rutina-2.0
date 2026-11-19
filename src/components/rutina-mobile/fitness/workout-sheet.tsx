@@ -100,6 +100,7 @@ const BAD_CONDITIONS = ['Santai', 'Sedang', 'Intens'] as const
 export function WorkoutSheet() {
   const open = useRutina((s) => s.workoutSheetOpen)
   const seed = useRutina((s) => s.workoutSheetSeed)
+  const hint = useRutina((s) => s.workoutSheetHint)
   const workouts = useRutina((s) => s.workouts)
   const deloadUntil = useRutina((s) => s.deloadUntil)
   const closeWorkoutSheet = useRutina((s) => s.closeWorkoutSheet)
@@ -121,12 +122,15 @@ export function WorkoutSheet() {
   useFocusTrap(open, panelRef)
 
   /* Draf di-reset setiap kali lembar dibuka — termasuk praisi
-     dari program/pustaka (seed) memakai beban terakhir pengguna. */
+     dari program/pustaka (seed) memakai beban terakhir pengguna.
+     v2.18: hint dari tombol pintasan memilih mode awal — "Lari"
+     membuka template lari SEKETIKA; seed dari program barbel membuka
+     mode beban secara otomatis. */
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      setMode('kardio')
-      setCardioKind('jalan')
+      setMode(hint?.mode ?? (seed && seed.length > 0 ? 'beban' : 'kardio'))
+      setCardioKind(hint?.cardioKind ?? 'jalan')
       setDate(todayISO())
       setDuration('')
       setDistance('')

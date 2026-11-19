@@ -356,7 +356,7 @@ function DayDetailBody({
                             {tx.note || catMeta(tx.cat).label}
                           </span>
                           <span className="shrink-0 rounded-full bg-surface-primary px-2 py-0.5 text-chart-label font-semibold text-content-muted">
-                            {catMeta(tx.cat).label}{tx.subcat ? ` · ${tx.subcat}` : ''}
+                            {catMeta(tx.cat).label}
                           </span>
                           <span
                             className={`shrink-0 text-meta font-bold tabular-nums ${

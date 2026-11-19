@@ -5,6 +5,22 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+## v2.18 — Pemulihan Histori Rutina 1.0, Tanpa Subkategori & Pintasan Template
+
+Histori keuangan & kebiasaan Rutina 1.0 "tidak pernah terbaca" padahal sudah
+tersimpan di Turso — akar masalahnya drift skema: v2.17 memakai kolom/tabel
+baru di kode tetapi DDL-nya tidak pernah di-push ke Turso produksi, sehingga
+endpoint transaksi/workout/state produksi 500. Kini dipulihkan lewat
+auto-migrasi, subkategori dihapus (kategori saja cukup), dan template
+lari/jalan dibuka sekali ketuk dari hero Bugar.
+
+| Fitur | Rincian |
+|---|---|
+| **Auto-migrasi skema (`db-migrate.ts`)** | `ensureSchema()` — DDL idempoten (CREATE TABLE IF NOT EXISTS `rutina_fin_categories` + ALTER `distance`/`kcal` pada `rutina_workout_sessions`, dijaga PRAGMA) berjalan sekali per proses server pada `/api/state`, `/api/transactions`, `/api/workouts`. Deploy tanpa token `db:push-turso` tidak lagi merusak produksi — histori Rutina 1.0 (19 kebiasaan, 281 transaksi, 4 dompet) langsung terbaca lagi. |
+| **Subkategori dihapus** | Kolom `subcat`/`parentKey` dihapus dari skema & seluruh UI (lembar transaksi, pemilih kategori, detail transaksi, lembar hari, anggaran). Pemilih kategori kini daftar flat: cari → sering dipakai → semua kategori → tambah baru. Rincian ("Sarapan", "Ojek Online") cukup di catatan transaksi. Klien lama yang masih mengirim `subcat` di-strip Zod di server. |
+| **Pintasan template aktivitas** | Chip "Catat Lari / Jalan / Lari + Jalan / Badminton / Barbel" langsung di kartu Ringkasan Aktivitas — `openWorkoutSheet(seed?, hint?)` membuka lembar pada template yang dimaksud. Seed program barbel kini membuka mode Barbel otomatis. |
+| **135 pengujian otomatis** | Registry kategori diuji ulang tanpa subkategori; skema wire menguji strip `subcat` & customCats flat; verifikasi E2E browser (chip lari → template lari terpilih, dropdown kategori → Kopi Rutina 1.0 terpilih, tanpa error konsol). |
+
 ## v2.17 — Bugar: Pusat Catatan Aktivitas & Keuangan: Satu Sistem Kategori
 
 Bugar dikembangkan menjadi pusat catatan aktivitas & progres — bukan aplikasi

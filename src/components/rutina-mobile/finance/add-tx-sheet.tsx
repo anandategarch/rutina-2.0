@@ -23,7 +23,7 @@ import {
 } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
 import { CatPickerSheet } from './cat-picker-sheet'
-import { catMetaOf, PRIMARY_CATS_BY_TYPE, subcatsOf } from './cats'
+import { catMetaOf, PRIMARY_CATS_BY_TYPE } from './cats'
 import { formatIDR } from './utils'
 
 /**
@@ -31,7 +31,8 @@ import { formatIDR } from './utils'
  * dengan pemilih kategori DROPDOWN: form tetap pendek, hanya menampilkan
  * kategori terpilih; daftar lengkap (bawaan 2.0 + impor 1.0 + buatan,
  * tanpa penanda asal) hidup di CatPickerSheet bersama pencarian,
- * kategori sering dipakai, subkategori, dan tombol tambah.
+ * kategori sering dipakai, dan tombol tambah.
+ * v2.18: subkategori dihapus — kategori saja cukup.
  */
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'back']
@@ -45,9 +46,7 @@ export function AddTxSheet() {
 
   const [type, setType] = useState<TxType>('keluar')
   const [cat, setCat] = useState<string>('makan')
-  const [subcat, setSubcat] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [subOpen, setSubOpen] = useState(false)
   const [digits, setDigits] = useState('')
   const [note, setNote] = useState('')
   const [walletId, setWalletId] = useState('')
@@ -65,9 +64,7 @@ export function AddTxSheet() {
     if (open) {
       setType('keluar')
       setCat('makan')
-      setSubcat('')
       setPickerOpen(false)
-      setSubOpen(false)
       setDigits('')
       setNote('')
       setWalletId(wallets[0]?.id ?? '')
@@ -101,8 +98,6 @@ export function AddTxSheet() {
     if (t === type) return
     setType(t)
     setCat(PRIMARY_CATS_BY_TYPE[t][0])
-    setSubcat('')
-    setSubOpen(false)
   }
 
   const submit = () => {
@@ -117,7 +112,6 @@ export function AddTxSheet() {
       note,
       walletId: walletId || undefined,
       recurrence,
-      subcat: subcat || undefined,
     })
     if (recurrence) {
       useRutina.getState().materializeRecurring()
@@ -238,15 +232,14 @@ export function AddTxSheet() {
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
               <p className="mt-1 text-eyebrow text-content-muted">
-                {catMetaOf(cat, customCats).label}
-                {subcat ? ` · ${subcat}` : ''} · {shortDateLabel(todayISO())}
+                {catMetaOf(cat, customCats).label} · {shortDateLabel(todayISO())}
               </p>
             </div>
 
             {/* Kategori — DROPDOWN satu sistem (v2.17): form hanya
                 menampilkan kategori terpilih; daftar lengkap + pencarian
-                + sering dipakai + subkategori + tambah ada di lembar
-                pemilih. Tanpa penanda asal kategori. */}
+                + sering dipakai + tambah ada di lembar pemilih.
+                v2.18: tanpa subkategori. Tanpa penanda asal kategori. */}
             <div className="mt-4 space-y-1.5">
               <span className="text-note font-semibold text-content-secondary">
                 Kategori
@@ -277,101 +270,6 @@ export function AddTxSheet() {
                   )
                 })()}
               </button>
-            </div>
-
-            {/* Subkategori (opsional) — muncul setelah kategori induk
-                dipilih; opsi = subkategori bawaan + buatan kategori itu. */}
-            <div className="mt-3 space-y-1.5">
-              <span className="text-note font-semibold text-content-secondary">
-                Subkategori{' '}
-                <span className="font-normal text-content-muted">(opsional)</span>
-              </span>
-              {subcatsOf(cat, customCats).length > 0 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setSubOpen((v) => !v)}
-                    aria-expanded={subOpen}
-                    aria-label={
-                      subcat
-                        ? `Subkategori terpilih: ${subcat}. Ketuk untuk mengganti.`
-                        : 'Pilih subkategori (opsional)'
-                    }
-                    className={`flex h-11 w-full cursor-pointer items-center gap-3 rounded-xl border px-3.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                      subcat
-                        ? 'border-primary bg-secondary/50'
-                        : 'border-border bg-surface-sunken hover:border-primary/40'
-                    }`}
-                  >
-                    <span
-                      className={`min-w-0 flex-1 truncate text-body font-semibold ${
-                        subcat ? 'text-content-primary' : 'text-content-muted'
-                      }`}
-                    >
-                      {subcat || 'Pilih subkategori'}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold tabular-nums text-content-muted"
-                    >
-                      {subcatsOf(cat, customCats).length}
-                    </span>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {subOpen && (
-                      <m.div
-                        key="subs"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-                        className="overflow-hidden"
-                      >
-                        <div
-                          role="group"
-                          aria-label="Pilihan subkategori"
-                          className="flex flex-wrap gap-2 pt-2"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSubcat('')
-                              setSubOpen(false)
-                            }}
-                            aria-pressed={subcat === ''}
-                            className="h-9 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-meta font-semibold text-content-secondary transition-all active:scale-[0.96] hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          >
-                            Tanpa subkategori
-                          </button>
-                          {subcatsOf(cat, customCats).map((sub) => (
-                            <button
-                              key={sub}
-                              type="button"
-                              onClick={() => {
-                                setSubcat(sub)
-                                setSubOpen(false)
-                              }}
-                              aria-pressed={subcat === sub}
-                              className={`h-9 shrink-0 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                                subcat === sub
-                                  ? 'border-primary bg-secondary text-success shadow-leaf'
-                                  : 'border-border bg-surface-primary text-content-secondary hover:border-primary/40'
-                              }`}
-                            >
-                              {sub}
-                            </button>
-                          ))}
-                        </div>
-                      </m.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <p className="rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta text-content-muted">
-                  Kategori ini belum punya subkategori — bisa ditambah dari
-                  pengelola kategori.
-                </p>
-              )}
             </div>
 
             {/* Catatan */}
@@ -505,15 +403,12 @@ export function AddTxSheet() {
           </m.div>
 
           {/* Lembar pemilih kategori — overlay di atas lembar transaksi
-              (v2.17): satu sistem kategori + pencarian + subkategori. */}
+              (v2.17): satu sistem kategori + pencarian. */}
           <CatPickerSheet
             open={pickerOpen}
             type={type}
             selected={cat}
-            onSelect={(c, sub) => {
-              setCat(c)
-              setSubcat(sub ?? '')
-            }}
+            onSelect={(c) => setCat(c)}
             onClose={() => setPickerOpen(false)}
           />
         </>
