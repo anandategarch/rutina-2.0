@@ -125,11 +125,11 @@ export default function TrendLine() {
     >
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+          <p className="text-body font-semibold tracking-tight text-content-inverse/80">
             Tren Aktivitas
           </p>
           <p className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="text-[40px] font-semibold leading-none tracking-tight text-content-inverse">
+            <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
               {fmt1(avg)}
             </span>
             <span className="text-sm font-medium text-content-inverse/70">
@@ -137,7 +137,7 @@ export default function TrendLine() {
             </span>
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/20 px-2.5 py-1 text-[11px] font-bold text-pistachio">
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/20 px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
           <DeltaIcon className="h-3.5 w-3.5" />
           {deltaLabel}
         </span>
@@ -199,14 +199,14 @@ export default function TrendLine() {
         {week.map((d) => (
           <span
             key={d.date}
-            className="text-[11px] font-bold text-content-inverse/70"
+            className="text-eyebrow font-semibold text-content-inverse/70"
           >
             {d.label}
           </span>
         ))}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-content-inverse/70">
+      <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
         Rata-rata {fmt1(avg)} misi/hari pekan ini — {compareLabel}.
       </p>
     </m.div>

@@ -149,7 +149,7 @@ function HabitDetailPanel({
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: HABIT_CAT_COLORS[habit.cat] }}
           />
-          <span className="text-[12px] font-medium tracking-tight text-content-secondary">
+          <span className="text-meta font-medium tracking-tight text-content-secondary">
             {habit.cat}
           </span>
         </p>
@@ -218,7 +218,7 @@ function HabitDetailPanel({
 
         {/* Riwayat 30 hari terakhir — satu titik per hari */}
         <div className="mt-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+          <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
             30 hari terakhir
           </p>
           <div
@@ -242,7 +242,7 @@ function HabitDetailPanel({
         <button
           type="button"
           onClick={() => onEdit(habit.id)}
-          className="mt-6 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-4 text-[13px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="mt-6 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-4 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <Pencil className="h-4 w-4" strokeWidth={2.4} />
           Sunting kebiasaan
@@ -391,7 +391,7 @@ export default function KebiasaanScreen() {
         {/* Judul halaman editorial — Playfair Display sebagai aksen botanical
             (Tipografi System v1: satu-satunya serif di luar sapaan Beranda;
             nama kebiasaan & kontrol tetap Geist Sans demi kecepatan). */}
-        <p className="flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.14em] text-module-accent-strong">
+        <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-module-accent-strong">
           <span
             aria-hidden="true"
             className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
@@ -403,7 +403,7 @@ export default function KebiasaanScreen() {
         >
           Kebiasaan<span className="text-module-accent">.</span>
         </h1>
-        <p className="mt-2 text-[14px] font-medium text-content-muted">
+        <p className="mt-2 text-body font-medium text-content-muted">
           {activeHabits.length} kebiasaan aktif · {doneToday.length}/
           {scheduledToday.length} selesai hari ini
         </p>
@@ -431,7 +431,7 @@ export default function KebiasaanScreen() {
                 type="button"
                 onClick={openHabitCreate}
                 whileTap={{ scale: 0.95 }}
-                className="flex h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Plus className="h-4 w-4" strokeWidth={2.4} />
                 Tanam kebiasaan pertama
@@ -531,10 +531,10 @@ export default function KebiasaanScreen() {
                           <Flame className="h-4 w-4" strokeWidth={2.2} />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-[13px] font-bold text-content-primary">
+                          <p className="truncate text-note font-semibold text-content-primary">
                             {card.habit.title}
                           </p>
-                          <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                          <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                             Terlewat kemarin — jangan bolong dua kali.
                           </p>
                         </div>
@@ -551,7 +551,7 @@ export default function KebiasaanScreen() {
                             `"${card.habit.title}" kemarin selesai — runtun kembali utuh.`,
                           )
                         }}
-                        className="mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        className="mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                       >
                         <Check className="h-4 w-4" strokeWidth={2.6} />
                         Tandai selesai kemarin
@@ -579,10 +579,10 @@ export default function KebiasaanScreen() {
                         )}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-content-primary">
+                        <p className="text-note font-semibold text-content-primary">
                           {card.advice.title}
                         </p>
-                        <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                        <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                           {card.advice.text}
                         </p>
                       </div>
@@ -601,7 +601,7 @@ export default function KebiasaanScreen() {
               action={
                 <span
                   aria-current="date"
-                  className="flex h-9 items-center gap-1.5 rounded-full bg-module-accent/15 px-3 text-[11px] font-bold text-module-accent-strong"
+                  className="flex h-9 items-center gap-1.5 rounded-full bg-module-accent/15 px-3 text-eyebrow font-semibold text-module-accent-strong"
                 >
                   <CalendarDays
                     aria-hidden="true"
@@ -666,7 +666,7 @@ export default function KebiasaanScreen() {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <Check className="h-4 w-4" strokeWidth={2.6} />
                       </span>
-                      <span className="flex-1 text-[13px] font-semibold tracking-tight text-content-secondary">
+                      <span className="flex-1 text-note font-semibold tracking-tight text-content-secondary">
                         Selesai ({doneToday.length})
                       </span>
                       <m.span
@@ -762,10 +762,10 @@ export default function KebiasaanScreen() {
                             className="h-2.5 w-2.5 shrink-0 rounded-full"
                             style={{ backgroundColor: HABIT_CAT_COLORS[g.cat] }}
                           />
-                          <h3 className="text-[14px] font-semibold tracking-tight text-content-secondary">
+                          <h3 className="text-body font-semibold tracking-tight text-content-secondary">
                             {g.cat}
                           </h3>
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold text-content-secondary">
                             {g.items.length}
                           </span>
                         </div>
@@ -847,7 +847,7 @@ export default function KebiasaanScreen() {
                     type="button"
                     className="group flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary data-[state=open]:bg-surface-sunken"
                   >
-                    <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
+                    <span className="flex items-center gap-2 text-meta font-bold text-content-secondary">
                       <Archive className="h-3.5 w-3.5" />
                       Arsip ({archivedHabits.length})
                     </span>
@@ -868,10 +868,10 @@ export default function KebiasaanScreen() {
                           <Archive className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold text-content-secondary">
+                          <span className="block truncate text-note font-semibold text-content-secondary">
                             {h.title}
                           </span>
-                          <span className="block text-[11px] font-medium text-content-muted">
+                          <span className="block text-eyebrow font-medium text-content-muted">
                             {h.cat} · diarsipkan
                           </span>
                         </span>
@@ -882,7 +882,7 @@ export default function KebiasaanScreen() {
                             toast.success('Kebiasaan dipulihkan dari arsip')
                           }}
                           aria-label={`Pulihkan ${h.title} dari arsip`}
-                          className="flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-primary/40 px-4 text-[12px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          className="flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-primary/40 px-4 text-meta font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                           <ArchiveRestore className="h-3.5 w-3.5" />
                           Pulihkan
@@ -916,7 +916,7 @@ export default function KebiasaanScreen() {
         <button
           type="button"
           onClick={openHabitCreate}
-          className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} />
           Kebiasaan baru

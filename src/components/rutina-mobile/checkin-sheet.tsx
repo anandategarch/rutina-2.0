@@ -32,7 +32,7 @@ function Scale1to5({
 }) {
   return (
     <div className="mt-4">
-      <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+      <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
         {label}
       </p>
       <div className="mt-2 flex gap-2">
@@ -46,7 +46,7 @@ function Scale1to5({
               aria-label={`${scaleLabel} ${v}`}
               onClick={() => onPick(selected ? null : v)}
               className={cn(
-                'flex h-11 w-11 flex-1 cursor-pointer items-center justify-center rounded-full text-[14px] font-bold tabular-nums outline-none transition-all duration-150 active:scale-[0.92] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                'flex h-11 w-11 flex-1 cursor-pointer items-center justify-center rounded-full text-body font-bold tabular-nums outline-none transition-all duration-150 active:scale-[0.92] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                 selected
                   ? 'bg-primary text-primary-foreground shadow-soft'
                   : 'border border-border bg-surface-secondary text-content-secondary hover:border-border-strong',
@@ -57,7 +57,7 @@ function Scale1to5({
           )
         })}
       </div>
-      <p className="mt-1.5 px-0.5 text-[11px] font-medium text-content-muted">
+      <p className="mt-1.5 px-0.5 text-eyebrow font-medium text-content-muted">
         1 = {lowLabel} · 5 = {highLabel}
       </p>
     </div>
@@ -167,7 +167,7 @@ export function CheckInSheet() {
 
       {/* Suasana hati — pil MOODS */}
       <div className="mt-4">
-        <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+        <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
           Suasana hati
         </p>
         <div className="mt-2 flex gap-2">
@@ -182,7 +182,7 @@ export function CheckInSheet() {
                 aria-label={`Suasana hati: ${moodName}`}
                 onClick={() => setMoodDraft(selected ? null : moodName)}
                 className={cn(
-                  'flex h-10 min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 text-[12px] font-bold outline-none transition-all duration-150 active:scale-[0.95] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                  'flex h-10 min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 text-meta font-bold outline-none transition-all duration-150 active:scale-[0.95] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                   selected
                     ? 'bg-primary text-primary-foreground shadow-soft'
                     : 'bg-surface-secondary text-content-secondary hover:bg-surface-sunken',
@@ -225,10 +225,10 @@ export function CheckInSheet() {
       {/* Tidur — stepper setengah jam */}
       <div className="mt-4">
         <div className="flex items-center justify-between px-0.5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+          <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
             Jam tidur semalam
           </p>
-          <span className="text-[13px] font-bold tabular-nums text-content-primary">
+          <span className="text-note font-bold tabular-nums text-content-primary">
             {sleepH != null ? `${fmtHours(sleepH)} jam` : 'belum diisi'}
           </span>
         </div>
@@ -243,9 +243,9 @@ export function CheckInSheet() {
           >
             <Minus className="h-4 w-4" aria-hidden="true" />
           </button>
-          <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-surface-sunken text-[15px] font-bold tabular-nums text-content-primary">
+          <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-surface-sunken text-section font-bold tabular-nums text-content-primary">
             {sleepH != null ? fmtHours(sleepH) : '–'}
-            <span className="ml-1 text-[11px] font-semibold text-content-muted">
+            <span className="ml-1 text-eyebrow font-semibold text-content-muted">
               jam
             </span>
           </div>

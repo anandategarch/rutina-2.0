@@ -102,10 +102,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
           <Dumbbell className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold tracking-tight text-content-primary">
+          <span className="block text-section font-bold tracking-tight text-content-primary">
             {prog.name}
           </span>
-          <span className="mt-0.5 block break-words text-[12px] font-medium leading-snug text-content-muted">
+          <span className="mt-0.5 block break-words text-meta font-medium leading-snug text-content-muted">
             {prog.level} · {prog.freq} · ±{prog.dur} mnt
           </span>
         </span>
@@ -129,10 +129,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
             transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
             className="overflow-hidden"
           >
-            <p className="mt-3 text-[13px] leading-relaxed text-content-muted">
+            <p className="mt-3 text-note leading-relaxed text-content-muted">
               {prog.desc}
             </p>
-            <p className="mt-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[12px] leading-relaxed text-content-muted">
+            <p className="mt-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta leading-relaxed text-content-muted">
               <span className="font-bold text-success">Progresi: </span>
               {prog.prog}
             </p>
@@ -143,10 +143,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                   className="rounded-2xl border border-border bg-surface-sunken p-3.5"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[13px] font-bold text-content-primary">
+                    <p className="text-note font-semibold text-content-primary">
                       {day.label}
                     </p>
-                    <span className="flex items-center gap-1 text-[11px] font-semibold text-content-muted">
+                    <span className="flex items-center gap-1 text-eyebrow font-semibold text-content-muted">
                       <Timer className="h-3 w-3" />
                       istirahat {day.rest}
                     </span>
@@ -155,12 +155,12 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                     {day.ex.map((e) => (
                       <li
                         key={e.name}
-                        className="flex items-center justify-between gap-2 text-[13px]"
+                        className="flex items-center justify-between gap-2 text-note"
                       >
                         <span className="min-w-0 flex-1 truncate font-medium text-content-secondary/90">
                           {e.name}
                         </span>
-                        <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-success">
+                        <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold tabular-nums text-success">
                           {e.sets}×{e.reps}
                         </span>
                       </li>
@@ -180,7 +180,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                         workouts,
                       )
                     }
-                    className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-[13px] font-bold text-primary-foreground transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-note font-bold text-primary-foreground transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Play className="h-3.5 w-3.5" />
                     Mulai sesi {day.label}
@@ -240,7 +240,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-bold text-content-primary">
+          <span className="block text-body font-semibold text-content-primary">
             {isStrength
               ? `Beban · ${w.sets.length} set`
               : `${w.kind === 'jalan' ? 'Jalan' : 'Lari'} · ${w.distance?.toFixed(1).replace('.', ',')} km`}
@@ -249,7 +249,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
               — {shortDateLabel(w.date)}
             </span>
           </span>
-          <span className="mt-0.5 block text-[12px] font-medium tabular-nums text-content-muted">
+          <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
             {isStrength
               ? `${Math.round(tonase).toLocaleString('id-ID')} kg tonase · e1RM ≈ ${best.toFixed(1).replace('.', ',')} kg`
               : `${w.duration} mnt${pace ? ` · pace ${pace}/km` : ''}`}
@@ -299,25 +299,25 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                     .map((g, i) => (
                       <li
                         key={i}
-                        className="flex items-center justify-between gap-2 text-[13px]"
+                        className="flex items-center justify-between gap-2 text-note"
                       >
                         <span className="min-w-0 flex-1 truncate font-semibold text-content-secondary">
                           {g.exercise}
                         </span>
-                        <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-success">
+                        <span className="shrink-0 rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold tabular-nums text-success">
                           {g.weight.toString().replace('.', ',')} kg × {g.reps} ({g.count} set)
                         </span>
                       </li>
                     ))}
                 </ul>
               ) : (
-                <p className="text-[13px] font-medium text-content-muted">
+                <p className="text-note font-medium text-content-muted">
                   {w.kind === 'jalan' ? 'Jalan santai' : 'Lari'}{' '}
                   {w.distance?.toFixed(1).replace('.', ',')} km selama {w.duration} menit.
                 </p>
               )}
               {w.note && (
-                <p className="mt-2 border-t border-border pt-2 text-[12px] italic text-content-muted">
+                <p className="mt-2 border-t border-border pt-2 text-meta italic text-content-muted">
                   “{w.note}”
                 </p>
               )}
@@ -328,7 +328,7 @@ function WorkoutRow({ w, index }: { w: Workout; index: number }) {
                 deleteWorkout(w.id)
                 toast('Sesi dihapus dari riwayat.')
               }}
-              className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-[12px] font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+              className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-meta font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Hapus sesi
@@ -360,10 +360,10 @@ function ExerciseCard({ name }: { name: string }) {
         className="flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-bold text-content-primary">
+          <span className="block text-body font-semibold text-content-primary">
             {ex.name}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] font-medium text-content-muted">
+          <span className="mt-0.5 block truncate text-eyebrow font-medium text-content-muted">
             {ex.muscle} · {EX_LEVELS[ex.level]} · {ex.equipment}
           </span>
         </span>
@@ -388,17 +388,17 @@ function ExerciseCard({ name }: { name: string }) {
             className="overflow-hidden"
           >
             <div className="mt-3 space-y-3">
-              <p className="text-[13px] leading-relaxed text-content-muted">
+              <p className="text-note leading-relaxed text-content-muted">
                 {ex.desc}
               </p>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-success">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-success">
                   Langkah
                 </p>
                 <ol className="mt-1.5 space-y-1.5">
                   {ex.steps.map((s, i) => (
-                    <li key={i} className="flex gap-2 text-[12px] leading-relaxed text-content-muted">
-                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-success">
+                    <li key={i} className="flex gap-2 text-meta leading-relaxed text-content-muted">
+                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-secondary text-chart-label font-semibold text-success">
                         {i + 1}
                       </span>
                       {s}
@@ -407,13 +407,13 @@ function ExerciseCard({ name }: { name: string }) {
                 </ol>
               </div>
               <div className="rounded-xl bg-secondary/60 p-3">
-                <p className="text-[11px] leading-relaxed text-content-secondary">
+                <p className="text-eyebrow leading-relaxed text-content-secondary">
                   <span className="font-bold text-success">Tip: </span>
                   {ex.tip}
                 </p>
               </div>
               <div className="rounded-xl bg-destructive/10 p-3">
-                <p className="text-[11px] leading-relaxed text-content-secondary">
+                <p className="text-eyebrow leading-relaxed text-content-secondary">
                   <span className="font-bold text-content-danger">Hindari: </span>
                   {ex.mistakes}
                 </p>
@@ -423,7 +423,7 @@ function ExerciseCard({ name }: { name: string }) {
                 onClick={() =>
                   openWorkoutSheet([{ name: ex.name, count: 3, reps: 8 }])
                 }
-                className="flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-[13px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-note font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Catat gerakan ini
@@ -487,14 +487,14 @@ function TonaseStrip() {
       className="mt-[var(--layout-gap)] rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft"
     >
       <div className="flex items-baseline justify-between gap-2 px-0.5">
-        <h2 className="text-eyebrow font-bold uppercase tracking-[0.16em] text-content-secondary">
+        <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
           Tonase 7 Hari
         </h2>
-        <p className="text-[12px] font-bold tabular-nums text-module-accent-strong">
+        <p className="text-meta font-bold tabular-nums text-module-accent-strong">
           {total >= 1000
             ? `${(total / 1000).toFixed(1).replace('.', ',')}t`
             : Math.round(total).toLocaleString('id-ID')}
-          <span className="ml-1 text-[10px] font-semibold text-content-muted">
+          <span className="ml-1 text-chart-label font-semibold text-content-muted">
             kg pekan ini
           </span>
         </p>
@@ -629,14 +629,14 @@ export default function BugarScreen() {
       {/* Header studio performa — judul operasional Geist Sans tegas
           (bukan serif editorial); Tipografi System v1. */}
       <header>
-        <p className="flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.16em] text-module-accent-strong">
+        <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-module-accent-strong">
           <Dumbbell className="h-3.5 w-3.5" />
           Gerak &amp; kekuatan
         </p>
         <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-[-0.03em]">
           Bugar<span className="text-module-accent">.</span>
         </h1>
-        <p className="mt-2 text-[14px] font-medium text-content-muted">
+        <p className="mt-2 text-body font-medium text-content-muted">
           {tab === 'latihan'
             ? week.sessions > 0
               ? `${week.sessions} sesi pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
@@ -691,52 +691,53 @@ export default function BugarScreen() {
           >
             <RutinaBentoGrid>
               <RutinaBentoItem span="hero">
-          {/* Hero ringkasan pekan — angka dari histori nyata; latar bertint
-              eucalyptus (identitas modul Bugar), teks module-accent-fg agar
-              ikut terbalik di mode gelap. */}
+          {/* Hero ringkasan pekan — angka dari histori nyata; latar strong
+              bertint eucalyptus (Color System v2: strong sebagai latar solid
+              agar teks putih lolos AA 6,4:1; base dipertahankan untuk ikon/
+              aksen), teks module-accent-fg ikut terbalik di mode gelap. */}
           <m.section
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
             aria-label="Ringkasan latihan pekan ini"
-            className="relative overflow-hidden rounded-[24px] bg-module-accent p-6 text-module-accent-fg shadow-leaf"
+            className="relative overflow-hidden rounded-[24px] bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
           >
         <div className="relative z-10">
-          <p className="text-[13px] font-medium text-module-accent-fg/80">
+          <p className="text-note font-medium text-module-accent-fg/80">
             Pekan ini
           </p>
           <div className="mt-3 grid grid-cols-3 gap-3">
             <div>
               <p className="flex items-baseline">
-                <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums">
+                <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums">
                   {week.sessions}
                 </span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-module-accent-fg/75">
+              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
                 sesi latihan
               </p>
             </div>
             <div>
               <p className="flex items-baseline">
-                <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums">
+                <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums">
                   {week.minutes}
                 </span>
                 <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">mnt</span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-module-accent-fg/75">
+              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
                 total durasi
               </p>
             </div>
             <div>
               <p className="flex items-baseline">
-                <span className="text-[32px] font-semibold leading-none tracking-tight tabular-nums">
+                <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums">
                   {week.tonase >= 1000
                     ? `${(week.tonase / 1000).toFixed(1).replace('.', ',')}t`
                     : Math.round(week.tonase).toLocaleString('id-ID')}
                 </span>
                 <span className="ml-0.5 text-sm font-medium text-module-accent-fg/80">kg</span>
               </p>
-              <p className="mt-1 text-[11px] font-medium text-module-accent-fg/75">
+              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
                 tonase beban
               </p>
             </div>
@@ -745,17 +746,17 @@ export default function BugarScreen() {
           {topPr && (
             <div className="mt-4 flex items-center gap-2 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
               <Trophy className="h-4 w-4 shrink-0 text-pistachio" />
-              <p className="min-w-0 flex-1 break-words text-[12px] font-semibold leading-snug">
+              <p className="min-w-0 flex-1 break-words text-meta font-semibold leading-snug">
                 Rekor e1RM: {topPr.name} ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
               </p>
-              <span className="shrink-0 text-[11px] font-bold tabular-nums text-module-accent-fg/75">
+              <span className="shrink-0 text-eyebrow font-semibold tabular-nums text-module-accent-fg/85">
                 {prs.length} gerakan
               </span>
             </div>
           )}
 
           {weekKcal > 0 && (
-            <p className="mt-2 text-[11px] font-medium text-module-accent-fg/70">
+            <p className="mt-2 text-eyebrow font-medium text-module-accent-fg/80">
               ≈ {weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini
               {weight == null && ' (asumsi 60 kg — timbang dirimu di tab Tubuh)'}
             </p>
@@ -771,7 +772,7 @@ export default function BugarScreen() {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.08, ease: motionTokens.easing.standard }}
-        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-[15px] font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Play className="h-5 w-5" strokeWidth={2.5} />
         Mulai Sesi Latihan
@@ -779,7 +780,7 @@ export default function BugarScreen() {
       <button
         type="button"
         onClick={() => openWorkoutSheet()}
-        className="mx-auto mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold text-content-muted underline-offset-4 transition-colors hover:text-content-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="mx-auto mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-note font-semibold text-content-muted underline-offset-4 transition-colors hover:text-content-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         Catat manual
       </button>
@@ -806,10 +807,10 @@ export default function BugarScreen() {
                 <Sparkles className="h-5 w-5" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold text-content-primary">
+                <p className="text-body font-semibold text-content-primary">
                   Kesiapan latihan
                 </p>
-                <p className="mt-0.5 text-[12px] font-medium text-content-muted">
+                <p className="mt-0.5 text-meta font-medium text-content-muted">
                   {readiness
                     ? `${readiness.label} · dari check-in hari ini`
                     : 'Belum ada check-in hari ini'}
@@ -817,24 +818,24 @@ export default function BugarScreen() {
               </div>
               {readiness && (
                 <p className="shrink-0 text-right">
-                  <span className="block text-[26px] font-bold leading-none tabular-nums text-content-primary">
+                  <span className="block text-kpi font-bold leading-none tabular-nums text-content-primary">
                     {readiness.score}
                   </span>
-                  <span className="block text-[10px] font-bold uppercase tracking-wide text-content-muted">
+                  <span className="block text-chart-label font-semibold uppercase tracking-wide text-content-muted">
                     / 100
                   </span>
                 </p>
               )}
             </div>
             {readiness ? (
-              <p className="mt-2.5 rounded-xl bg-secondary/60 px-3.5 py-2.5 text-[11px] leading-relaxed text-content-secondary">
+              <p className="mt-2.5 rounded-xl bg-secondary/60 px-3.5 py-2.5 text-eyebrow leading-relaxed text-content-secondary">
                 {readiness.hint}
               </p>
             ) : (
               <button
                 type="button"
                 onClick={openCheckIn}
-                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-surface-inverse pl-4 pr-[72px] text-[13px] font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-surface-inverse pl-4 pr-[72px] text-note font-bold text-content-inverse transition-all hover:bg-espresso-soft active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {/* pr-[72px] = FAB 56px + jarak 16px: label tak pernah
                     tertindih FAB mengambang yang anchored di kanan-bawah. */}
@@ -856,10 +857,10 @@ export default function BugarScreen() {
                   <AlertTriangle className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-bold leading-snug text-content-primary">
+                  <p className="text-body font-semibold leading-snug text-content-primary">
                     Masa deload aktif hingga {longDateLabel(deloadUntil)}
                   </p>
-                  <p className="mt-0.5 text-[12px] font-medium text-content-muted">
+                  <p className="mt-0.5 text-meta font-medium text-content-muted">
                     Target beban otomatis dikurangi 50%
                   </p>
                 </div>
@@ -870,7 +871,7 @@ export default function BugarScreen() {
                   endDeload()
                   toast.success('Deload diakhiri — beban kembali normal.')
                 }}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-[13px] font-bold text-content-danger transition-colors hover:bg-destructive/15 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-note font-bold text-content-danger transition-colors hover:bg-destructive/15 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Akhiri deload sekarang
               </button>
@@ -887,17 +888,17 @@ export default function BugarScreen() {
                   <TrendingDown className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-bold text-content-primary">
+                  <p className="text-body font-semibold text-content-primary">
                     Plateau terdeteksi
                   </p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                  <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                     e1RM tidak membaik dalam 3 sesi terakhir:
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {stalledNames.map((n) => (
                       <span
                         key={n}
-                        className="rounded-full bg-surface-primary px-2.5 py-0.5 text-[11px] font-bold text-content-danger"
+                        className="rounded-full bg-surface-primary px-2.5 py-0.5 text-eyebrow font-semibold text-content-danger"
                       >
                         {n}
                       </span>
@@ -905,7 +906,7 @@ export default function BugarScreen() {
                   </div>
                 </div>
               </div>
-              <p className="mt-2.5 text-[12px] leading-relaxed text-content-muted">
+              <p className="mt-2.5 text-meta leading-relaxed text-content-muted">
                 Deload memangkas target beban 50% selama beberapa hari agar
                 tubuh bangkit lebih kuat.
               </p>
@@ -915,7 +916,7 @@ export default function BugarScreen() {
                   startDeload(7)
                   toast.success('Deload 7 hari dimulai — target beban dipangkas 50%.')
                 }}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-[13px] font-bold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-note font-bold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Mulai deload 7 hari
               </button>
@@ -935,10 +936,10 @@ export default function BugarScreen() {
                   <Footprints className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-bold text-content-primary">
+                  <p className="text-body font-semibold text-content-primary">
                     Jeda sejenak — {guard.cardioCount7d} sesi kardio 7 hari terakhir
                   </p>
-                  <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                  <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                     {guard.suggestion}
                   </p>
                 </div>
@@ -956,10 +957,10 @@ export default function BugarScreen() {
               <Calculator className="h-5 w-5" aria-hidden="true" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[14px] font-bold text-content-primary">
+              <span className="block text-body font-semibold text-content-primary">
                 Alat Barbel
               </span>
-              <span className="mt-0.5 block text-[12px] font-medium text-content-muted">
+              <span className="mt-0.5 block text-meta font-medium text-content-muted">
                 Kalkulator piring, 1RM, dan pemanasan
               </span>
             </span>
@@ -990,7 +991,7 @@ export default function BugarScreen() {
             Program Latihan
           </h2>
         </div>
-        <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-content-muted">
+        <p className="mt-1 px-0.5 text-meta leading-relaxed text-content-muted">
           Rencana siap pakai — cukup barbel + rak + bangku. Pilih hari untuk
           memulai sesi terisi otomatis.
         </p>
@@ -1008,11 +1009,11 @@ export default function BugarScreen() {
             <h2 className="text-section font-semibold tracking-tight text-content-secondary">
               Riwayat
             </h2>
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-success">
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-eyebrow font-semibold text-success">
               {workouts.length}
             </span>
           </div>
-          <span className="text-[11px] font-medium text-content-muted">
+          <span className="text-eyebrow font-medium text-content-muted">
             {cardio.km > 0
               ? `${cardio.km.toFixed(1).replace('.', ',')} km kardio`
               : `${strengthCount} sesi beban`}
@@ -1034,10 +1035,10 @@ export default function BugarScreen() {
                 className="rounded-[20px] border-2 border-dashed border-primary/30 px-6 py-9 text-center"
               >
                 <Dumbbell className="mx-auto h-6 w-6 text-content-muted" />
-                <p className="mt-2 text-[13px] font-semibold text-content-muted">
+                <p className="mt-2 text-note font-semibold text-content-muted">
                   Belum ada sesi tercatat
                 </p>
-                <p className="mt-0.5 text-[12px] text-content-muted">
+                <p className="mt-0.5 text-meta text-content-muted">
                   Mulai dari program di atas atau catat manual.
                 </p>
               </m.div>
@@ -1054,7 +1055,7 @@ export default function BugarScreen() {
             Papan Rekor e1RM
           </h2>
         </div>
-        <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-content-muted">
+        <p className="mt-1 px-0.5 text-meta leading-relaxed text-content-muted">
           Estimasi kekuatan Epley (beban × (1 + reps/30)) dari set yang kamu
           catat — terpantau otomatis.
         </p>
@@ -1062,10 +1063,10 @@ export default function BugarScreen() {
         {prs.length === 0 ? (
           <div className="mt-3 rounded-[20px] border-2 border-dashed border-border px-6 py-8 text-center">
             <Zap className="mx-auto h-5 w-5 text-content-muted" />
-            <p className="mt-2 text-[13px] font-semibold text-content-muted">
+            <p className="mt-2 text-note font-semibold text-content-muted">
               Rekor lahir setelah set beban pertama dicatat
             </p>
-            <p className="mt-0.5 text-[12px] text-content-muted">
+            <p className="mt-0.5 text-meta text-content-muted">
               e1RM tiap gerakan dipantau otomatis di sini.
             </p>
           </div>
@@ -1088,25 +1089,25 @@ export default function BugarScreen() {
                 }`}
               >
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold tabular-nums ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-note font-bold tabular-nums ${
                     i === 0 ? 'bg-warning text-content-inverse' : 'bg-surface-sunken text-content-muted'
                   }`}
                 >
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-bold text-content-primary">
+                  <p className="truncate text-body font-semibold text-content-primary">
                     {r.name}
                   </p>
-                  <p className="text-[11px] font-medium text-content-muted">
+                  <p className="text-eyebrow font-medium text-content-muted">
                     {r.sessions} sesi tercatat
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[16px] font-bold leading-none tabular-nums text-content-primary">
+                  <p className="text-section-lg font-bold leading-none tabular-nums text-content-primary">
                     {r.best.toFixed(1).replace('.', ',')}
                   </p>
-                  <p className="font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-content-muted">
+                  <p className="font-mono text-chart-label font-medium uppercase tracking-[0.08em] text-content-muted">
                     kg · e1RM
                   </p>
                 </div>
@@ -1122,7 +1123,7 @@ export default function BugarScreen() {
           <h2 className="text-section font-semibold tracking-tight text-content-secondary">
             Pustaka Gerakan
           </h2>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-success">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-eyebrow font-semibold text-success">
             {EX_LIB.length}
           </span>
         </div>
@@ -1150,7 +1151,7 @@ export default function BugarScreen() {
                   aria-pressed={active}
                   onClick={() => setLibMuscle(g)}
                   className={
-                    'h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                    'h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                     (active
                       ? 'bg-surface-inverse text-content-inverse shadow-soft'
                       : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -1170,10 +1171,10 @@ export default function BugarScreen() {
           {filteredLib.length === 0 && (
             <div className="rounded-[20px] border-2 border-dashed border-border px-6 py-8 text-center">
               <Search className="mx-auto h-5 w-5 text-content-muted" />
-              <p className="mt-2 text-[13px] font-semibold text-content-muted">
+              <p className="mt-2 text-note font-semibold text-content-muted">
                 Tidak ada gerakan cocok
               </p>
-              <p className="mt-0.5 text-[12px] text-content-muted">
+              <p className="mt-0.5 text-meta text-content-muted">
                 Coba kata kunci lain atau ganti filter otot.
               </p>
             </div>

@@ -251,7 +251,7 @@ function DayDetailBody({
               {/* Kebiasaan — ringkasan read-only. */}
               {data.habitRows.length > 0 && (
                 <div>
-                  <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
                     Kebiasaan — {data.doneCount} dari {data.habitRows.length} selesai
                   </p>
                   <ul className="mt-2 space-y-2">
@@ -272,10 +272,10 @@ function DayDetailBody({
                           {habitIcon(row)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold text-content-primary">
+                          <span className="block truncate text-note font-semibold text-content-primary">
                             {row.title}
                           </span>
-                          <span className="mt-0.5 block text-[11px] font-medium text-content-muted">
+                          <span className="mt-0.5 block text-eyebrow font-medium text-content-muted">
                             {row.done
                               ? 'Selesai'
                               : row.rest
@@ -292,7 +292,7 @@ function DayDetailBody({
               {/* Catatan — pencocokan label terbaik. */}
               {data.dayNotes.length > 0 && (
                 <div>
-                  <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
                     Catatan
                   </p>
                   <ul className="mt-2 space-y-2">
@@ -301,14 +301,14 @@ function DayDetailBody({
                         key={n.id}
                         className="rounded-2xl bg-surface-sunken px-3 py-2.5"
                       >
-                        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-content-primary">
+                        <p className="flex items-center gap-1.5 text-note font-semibold text-content-primary">
                           <NotebookPen
                             aria-hidden="true"
                             className="h-3.5 w-3.5 shrink-0 text-primary"
                           />
                           <span className="truncate">{n.title}</span>
                         </p>
-                        <p className="mt-1 line-clamp-1 text-[12px] leading-relaxed text-content-muted">
+                        <p className="mt-1 line-clamp-1 text-meta leading-relaxed text-content-muted">
                           {n.body}
                         </p>
                       </li>
@@ -320,23 +320,23 @@ function DayDetailBody({
               {/* Keuangan — total arus + hingga 5 mutasi. */}
               {(data.masuk > 0 || data.keluar > 0) && (
                 <div>
-                  <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
                     Keuangan
                   </p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                      <p className="text-chart-label font-semibold uppercase tracking-[0.1em] text-content-muted">
                         Keluar
                       </p>
-                      <p className="mt-0.5 truncate text-[14px] font-bold tabular-nums text-content-danger">
+                      <p className="mt-0.5 truncate text-body font-bold tabular-nums text-content-danger">
                         −{formatIDR(data.keluar)}
                       </p>
                     </div>
                     <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                      <p className="text-chart-label font-semibold uppercase tracking-[0.1em] text-content-muted">
                         Masuk
                       </p>
-                      <p className="mt-0.5 truncate text-[14px] font-bold tabular-nums text-success">
+                      <p className="mt-0.5 truncate text-body font-bold tabular-nums text-success">
                         +{formatIDR(data.masuk)}
                       </p>
                     </div>
@@ -350,14 +350,14 @@ function DayDetailBody({
                           key={tx.id}
                           className="flex items-center gap-2.5 rounded-2xl bg-surface-sunken px-3 py-2"
                         >
-                          <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-content-primary">
+                          <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
                             {tx.note || CAT_META[tx.cat].label}
                           </span>
-                          <span className="shrink-0 rounded-full bg-surface-primary px-2 py-0.5 text-[10px] font-bold text-content-muted">
+                          <span className="shrink-0 rounded-full bg-surface-primary px-2 py-0.5 text-chart-label font-semibold text-content-muted">
                             {CAT_META[tx.cat].label}
                           </span>
                           <span
-                            className={`shrink-0 text-[12px] font-bold tabular-nums ${
+                            className={`shrink-0 text-meta font-bold tabular-nums ${
                               transfer
                                 ? 'text-content-muted'
                                 : income
@@ -378,7 +378,7 @@ function DayDetailBody({
               {/* Aktivitas — latihan & asupan. */}
               {(data.dayWorkouts.length > 0 || data.foodCount > 0) && (
                 <div>
-                  <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
                     Aktivitas
                   </p>
                   <ul className="mt-2 space-y-2">
@@ -407,12 +407,12 @@ function DayDetailBody({
                             )}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[13px] font-semibold text-content-primary">
+                            <span className="block text-note font-semibold text-content-primary">
                               {isStrength
                                 ? `Beban · ${w.sets} set`
                                 : `${w.kind === 'jalan' ? 'Jalan' : 'Lari'}${km ? ` · ${km} km` : ''}`}
                             </span>
-                            <span className="mt-0.5 block text-[11px] font-medium tabular-nums text-content-muted">
+                            <span className="mt-0.5 block text-eyebrow font-medium tabular-nums text-content-muted">
                               {isStrength
                                 ? `${Math.round(w.tonase).toLocaleString('id-ID')} kg tonase · ${w.duration} mnt`
                                 : `${w.duration} mnt`}
@@ -427,10 +427,10 @@ function DayDetailBody({
                           <UtensilsCrossed className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[13px] font-semibold text-content-primary">
+                          <span className="block text-note font-semibold text-content-primary">
                             Asupan — {data.foodCount} catatan
                           </span>
-                          <span className="mt-0.5 block text-[11px] font-medium tabular-nums text-content-muted">
+                          <span className="mt-0.5 block text-eyebrow font-medium tabular-nums text-content-muted">
                             {data.kcal.toLocaleString('id-ID')} kkal tercatat
                           </span>
                         </span>
@@ -443,12 +443,12 @@ function DayDetailBody({
               {/* Tubuh & mood — chip ringkas. */}
               {(data.mood || data.water != null || data.sleepH != null || data.energy != null) && (
                 <div>
-                  <p className="px-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
                     Tubuh &amp; suasana
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {data.mood && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-meta font-semibold text-content-secondary">
                         {(() => {
                           const MoodIcon = MOOD_ICONS[data.mood] ?? Smile
                           return (
@@ -462,19 +462,19 @@ function DayDetailBody({
                       </span>
                     )}
                     {data.water != null && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-meta font-semibold text-content-secondary">
                         <Droplets aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Hidrasi {data.water} gelas
                       </span>
                     )}
                     {data.sleepH != null && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-meta font-semibold text-content-secondary">
                         <Moon aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Tidur {data.sleepH.toString().replace('.', ',')} jam
                       </span>
                     )}
                     {data.energy != null && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-meta font-semibold text-content-secondary">
                         <Zap aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Energi {data.energy}/5
                       </span>

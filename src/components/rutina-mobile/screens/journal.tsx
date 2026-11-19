@@ -96,7 +96,7 @@ export default function JournalScreen() {
           delay: 0.06,
           ease: motionTokens.easing.standard,
         }}
-        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <PenLine className="h-[18px] w-[18px]" strokeWidth={2.4} />
         Tulis catatan
@@ -146,7 +146,7 @@ export default function JournalScreen() {
                 aria-pressed={active}
                 onClick={() => setJournalFilter(f.key)}
                 className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                   (active
                     ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
                     : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -208,7 +208,7 @@ export default function JournalScreen() {
                     type="button"
                     onClick={() => openCanvas()}
                     whileTap={{ scale: 0.95 }}
-                    className="flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <PenLine className="h-4 w-4" strokeWidth={2.4} />
                     Tulis catatan pertama
@@ -221,7 +221,7 @@ export default function JournalScreen() {
                 <span className="flex h-14 w-14 items-center justify-center rounded-full bg-module-accent/15">
                   <BookOpen className="h-6 w-6 text-module-accent-strong" />
                 </span>
-                <p className="mt-4 text-[15px] font-semibold text-content-primary">
+                <p className="mt-4 text-section font-semibold text-content-primary">
                   Tidak ada catatan yang cocok
                 </p>
                 <p className="mt-1 text-xs text-content-muted">
@@ -241,7 +241,7 @@ export default function JournalScreen() {
 /** Label seksi kecil kapital — pemisah tenang antar kelompok catatan. */
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-content-muted">
+    <p className="mb-2.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
       {children}
     </p>
   )
@@ -320,7 +320,7 @@ function NoteCard({
       />
       <div className="pointer-events-none relative z-10">
         <div className="flex items-start justify-between gap-1">
-          <h3 className="min-w-0 flex-1 text-[15px] font-bold leading-snug text-content-primary">
+          <h3 className="min-w-0 flex-1 text-section font-bold leading-snug text-content-primary">
             {note.title === '' ? (
               <span className="italic text-content-muted">Tanpa judul</span>
             ) : (
@@ -362,15 +362,15 @@ function NoteCard({
             </button>
           </div>
         </div>
-        <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-content-muted">
+        <p className="mt-1 line-clamp-2 text-note leading-relaxed text-content-muted">
           {note.body}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-content-secondary">
+          <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold uppercase tracking-[0.1em] text-content-secondary">
             {FOLDER_SHORT[note.folder]}
           </span>
           {mood ? (
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-content-muted">
+            <span className="flex items-center gap-1.5 text-eyebrow font-semibold text-content-muted">
               <span
                 aria-hidden="true"
                 className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
@@ -378,7 +378,7 @@ function NoteCard({
               {mood}
             </span>
           ) : null}
-          <span className="ml-auto text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+          <span className="ml-auto text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
             {note.date}
           </span>
         </div>

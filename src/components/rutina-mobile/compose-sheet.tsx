@@ -119,7 +119,7 @@ export function ComposeSheet() {
               <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                 Catatan Baru
               </h2>
-              <p className="mt-0.5 text-[13px] text-content-muted">
+              <p className="mt-0.5 text-note text-content-muted">
                 Simpan pikiran atau ide hari ini ke jurnal.
               </p>
             </div>
@@ -128,7 +128,7 @@ export function ComposeSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="sheet-title"
-                  className="text-[13px] font-semibold text-content-secondary"
+                  className="text-note font-semibold text-content-secondary"
                 >
                   Judul
                 </Label>
@@ -143,7 +143,7 @@ export function ComposeSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="sheet-body"
-                  className="text-[13px] font-semibold text-content-secondary"
+                  className="text-note font-semibold text-content-secondary"
                 >
                   Isi catatan
                 </Label>
@@ -156,7 +156,7 @@ export function ComposeSheet() {
                 />
               </div>
               <div className="space-y-1.5">
-                <span className="text-[13px] font-semibold text-content-secondary">
+                <span className="text-note font-semibold text-content-secondary">
                   Kategori
                 </span>
                 <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -166,7 +166,7 @@ export function ComposeSheet() {
                       type="button"
                       onClick={() => setFolder(f.key)}
                       aria-pressed={folder === f.key}
-                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors ${
+                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors ${
                         folder === f.key
                           ? 'bg-primary text-primary-foreground'
                           : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'

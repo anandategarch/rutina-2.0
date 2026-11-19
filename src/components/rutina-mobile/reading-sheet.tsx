@@ -118,11 +118,11 @@ export function ReadingSheet() {
                 }}
                 className="flex flex-wrap items-center gap-1.5"
               >
-                <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-content-secondary">
+                <span className="rounded-full bg-secondary px-2.5 py-1 text-chart-label font-semibold uppercase tracking-[0.12em] text-content-secondary">
                   {FOLDER_SHORT[note.folder]}
                 </span>
                 {mood ? (
-                  <span className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-content-secondary">
+                  <span className="flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-chart-label font-semibold uppercase tracking-[0.12em] text-content-secondary">
                     <span
                       aria-hidden="true"
                       className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
@@ -130,7 +130,7 @@ export function ReadingSheet() {
                     {mood}
                   </span>
                 ) : null}
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
                   {note.date}
                 </span>
                 {note.pinned ? (
@@ -170,7 +170,7 @@ export function ReadingSheet() {
               }}
               className="mt-5 border-t border-border/60 pt-5"
             >
-              <p className="max-w-[62ch] whitespace-pre-wrap text-left text-[16px] leading-[1.85] text-content-secondary">
+              <p className="max-w-[62ch] whitespace-pre-wrap text-left text-section-lg leading-[1.85] text-content-secondary">
                 {note.body}
               </p>
             </m.div>
@@ -232,13 +232,13 @@ export function ReadingSheet() {
                     <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
                       Hapus catatan ini?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-center text-[13px] leading-relaxed text-content-muted">
+                    <AlertDialogDescription className="text-center text-note leading-relaxed text-content-muted">
                       Catatan “{note.title || 'tanpa judul'}” akan dihapus
                       permanen dan tidak bisa dikembalikan.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex-row gap-2 sm:justify-center">
-                    <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border text-[13px] font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary">
+                    <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border text-note font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary">
                       Batal
                     </AlertDialogCancel>
                     <AlertDialogAction
@@ -246,7 +246,7 @@ export function ReadingSheet() {
                         deleteNote(note.id)
                         toast('Catatan dihapus')
                       }}
-                      className="h-10 flex-1 rounded-full bg-destructive text-[13px] font-bold text-white hover:bg-destructive/90"
+                      className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
                     >
                       Ya, Hapus
                     </AlertDialogAction>

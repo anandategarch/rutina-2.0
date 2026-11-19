@@ -77,14 +77,14 @@ export function PunchCard() {
 
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-content-muted">
+          <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
             <BadgeCheck aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
             Kartu Stempel Pekan
           </p>
-          <p className="mt-1 text-[15px] font-bold text-content-primary">
+          <p className="mt-1 text-section font-bold text-content-primary">
             {stampedCount} dari 7 hari tuntas
           </p>
-          <p className="mt-0.5 text-[12px] font-medium text-content-muted">
+          <p className="mt-0.5 text-meta font-medium text-content-muted">
             {perfect
               ? 'Pekan sempurna — pertahankan!'
               : 'Selesaikan target misi untuk stempel baru'}
@@ -95,7 +95,7 @@ export function PunchCard() {
             initial={{ scale: 0.5, rotate: -8, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-leaf"
+            className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-eyebrow font-semibold text-primary-foreground shadow-leaf"
           >
             <Sparkles className="h-3 w-3" />
             Sempurna
@@ -145,7 +145,7 @@ export function PunchCard() {
             </m.div>
             <span
               className={
-                'text-[10px] font-bold uppercase leading-tight tracking-tight ' +
+                'text-chart-label font-semibold uppercase leading-tight tracking-tight ' +
                 (d.isToday
                   ? 'whitespace-nowrap text-success'
                   : d.stamped

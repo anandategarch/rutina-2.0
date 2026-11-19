@@ -365,7 +365,7 @@ export default function ProfileScreen() {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: motionTokens.easing.standard }}
-        className="-ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-[13px] font-semibold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="-ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-note font-semibold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <ArrowLeft className="h-4.5 w-4.5" />
         Kembali
@@ -374,12 +374,12 @@ export default function ProfileScreen() {
       {/* Header editorial — eyebrow & titik memakai aksen Cocoa Gold
           (identitas kamar preferensi; sebelumnya terracotta danger). */}
       <header className="mt-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-module-accent-strong">
+        <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-module-accent-strong">
           <Leaf className="h-3.5 w-3.5 text-module-accent-strong" />
           Akun & preferensi
         </p>
         <h1
-          className={`${playfair.className} mt-1.5 text-balance text-[38px] font-semibold leading-none tracking-tight text-content-primary`}
+          className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-none tracking-tight text-content-primary`}
         >
           <SplitText text="Profil" inView />
           <span className="text-module-accent">.</span>
@@ -420,10 +420,10 @@ export default function ProfileScreen() {
                 <Leaf className="h-[18px] w-[18px]" strokeWidth={2} />
               </span>
               <div className="min-w-0">
-                <p className="text-[13px] font-bold leading-tight text-content-primary">
+                <p className="text-note font-semibold leading-tight text-content-primary">
                   Ananda
                 </p>
-                <p className="mt-0.5 text-[11px] font-medium leading-snug text-content-muted">
+                <p className="mt-0.5 text-eyebrow font-medium leading-snug text-content-muted">
                   Pengguna Rutina
                 </p>
               </div>
@@ -439,14 +439,14 @@ export default function ProfileScreen() {
         <div className="mt-3 flex items-center gap-2">
           <Badge
             variant="outline"
-            className="gap-1.5 rounded-full border-primary/40 bg-secondary px-3 py-1 text-[11px] font-bold text-success"
+            className="gap-1.5 rounded-full border-primary/40 bg-secondary px-3 py-1 text-eyebrow font-semibold text-success"
           >
             <Sparkles className="h-3 w-3" />
             Level {level}
           </Badge>
           <Badge
             variant="outline"
-            className="rounded-full border-border bg-surface-sunken px-3 py-1 text-[11px] font-bold text-content-secondary"
+            className="rounded-full border-border bg-surface-sunken px-3 py-1 text-eyebrow font-semibold text-content-secondary"
           >
             {memberBadge}
           </Badge>
@@ -455,10 +455,10 @@ export default function ProfileScreen() {
         {/* Progres XP menuju level berikutnya */}
         <div className="mt-5 w-full">
           <div className="flex items-baseline justify-between px-0.5">
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+            <span className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
               Progres Level
             </span>
-            <span className="text-[11px] font-bold tabular-nums text-success">
+            <span className="text-eyebrow font-semibold tabular-nums text-success">
               <Counter to={xp} /> / {XP_TARGET} XP
             </span>
           </div>
@@ -467,7 +467,7 @@ export default function ProfileScreen() {
             className="mt-2 h-2.5 rounded-full bg-secondary"
             aria-label="Progres XP menuju level berikutnya"
           />
-          <p className="mt-2 text-[11px] font-medium text-content-muted">
+          <p className="mt-2 text-eyebrow font-medium text-content-muted">
             {level >= 8
               ? 'Level maksimal tercapai — petualang sejati!'
               : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
@@ -490,14 +490,14 @@ export default function ProfileScreen() {
             className="flex flex-col items-center rounded-[16px] border border-border bg-surface-primary p-3.5 shadow-soft"
           >
             <p className="flex items-baseline">
-              <span className="text-[22px] font-semibold leading-none tracking-tight text-content-primary">
+              <span className="text-kpi-sm font-semibold leading-none tracking-tight text-content-primary">
                 <Counter to={s.value} />
               </span>
               {s.percent ? (
                 <span className="text-sm font-semibold text-content-primary">%</span>
               ) : null}
             </p>
-            <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
+            <p className="mt-1.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
               {s.label}
             </p>
           </m.div>
@@ -519,10 +519,10 @@ export default function ProfileScreen() {
             <Fingerprint className="h-4 w-4" />
           </span>
           <div className="flex-1">
-            <p className="text-[14px] font-semibold text-content-primary">
+            <p className="text-body font-semibold text-content-primary">
               Suara Identitas
             </p>
-            <p className="text-[11px] font-medium text-content-muted">
+            <p className="text-eyebrow font-medium text-content-muted">
               Deklarasi siapa dirimu, bukan sekadar target
             </p>
           </div>
@@ -546,14 +546,14 @@ export default function ProfileScreen() {
               placeholder="Aku menjadi orang yang…"
               rows={4}
               aria-label="Teks suara identitas"
-              className="w-full resize-none rounded-xl border border-border bg-surface-sunken px-3.5 py-3 text-[14px] leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-muted focus-visible:border-primary"
+              className="w-full resize-none rounded-xl border border-border bg-surface-sunken px-3.5 py-3 text-body leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-muted focus-visible:border-primary"
             />
-            <p className="mt-2 text-[11px] font-medium leading-relaxed text-content-muted">
+            <p className="mt-2 text-eyebrow font-medium leading-relaxed text-content-muted">
               Tulis identitas yang ingin kamu bangun — bukan target,
               melainkan siapa dirimu.
             </p>
             <div className="mt-2.5 flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold tabular-nums text-content-muted">
+              <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
                 {identityDraft.length}/600
               </span>
               <div className="flex gap-2">
@@ -584,18 +584,18 @@ export default function ProfileScreen() {
               &ldquo;
             </span>
             <blockquote
-              className={`${playfair.className} text-[18px] font-medium italic leading-relaxed text-content-primary`}
+              className={`${playfair.className} text-lead font-medium italic leading-relaxed text-content-primary`}
             >
               {identityText}
             </blockquote>
-            <figcaption className="mt-2 text-right text-[11px] font-bold uppercase tracking-[0.16em] text-content-muted">
+            <figcaption className="mt-2 text-right text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
               Suara identitasku
             </figcaption>
           </figure>
         ) : (
           <div className="mt-4 rounded-xl bg-surface-sunken px-4 py-4">
             <p
-              className={`${playfair.className} text-[16px] font-medium italic leading-relaxed text-content-secondary`}
+              className={`${playfair.className} text-section-lg font-medium italic leading-relaxed text-content-secondary`}
             >
               Siapa yang ingin kamu jadi lewat kebiasaan ini?
             </p>
@@ -632,10 +632,10 @@ export default function ProfileScreen() {
             <HeartPulse className="h-4 w-4" />
           </span>
           <div className="flex-1">
-            <p className="text-[14px] font-semibold text-content-primary">
+            <p className="text-body font-semibold text-content-primary">
               Riwayat Mood
             </p>
-            <p className="text-[11px] font-medium text-content-muted">
+            <p className="text-eyebrow font-medium text-content-muted">
               Suasana hati 14 hari terakhir
             </p>
           </div>
@@ -643,7 +643,7 @@ export default function ProfileScreen() {
             <button
               type="button"
               onClick={() => useCheckInSheet.getState().openCheckIn()}
-              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-secondary px-3 text-[11px] font-bold text-success transition-colors hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-secondary px-3 text-eyebrow font-semibold text-success transition-colors hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               Check-in
@@ -673,7 +673,7 @@ export default function ProfileScreen() {
                   >
                     <span
                       className={cn(
-                        'text-[10px] font-bold uppercase tracking-wide',
+                        'text-chart-label font-semibold uppercase tracking-wide',
                         d.isToday
                           ? 'text-content-secondary'
                           : 'text-content-muted',
@@ -697,7 +697,7 @@ export default function ProfileScreen() {
               })}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-muted">
+              <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
                 Rekap 14 hari
               </span>
               {moodCounts
@@ -705,7 +705,7 @@ export default function ProfileScreen() {
                 .map((c, i, arr) => (
                   <span
                     key={c.name}
-                    className="flex items-center gap-2 text-[12px] font-semibold"
+                    className="flex items-center gap-2 text-meta font-semibold"
                   >
                     <span>
                       <span className={MOOD_TONE[c.name]}>{c.name}</span>{' '}
@@ -750,7 +750,7 @@ export default function ProfileScreen() {
           {FOCUS_WORDS.map((w) => (
             <span
               key={w}
-              className="flex items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3.5 py-1.5 text-[11px] font-bold text-module-accent-strong"
+              className="flex items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3.5 py-1.5 text-eyebrow font-semibold text-module-accent-strong"
             >
               <Leaf className="h-3 w-3 text-module-accent" aria-hidden="true" />
               {w}
@@ -785,14 +785,14 @@ export default function ProfileScreen() {
               <Target className="h-4 w-4" />
             </span>
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-content-primary">
+              <p className="text-body font-semibold text-content-primary">
                 Target Misi Harian
               </p>
-              <p className="text-[11px] font-medium text-content-muted">
+              <p className="text-eyebrow font-medium text-content-muted">
                 Berapa misi yang ingin kamu selesaikan tiap hari?
               </p>
             </div>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-bold tabular-nums text-primary-foreground">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-note font-bold tabular-nums text-primary-foreground">
               {dailyGoal}
             </span>
           </div>
@@ -805,7 +805,7 @@ export default function ProfileScreen() {
             aria-label="Target misi harian"
             className="mt-4 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:border-primary [&_[data-slot=slider-thumb]]:bg-surface-primary"
           />
-          <div className="mt-2 flex justify-between text-[11px] font-bold text-content-muted">
+          <div className="mt-2 flex justify-between text-eyebrow font-semibold text-content-muted">
             <span>Santai (1)</span>
             <span>Seimbang (6)</span>
             <span>Produktif (12)</span>
@@ -828,10 +828,10 @@ export default function ProfileScreen() {
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
                   <Globe className="h-4 w-4" />
                 </span>
-                <span className="flex-1 text-[14px] font-medium text-content-primary">
+                <span className="flex-1 text-body font-medium text-content-primary">
                   Bahasa
                 </span>
-                <span className="text-[13px] font-semibold text-content-muted">
+                <span className="text-note font-semibold text-content-muted">
                   {lang === 'id' ? 'Indonesia' : 'English'}
                 </span>
                 <ChevronRight className="h-4 w-4 text-content-muted" />
@@ -858,7 +858,7 @@ export default function ProfileScreen() {
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="en" disabled className="rounded-lg">
                   English
-                  <span className="ml-auto text-[11px] font-semibold uppercase tracking-wide text-content-muted">
+                  <span className="ml-auto text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
                     segera
                   </span>
                 </DropdownMenuRadioItem>
@@ -883,16 +883,16 @@ export default function ProfileScreen() {
               <HardDrive className="h-4 w-4" />
             </span>
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-content-primary">
+              <p className="text-body font-semibold text-content-primary">
                 Data &amp; Penyimpanan
               </p>
-              <p className="text-[11px] font-medium text-content-muted">
+              <p className="text-eyebrow font-medium text-content-muted">
                 {habits.length} kebiasaan · {notes.length} catatan ·{' '}
                 {txs.length} transaksi — tersinkron otomatis ke cloud
               </p>
             </div>
             <span
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-secondary px-2.5 py-1 text-[11px] font-bold text-success"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-secondary px-2.5 py-1 text-eyebrow font-semibold text-success"
               title={
                 lastSyncedAt
                   ? `Terakhir tersinkron ${new Date(lastSyncedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
@@ -908,7 +908,7 @@ export default function ProfileScreen() {
                 : 'Sinkron'}
             </span>
           </div>
-          <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[12px] leading-relaxed text-content-secondary">
+          <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta leading-relaxed text-content-secondary">
             Rutina bekerja tanpa akun: setiap perubahan tersinkron otomatis
             ke cloud pribadimu (Turso) dan tetap tersimpan di perangkat
             sebagai cadangan offline — aplikasi tetap hidup tanpa internet.
@@ -920,7 +920,7 @@ export default function ProfileScreen() {
               type="button"
               onClick={() => void handleForcePull()}
               disabled={pulling}
-              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-[13px] font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
+              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-note font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
             >
               {pulling ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -933,7 +933,7 @@ export default function ProfileScreen() {
               <AlertDialogTrigger asChild>
                 <button
                   type="button"
-                  className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-[13px] font-bold text-content-danger transition-all hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                  className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-note font-bold text-content-danger transition-all hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                 >
                   <RotateCcw className="h-4 w-4" />
                   Mulai dari awal
@@ -941,17 +941,17 @@ export default function ProfileScreen() {
               </AlertDialogTrigger>
             <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-content-primary">
+                <AlertDialogTitle className="text-section-lg font-bold tracking-tight text-content-primary">
                   Hapus semua data?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-[13px] leading-relaxed text-content-muted">
+                <AlertDialogDescription className="text-note leading-relaxed text-content-muted">
                   Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
                   tabungan akan dihapus permanen — dari perangkat ini dan
                   penyimpanan cloud. Tindakan ini tidak bisa dibatalkan.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-row gap-2">
-                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[13px] font-bold text-content-secondary">
+                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-note font-bold text-content-secondary">
                   Batal
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -959,7 +959,7 @@ export default function ProfileScreen() {
                     useRutina.getState().startFresh()
                     toast.success('Aplikasi direset — mulailah dari nol.')
                   }}
-                  className="h-10 flex-1 rounded-full border-none bg-destructive text-[13px] font-bold text-white hover:bg-destructive/90"
+                  className="h-10 flex-1 rounded-full border-none bg-destructive text-note font-bold text-white hover:bg-destructive/90"
                 >
                   Ya, hapus
                 </AlertDialogAction>
@@ -985,17 +985,17 @@ export default function ProfileScreen() {
               <MonitorSmartphone className="h-4 w-4" />
             </span>
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-content-primary">
+              <p className="text-body font-semibold text-content-primary">
                 Pasang di perangkat
               </p>
-              <p className="text-[11px] font-medium text-content-muted">
+              <p className="text-eyebrow font-medium text-content-muted">
                 Aplikasi mandiri (PWA) — layar penuh, ikon sendiri, tetap
                 bekerja offline
               </p>
             </div>
           </div>
           {appInstalled ? (
-            <p className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3.5 py-2.5 text-[12px] font-bold text-success">
+            <p className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3.5 py-2.5 text-meta font-bold text-success">
               <Check className="h-3.5 w-3.5 shrink-0" />
               Sudah terpasang — kamu sedang menjalankan versi aplikasinya.
             </p>
@@ -1004,12 +1004,12 @@ export default function ProfileScreen() {
               <button
                 type="button"
                 onClick={() => void handleInstall()}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-note font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Download className="h-4 w-4" />
                 {installPrompt ? 'Pasang aplikasi' : 'Tambahkan ke Layar Utama'}
               </button>
-              <p className="mt-2.5 text-[11px] leading-relaxed text-content-muted">
+              <p className="mt-2.5 text-eyebrow leading-relaxed text-content-muted">
                 {installPrompt
                   ? 'Browser sudah menawarkan instal — ketuk untuk memasang.'
                   : 'Chrome/Edge/Android: buka menu browser → "Pasang aplikasi". iPhone/iPad: tombol Bagikan → "Tambahkan ke Layar Utama".'}
@@ -1036,10 +1036,10 @@ export default function ProfileScreen() {
                 value={`faq-${i}`}
                 className="border-border"
               >
-                <AccordionTrigger className="py-4 text-left text-[14px] font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
+                <AccordionTrigger className="py-4 text-left text-body font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="pb-4 text-[13px] leading-relaxed text-content-muted">
+                <AccordionContent className="pb-4 text-note leading-relaxed text-content-muted">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
@@ -1058,7 +1058,7 @@ export default function ProfileScreen() {
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
                   <Info className="h-4 w-4" />
                 </span>
-                <span className="flex-1 text-[14px] font-medium text-content-primary">
+                <span className="flex-1 text-body font-medium text-content-primary">
                   Tentang Rutina
                 </span>
                 <ChevronRight className="h-4 w-4 text-content-muted" />
@@ -1072,20 +1072,20 @@ export default function ProfileScreen() {
                 <DialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
                   Rutina 2.0
                 </DialogTitle>
-                <DialogDescription className="text-center text-[13px] leading-relaxed text-content-muted">
+                <DialogDescription className="text-center text-note leading-relaxed text-content-muted">
                   Aplikasi kebiasaan &amp; jurnal dengan palet earth tone.
                   Dibangun dengan Next.js, Tailwind CSS 4, shadcn/ui, Motion,
                   dan anime.js.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center gap-2">
-                <Badge className="rounded-full bg-secondary text-[11px] font-bold text-success hover:bg-secondary">
+                <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
                   Earth Tone
                 </Badge>
-                <Badge className="rounded-full bg-secondary text-[11px] font-bold text-success hover:bg-secondary">
+                <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
                   Gamified
                 </Badge>
-                <Badge className="rounded-full bg-secondary text-[11px] font-bold text-success hover:bg-secondary">
+                <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
                   Editorial
                 </Badge>
               </div>
@@ -1093,7 +1093,7 @@ export default function ProfileScreen() {
                 <DialogClose asChild>
                   <Button
                     type="button"
-                    className="h-9 rounded-full bg-primary px-6 text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
+                    className="h-9 rounded-full bg-primary px-6 text-note font-bold text-primary-foreground hover:bg-action-hover"
                     onClick={() => toast('Terima kasih sudah memakai Rutina!')}
                   >
                     Mengerti
@@ -1112,7 +1112,7 @@ export default function ProfileScreen() {
         type="button"
         onClick={handleVersionTap}
         aria-label="Rutina 2.0 Kebun Kebiasaan"
-        className="mt-6 block w-full cursor-pointer text-center text-[11px] font-medium uppercase tracking-[0.18em] text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="mt-6 block w-full cursor-pointer text-center text-eyebrow font-medium uppercase tracking-[0.14em] text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         Rutina 2.0 · Kebun Kebiasaan
       </button>

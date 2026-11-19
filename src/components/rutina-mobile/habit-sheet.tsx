@@ -262,13 +262,13 @@ export function HabitSheet() {
               <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                 {mode === 'edit' ? 'Sunting Kebiasaan' : 'Kebiasaan Baru'}
               </h2>
-              <p className="mt-0.5 text-[13px] text-content-muted">
+              <p className="mt-0.5 text-note text-content-muted">
                 {mode === 'edit'
                   ? 'Ubah detail, jadwal, atau kelola kebiasaan ini.'
                   : 'Tentukan nama, jadwal berulang, dan targetnya.'}
               </p>
               {editing?.archived && (
-                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-[11px] font-bold text-content-secondary">
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-3 py-1 text-eyebrow font-semibold text-content-secondary">
                   <Archive className="h-3 w-3" />
                   Kebiasaan ini sedang terarsip
                 </p>
@@ -280,7 +280,7 @@ export function HabitSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="habit-title"
-                  className="text-[13px] font-semibold text-content-secondary"
+                  className="text-note font-semibold text-content-secondary"
                 >
                   Nama kebiasaan
                 </Label>
@@ -299,7 +299,7 @@ export function HabitSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="habit-desc"
-                  className="text-[13px] font-semibold text-content-secondary"
+                  className="text-note font-semibold text-content-secondary"
                 >
                   Deskripsi
                 </Label>
@@ -316,7 +316,7 @@ export function HabitSheet() {
 
               {/* Kategori */}
               <div className="space-y-1.5">
-                <span className="text-[13px] font-semibold text-content-secondary">
+                <span className="text-note font-semibold text-content-secondary">
                   Kategori
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -326,7 +326,7 @@ export function HabitSheet() {
                       type="button"
                       onClick={() => setDraft((p) => ({ ...p, cat: c }))}
                       aria-pressed={draft.cat === c}
-                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         draft.cat === c
                           ? 'bg-primary text-primary-foreground'
                           : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'
@@ -340,7 +340,7 @@ export function HabitSheet() {
 
               {/* Jadwal berulang */}
               <div className="space-y-1.5">
-                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
                   <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                   Jadwal berulang
                 </span>
@@ -354,7 +354,7 @@ export function HabitSheet() {
                         onClick={() => toggleDay(d)}
                         aria-pressed={on}
                         aria-label={`Hari ${WEEKDAY_MIN[d]}`}
-                        className={`h-10 flex-1 cursor-pointer rounded-xl text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        className={`h-10 flex-1 cursor-pointer rounded-xl text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
                             ? 'bg-primary text-primary-foreground'
                             : 'border border-border bg-surface-primary text-content-muted hover:bg-secondary'
@@ -375,7 +375,7 @@ export function HabitSheet() {
                       key={p.label}
                       type="button"
                       onClick={() => setPreset(p.days)}
-                      className="h-8 cursor-pointer rounded-full border border-primary/35 bg-secondary/60 px-3 text-[11px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="h-8 cursor-pointer rounded-full border border-primary/35 bg-secondary/60 px-3 text-eyebrow font-semibold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {p.label}
                     </button>
@@ -385,7 +385,7 @@ export function HabitSheet() {
 
               {/* Target pekanan */}
               <div className="space-y-1.5">
-                <span className="text-[13px] font-semibold text-content-secondary">
+                <span className="text-note font-semibold text-content-secondary">
                   Target per pekan
                 </span>
                 <div className="flex items-center gap-3">
@@ -405,10 +405,10 @@ export function HabitSheet() {
                     <Minus className="h-4 w-4" />
                   </Button>
                   <p className="flex flex-1 items-baseline justify-center gap-1">
-                    <span className="text-[22px] font-bold tabular-nums text-content-primary">
+                    <span className="text-kpi-sm font-bold tabular-nums text-content-primary">
                       {draft.weeklyTarget}
                     </span>
-                    <span className="text-[12px] font-semibold text-content-muted">
+                    <span className="text-meta font-semibold text-content-muted">
                       × / pekan
                     </span>
                   </p>
@@ -433,7 +433,7 @@ export function HabitSheet() {
               {/* Pengingat */}
               <div className="space-y-1.5">
                 <span className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                  <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
                     <Bell aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                     Pengingat harian
                   </span>
@@ -458,9 +458,9 @@ export function HabitSheet() {
                         setDraft((p) => ({ ...p, reminder: e.target.value }))
                       }
                       aria-label="Jam pengingat"
-                      className="h-9 w-32 rounded-lg border-transparent bg-surface-sunken text-[14px] font-semibold tabular-nums text-content-primary focus-visible:border-primary focus-visible:ring-primary/25"
+                      className="h-9 w-32 rounded-lg border-transparent bg-surface-sunken text-body font-semibold tabular-nums text-content-primary focus-visible:border-primary focus-visible:ring-primary/25"
                     />
-                    <p className="text-[11px] font-medium text-content-muted">
+                    <p className="text-eyebrow font-medium text-content-muted">
                       Pengingat dicatat pada jadwal kebiasaan — tanpa notifikasi
                       sistem di mode demo.
                     </p>
@@ -472,7 +472,7 @@ export function HabitSheet() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="habit-mini"
-                  className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary"
+                  className="flex items-center gap-1.5 text-note font-semibold text-content-secondary"
                 >
                   <Zap aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                   Versi 2 Menit
@@ -493,7 +493,7 @@ export function HabitSheet() {
 
               {/* Susun Kebiasaan — pasang menempel pada kebiasaan pemicu */}
               <div className="space-y-1.5">
-                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
                   <Link2
                     aria-hidden="true"
                     className="h-3.5 w-3.5 text-primary"
@@ -510,7 +510,7 @@ export function HabitSheet() {
                         }
                         aria-pressed={draft.afterId === null}
                         className={
-                          'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                          'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                           (draft.afterId === null
                             ? 'bg-primary text-primary-foreground'
                             : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -530,7 +530,7 @@ export function HabitSheet() {
                             aria-pressed={on}
                             title={x.title}
                             className={
-                              'h-9 max-w-[220px] shrink-0 cursor-pointer truncate rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                              'h-9 max-w-[220px] shrink-0 cursor-pointer truncate rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                               (on
                                 ? 'bg-primary text-primary-foreground'
                                 : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -558,7 +558,7 @@ export function HabitSheet() {
               {/* Jeda Runtun Aman — butuh kebiasaan yang sudah ada */}
               {mode === 'edit' && editing && (
                 <div className="space-y-2.5 rounded-2xl border border-border bg-surface-sunken/70 p-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-content-secondary">
+                  <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
                     <Snowflake
                       aria-hidden="true"
                       className="h-3.5 w-3.5 text-primary"
@@ -576,7 +576,7 @@ export function HabitSheet() {
                       {upcomingRestDays.map((iso) => (
                         <span
                           key={iso}
-                          className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2.5 py-1 text-[11px] font-bold text-espresso"
+                          className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2.5 py-1 text-eyebrow font-semibold text-espresso"
                         >
                           <Snowflake
                             aria-hidden="true"
@@ -599,7 +599,7 @@ export function HabitSheet() {
                             key={iso}
                             className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-primary px-3 py-1.5"
                           >
-                            <span className="min-w-0 truncate text-[12px] font-semibold text-content-primary">
+                            <span className="min-w-0 truncate text-meta font-semibold text-content-primary">
                               {shortDateLabel(iso)}
                             </span>
                             <button
@@ -625,7 +625,7 @@ export function HabitSheet() {
                                 }
                               }}
                               className={
-                                'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[11px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                                'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-eyebrow font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                                 (scheduled
                                   ? 'border border-gold/50 bg-gold/20 text-warning hover:bg-gold/30'
                                   : 'border border-primary/35 bg-surface-primary text-success hover:bg-secondary')
@@ -689,7 +689,7 @@ export function HabitSheet() {
                     )
                     closeHabitSheet()
                   }}
-                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-surface-primary text-[13px] font-semibold text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-border bg-surface-primary text-note font-semibold text-content-secondary transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   {editing.archived ? (
                     <>
@@ -707,7 +707,7 @@ export function HabitSheet() {
                   <AlertDialogTrigger asChild>
                     <button
                       type="button"
-                      className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-destructive/30 bg-surface-primary text-[13px] font-semibold text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                      className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-destructive/30 bg-surface-primary text-note font-semibold text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                       Hapus Permanen
@@ -718,14 +718,14 @@ export function HabitSheet() {
                       <AlertDialogTitle className="text-lg tracking-tight text-content-primary">
                         Hapus kebiasaan ini?
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-[13px] text-content-muted">
+                      <AlertDialogDescription className="text-note text-content-muted">
                         &ldquo;{editing.title}&rdquo; beserta seluruh riwayat
                         penyelesaiannya akan dihapus. Tindakan ini tidak bisa
                         dibatalkan.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-3 flex flex-row gap-2">
-                      <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-[13px] font-semibold text-content-secondary hover:bg-surface-secondary">
+                      <AlertDialogCancel className="h-10 flex-1 rounded-full border-border text-note font-semibold text-content-secondary hover:bg-surface-secondary">
                         Batal
                       </AlertDialogCancel>
                       <AlertDialogAction
@@ -734,7 +734,7 @@ export function HabitSheet() {
                           toast.info('Kebiasaan dihapus')
                           closeHabitSheet()
                         }}
-                        className="h-10 flex-1 rounded-full bg-destructive text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90"
+                        className="h-10 flex-1 rounded-full bg-destructive text-note font-semibold text-destructive-foreground hover:bg-destructive/90"
                       >
                         Hapus
                       </AlertDialogAction>

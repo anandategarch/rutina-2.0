@@ -86,19 +86,19 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
         <Utensils className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-bold text-content-primary">
+        <p className="truncate text-note font-semibold text-content-primary">
           {entry.name}
         </p>
-        <p className="text-[11px] font-medium text-content-muted">
+        <p className="text-eyebrow font-medium text-content-muted">
           {portionLabel}
           {portionLabel ? '' : ''}
           {entry.unit}
           {entry.portion !== 1 ? ` (${portionLabel.trim()})` : ''}
         </p>
       </div>
-      <span className="shrink-0 text-[13px] font-bold tabular-nums text-content-primary">
+      <span className="shrink-0 text-note font-bold tabular-nums text-content-primary">
         {fmt(entry.kcal)}
-        <span className="ml-0.5 text-[10px] font-semibold text-content-muted">
+        <span className="ml-0.5 text-chart-label font-semibold text-content-muted">
           kkal
         </span>
       </span>
@@ -170,16 +170,16 @@ export function AsupanPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         aria-label="Neraca kalori hari ini"
-        className="overflow-hidden rounded-[24px] bg-module-accent p-6 text-module-accent-fg shadow-leaf"
+        className="overflow-hidden rounded-[24px] bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="flex items-center gap-1.5 text-[13px] font-medium text-module-accent-fg/80">
+            <p className="flex items-center gap-1.5 text-note font-medium text-module-accent-fg/85">
               <Flame className="h-4 w-4" />
               Asupan hari ini
             </p>
             <p className="mt-2 flex items-baseline gap-1.5">
-              <span className="text-[44px] font-semibold leading-none tracking-tight tabular-nums">
+              <span className="text-kpi-hero font-semibold leading-none tracking-tight tabular-nums">
                 {fmt(sum.kcal)}
               </span>
               <span className="text-lg font-medium text-module-accent-fg/85">
@@ -194,7 +194,7 @@ export function AsupanPanel() {
               setEditingTarget((v) => !v)
             }}
             aria-expanded={editingTarget}
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-[12px] font-bold text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-meta font-bold text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
           >
             <Target className="h-3.5 w-3.5" />
             Atur target
@@ -229,7 +229,7 @@ export function AsupanPanel() {
                   onChange={(e) =>
                     setTargetDraft(e.target.value.replace(/\D/g, '').slice(0, 4))
                   }
-                  className="h-10 flex-1 rounded-xl border-transparent bg-module-accent-fg/15 text-center text-[15px] font-bold tabular-nums text-module-accent-fg placeholder:text-module-accent-fg/50 focus-visible:border-module-accent-fg/40 focus-visible:ring-module-accent-fg/20"
+                  className="h-10 flex-1 rounded-xl border-transparent bg-module-accent-fg/15 text-center text-section font-bold tabular-nums text-module-accent-fg placeholder:text-module-accent-fg/50 focus-visible:border-module-accent-fg/40 focus-visible:ring-module-accent-fg/20"
                 />
                 <button
                   type="button"
@@ -253,7 +253,7 @@ export function AsupanPanel() {
                       toast.warning('Target antara 1.200 – 4.500 kkal')
                     }
                   }}
-                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-[13px] font-bold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-note font-semibold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   Simpan
                 </button>
@@ -274,26 +274,26 @@ export function AsupanPanel() {
 
         {/* Energi terbakar — baris tambahan neraca v2 */}
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
-          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-module-accent-fg/90">
+          <p className="flex items-center gap-1.5 text-meta font-semibold text-module-accent-fg/90">
             <Flame className="h-4 w-4 text-gold" aria-hidden="true" />
             Energi terbakar
           </p>
-          <p className="text-[13px] font-bold tabular-nums text-module-accent-fg">
+          <p className="text-note font-bold tabular-nums text-module-accent-fg">
             +{fmt(burned)}
-            <span className="ml-0.5 text-[10px] font-semibold text-module-accent-fg/75">
+            <span className="ml-0.5 text-chart-label font-semibold text-module-accent-fg/75">
               kkal
             </span>
           </p>
         </div>
         {burned === 0 && (
-          <p className="mt-1.5 px-0.5 text-[11px] font-medium text-module-accent-fg/70">
+          <p className="mt-1.5 px-0.5 text-eyebrow font-medium text-module-accent-fg/80">
             Catat latihan di Bugar untuk menambah jatah.
           </p>
         )}
 
         {/* Coaching adaptif — menggantikan teks sisa lama */}
         {remaining < -300 ? (
-          <p className="mt-2 flex items-start gap-2 rounded-xl bg-espresso/35 px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-module-accent-fg">
+          <p className="mt-2 flex items-start gap-2 rounded-xl bg-espresso/35 px-3 py-2.5 text-meta font-semibold leading-relaxed text-module-accent-fg">
             <AlertTriangle
               className="mt-0.5 h-4 w-4 shrink-0 text-gold"
               aria-hidden="true"
@@ -303,11 +303,11 @@ export function AsupanPanel() {
             intensitas.
           </p>
         ) : remaining < 0 ? (
-          <p className="mt-2 px-0.5 text-[12px] font-semibold text-module-accent-fg/85">
+          <p className="mt-2 px-0.5 text-meta font-semibold text-module-accent-fg/85">
             Sedikit di atas jatah — tidak masalah, seimbangkan besok.
           </p>
         ) : remaining <= 400 ? (
-          <p className="mt-2 flex items-center gap-1.5 px-0.5 text-[12px] font-semibold text-module-accent-fg">
+          <p className="mt-2 flex items-center gap-1.5 px-0.5 text-meta font-semibold text-module-accent-fg">
             <Sparkles
               className="h-4 w-4 shrink-0 text-module-accent-fg"
               aria-hidden="true"
@@ -315,7 +315,7 @@ export function AsupanPanel() {
             Sisa {fmt(remaining)} kkal — tempo yang pas untuk hari ini.
           </p>
         ) : (
-          <p className="mt-2 px-0.5 text-[12px] font-semibold text-module-accent-fg/85">
+          <p className="mt-2 px-0.5 text-meta font-semibold text-module-accent-fg/85">
             Masih ada {fmt(remaining)} kkal jatah — jangan lewatkan energi
             untuk pemulihan.
           </p>
@@ -324,32 +324,32 @@ export function AsupanPanel() {
         {/* Makro */}
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-espresso/35 p-3 backdrop-blur-sm">
           <div className="text-center">
-            <p className="text-[18px] font-bold leading-none tabular-nums">
-              {fmt(sum.protein)}<span className="text-[11px] font-semibold"> g</span>
+            <p className="text-lead font-bold leading-none tabular-nums">
+              {fmt(sum.protein)}<span className="text-eyebrow font-semibold"> g</span>
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-module-accent-fg/70">
+            <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               protein
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[18px] font-bold leading-none tabular-nums">
-              {fmt(sum.carb)}<span className="text-[11px] font-semibold"> g</span>
+            <p className="text-lead font-bold leading-none tabular-nums">
+              {fmt(sum.carb)}<span className="text-eyebrow font-semibold"> g</span>
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-module-accent-fg/70">
+            <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               karbohidrat
             </p>
           </div>
           <div className="text-center">
-            <p className="text-[18px] font-bold leading-none tabular-nums">
-              {fmt(sum.fat)}<span className="text-[11px] font-semibold"> g</span>
+            <p className="text-lead font-bold leading-none tabular-nums">
+              {fmt(sum.fat)}<span className="text-eyebrow font-semibold"> g</span>
             </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-module-accent-fg/70">
+            <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
               lemak
             </p>
           </div>
         </div>
         {!sum.macroKnown && todayEntries.length > 0 && (
-          <p className="mt-2 text-[11px] leading-relaxed text-module-accent-fg/70">
+          <p className="mt-2 text-eyebrow leading-relaxed text-module-accent-fg/70">
             Sebagian makanan di master belum punya rincian makro — kalori tetap
             dihitung penuh.
           </p>
@@ -364,7 +364,7 @@ export function AsupanPanel() {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-[15px] font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
         Tambah Asupan
@@ -374,14 +374,14 @@ export function AsupanPanel() {
       <section className="mt-7" aria-label="Jurnal makan hari ini">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+            <h2 className="text-note font-bold uppercase tracking-[0.16em] text-content-secondary">
               Jurnal Makan
             </h2>
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-success">
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-eyebrow font-semibold text-success">
               {todayEntries.length}
             </span>
           </div>
-          <span className="text-[11px] font-medium text-content-muted">
+          <span className="text-eyebrow font-medium text-content-muted">
             {FOOD_DB.length} makanan di master
           </span>
         </div>
@@ -393,11 +393,11 @@ export function AsupanPanel() {
             return (
               <div key={slot.key}>
                 <div className="mb-2 flex items-center justify-between px-0.5">
-                  <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="text-meta font-bold uppercase tracking-[0.12em] text-content-muted">
                     {slot.label}
                   </p>
                   {rows.length > 0 && (
-                    <span className="text-[11px] font-semibold tabular-nums text-content-muted">
+                    <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
                       {fmt(rows.reduce((a, e) => a + e.kcal, 0))} kkal
                     </span>
                   )}
@@ -411,7 +411,7 @@ export function AsupanPanel() {
                 </AnimatePresence>
                 {rows.length === 0 && todayEntries.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-border px-4 py-3 text-center">
-                    <p className="text-[12px] font-medium text-content-muted">
+                    <p className="text-meta font-medium text-content-muted">
                       Belum ada catatan {slot.label.toLowerCase()}
                     </p>
                   </div>
@@ -428,10 +428,10 @@ export function AsupanPanel() {
               className="rounded-[20px] border-2 border-dashed border-primary/30 px-6 py-9 text-center"
             >
               <Apple className="mx-auto h-6 w-6 text-content-muted" />
-              <p className="mt-2 text-[13px] font-semibold text-content-muted">
+              <p className="mt-2 text-note font-semibold text-content-muted">
                 Jurnal makan masih kosong
               </p>
-              <p className="mt-0.5 text-[12px] text-content-muted">
+              <p className="mt-0.5 text-meta text-content-muted">
                 Cari makanan Indonesia di master — kalori &amp; makro terisi
                 otomatis.
               </p>
@@ -443,7 +443,7 @@ export function AsupanPanel() {
       {/* Tren 7 hari */}
       <section className="mt-8" aria-label="Tren kalori 7 hari">
         <div className="flex items-center gap-2 px-0.5">
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+          <h2 className="text-note font-bold uppercase tracking-[0.16em] text-content-secondary">
             7 Hari Terakhir
           </h2>
         </div>
@@ -477,7 +477,7 @@ export function AsupanPanel() {
                     />
                   </div>
                   <span
-                    className={`text-[10px] font-bold ${
+                    className={`text-chart-label font-semibold ${
                       isToday ? 'text-success' : 'text-content-muted'
                     }`}
                   >
@@ -489,7 +489,7 @@ export function AsupanPanel() {
           </div>
           {/* Garis target */}
           <div className="mt-3 border-t border-dashed border-border pt-2.5">
-            <p className="text-center text-[11px] font-semibold text-content-muted">
+            <p className="text-center text-eyebrow font-semibold text-content-muted">
               Garis batang hijau = hari ini · target {fmt(calorieTarget)} kkal/hari
             </p>
           </div>

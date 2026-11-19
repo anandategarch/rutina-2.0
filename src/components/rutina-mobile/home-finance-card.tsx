@@ -83,10 +83,10 @@ export function HomeFinanceCard() {
             >
               <Wallet className="h-5 w-5" strokeWidth={1.9} />
             </span>
-            <p className="mt-1 text-[14px] font-semibold text-content-primary">
+            <p className="mt-1 text-body font-semibold text-content-primary">
               Belum ada transaksi hari ini
             </p>
-            <p className="max-w-[32ch] text-[12px] leading-relaxed text-content-muted">
+            <p className="max-w-[32ch] text-meta leading-relaxed text-content-muted">
               Catat pemasukan dan pengeluaranmu agar arus kas hari ini
               tergambar di sini.
             </p>
@@ -96,31 +96,31 @@ export function HomeFinanceCard() {
             {/* Tiga metrik harian */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div className="min-w-0">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.06em] text-content-muted">
+                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.06em] text-content-muted">
                   <TrendingDown
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-content-danger"
                   />
                   <span className="truncate">Keluar</span>
                 </p>
-                <p className="mt-1 truncate text-[14px] font-bold tabular-nums text-content-danger">
+                <p className="mt-1 truncate text-body font-bold tabular-nums text-content-danger">
                   {formatIDR(keluar)}
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.06em] text-content-muted">
+                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.06em] text-content-muted">
                   <TrendingUp
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-success"
                   />
                   <span className="truncate">Masuk</span>
                 </p>
-                <p className="mt-1 truncate text-[14px] font-bold tabular-nums text-success">
+                <p className="mt-1 truncate text-body font-bold tabular-nums text-success">
                   {formatIDR(masuk)}
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.06em] text-content-muted">
+                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.06em] text-content-muted">
                   <Scale
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-content-secondary"
@@ -129,7 +129,7 @@ export function HomeFinanceCard() {
                 </p>
                 <p
                   className={
-                    'mt-1 truncate text-[14px] font-bold tabular-nums ' +
+                    'mt-1 truncate text-body font-bold tabular-nums ' +
                     (net >= 0 ? 'text-content-primary' : 'text-content-danger')
                   }
                 >
@@ -141,7 +141,7 @@ export function HomeFinanceCard() {
             {/* Top 3 kategori pengeluaran */}
             {topCats.length > 0 && (
               <div className="mt-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                   Top 3 kategori pengeluaran
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -150,7 +150,7 @@ export function HomeFinanceCard() {
                     return (
                       <span
                         key={cat}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-surface-secondary px-3 text-[11px] font-bold text-content-secondary"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-surface-secondary px-3 text-eyebrow font-semibold text-content-secondary"
                       >
                         <Icon
                           aria-hidden="true"
@@ -168,7 +168,7 @@ export function HomeFinanceCard() {
 
             {/* Transaksi hari ini — maks. 3 baris, sisanya di tab Keuangan */}
             <div className="mt-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                 Transaksi hari ini
               </p>
               <div className="mt-0.5">
@@ -198,17 +198,17 @@ export function HomeFinanceCard() {
                         />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block min-w-0 line-clamp-2 break-words leading-snug text-[13px] font-semibold text-content-primary">
+                        <span className="block min-w-0 line-clamp-2 break-words leading-snug text-note font-semibold text-content-primary">
                           {t.note || CAT_META[t.cat].label}
                         </span>
-                        <span className="mt-0.5 block break-words text-[11px] font-medium leading-snug text-content-muted">
+                        <span className="mt-0.5 block break-words text-eyebrow font-medium leading-snug text-content-muted">
                           {CAT_META[t.cat].label} ·{' '}
                           {income ? 'Masuk' : 'Keluar'}
                         </span>
                       </span>
                       <span
                         className={
-                          'shrink-0 text-[13px] font-bold tabular-nums ' +
+                          'shrink-0 text-note font-bold tabular-nums ' +
                           (income ? 'text-success' : 'text-content-danger')
                         }
                       >
@@ -222,7 +222,7 @@ export function HomeFinanceCard() {
               <button
                 type="button"
                 onClick={() => setScreen('keuangan')}
-                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary text-[12px] font-bold text-content-secondary transition-all hover:bg-surface-secondary hover:text-content-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary text-meta font-bold text-content-secondary transition-all hover:bg-surface-secondary hover:text-content-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Lihat semua di Keuangan
                 <ChevronRight

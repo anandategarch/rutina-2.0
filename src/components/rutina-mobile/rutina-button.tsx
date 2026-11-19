@@ -38,8 +38,8 @@ const rutinaButtonVariants = cva(
       },
       size: {
         md: 'h-11 rounded-full px-5 has-[>svg]:px-4',
-        lg: 'h-12 rounded-full px-6 text-[15px] has-[>svg]:px-5',
-        sm: 'h-9 rounded-full px-3.5 text-[13px] has-[>svg]:px-3',
+        lg: 'h-12 rounded-full px-6 text-section has-[>svg]:px-5',
+        sm: 'h-9 rounded-full px-3.5 text-note has-[>svg]:px-3',
         /** Tombol ikon murni — area sentuh 44×44. */
         icon: 'size-11 rounded-full',
         iconSm: 'size-9 rounded-full',

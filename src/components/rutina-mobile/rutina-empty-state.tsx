@@ -43,14 +43,14 @@ export function RutinaEmptyState({
       )}
       <p
         className={cn(
-          'font-semibold text-content-primary text-[17px]',
+          'font-semibold text-content-primary text-lead',
           playfair.className,
         )}
       >
         {title}
       </p>
       {description && (
-        <p className="max-w-[36ch] text-[13px] leading-relaxed text-content-muted">
+        <p className="max-w-[36ch] text-note leading-relaxed text-content-muted">
           {description}
         </p>
       )}

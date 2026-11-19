@@ -33,7 +33,7 @@ export function RutinaField({
     <div className={cn('space-y-2', className)}>
       <Label
         htmlFor={htmlFor}
-        className="text-[13px] font-semibold text-content-secondary"
+        className="text-note font-semibold text-content-secondary"
       >
         {label}
       </Label>

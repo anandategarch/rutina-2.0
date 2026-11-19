@@ -47,7 +47,7 @@ export function RutinaSectionHeader({
         {eyebrow && (
           <p
             className={cn(
-              'mb-0.5 flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.14em]',
+              'mb-0.5 flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em]',
               accent
                 ? 'text-module-accent-strong'
                 : 'text-content-muted',
@@ -70,7 +70,7 @@ export function RutinaSectionHeader({
           {title}
         </h2>
         {description && (
-          <p className="mt-1 text-[13px] leading-snug text-content-muted">
+          <p className="mt-1 text-note leading-snug text-content-muted">
             {description}
           </p>
         )}

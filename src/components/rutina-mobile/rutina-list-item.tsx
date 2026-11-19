@@ -57,7 +57,7 @@ export function RutinaListItem({
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-semibold leading-snug text-content-primary">
+        <span className="block truncate text-body font-semibold leading-snug text-content-primary">
           {title}
         </span>
         {subtitle && (

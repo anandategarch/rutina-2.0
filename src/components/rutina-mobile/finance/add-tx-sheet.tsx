@@ -178,7 +178,7 @@ export function AddTxSheet() {
                 <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Transaksi Baru
                 </h2>
-                <p className="mt-0.5 text-[13px] text-content-muted">
+                <p className="mt-0.5 text-note text-content-muted">
                   Catat arus uang — {shortDateLabel(todayISO())}.
                 </p>
               </div>
@@ -198,7 +198,7 @@ export function AddTxSheet() {
                     type="button"
                     onClick={() => switchType(t)}
                     aria-pressed={on}
-                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-note font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       on
                         ? t === 'keluar'
                           ? 'text-content-danger'
@@ -223,20 +223,20 @@ export function AddTxSheet() {
             {/* Nominal besar */}
             <div className="mt-4 text-center">
               <span
-                className={`text-[34px] font-bold leading-none tabular-nums transition-colors duration-300 ${amountColor} ${
+                className={`text-kpi-lg font-bold leading-none tabular-nums transition-colors duration-300 ${amountColor} ${
                   amount ? '' : 'opacity-35'
                 }`}
               >
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
-              <p className="mt-1 text-[11px] text-content-muted">
+              <p className="mt-1 text-eyebrow text-content-muted">
                 {CAT_META[cat].label} · {shortDateLabel(todayISO())}
               </p>
             </div>
 
             {/* Pemilih kategori — himpunan berganti mengikuti tipe */}
             <div className="mt-4">
-              <span className="text-[13px] font-semibold text-content-secondary">
+              <span className="text-note font-semibold text-content-secondary">
                 Kategori
               </span>
               <AnimatePresence mode="wait" custom={gridDir} initial={false}>
@@ -269,7 +269,7 @@ export function AddTxSheet() {
                           strokeWidth={on ? 2.4 : 2}
                         />
                         <span
-                          className={`px-1 text-center text-[11px] font-semibold leading-tight ${
+                          className={`px-1 text-center text-eyebrow font-semibold leading-tight ${
                             on ? 'text-success' : 'text-content-muted'
                           }`}
                         >
@@ -286,7 +286,7 @@ export function AddTxSheet() {
             <div className="mt-4 space-y-1.5">
               <Label
                 htmlFor="tx-note"
-                className="text-[13px] font-semibold text-content-secondary"
+                className="text-note font-semibold text-content-secondary"
               >
                 Catatan <span className="font-normal text-content-muted">(opsional)</span>
               </Label>
@@ -303,7 +303,7 @@ export function AddTxSheet() {
             {/* Dompet sumber — hanya bila pengguna punya dompet */}
             {wallets.length > 0 && (
               <div className="mt-4 space-y-1.5">
-                <span className="text-[13px] font-semibold text-content-secondary">
+                <span className="text-note font-semibold text-content-secondary">
                   Dompet
                 </span>
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -315,7 +315,7 @@ export function AddTxSheet() {
                         type="button"
                         onClick={() => setWalletId(w.id)}
                         aria-pressed={on}
-                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-[13px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
                             ? 'bg-surface-inverse text-content-inverse shadow-soft'
                             : 'border border-border bg-surface-sunken text-content-secondary'
@@ -331,7 +331,7 @@ export function AddTxSheet() {
 
             {/* Transaksi berulang */}
             <div className="mt-4 space-y-1.5">
-              <span className="text-[13px] font-semibold text-content-secondary">
+              <span className="text-note font-semibold text-content-secondary">
                 Berulang{' '}
                 <span className="font-normal text-content-muted">
                   (tercatat otomatis tiap jadwal)
@@ -346,7 +346,7 @@ export function AddTxSheet() {
                       type="button"
                       onClick={() => setRecurrence(r as Recurrence | null)}
                       aria-pressed={on}
-                      className={`h-10 flex-1 cursor-pointer rounded-xl text-[13px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         on
                           ? 'bg-primary text-primary-foreground shadow-soft'
                           : 'border border-border bg-surface-sunken text-content-secondary'
@@ -379,7 +379,7 @@ export function AddTxSheet() {
                     type="button"
                     onClick={() => press(k)}
                     whileTap={{ scale: 0.92 }}
-                    className={`h-11 cursor-pointer rounded-2xl text-[17px] font-bold tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    className={`h-11 cursor-pointer rounded-2xl text-lead font-bold tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       k === '000'
                         ? 'bg-secondary text-success hover:bg-secondary/80'
                         : 'bg-surface-sunken text-content-primary hover:bg-surface-secondary'

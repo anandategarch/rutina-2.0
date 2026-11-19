@@ -113,7 +113,7 @@ function PlateLoaderTab() {
 
   return (
     <div>
-      <p className="text-[13px] leading-relaxed text-content-muted">
+      <p className="text-note leading-relaxed text-content-muted">
         Susun piring IWF untuk beban total — piring dihitung untuk
         masing-masing sisi barbel.
       </p>
@@ -123,7 +123,7 @@ function PlateLoaderTab() {
         <div className="space-y-1.5">
           <label
             htmlFor="bb-total"
-            className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
+            className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted"
           >
             Total beban (kg)
           </label>
@@ -135,11 +135,11 @@ function PlateLoaderTab() {
               setTotal(e.target.value.replace(/[^\d.,]/g, '').slice(0, 6))
             }
             placeholder="mis. 100"
-            className="h-11 rounded-xl border-border bg-surface-sunken text-[15px] font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+            className="h-11 rounded-xl border-border bg-surface-sunken text-section font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
           />
         </div>
         <div className="space-y-1.5">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-content-muted">
+          <p className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
             Barbel
           </p>
           <div className="flex gap-1.5">
@@ -153,7 +153,7 @@ function PlateLoaderTab() {
                   aria-label={`Barbel ${b.kg} kg — ${b.label}`}
                   onClick={() => setBarKg(b.kg)}
                   className={cn(
-                    'flex h-11 w-11 cursor-pointer flex-col items-center justify-center rounded-xl text-[12px] font-bold tabular-nums transition-all active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                    'flex h-11 w-11 cursor-pointer flex-col items-center justify-center rounded-xl text-meta font-bold tabular-nums transition-all active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                     on
                       ? 'bg-surface-inverse text-content-inverse shadow-soft'
                       : 'border border-border bg-surface-sunken text-content-secondary hover:bg-secondary',
@@ -196,7 +196,7 @@ function PlateLoaderTab() {
               </div>
             </div>
             <div className="mt-3.5 text-center">
-              <p className="text-[12px] font-semibold text-content-secondary">
+              <p className="text-meta font-semibold text-content-secondary">
                 Tercapai{' '}
                 <span className="font-bold tabular-nums text-content-primary">
                   {fmtKg(load.achieved)} kg
@@ -205,12 +205,12 @@ function PlateLoaderTab() {
                 bar {barKg} kg · piring per sisi
               </p>
               {load.remainder > 0 && (
-                <p className="mt-1 text-[12px] font-semibold text-content-danger">
+                <p className="mt-1 text-meta font-semibold text-content-danger">
                   Sisa {fmtKg(load.remainder)} kg tidak terwakili piring
                 </p>
               )}
               {load.plates.length === 0 && (
-                <p className="mt-1 text-[11px] font-medium text-content-muted">
+                <p className="mt-1 text-eyebrow font-medium text-content-muted">
                   Bar kosong — tambah beban di atas {barKg} kg untuk memasang
                   piring.
                 </p>
@@ -220,7 +220,7 @@ function PlateLoaderTab() {
         ) : (
           <div className="flex min-h-14 flex-col items-center justify-center gap-1.5 py-2 text-center">
             <Dumbbell className="h-5 w-5 text-content-muted" />
-            <p className="max-w-[260px] text-[12px] leading-relaxed text-content-muted">
+            <p className="max-w-[260px] text-meta leading-relaxed text-content-muted">
               {invalid
                 ? `Masukkan total beban minimal seberat barbel (${barKg} kg).`
                 : 'Masukkan total beban — piring tersusun otomatis di kiri-kanan bar.'}
@@ -229,7 +229,7 @@ function PlateLoaderTab() {
         )}
       </div>
 
-      <p className="mt-2 px-0.5 text-[11px] font-medium text-content-muted">
+      <p className="mt-2 px-0.5 text-eyebrow font-medium text-content-muted">
         Warna piring mengikuti standar IWF (25 merah · 20 biru · 15 kuning ·
         10 hijau · 5 putih · 2,5 hitam · 1,25 krom).
       </p>
@@ -263,7 +263,7 @@ function OneRmTab() {
 
   return (
     <div>
-      <p className="text-[13px] leading-relaxed text-content-muted">
+      <p className="text-note leading-relaxed text-content-muted">
         Estimasi kekuatan Epley — beban × (1 + reps/30), pembulatan 2,5 kg
         agar langsung terpakai di barbel.
       </p>
@@ -272,7 +272,7 @@ function OneRmTab() {
         <div className="space-y-1.5">
           <label
             htmlFor="bb-rm-w"
-            className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
+            className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted"
           >
             Beban (kg)
           </label>
@@ -284,13 +284,13 @@ function OneRmTab() {
               setWeight(e.target.value.replace(/[^\d.,]/g, '').slice(0, 6))
             }
             placeholder="100"
-            className="h-11 rounded-xl border-border bg-surface-sunken text-[15px] font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+            className="h-11 rounded-xl border-border bg-surface-sunken text-section font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
           />
         </div>
         <div className="space-y-1.5">
           <label
             htmlFor="bb-rm-r"
-            className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
+            className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted"
           >
             Repetisi
           </label>
@@ -300,7 +300,7 @@ function OneRmTab() {
             value={reps}
             onChange={(e) => setReps(e.target.value.replace(/\D/g, '').slice(0, 2))}
             placeholder="5"
-            className="h-11 rounded-xl border-border bg-surface-sunken text-[15px] font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+            className="h-11 rounded-xl border-border bg-surface-sunken text-section font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
           />
         </div>
       </div>
@@ -308,12 +308,12 @@ function OneRmTab() {
       {e1rm != null && table ? (
         <>
           <div className="mt-3.5 rounded-2xl border border-border bg-secondary p-4 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-content-muted">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
               Estimasi 1RM
             </p>
-            <p className="mt-1 text-[40px] font-bold leading-none tabular-nums text-content-primary">
+            <p className="mt-1 text-kpi-hero font-bold leading-none tabular-nums text-content-primary">
               {fmtKg(e1rm)}
-              <span className="ml-1 text-[15px] font-semibold text-content-muted">
+              <span className="ml-1 text-section font-semibold text-content-muted">
                 kg
               </span>
             </p>
@@ -324,10 +324,10 @@ function OneRmTab() {
                 key={row.pct}
                 className="flex items-center justify-between rounded-xl bg-surface-sunken px-3.5 py-2.5"
               >
-                <span className="text-[12px] font-bold tabular-nums text-content-muted">
+                <span className="text-meta font-bold tabular-nums text-content-muted">
                   {row.pct}%
                 </span>
-                <span className="text-[14px] font-bold tabular-nums text-content-primary">
+                <span className="text-body font-bold tabular-nums text-content-primary">
                   {fmtKg(row.kg)} kg
                 </span>
               </div>
@@ -336,7 +336,7 @@ function OneRmTab() {
         </>
       ) : (
         <div className="mt-3.5 rounded-2xl border border-dashed border-border bg-surface-sunken px-4 py-6 text-center">
-          <p className="text-[12px] leading-relaxed text-content-muted">
+          <p className="text-meta leading-relaxed text-content-muted">
             Isi beban dan repetisi (1–50) — estimasi 1RM dan tabel 95–65%
             muncul otomatis.
           </p>
@@ -363,7 +363,7 @@ function WarmupTab() {
 
   return (
     <div>
-      <p className="text-[13px] leading-relaxed text-content-muted">
+      <p className="text-note leading-relaxed text-content-muted">
         Pemanasan bertahap menuju beban kerja — bar kosong → 40% → 60% →
         80%, pembulatan 2,5 kg.
       </p>
@@ -371,7 +371,7 @@ function WarmupTab() {
       <div className="mt-3 space-y-1.5">
         <label
           htmlFor="bb-wu"
-          className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
+          className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted"
         >
           Beban kerja (kg)
         </label>
@@ -384,7 +384,7 @@ function WarmupTab() {
             setDone([])
           }}
           placeholder="mis. 80"
-          className="h-11 rounded-xl border-border bg-surface-sunken text-[15px] font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+          className="h-11 rounded-xl border-border bg-surface-sunken text-section font-bold tabular-nums text-content-primary placeholder:font-medium placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
         />
       </div>
 
@@ -418,7 +418,7 @@ function WarmupTab() {
                     {isDone ? (
                       <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />
                     ) : (
-                      <span className="text-[11px] font-bold tabular-nums">
+                      <span className="text-eyebrow font-semibold tabular-nums">
                         {i + 1}
                       </span>
                     )}
@@ -426,22 +426,22 @@ function WarmupTab() {
                   <span className="min-w-0 flex-1">
                     <span
                       className={cn(
-                        'block text-[13px] font-bold',
+                        'block text-note font-bold',
                         isDone ? 'text-success' : 'text-content-primary',
                       )}
                     >
                       {s.label}
                       {isDone && ' — selesai'}
                     </span>
-                    <span className="text-[11px] font-medium text-content-muted">
+                    <span className="text-eyebrow font-medium text-content-muted">
                       {s.label === 'Bar kosong'
                         ? 'bangun gerak & sirkulasi dulu'
                         : 'naik bertahap, jaga teknik'}
                     </span>
                   </span>
-                  <span className="shrink-0 text-[15px] font-bold tabular-nums text-content-primary">
+                  <span className="shrink-0 text-section font-bold tabular-nums text-content-primary">
                     {fmtKg(s.kg)}
-                    <span className="ml-0.5 text-[10px] font-semibold text-content-muted">
+                    <span className="ml-0.5 text-chart-label font-semibold text-content-muted">
                       kg
                     </span>
                   </span>
@@ -449,14 +449,14 @@ function WarmupTab() {
               )
             })}
           </div>
-          <p className="mt-2.5 px-0.5 text-[11px] leading-relaxed text-content-muted">
+          <p className="mt-2.5 px-0.5 text-eyebrow leading-relaxed text-content-muted">
             Naikkan bertahap, jangan lompat — ketuk tiap langkah untuk menandai
             selesai.
           </p>
         </>
       ) : (
         <div className="mt-3.5 rounded-2xl border border-dashed border-border bg-surface-sunken px-4 py-6 text-center">
-          <p className="text-[12px] leading-relaxed text-content-muted">
+          <p className="text-meta leading-relaxed text-content-muted">
             {ladder && ladder.length === 0
               ? 'Beban kerja terlalu dekat dengan bar — tangga tidak tersusun.'
               : 'Isi beban kerja — tangga pemanasan tersusun otomatis.'}
@@ -548,7 +548,7 @@ export function BarbellToolsSheet({
                 <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Alat Barbel
                 </h2>
-                <p className="mt-0.5 text-[13px] leading-relaxed text-content-muted">
+                <p className="mt-0.5 text-note leading-relaxed text-content-muted">
                   Kalkulator piring, 1RM, dan pemanasan — semuanya terhitung
                   saat kamu mengetik.
                 </p>
@@ -569,7 +569,7 @@ export function BarbellToolsSheet({
                       role="tab"
                       aria-selected={on}
                       onClick={() => setTab(t.id)}
-                      className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-note font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         on ? 'text-success' : 'text-content-muted'
                       }`}
                     >

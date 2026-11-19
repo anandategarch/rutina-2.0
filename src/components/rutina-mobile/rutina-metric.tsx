@@ -46,13 +46,13 @@ export function RutinaMetric({
 }: RutinaMetricProps) {
   const body = (
     <>
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-content-muted">
+      <p className="text-eyebrow font-semibold uppercase tracking-[0.08em] text-content-muted">
         {label}
       </p>
       <p
         className={cn(
           'mt-0.5 flex items-baseline gap-1 font-sans font-bold leading-none tracking-tight tabular-nums',
-          size === 'lg' ? 'text-[34px]' : size === 'sm' ? 'text-[20px]' : 'text-[26px]',
+          size === 'lg' ? 'text-kpi-lg' : size === 'sm' ? 'text-kpi-sm' : 'text-kpi',
           trend === 'up' && 'text-success',
           trend === 'down' && 'text-content-danger',
           trend === 'neutral' && 'text-content-primary',
@@ -60,7 +60,7 @@ export function RutinaMetric({
       >
         <span>{value}</span>
         {unit && (
-          <span className="text-[13px] font-semibold text-content-muted">
+          <span className="text-note font-semibold text-content-muted">
             {unit}
           </span>
         )}

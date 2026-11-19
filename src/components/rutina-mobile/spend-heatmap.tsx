@@ -201,19 +201,19 @@ export function SpendHeatmap() {
       </div>
 
       {/* Keterangan sel terpilih. */}
-      <p aria-live="polite" className="mt-3 text-[12px] font-medium text-content-muted">
+      <p aria-live="polite" className="mt-3 text-meta font-medium text-content-muted">
         {caption}
       </p>
 
       {/* Legenda — "Sedikit → Banyak". */}
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-content-muted">
+        <span className="text-chart-label font-semibold uppercase tracking-[0.12em] text-content-muted">
           Sedikit
         </span>
         {LEVEL_CLS.map((cls) => (
           <span key={cls} aria-hidden="true" className={`h-3 w-3 rounded-[3px] ${cls}`} />
         ))}
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-content-muted">
+        <span className="text-chart-label font-semibold uppercase tracking-[0.12em] text-content-muted">
           Banyak
         </span>
       </div>

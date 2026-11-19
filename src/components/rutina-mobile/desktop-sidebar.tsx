@@ -64,10 +64,10 @@ export function DesktopSidebar() {
     >
       {/* Wordmark + tagline */}
       <div className="px-5 pb-2 pt-6">
-        <p className="text-[21px] font-bold tracking-tight text-content-primary">
+        <p className="text-kpi-sm font-bold tracking-tight text-content-primary">
           rutina<span className="text-primary">.</span>
         </p>
-        <p className="mt-0.5 text-[11px] font-medium text-content-muted">
+        <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
           Personal Life System
         </p>
       </div>
@@ -108,7 +108,7 @@ export function DesktopSidebar() {
                         strokeWidth={active ? 2.4 : 2}
                       />
                       <span
-                        className={`relative z-10 text-[14px] transition-colors ${
+                        className={`relative z-10 text-body transition-colors ${
                           active
                             ? 'font-bold text-content-primary'
                             : 'font-medium text-content-muted'
@@ -120,7 +120,7 @@ export function DesktopSidebar() {
                   </TooltipTrigger>
                   <TooltipContent
                     side="right"
-                    className="rounded-full border-border bg-surface-inverse text-[12px] font-bold text-content-inverse"
+                    className="rounded-full border-border bg-surface-inverse text-meta font-bold text-content-inverse"
                   >
                     {item.label} · tekan {i + 1}
                   </TooltipContent>
@@ -141,15 +141,15 @@ export function DesktopSidebar() {
             <CloudCheck className="h-[18px] w-[18px]" strokeWidth={2} />
           </span>
           <span className="min-w-0">
-            <span className="block text-[13px] font-bold leading-tight text-content-primary">
+            <span className="block text-note font-semibold leading-tight text-content-primary">
               Tersinkron cloud
             </span>
-            <span className="mt-0.5 block text-[11px] font-medium leading-snug text-content-muted">
+            <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
               Data tersimpan otomatis
             </span>
           </span>
         </div>
-        <p className="mt-3 px-1 text-[11px] font-medium text-content-muted">
+        <p className="mt-3 px-1 text-eyebrow font-medium text-content-muted">
           Rutina 2.0
         </p>
       </div>

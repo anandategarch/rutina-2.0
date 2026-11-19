@@ -53,14 +53,14 @@ export function FocusWidget() {
       aria-label={`Misi selesai pekan ini, total ${total} misi`}
       className="flex flex-col rounded-[16px] border border-border bg-surface-primary p-4 shadow-soft"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
         Misi Pekan Ini
       </p>
       <p className="mt-1.5 flex items-baseline gap-1">
-        <span className="text-[30px] font-semibold leading-none tracking-tight text-content-primary">
+        <span className="text-kpi-lg font-semibold leading-none tracking-tight text-content-primary">
           <Counter to={total} />
         </span>
-        <span className="text-[11px] font-medium text-content-muted">misi</span>
+        <span className="text-eyebrow font-medium text-content-muted">misi</span>
       </p>
 
       <div
@@ -87,7 +87,7 @@ export function FocusWidget() {
                 }}
               />
               <span
-                className={`text-[10px] font-bold ${
+                className={`text-chart-label font-semibold ${
                   isToday ? 'text-success' : 'text-content-muted'
                 }`}
               >

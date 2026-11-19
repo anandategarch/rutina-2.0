@@ -84,7 +84,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-ink">
               <Check className="h-9 w-9 text-primary-foreground" strokeWidth={3} />
             </span>
-            <p className="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.18em] text-content-secondary">
+            <p className="whitespace-nowrap text-note font-bold uppercase tracking-[0.14em] text-content-secondary">
               Hari yang sempurna
             </p>
           </m.div>

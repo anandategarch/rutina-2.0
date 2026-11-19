@@ -91,10 +91,10 @@ export function HomeProgressRing({ pct }: { pct: number }) {
       {/* Angka persen besar di pusat cincin */}
       <div className="absolute inset-0 flex items-center justify-center">
         <p className="flex items-baseline text-content-primary">
-          <span className="text-[27px] font-bold leading-none tracking-tight">
+          <span className="text-kpi font-bold leading-none tracking-tight">
             <Counter to={clamped} />
           </span>
-          <span className="ml-0.5 text-[13px] font-bold text-content-muted">
+          <span className="ml-0.5 text-note font-bold text-content-muted">
             %
           </span>
         </p>

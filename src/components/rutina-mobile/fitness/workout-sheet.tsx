@@ -269,7 +269,7 @@ export function WorkoutSheet() {
                 <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Catat Sesi
                 </h2>
-                <p className="mt-0.5 text-[13px] text-content-muted">
+                <p className="mt-0.5 text-note text-content-muted">
                   Sesi baru — {shortDateLabel(date || todayISO())}.
                 </p>
               </div>
@@ -289,7 +289,7 @@ export function WorkoutSheet() {
                     type="button"
                     onClick={() => setMode(t)}
                     aria-pressed={on}
-                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-[13px] font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    className={`relative z-10 flex h-9 flex-1 cursor-pointer items-center justify-center rounded-full text-note font-bold transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       on ? 'text-success' : 'text-content-muted'
                     }`}
                   >
@@ -310,7 +310,7 @@ export function WorkoutSheet() {
             {/* Tanggal & durasi */}
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <div className="space-y-1.5">
-                <Label htmlFor="wo-date" className="text-[13px] font-semibold text-content-secondary">
+                <Label htmlFor="wo-date" className="text-note font-semibold text-content-secondary">
                   Tanggal
                 </Label>
                 <Input
@@ -323,7 +323,7 @@ export function WorkoutSheet() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="wo-dur" className="text-[13px] font-semibold text-content-secondary">
+                <Label htmlFor="wo-dur" className="text-note font-semibold text-content-secondary">
                   Durasi (menit)
                 </Label>
                 <Input
@@ -348,10 +348,10 @@ export function WorkoutSheet() {
                   className="mt-4"
                 >
                   <div className="flex items-center justify-between px-0.5">
-                    <Label className="text-[13px] font-semibold text-content-secondary">
+                    <Label className="text-note font-semibold text-content-secondary">
                       Gerakan &amp; Set
                     </Label>
-                    <span className="text-[11px] font-medium text-content-muted">
+                    <span className="text-eyebrow font-medium text-content-muted">
                       {blocks.length} blok
                     </span>
                   </div>
@@ -365,10 +365,10 @@ export function WorkoutSheet() {
                           aria-hidden="true"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-bold leading-snug text-content-primary">
+                          <p className="text-meta font-semibold leading-snug text-content-primary">
                             Masa deload — target beban disarankan 50%
                           </p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-content-muted">
+                          <p className="mt-0.5 text-eyebrow leading-relaxed text-content-muted">
                             Setengah beban, pembulatan 2,5 kg — tetap bisa
                             diedit manual setelah diterapkan.
                           </p>
@@ -377,7 +377,7 @@ export function WorkoutSheet() {
                       <button
                         type="button"
                         onClick={applyDeload}
-                        className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-[13px] font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+                        className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-note font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
                       >
                         Terapkan 50%
                       </button>
@@ -399,7 +399,7 @@ export function WorkoutSheet() {
                             aria-label={`Gerakan blok ${i + 1}`}
                             value={b.exercise}
                             onChange={(e) => patchBlock(i, { exercise: e.target.value })}
-                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-surface-sunken px-2.5 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-surface-sunken px-2.5 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
                               b.exercise ? 'border-primary' : 'border-border text-content-muted'
                             }`}
                           >
@@ -431,7 +431,7 @@ export function WorkoutSheet() {
 
                         <div className="mt-2.5 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                           <div>
-                            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-content-muted">
+                            <p className="mb-1 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
                               Beban (kg)
                             </p>
                             <Input
@@ -448,7 +448,7 @@ export function WorkoutSheet() {
                             />
                           </div>
                           <div>
-                            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-content-muted">
+                            <p className="mb-1 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
                               Repetisi
                             </p>
                             <Input
@@ -465,7 +465,7 @@ export function WorkoutSheet() {
                             />
                           </div>
                           <div>
-                            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-content-muted">
+                            <p className="mb-1 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
                               Set
                             </p>
                             <div className="flex h-10 items-center rounded-xl border border-border bg-surface-sunken">
@@ -479,7 +479,7 @@ export function WorkoutSheet() {
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
-                              <span className="w-6 text-center text-[14px] font-bold tabular-nums text-content-primary">
+                              <span className="w-6 text-center text-body font-bold tabular-nums text-content-primary">
                                 {b.count}
                               </span>
                               <button
@@ -502,7 +502,7 @@ export function WorkoutSheet() {
                   <button
                     type="button"
                     onClick={() => setBlocks((bs) => [...bs, emptyBlock()])}
-                    className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary/40 text-[13px] font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary/40 text-note font-bold text-success transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Plus className="h-4 w-4" />
                     Tambah gerakan
@@ -528,7 +528,7 @@ export function WorkoutSheet() {
                         type="button"
                         onClick={() => setCardioKind(k)}
                         aria-pressed={cardioKind === k}
-                        className={`h-9 flex-1 cursor-pointer rounded-full text-[13px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        className={`h-9 flex-1 cursor-pointer rounded-full text-note font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           cardioKind === k
                             ? 'bg-surface-primary text-success shadow-soft'
                             : 'text-content-muted'
@@ -540,7 +540,7 @@ export function WorkoutSheet() {
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2.5">
                     <div className="space-y-1.5">
-                      <Label htmlFor="wo-km" className="text-[13px] font-semibold text-content-secondary">
+                      <Label htmlFor="wo-km" className="text-note font-semibold text-content-secondary">
                         Jarak (km)
                       </Label>
                       <Input
@@ -556,7 +556,7 @@ export function WorkoutSheet() {
                     </div>
                     <div className="flex items-end">
                       <div
-                        className={`flex h-11 w-full items-center justify-center rounded-xl text-[14px] font-bold tabular-nums ${
+                        className={`flex h-11 w-full items-center justify-center rounded-xl text-body font-bold tabular-nums ${
                           pace ? 'bg-secondary text-success' : 'bg-surface-sunken text-content-muted'
                         }`}
                         aria-live="polite"
@@ -571,7 +571,7 @@ export function WorkoutSheet() {
 
             {/* Catatan */}
             <div className="mt-4 space-y-1.5">
-              <Label htmlFor="wo-note" className="text-[13px] font-semibold text-content-secondary">
+              <Label htmlFor="wo-note" className="text-note font-semibold text-content-secondary">
                 Catatan <span className="font-normal text-content-muted">(opsional)</span>
               </Label>
               <Input
@@ -589,7 +589,7 @@ export function WorkoutSheet() {
               type="button"
               onClick={submit}
               whileTap={{ scale: 0.98 }}
-              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Simpan Sesi
             </m.button>

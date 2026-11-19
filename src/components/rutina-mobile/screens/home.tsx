@@ -114,10 +114,10 @@ function DemoBanner() {
                 <FlaskConical className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-content-primary">
+                <p className="text-note font-semibold text-content-primary">
                   Data contoh
                 </p>
-                <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                   Kebiasaan, catatan, dan transaksi yang tampil masih contoh —
                   bukan datamu. Pilih cara memulai:
                 </p>
@@ -130,7 +130,7 @@ function DemoBanner() {
                         'Data contoh dibersihkan — mulailah dari nol.',
                       )
                     }}
-                    className="h-9 cursor-pointer rounded-full bg-destructive px-4 text-[12px] font-bold text-destructive-foreground shadow-soft transition-all hover:bg-destructive/90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                    className="h-9 cursor-pointer rounded-full bg-destructive px-4 text-meta font-bold text-destructive-foreground shadow-soft transition-all hover:bg-destructive/90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                   >
                     Mulai bersih
                   </button>
@@ -140,7 +140,7 @@ function DemoBanner() {
                       keepSample()
                       toast('Data contoh dipertahankan sebagai milikmu.')
                     }}
-                    className="h-9 cursor-pointer rounded-full border border-border bg-surface-primary px-4 text-[12px] font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="h-9 cursor-pointer rounded-full border border-border bg-surface-primary px-4 text-meta font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     Pakai contoh ini
                   </button>
@@ -317,10 +317,10 @@ function DateStrip() {
                       : 'bg-surface-primary/80 text-content-secondary hover:bg-surface-primary')
               }
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">
+              <span className="text-chart-label font-semibold uppercase tracking-wider opacity-75">
                 {d.label}
               </span>
-              <span className="text-[15px] font-bold leading-none tabular-nums">
+              <span className="text-section font-bold leading-none tabular-nums">
                 {d.dateNum}
               </span>
               {!d.isFuture && (
@@ -340,7 +340,7 @@ function DateStrip() {
           )
         })}
       </div>
-      <p className="mt-2 px-0.5 text-[12px] font-medium text-content-muted">
+      <p className="mt-2 px-0.5 text-meta font-medium text-content-muted">
         {selected
           ? selected.isToday
             ? `Hari ini — ${Math.min(selected.done, goal)}/${goal} misi target tercapai`
@@ -574,7 +574,7 @@ export default function HomeScreen() {
           aria-label="Sapaan hari ini"
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="min-w-0 truncate text-eyebrow font-bold uppercase tracking-[0.16em] text-content-muted">
+            <p className="min-w-0 truncate text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
               {dateBadge}
             </p>
             <m.button
@@ -585,7 +585,7 @@ export default function HomeScreen() {
               className="shrink-0 cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
-                <AvatarFallback className="bg-cocoa text-[11px] font-bold tracking-widest text-parchment">
+                <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
                   AN
                 </AvatarFallback>
               </Avatar>
@@ -598,7 +598,7 @@ export default function HomeScreen() {
           </h1>
           <m.p
             style={{ opacity: subtitleOpacity }}
-            className="mt-1 text-[14px] font-medium text-content-muted"
+            className="mt-1 text-body font-medium text-content-muted"
           >
             Mari mulai dengan satu langkah kecil.
           </m.p>
@@ -641,15 +641,15 @@ export default function HomeScreen() {
                   <div className="flex items-center gap-5">
                     <HomeProgressRing pct={pct} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-content-muted">
+                      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                         Progres hari ini
                       </p>
-                      <p className="mt-1 text-[17px] font-bold leading-tight text-content-primary">
+                      <p className="mt-1 text-lead font-bold leading-tight text-content-primary">
                         {doneToday} dari {todayHabits.length} misi
                       </p>
                       <p
                         className={
-                          'mt-0.5 text-[13px] font-medium ' +
+                          'mt-0.5 text-note font-medium ' +
                           (todayHabits.length > 0 && missionRemaining === 0
                             ? 'text-success'
                             : 'text-content-muted')
@@ -662,11 +662,11 @@ export default function HomeScreen() {
                             : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-[12px] font-bold text-espresso">
+                        <span className="flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-meta font-bold text-espresso">
                           <Flame className="h-3.5 w-3.5" strokeWidth={2.2} />
                           Streak {streak} hari
                         </span>
-                        <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-[12px] font-bold text-matcha-deep">
+                        <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-meta font-semibold text-success">
                           <Zap className="h-3.5 w-3.5" strokeWidth={2.2} />
                           Level {level}
                         </span>
@@ -676,7 +676,7 @@ export default function HomeScreen() {
 
                   {/* Mini-bar XP menuju target Level 8 */}
                   <div className="mt-5">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-content-muted">
+                    <div className="flex items-center justify-between text-eyebrow font-semibold text-content-muted">
                       <span className="flex items-center gap-1 tabular-nums">
                         <Zap
                           aria-hidden="true"
@@ -788,7 +788,7 @@ export default function HomeScreen() {
                 {!viewingToday && (
                   <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
                     <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
-                    <p className="min-w-0 flex-1 text-[12px] font-medium text-content-muted">
+                    <p className="min-w-0 flex-1 text-meta font-medium text-content-muted">
                       {viewingPast
                         ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
                         : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
@@ -796,7 +796,7 @@ export default function HomeScreen() {
                     <button
                       type="button"
                       onClick={() => setSelectedDate(today)}
-                      className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-eyebrow font-semibold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Hari ini
                     </button>
@@ -818,7 +818,7 @@ export default function HomeScreen() {
                       <Button
                         type="button"
                         onClick={openHabitCreate}
-                        className="h-10 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
+                        className="h-10 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground hover:bg-action-hover"
                       >
                         <Plus className="h-4 w-4" />
                         Tambah kebiasaan
@@ -850,10 +850,10 @@ export default function HomeScreen() {
                                 className="h-4 w-4 text-primary"
                                 strokeWidth={2}
                               />
-                              <h3 className="text-[13px] font-semibold tracking-tight text-content-secondary">
+                              <h3 className="text-note font-semibold tracking-tight text-content-secondary">
                                 {g.label}
                               </h3>
-                              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
+                              <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold text-content-secondary">
                                 {g.items.length}
                               </span>
                             </div>
@@ -898,7 +898,7 @@ export default function HomeScreen() {
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                             <Check className="h-4 w-4" strokeWidth={2.6} />
                           </span>
-                          <span className="flex-1 text-[13px] font-semibold tracking-tight text-content-secondary">
+                          <span className="flex-1 text-note font-semibold tracking-tight text-content-secondary">
                             Selesai ({doneHabits.length})
                           </span>
                           <m.span
@@ -953,7 +953,7 @@ export default function HomeScreen() {
                       type="button"
                       onClick={openHabitCreate}
                       aria-label="Tambah kebiasaan baru"
-                      className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong px-4 py-3.5 text-[13px] font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[16px] border border-dashed border-border-strong px-4 py-3.5 text-note font-semibold text-content-secondary transition-all hover:border-primary/50 hover:text-primary active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Plus className="h-4 w-4" strokeWidth={2.5} />
                       Tambah kebiasaan
@@ -970,7 +970,7 @@ export default function HomeScreen() {
                       aria-expanded={showArchive}
                       className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
-                      <span className="flex items-center gap-2 text-[12px] font-bold text-content-secondary">
+                      <span className="flex items-center gap-2 text-meta font-bold text-content-secondary">
                         <Archive className="h-3.5 w-3.5" />
                         Arsip · {archivedHabits.length} kebiasaan
                       </span>
@@ -999,10 +999,10 @@ export default function HomeScreen() {
                               <Archive className="h-4 w-4" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[13px] font-semibold text-content-secondary">
+                              <span className="block truncate text-note font-semibold text-content-secondary">
                                 {h.title}
                               </span>
-                              <span className="block text-[11px] font-medium text-content-muted">
+                              <span className="block text-eyebrow font-medium text-content-muted">
                                 {h.cat} · diarsipkan
                               </span>
                             </span>
@@ -1062,10 +1062,10 @@ export default function HomeScreen() {
                       <Bell className="h-4 w-4" strokeWidth={2.2} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-[14px] font-bold text-content-primary">
+                      <h3 className="text-body font-semibold text-content-primary">
                         Jangan bolong dua kali
                       </h3>
-                      <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                      <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                         Terlewat kemarin tak apa — selesaikan hari ini supaya
                         tidak bolong dua kali berturut-turut.
                       </p>
@@ -1077,7 +1077,7 @@ export default function HomeScreen() {
                         key={h.id}
                         className="flex items-center gap-3 rounded-xl border border-gold/30 bg-surface-primary/70 px-3 py-1.5"
                       >
-                        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-content-primary">
+                        <span className="min-w-0 flex-1 truncate text-note font-semibold text-content-primary">
                           {h.title}
                         </span>
                         <button
@@ -1086,7 +1086,7 @@ export default function HomeScreen() {
                             toggleHabit(h.id, today)
                             toast.success(`"${h.title}" selesai — streak kembali berjalan.`)
                           }}
-                          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-[11px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-eyebrow font-semibold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                           Selesaikan sekarang
                         </button>
@@ -1134,10 +1134,10 @@ export default function HomeScreen() {
                           <Icon className="h-4 w-4" strokeWidth={2.2} />
                         </span>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-bold text-content-primary">
+                          <p className="text-note font-semibold text-content-primary">
                             {advice.title}
                           </p>
-                          <p className="mt-0.5 text-[12px] leading-relaxed text-content-muted">
+                          <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
                             {advice.text}
                           </p>
                         </div>
@@ -1225,17 +1225,17 @@ export default function HomeScreen() {
             </span>
           </m.span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-bold text-content-primary">
+            <span className="block text-body font-semibold text-content-primary">
               {bonusClaimed ? 'Bonus hari ini terklaim' : 'Klaim bonus harian'}
             </span>
-            <span className="mt-0.5 block text-[12px] font-medium text-content-muted">
+            <span className="mt-0.5 block text-meta font-medium text-content-muted">
               {bonusClaimed
                 ? `+${XP_BONUS} XP sudah masuk ke saldo kamu`
                 : `Hadiah konsistensi: +${XP_BONUS} XP gratis setiap hari`}
             </span>
           </span>
           {!bonusClaimed && (
-            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-success">
+            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-eyebrow font-semibold text-success">
               +{XP_BONUS} XP
             </span>
           )}
@@ -1255,7 +1255,7 @@ export default function HomeScreen() {
               type="button"
               onClick={() => openCompose()}
               aria-label="Buat catatan baru"
-              className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
               Catatan
@@ -1307,7 +1307,7 @@ export default function HomeScreen() {
                   </button>
                 </div>
                 <span className="pointer-events-none relative z-10">
-                  <span className="block text-[15px] font-semibold leading-tight text-content-primary">
+                  <span className="block text-section font-semibold leading-tight text-content-primary">
                     {label}
                   </span>
                   <span className="mt-0.5 block text-xs font-medium text-content-muted">
@@ -1342,12 +1342,12 @@ export default function HomeScreen() {
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">
             <Quote aria-hidden="true" className="h-6 w-6 shrink-0 text-content-inverse/45" />
-            <span className="text-eyebrow font-bold uppercase tracking-[0.16em] text-content-inverse/70">
+            <span className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
               Refleksi Hari Ini
             </span>
           </div>
           <p
-            className={`${playfair.className} mt-4 text-balance text-[17px] italic leading-relaxed text-content-inverse`}
+            className={`${playfair.className} mt-4 text-balance text-lead italic leading-relaxed text-content-inverse`}
           >
             &ldquo;{quote.text}&rdquo;
           </p>
@@ -1364,7 +1364,7 @@ export default function HomeScreen() {
                 toast.success('Kutipan disimpan ke jurnal')
               }
             }}
-            className="mt-5 h-9 rounded-full border border-content-inverse/35 px-4 text-[13px] font-semibold text-content-inverse hover:bg-content-inverse/10 hover:text-content-inverse disabled:opacity-60"
+            className="mt-5 h-9 rounded-full border border-content-inverse/35 px-4 text-note font-semibold text-content-inverse hover:bg-content-inverse/10 hover:text-content-inverse disabled:opacity-60"
           >
             {quoteSavedToday ? (
               <Check className="h-4 w-4" strokeWidth={2.5} />

@@ -72,13 +72,13 @@ function MetricRow({
       </span>
       <span className="min-w-0">
         <span
-          className={`block truncate text-[15px] font-bold leading-tight tabular-nums text-content-primary ${
+          className={`block truncate text-section font-bold leading-tight tabular-nums text-content-primary ${
             valueClass ?? ''
           }`}
         >
           {value}
         </span>
-        <span className="block truncate text-[11px] font-semibold text-content-muted">
+        <span className="block truncate text-eyebrow font-semibold text-content-muted">
           {label}
         </span>
       </span>
@@ -127,7 +127,7 @@ function RailCalm({
       >
         <Icon className="h-4 w-4" strokeWidth={2.1} />
       </span>
-      <p className="text-[13px] font-medium leading-snug text-content-secondary">
+      <p className="text-note font-medium leading-snug text-content-secondary">
         {text}
       </p>
     </div>
@@ -216,13 +216,13 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
             <Timer className="h-[18px] w-[18px]" strokeWidth={2.1} />
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] tabular-nums text-content-muted">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.08em] tabular-nums text-content-muted">
               {next.reminder}
             </p>
-            <p className="mt-0.5 truncate text-[14px] font-bold leading-tight text-content-primary">
+            <p className="mt-0.5 truncate text-body font-semibold leading-tight text-content-primary">
               {next.title}
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-content-muted">
+            <p className="mt-1 flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
               <span
                 aria-hidden="true"
                 className="h-2 w-2 shrink-0 rounded-full"
@@ -240,7 +240,7 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
           >
             <Check className="h-4 w-4" strokeWidth={2.4} />
           </span>
-          <p className="text-[13px] font-medium leading-snug text-content-secondary">
+          <p className="text-note font-medium leading-snug text-content-secondary">
             Semua misi hari ini telah dijadwalkan.
           </p>
         </div>
@@ -260,7 +260,7 @@ function TipsCard() {
         >
           <Leaf className="h-4 w-4" strokeWidth={2} />
         </span>
-        <p className="text-[13px] font-medium leading-relaxed text-content-secondary">
+        <p className="text-note font-medium leading-relaxed text-content-secondary">
           Konsistensi kecil setiap hari lebih kuat daripada sempurna
           sesekali.
         </p>
@@ -299,7 +299,7 @@ function BodyReadinessCard() {
               />
             )}
           </ul>
-          <p className="mt-3 text-[11px] font-medium leading-relaxed text-content-muted">
+          <p className="mt-3 text-eyebrow font-medium leading-relaxed text-content-muted">
             Check-in {shortDateLabel(latest[0])} ·{' '}
             {log.sleepH != null && log.sleepH >= 7
               ? 'tidur cukup, tubuh siap bergerak.'
@@ -381,7 +381,7 @@ function HydrationCard() {
             />
           </ul>
           {log.water < 8 && (
-            <p className="mt-3 text-[11px] font-medium leading-relaxed text-content-muted">
+            <p className="mt-3 text-eyebrow font-medium leading-relaxed text-content-muted">
               Tambah {8 - log.water} gelas lagi untuk mencapai target harian.
             </p>
           )}
@@ -574,7 +574,7 @@ function GardenCard() {
           label="Tumbuh di tamanmu"
         />
       </ul>
-      <p className="mt-3 text-[11px] font-medium leading-relaxed text-content-muted">
+      <p className="mt-3 text-eyebrow font-medium leading-relaxed text-content-muted">
         Setiap misi yang selesai ikut menyirami tanamannya.
       </p>
     </RutinaCard>

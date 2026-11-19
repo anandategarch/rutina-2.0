@@ -125,7 +125,7 @@ const PRIMARY_ACTIONS: HubAction[] = [
     listLabel: 'Catat asupan',
     value: 'asupan makan makanan kalori gizi',
     icon: UtensilsCrossed,
-    tint: 'bg-primary/15 text-matcha-deep',
+    tint: 'bg-primary/15 text-success',
     run: () => useRutina.getState().openFoodSheet(),
   },
   {
@@ -164,7 +164,7 @@ function txVisual(type: string): {
   if (type === 'masuk')
     return {
       icon: ArrowUpRight,
-      iconClass: 'text-pistachio',
+      iconClass: 'text-success',
       amountClass: 'text-success',
     }
   if (type === 'keluar')
@@ -404,7 +404,7 @@ export function QuickActionHub() {
                     onValueChange={setQuery}
                     placeholder="Cari aksi, catatan, kebiasaan…"
                     aria-label="Cari aksi, catatan, kebiasaan, atau transaksi"
-                    className="h-6 w-full bg-transparent text-[15px] font-medium text-content-primary outline-none placeholder:font-normal placeholder:text-content-muted"
+                    className="h-6 w-full bg-transparent text-section font-medium text-content-primary outline-none placeholder:font-normal placeholder:text-content-muted"
                   />
                 </div>
 
@@ -448,13 +448,13 @@ export function QuickActionHub() {
                             >
                               <a.icon className="h-5 w-5" strokeWidth={2.1} />
                             </span>
-                            <span className="text-[12px] font-bold leading-none text-content-primary">
+                            <span className="text-meta font-bold leading-none text-content-primary">
                               {a.label}
                             </span>
                           </m.button>
                         ))}
                       </div>
-                      <p className="px-5 pb-4 pt-1.5 text-center text-[12px] font-medium text-content-muted">
+                      <p className="px-5 pb-4 pt-1.5 text-center text-meta font-medium text-content-muted">
                         Ketik untuk mencari di seluruh aplikasi
                       </p>
                     </m.div>
@@ -470,13 +470,13 @@ export function QuickActionHub() {
                           key={a.key}
                           value={a.value}
                           onSelect={() => run(a.run)}
-                          className="rounded-lg py-2.5 text-[14px]"
+                          className="rounded-lg py-2.5 text-body"
                         >
                           <a.icon aria-hidden="true" />
                           <span className="min-w-0 flex-1 truncate">
                             {a.listLabel}
                           </span>
-                          <span className="ml-2 shrink-0 text-[11px] font-semibold text-content-muted">
+                          <span className="ml-2 shrink-0 text-eyebrow font-semibold text-content-muted">
                             Aksi
                           </span>
                         </CommandItem>
@@ -490,7 +490,7 @@ export function QuickActionHub() {
                               useRutina.getState().setScreen(item.screen),
                             )
                           }
-                          className="rounded-lg py-2.5 text-[14px]"
+                          className="rounded-lg py-2.5 text-body"
                         >
                           <item.icon aria-hidden="true" />
                           <span className="min-w-0 flex-1 truncate">
@@ -507,7 +507,7 @@ export function QuickActionHub() {
                             key={h.id}
                             value={`${h.title} ${h.cat}`}
                             onSelect={() => openHabit(h.id)}
-                            className="rounded-lg py-2.5 text-[14px]"
+                            className="rounded-lg py-2.5 text-body"
                           >
                             <span
                               aria-hidden="true"
@@ -517,7 +517,7 @@ export function QuickActionHub() {
                             <span className="min-w-0 flex-1 truncate">
                               {h.title}
                             </span>
-                            <span className="ml-2 shrink-0 text-[11px] font-semibold text-content-muted">
+                            <span className="ml-2 shrink-0 text-eyebrow font-semibold text-content-muted">
                               {h.cat}
                             </span>
                           </CommandItem>
@@ -534,13 +534,13 @@ export function QuickActionHub() {
                             onSelect={() =>
                               run(() => useRutina.getState().openReading(n.id))
                             }
-                            className="rounded-lg py-2.5 text-[14px]"
+                            className="rounded-lg py-2.5 text-body"
                           >
                             <PenLine aria-hidden="true" />
                             <span className="min-w-0 flex-1 truncate">
                               {n.title}
                             </span>
-                            <span className="ml-2 shrink-0 text-[11px] font-semibold text-content-muted">
+                            <span className="ml-2 shrink-0 text-eyebrow font-semibold text-content-muted">
                               {FOLDER_SHORT[n.folder]}
                             </span>
                           </CommandItem>
@@ -561,7 +561,7 @@ export function QuickActionHub() {
                                   useRutina.getState().setScreen('keuangan'),
                                 )
                               }
-                              className="rounded-lg py-2.5 text-[14px]"
+                              className="rounded-lg py-2.5 text-body"
                             >
                               <v.icon
                                 aria-hidden="true"
@@ -572,7 +572,7 @@ export function QuickActionHub() {
                               </span>
                               <span
                                 className={cn(
-                                  'ml-2 shrink-0 text-[12px] font-bold tabular-nums',
+                                  'ml-2 shrink-0 text-meta font-bold tabular-nums',
                                   v.amountClass,
                                 )}
                               >
@@ -590,10 +590,10 @@ export function QuickActionHub() {
                           className="h-5 w-5 text-content-muted"
                           aria-hidden="true"
                         />
-                        <p className="text-[14px] font-semibold text-content-secondary">
+                        <p className="text-body font-semibold text-content-secondary">
                           Tidak ditemukan
                         </p>
-                        <p className="text-[12px] leading-snug text-content-muted">
+                        <p className="text-meta leading-snug text-content-muted">
                           Coba kata lain — aksi, catatan, kebiasaan, atau
                           transaksi.
                         </p>
@@ -605,11 +605,11 @@ export function QuickActionHub() {
 
               {/* Baris kaki — petunjuk Esc (desktop) + wordmark. */}
               <div className="flex items-center justify-end gap-3 border-t border-border px-5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] pt-2.5 sm:justify-between sm:pb-2.5">
-                <p className="hidden text-[11px] font-semibold text-content-muted sm:block">
+                <p className="hidden text-eyebrow font-semibold text-content-muted sm:block">
                   Esc untuk menutup
                 </p>
                 <p
-                  className="text-[11px] font-bold tracking-tight text-content-muted"
+                  className="text-eyebrow font-semibold tracking-tight text-content-muted"
                   aria-hidden="true"
                 >
                   rutina<span className="text-primary">.</span>

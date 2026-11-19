@@ -118,14 +118,16 @@ const MOOD_ICONS: Record<string, typeof Laugh> = {
 }
 
 /** Distribusi kategori kebiasaan aktif — dihitung dari data nyata.
-    Warna donut & legenda memakai token grafik semantic (var(--chart-1..5))
-    agar seluruh grafik di layar ini berbagi satu sumber warna. */
+    Color System v2: warna donut & legenda kategori memakai token kategori
+    kebiasaan (var(--habit-cat-*)) — sumber yang sama dengan layar Kebiasaan
+    (store.ts), sehingga identitas kategori konsisten lintas layar dan ikut
+    terang otomatis di mode gelap. */
 const CAT_CHART_COLORS: Record<HabitCat, string> = {
-  Kebiasaan: 'var(--chart-4)',
-  Kerja: 'var(--chart-1)',
-  Kesehatan: 'var(--chart-2)',
-  Pribadi: 'var(--chart-5)',
-  Belajar: 'var(--chart-3)',
+  Kebiasaan: 'var(--habit-cat-kebiasaan)',
+  Kerja: 'var(--habit-cat-kerja)',
+  Kesehatan: 'var(--habit-cat-kesehatan)',
+  Pribadi: 'var(--habit-cat-pribadi)',
+  Belajar: 'var(--habit-cat-belajar)',
 }
 
 function categoryData(habits: Habit[]) {
@@ -401,7 +403,9 @@ export default function StatsScreen() {
   const kpiTiles = [
     {
       key: 'konsistensi',
-      label: 'Konsistensi 30 Hari',
+      /* Label pendek agar tak membungkus di tile sempit (ponsel 2 kolom);
+         konteks "30 hari" dibawa caption tile Misi. */
+      label: 'Konsistensi',
       value: kpi.consistency,
       unit: '%',
       caption:
@@ -428,7 +432,7 @@ export default function StatsScreen() {
       label: 'Rekor Streak',
       value: best.record,
       unit: 'hari',
-      caption: 'rekor pribadi sepanjang histori',
+      caption: 'rekor terpanjangmu',
     },
   ]
 
@@ -600,7 +604,7 @@ export default function StatsScreen() {
         {/* Kepala halaman — Tipografi System v1: judul operasional Geist
             Sans weight 700; disiplin angka tabular di seluruh layar. */}
         <header>
-          <p className="flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.16em] text-module-accent-strong">
+          <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-module-accent-strong">
             <span
               aria-hidden="true"
               className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
@@ -610,7 +614,7 @@ export default function StatsScreen() {
           <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight">
             Statistik
           </h1>
-          <p className="mt-2 text-[14px] font-medium text-content-muted">
+          <p className="mt-2 text-body font-medium text-content-muted">
             Petualanganmu dalam angka
           </p>
         </header>
@@ -621,19 +625,19 @@ export default function StatsScreen() {
           className="mt-[var(--layout-gap)] flex items-center gap-3"
         >
           <Avatar className="h-10 w-10 border-2 border-matcha/40">
-            <AvatarFallback className="bg-matcha text-[11px] font-bold tracking-widest text-parchment">
+            <AvatarFallback className="bg-matcha-action text-eyebrow font-semibold tracking-widest text-parchment">
               AN
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-bold tracking-tight">
+            <p className="truncate text-section font-semibold tracking-tight">
               Ananda
             </p>
-            <p className="text-[11px] font-medium text-content-muted">
+            <p className="text-eyebrow font-medium text-content-muted">
               Petualang Konsisten
             </p>
           </div>
-          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-cocoa px-3 text-[11px] font-bold text-pistachio shadow-soft">
+          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-cocoa px-3 text-eyebrow font-semibold text-pistachio shadow-soft">
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
@@ -690,26 +694,26 @@ export default function StatsScreen() {
                   x2="100%"
                   y2="100%"
                 >
-                  <stop offset="0%" stopColor="var(--chart-4)" />
-                  <stop offset="100%" stopColor="var(--chart-1)" />
+                  <stop offset="0%" stopColor="var(--chart-stroke-4)" />
+                  <stop offset="100%" stopColor="var(--chart-stroke-1)" />
                 </linearGradient>
               </defs>
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-content-muted">
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                 Level
               </p>
-              <p className="text-[44px] font-semibold leading-none tabular-nums text-content-primary">
+              <p className="text-kpi-hero font-semibold leading-none tabular-nums text-content-primary">
                 {level}
               </p>
-              <span className="mt-2.5 rounded-full bg-cocoa px-2.5 py-1 text-[11px] font-bold text-pistachio">
+              <span className="mt-2.5 rounded-full bg-cocoa px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
                 <Counter to={xp} /> XP
               </span>
             </div>
           </m.div>
 
-          <p className="mt-3 text-center text-[11px] font-medium text-content-muted">
+          <p className="mt-3 text-center text-eyebrow font-medium text-content-muted">
             {level >= 8
               ? 'Level baru terbuka — lanjutkan petualanganmu'
               : `${remaining} XP lagi menuju Level ${level + 1}`}
@@ -728,7 +732,7 @@ export default function StatsScreen() {
                   transition={{ ...motionTokens.preset.data, delay: i * 0.05 }}
                   className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="flex items-center gap-1.5 text-chart-label font-semibold uppercase tracking-[0.14em] text-content-inverse/70">
                     <span
                       aria-hidden="true"
                       className="h-1 w-1 shrink-0 rounded-full bg-module-accent"
@@ -736,14 +740,14 @@ export default function StatsScreen() {
                     {tile.label}
                   </p>
                   <p className="mt-2.5 flex items-baseline gap-1">
-                    <span className="text-[28px] font-semibold leading-none tracking-tight tabular-nums text-content-inverse">
+                    <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums text-content-inverse">
                       {tile.value.toLocaleString('id-ID')}
                     </span>
-                    <span className="text-[11px] font-bold text-content-inverse/70">
+                    <span className="text-eyebrow font-semibold text-content-inverse/70">
                       {tile.unit}
                     </span>
                   </p>
-                  <p className="mt-auto truncate pt-2 text-[11px] font-medium leading-snug text-content-inverse/70">
+                  <p className="mt-auto truncate pt-2 text-eyebrow font-medium leading-snug text-content-inverse/70">
                     {tile.caption}
                   </p>
                 </m.div>
@@ -766,7 +770,7 @@ export default function StatsScreen() {
               className="flex h-full flex-col rounded-[16px] border border-border bg-cocoa p-5 shadow-card"
               aria-label="Fokus periode grafik misi selesai"
             >
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+              <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                 Fokus Periode
               </p>
               <Tabs
@@ -776,32 +780,32 @@ export default function StatsScreen() {
                 <TabsList className="h-[52px] w-full rounded-full bg-surface-inverse p-1">
                   <TabsTrigger
                     value="pekan"
-                    className="h-11 flex-1 rounded-full px-4 text-[12px] font-bold data-[state=active]:bg-module-accent data-[state=active]:text-module-accent-fg"
+                    className="h-11 flex-1 rounded-full px-4 text-note font-semibold text-content-inverse/75 data-[state=active]:bg-module-accent-strong data-[state=active]:text-module-accent-fg"
                   >
                     Pekan
                   </TabsTrigger>
                   <TabsTrigger
                     value="bulan"
-                    className="h-11 flex-1 rounded-full px-4 text-[12px] font-bold data-[state=active]:bg-module-accent data-[state=active]:text-module-accent-fg"
+                    className="h-11 flex-1 rounded-full px-4 text-note font-semibold text-content-inverse/75 data-[state=active]:bg-module-accent-strong data-[state=active]:text-module-accent-fg"
                   >
                     Bulan
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
               <p className="mt-4 flex items-baseline gap-1.5">
-                <span className="text-[40px] font-semibold leading-none tracking-tight text-content-inverse">
+                <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
                   <Counter to={chartTotal} />
                 </span>
                 <span className="text-sm font-medium text-content-inverse/70">
                   misi{period === 'pekan' ? ' / pekan' : ' / bulan'}
                 </span>
               </p>
-              <p className="mt-1.5 text-[11px] font-medium text-content-inverse/70">
+              <p className="mt-1.5 text-eyebrow font-medium text-content-inverse/70">
                 {period === 'pekan'
                   ? 'Tujuh hari terakhir'
                   : 'Empat pekan terakhir — P4 pekan berjalan'}
               </p>
-              <p className="mt-auto border-t border-content-inverse/10 pt-3 text-[11px] font-medium leading-relaxed text-content-inverse/70">
+              <p className="mt-auto border-t border-content-inverse/10 pt-3 text-eyebrow font-medium leading-relaxed text-content-inverse/70">
                 {chartSummary}
               </p>
             </m.section>
@@ -819,10 +823,10 @@ export default function StatsScreen() {
               aria-label="Grafik misi selesai"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                   Misi Selesai
                 </p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-content-inverse/50">
+                <p className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-inverse/50">
                   {period === 'pekan' ? 'per hari' : 'per pekan'}
                 </p>
               </div>
@@ -861,7 +865,7 @@ export default function StatsScreen() {
                         }}
                       />
                       <span
-                        className={`text-[10px] font-bold ${
+                        className={`text-chart-label font-semibold ${
                           isPeak ? 'text-pistachio' : 'text-content-inverse/70'
                         }`}
                       >
@@ -879,9 +883,12 @@ export default function StatsScreen() {
         <RutinaBentoGrid>
           <RutinaBentoItem span="medium">
             {/* Ringkasan pekan */}
-            <section aria-label="Ringkasan pekan">
+            <section aria-label="Ringkasan pekan" className="@container">
               <SectionTitle title="Ringkasan Pekan" />
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {/* Grid berbasis CONTAINER (bukan viewport): di dalam bento
+                  medium (±321px di desktop) kartu tak lagi diremjak 3 kolom
+                  99px — 2 kolom di ruang sempit, 3 kolom begitu lega. */}
+              <div className="grid grid-cols-2 gap-3 @[26rem]:grid-cols-3">
                 {/* Suasana hati */}
                 <m.div
                   initial={{ opacity: 0, y: 16 }}
@@ -890,7 +897,7 @@ export default function StatsScreen() {
                   transition={motionTokens.preset.data}
                   className="rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                     Suasana Hati
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -909,17 +916,17 @@ export default function StatsScreen() {
                           className={
                             'flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                             (selected
-                              ? 'animate-pop border-module-accent bg-module-accent text-module-accent-fg'
+                              ? 'animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
                               : 'border-content-inverse/15 bg-surface-inverse text-content-inverse/75 hover:bg-surface-inverse/80')
                           }
                         >
                           <MoodIcon className="h-4 w-4" />
-                          <span className="text-[11px] font-bold">{m}</span>
+                          <span className="text-eyebrow font-semibold">{m}</span>
                         </button>
                       )
                     })}
                   </div>
-                  <p className="mt-3 text-[11px] font-medium text-content-inverse/70">
+                  <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
                     {mood
                       ? `Kamu merasa ${mood.toLowerCase()} hari ini`
                       : 'Bagaimana perasaanmu?'}
@@ -934,20 +941,20 @@ export default function StatsScreen() {
                   transition={{ ...motionTokens.preset.data, delay: 0.06 }}
                   className="flex flex-col rounded-[16px] border border-border bg-cocoa p-4 shadow-soft"
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                     Streak Terpanjang
                   </p>
                   <div className="mt-2 flex items-start justify-between gap-2">
                     <div>
                       <p className="flex items-baseline gap-1">
-                        <span className="text-[44px] font-semibold leading-none tracking-tight text-pistachio">
+                        <span className="text-kpi-hero font-semibold leading-none tracking-tight text-pistachio">
                           <Counter to={best.streak} />
                         </span>
                         <span className="text-sm font-medium text-content-inverse/70">
                           hari
                         </span>
                       </p>
-                      <p className="mt-1.5 text-[11px] font-medium text-content-inverse/70">
+                      <p className="mt-1.5 text-eyebrow font-medium text-content-inverse/70">
                         {best.habit
                           ? best.habit.title
                           : 'Belum ada kebiasaan berjalan'}
@@ -962,7 +969,7 @@ export default function StatsScreen() {
                       <Flame className="h-5 w-5 text-pistachio" />
                     </m.span>
                   </div>
-                  <p className="mt-auto pt-3 text-[11px] font-medium text-content-inverse/70">
+                  <p className="mt-auto pt-3 text-eyebrow font-medium text-content-inverse/70">
                     Rekor pribadi: {best.record} hari
                   </p>
                 </m.div>
@@ -1010,16 +1017,16 @@ export default function StatsScreen() {
                       <span className="text-xl font-semibold text-content-inverse">
                         <Counter to={pct} />%
                       </span>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-content-inverse/70">
+                      <span className="text-eyebrow font-semibold uppercase tracking-wider text-content-inverse/70">
                         misi
                       </span>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                    <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                       Misi Selesai
                     </p>
-                    <p className="mt-1 text-[14px] font-medium text-content-inverse">
+                    <p className="mt-1 text-body font-medium text-content-inverse">
                       {doneCount} dari {totalToday} misi hari ini
                     </p>
                     <p className="mt-2 text-xs font-medium text-content-inverse/70">
@@ -1033,10 +1040,9 @@ export default function StatsScreen() {
 
           <RutinaBentoItem span="medium">
             {/* ===== Dashboard Wawasan & Analitik ===== */}
-            <section aria-label="Wawasan dan analitik">
+            <section aria-label="Wawasan dan analitik" className="@container">
               <SectionTitle title="Wawasan & Analitik" hint="30 hari terakhir" />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {/* Donut distribusi kategori */}
+              <div className="grid grid-cols-1 gap-3 @[30rem]:grid-cols-2">
                 <m.div
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -1044,7 +1050,7 @@ export default function StatsScreen() {
                   transition={motionTokens.preset.data}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                     Distribusi Kategori
                   </p>
                   <div className="mt-3 flex items-center gap-4">
@@ -1068,10 +1074,10 @@ export default function StatsScreen() {
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[20px] font-semibold leading-none tabular-nums text-content-inverse">
+                        <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
                           {activeHabits.length}
                         </span>
-                        <span className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-content-inverse/70">
+                        <span className="mt-0.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
                           aktif
                         </span>
                       </div>
@@ -1080,7 +1086,7 @@ export default function StatsScreen() {
                       {catData.map((c) => (
                         <li
                           key={c.name}
-                          className="flex items-center gap-2.5 text-[12px]"
+                          className="flex items-center gap-2.5 text-meta"
                         >
                           <span
                             aria-hidden="true"
@@ -1090,7 +1096,7 @@ export default function StatsScreen() {
                           <span className="flex-1 truncate font-medium text-content-inverse/80">
                             {c.name}
                           </span>
-                          <span className="shrink-0 font-bold tabular-nums text-content-inverse">
+                          <span className="shrink-0 font-semibold tabular-nums text-content-inverse">
                             {c.value}
                           </span>
                         </li>
@@ -1109,11 +1115,11 @@ export default function StatsScreen() {
                 >
                   <div className="flex items-end justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                      <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                         Tren Penyelesaian
                       </p>
                       <p className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-[40px] font-semibold leading-none tracking-tight text-content-inverse">
+                        <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-inverse">
                           <Counter to={trendAvg} decimals={1} />
                         </span>
                         <span className="text-sm font-medium text-content-inverse/70">
@@ -1121,7 +1127,7 @@ export default function StatsScreen() {
                         </span>
                       </p>
                     </div>
-                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent px-2.5 py-1 text-[11px] font-bold text-module-accent-fg">
+                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent-strong px-2.5 py-1 text-eyebrow font-semibold text-module-accent-fg">
                       <TrendIcon className="h-3.5 w-3.5" />
                       {trendBadge}
                     </span>
@@ -1191,7 +1197,7 @@ export default function StatsScreen() {
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
-                  <p className="mt-2 text-[11px] font-medium text-content-inverse/70">
+                  <p className="mt-2 text-eyebrow font-medium text-content-inverse/70">
                     Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
                   </p>
                 </m.div>
@@ -1234,9 +1240,9 @@ export default function StatsScreen() {
                   onNext={goNextMonth}
                   onSelect={(iso) => setSelectedDay(iso)}
                 />
-                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3.5 text-[11px] font-medium text-content-muted">
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3.5 text-eyebrow font-medium text-content-muted">
                   <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-matcha" />
+                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-chart-stroke-1" />
                     Kebiasaan selesai
                   </span>
                   <span className="flex items-center gap-1.5">
@@ -1289,14 +1295,14 @@ export default function StatsScreen() {
                   <div className="space-y-5">
                     {/* Konsistensi kebiasaan — angka besar matcha + batang tipis. */}
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                      <p className="text-body font-semibold tracking-tight text-content-secondary">
                         Konsistensi kebiasaan
                       </p>
                       <p className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-[40px] font-semibold leading-none tabular-nums text-success">
+                        <span className="text-kpi-hero font-semibold leading-none tabular-nums text-success">
                           {monthReport.pct}%
                         </span>
-                        <span className="text-[12px] font-medium text-content-muted">
+                        <span className="text-meta font-medium text-content-muted">
                           {monthReport.done} dari {monthReport.sched} terjadwal selesai
                         </span>
                       </p>
@@ -1314,11 +1320,11 @@ export default function StatsScreen() {
                     <div className="grid gap-5 border-t border-border pt-5 sm:grid-cols-2">
                       {/* Tiga kategori pengeluaran teratas. */}
                       <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                        <p className="text-body font-semibold tracking-tight text-content-secondary">
                           Pengeluaran teratas
                         </p>
                         {monthReport.topCats.length === 0 ? (
-                          <p className="mt-2 text-[12px] font-medium text-content-muted">
+                          <p className="mt-2 text-meta font-medium text-content-muted">
                             Tidak ada pengeluaran bulan ini.
                           </p>
                         ) : (
@@ -1328,14 +1334,14 @@ export default function StatsScreen() {
                               return (
                                 <li key={c.cat}>
                                   <div className="flex items-baseline justify-between gap-2">
-                                    <span className="flex min-w-0 items-center gap-1.5 truncate text-[13px] font-semibold text-content-primary">
+                                    <span className="flex min-w-0 items-center gap-1.5 truncate text-note font-semibold text-content-primary">
                                       <Icon
                                         aria-hidden="true"
                                         className="h-3.5 w-3.5 shrink-0 text-content-secondary"
                                       />
                                       {CAT_META[c.cat].label}
                                     </span>
-                                    <span className="shrink-0 text-[12px] font-bold tabular-nums text-content-primary">
+                                    <span className="shrink-0 text-meta font-semibold tabular-nums text-content-primary">
                                       {formatIDR(c.amount)}
                                     </span>
                                   </div>
@@ -1348,7 +1354,7 @@ export default function StatsScreen() {
                                       className="h-full rounded-full bg-clay"
                                     />
                                   </div>
-                                  <p className="mt-1 text-[11px] font-medium tabular-nums text-content-muted">
+                                  <p className="mt-1 text-eyebrow font-medium tabular-nums text-content-muted">
                                     {c.share}% dari total pengeluaran
                                   </p>
                                 </li>
@@ -1360,11 +1366,11 @@ export default function StatsScreen() {
 
                       {/* Penggunaan anggaran bulan berjalan. */}
                       <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                        <p className="text-body font-semibold tracking-tight text-content-secondary">
                           Penggunaan anggaran
                         </p>
                         {monthReport.budgetUse.length === 0 ? (
-                          <p className="mt-2 text-[12px] font-medium text-content-muted">
+                          <p className="mt-2 text-meta font-medium text-content-muted">
                             Tidak ada pemakaian anggaran bulan ini.
                           </p>
                         ) : (
@@ -1377,7 +1383,7 @@ export default function StatsScreen() {
                                   : 0
                               return (
                                 <li key={b.cat}>
-                                  <p className="text-[13px] font-semibold text-content-primary">
+                                  <p className="text-note font-semibold text-content-primary">
                                     {CAT_META[b.cat].label} — {formatIDR(b.used)}{' '}
                                     <span className="font-medium text-content-muted">
                                       dari {formatIDR(b.limit)}
@@ -1393,9 +1399,9 @@ export default function StatsScreen() {
                                     />
                                   </div>
                                   <p
-                                    className={`mt-1 text-[11px] ${
+                                    className={`mt-1 text-eyebrow ${
                                       over
-                                        ? 'font-bold text-content-danger'
+                                        ? 'font-semibold text-content-danger'
                                         : 'text-content-muted'
                                     }`}
                                   >
@@ -1413,24 +1419,24 @@ export default function StatsScreen() {
 
                     {/* Refleksi identitas + runtun terbaik. */}
                     <div className="rounded-2xl bg-surface-sunken p-4">
-                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                      <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
                         <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Refleksi identitas
                       </p>
                       {identityText ? (
-                        <p className="mt-2 text-[13px] italic leading-relaxed text-content-secondary">
+                        <p className="mt-2 text-note italic leading-relaxed text-content-secondary">
                           Suara identitasmu: &ldquo;{identityText}&rdquo;
                         </p>
                       ) : (
-                        <p className="mt-2 text-[13px] leading-relaxed text-content-muted">
+                        <p className="mt-2 text-note leading-relaxed text-content-muted">
                           Belum ada suara identitas — atur di Profil.
                         </p>
                       )}
                       <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-                        <p className="min-w-0 break-words text-[12px] font-semibold leading-snug text-content-secondary">
+                        <p className="min-w-0 break-words text-meta font-semibold leading-snug text-content-secondary">
                           Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
                         </p>
-                        <p className="flex shrink-0 items-center gap-1 text-[13px] font-bold tabular-nums text-success">
+                        <p className="flex shrink-0 items-center gap-1 text-note font-semibold tabular-nums text-success">
                           <Flame aria-hidden="true" className="h-3.5 w-3.5" />
                           {best.streak} hari
                         </p>
@@ -1481,19 +1487,19 @@ export default function StatsScreen() {
                         className="flex items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="break-words text-[13px] font-bold leading-snug text-content-primary">
+                          <p className="break-words text-note font-semibold leading-snug text-content-primary">
                             {row.label}
                           </p>
-                          <p className="mt-0.5 break-words text-[11px] font-medium leading-snug tabular-nums text-content-muted">
+                          <p className="mt-0.5 break-words text-eyebrow font-medium leading-snug tabular-nums text-content-muted">
                             pekan lalu: {row.prev}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="text-[14px] font-bold leading-tight tabular-nums text-content-primary">
+                          <p className="text-body font-bold leading-tight tabular-nums text-content-primary">
                             {row.cur}
                           </p>
                           <p
-                            className={`mt-0.5 flex items-center justify-end gap-1 text-[11px] font-bold tabular-nums ${tone}`}
+                            className={`mt-0.5 flex items-center justify-end gap-1 text-eyebrow font-semibold tabular-nums ${tone}`}
                           >
                             <DeltaIcon aria-hidden="true" className="h-3 w-3" strokeWidth={2.4} />
                             {row.delta === 0
@@ -1505,7 +1511,7 @@ export default function StatsScreen() {
                     )
                   })}
                 </ul>
-                <p className="mt-3 text-[11px] leading-relaxed text-content-muted">
+                <p className="mt-3 text-eyebrow leading-relaxed text-content-muted">
                   Pengeluaran dihitung tanpa transfer; nilai lebih kecil dinilai lebih baik.
                   Jumlah catatan bersifat perkiraan (pencocokan label tanggal).
                 </p>
@@ -1515,9 +1521,9 @@ export default function StatsScreen() {
 
           <RutinaBentoItem span="medium">
             {/* ===== Bugar & Tubuh — statistik lintas modul ===== */}
-            <section aria-label="Statistik bugar dan tubuh">
+            <section aria-label="Statistik bugar dan tubuh" className="@container">
               <SectionTitle title="Bugar & Tubuh" hint="data modul Bugar" />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 @[28rem]:grid-cols-3">
                 {/* Latihan */}
                 <m.div
                   initial={{ opacity: 0, y: 16 }}
@@ -1526,42 +1532,42 @@ export default function StatsScreen() {
                   transition={motionTokens.preset.data}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-inverse/80">
                     <Dumbbell className="h-3.5 w-3.5 text-pistachio" />
                     Latihan · 30 hari
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[24px] font-semibold leading-none tabular-nums text-content-inverse">
+                      <p className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
                         {fitSessions}
                       </p>
-                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-content-inverse/70">
+                      <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-content-inverse/70">
                         sesi
                       </p>
                     </div>
                     <div>
-                      <p className="text-[24px] font-semibold leading-none tabular-nums text-content-inverse">
+                      <p className="text-kpi-sm font-semibold leading-none tabular-nums text-content-inverse">
                         {fitTonase >= 1000
                           ? `${(fitTonase / 1000).toFixed(1).replace('.', ',')}t`
                           : Math.round(fitTonase).toLocaleString('id-ID')}
                       </p>
-                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-content-inverse/70">
+                      <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-content-inverse/70">
                         kg tonase
                       </p>
                     </div>
                   </div>
                   <div className="mt-3 space-y-1.5 border-t border-content-inverse/10 pt-3">
                     {topPr ? (
-                      <p className="text-[12px] font-medium text-content-inverse/80">
-                        PR e1RM: <span className="font-bold">{topPr.name}</span>{' '}
+                      <p className="text-meta font-medium text-content-inverse/80">
+                        PR e1RM: <span className="font-semibold">{topPr.name}</span>{' '}
                         ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
                       </p>
                     ) : (
-                      <p className="text-[12px] font-medium text-content-inverse/70">
+                      <p className="text-meta font-medium text-content-inverse/70">
                         Belum ada PR — catat sesi beban pertamamu.
                       </p>
                     )}
-                    <p className="text-[12px] font-medium tabular-nums text-content-inverse/80">
+                    <p className="text-meta font-medium tabular-nums text-content-inverse/80">
                       Kardio: {cardio.km.toFixed(1).replace('.', ',')} km
                       {cardio.sessions > 0 &&
                         ` dari ${cardio.sessions} sesi jalan/lari`}
@@ -1577,26 +1583,26 @@ export default function StatsScreen() {
                   transition={{ ...motionTokens.preset.data, delay: 0.06 }}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-inverse/80">
                     <UtensilsCrossed className="h-3.5 w-3.5 text-gold" />
                     Asupan · 7 hari
                   </p>
                   {avgKcal > 0 ? (
                     <>
                       <p className="mt-3 flex items-baseline gap-1">
-                        <span className="text-[32px] font-semibold leading-none tabular-nums text-content-inverse">
+                        <span className="text-kpi-lg font-semibold leading-none tabular-nums text-content-inverse">
                           {avgKcal.toLocaleString('id-ID')}
                         </span>
-                        <span className="text-[12px] font-semibold text-content-inverse/70">
+                        <span className="text-meta font-semibold text-content-inverse/70">
                           kkal/hari
                         </span>
                       </p>
-                      <p className="mt-1.5 text-[11px] font-medium text-content-inverse/70">
+                      <p className="mt-1.5 text-eyebrow font-medium text-content-inverse/70">
                         rata-rata dari {last7Kcal.length} hari tercatat
                       </p>
                     </>
                   ) : (
-                    <p className="mt-3 text-[12px] font-medium leading-relaxed text-content-inverse/70">
+                    <p className="mt-3 text-meta font-medium leading-relaxed text-content-inverse/70">
                       Belum ada jurnal makan — isi di tab Bugar › Asupan untuk
                       melihat neraca kalori.
                     </p>
@@ -1611,48 +1617,48 @@ export default function StatsScreen() {
                   transition={{ ...motionTokens.preset.data, delay: 0.12 }}
                   className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
                 >
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-inverse/80">
                     <Activity className="h-3.5 w-3.5 text-gold" />
                     Tubuh · 7 hari
                   </p>
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center justify-between text-meta">
                       <span className="font-medium text-content-inverse/75">
                         Tidur rata-rata
                       </span>
-                      <span className="font-bold tabular-nums text-content-inverse">
+                      <span className="font-semibold tabular-nums text-content-inverse">
                         {avgSleep != null
                           ? `${avgSleep.toFixed(1).replace('.', ',')} jam`
                           : '–'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center justify-between text-meta">
                       <span className="font-medium text-content-inverse/75">
                         Energi rata-rata
                       </span>
-                      <span className="font-bold tabular-nums text-content-inverse">
+                      <span className="font-semibold tabular-nums text-content-inverse">
                         {avgEnergy != null
                           ? `${avgEnergy.toFixed(1).replace('.', ',')}/5`
                           : '–'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center justify-between text-meta">
                       <span className="font-medium text-content-inverse/75">
                         Hidrasi rata-rata
                       </span>
-                      <span className="font-bold tabular-nums text-content-inverse">
+                      <span className="font-semibold tabular-nums text-content-inverse">
                         {avgWater != null
                           ? `${avgWater.toFixed(1).replace('.', ',')}/8 gelas`
                           : '–'}
                       </span>
                     </div>
                     {weightDelta != null && (
-                      <div className="flex items-center justify-between text-[12px]">
+                      <div className="flex items-center justify-between text-meta">
                         <span className="font-medium text-content-inverse/75">
                           Berat badan
                         </span>
                         <span
-                          className={`flex items-center gap-1 font-bold tabular-nums ${
+                          className={`flex items-center gap-1 font-semibold tabular-nums ${
                             weightDelta <= 0 ? 'text-pistachio' : 'text-gold'
                           }`}
                         >
@@ -1666,7 +1672,7 @@ export default function StatsScreen() {
                       </div>
                     )}
                     {avgSleep == null && avgEnergy == null && (
-                      <p className="text-[12px] font-medium leading-relaxed text-content-inverse/70">
+                      <p className="text-meta font-medium leading-relaxed text-content-inverse/70">
                         Isi check-in harian di Bugar › Tubuh untuk memantau
                         pemulihan.
                       </p>
@@ -1724,7 +1730,7 @@ export default function StatsScreen() {
                         </span>
                         <span className="min-w-0">
                           <span
-                            className={`block text-[12px] font-bold leading-tight line-clamp-2 ${
+                            className={`block text-meta font-semibold leading-tight line-clamp-2 ${
                               b.unlocked
                                 ? 'text-content-inverse'
                                 : 'text-content-inverse/70'
@@ -1732,7 +1738,7 @@ export default function StatsScreen() {
                           >
                             {b.name}
                           </span>
-                          <span className="mt-0.5 block text-[11px] font-medium leading-snug text-content-inverse/70">
+                          <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-inverse/70">
                             {b.desc}
                           </span>
                         </span>
@@ -1740,9 +1746,9 @@ export default function StatsScreen() {
                     </TooltipTrigger>
                     <TooltipContent
                       side="top"
-                      className="rounded-xl border-border bg-surface-primary px-3 py-2 text-[11px] font-medium text-content-primary"
+                      className="rounded-xl border-border bg-surface-primary px-3 py-2 text-eyebrow font-medium text-content-primary"
                     >
-                      <p className="font-bold">{b.name}</p>
+                      <p className="font-semibold">{b.name}</p>
                       <p className="mt-0.5 text-content-muted">{b.desc}</p>
                     </TooltipContent>
                   </Tooltip>
@@ -1769,11 +1775,11 @@ export default function StatsScreen() {
                   <Flame className="h-6 w-6 text-pistachio" />
                 </m.span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-content-inverse/70">
+                  <p className="text-body font-semibold tracking-tight text-content-inverse/80">
                     Streak Berjalan
                   </p>
                   <p className="mt-0.5 flex items-baseline gap-1.5">
-                    <span className="text-[26px] font-semibold leading-none tabular-nums text-content-inverse">
+                    <span className="text-kpi font-semibold leading-none tabular-nums text-content-inverse">
                       <Counter to={best.streak} />
                     </span>
                     <span className="text-xs font-medium text-content-inverse/70">
@@ -1782,7 +1788,7 @@ export default function StatsScreen() {
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+                  <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-inverse/70">
                     Rekor
                   </p>
                   <p className="flex items-center gap-1 text-sm font-bold text-pistachio">

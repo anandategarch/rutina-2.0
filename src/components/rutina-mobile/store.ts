@@ -102,12 +102,18 @@ export const HABIT_CATS: HabitCat[] = [
   'Belajar',
 ]
 
+/* Warna kategori kebiasaan — Color System v2: nilai kini menunjuk token CSS
+   (--habit-cat-*, dideklarasikan di globals.css dengan varian mode gelap)
+   sehingga Kebiasaan, Statistik, dan Quick Action berbagi SATU sumber warna
+   dan otomatis terang di mode gelap. Nilai heks lama dipertahankan sebagai
+   fallback token di globals.css. Dipakai via style/backgroundColor — var()
+   terurai normal di inline style. */
 export const HABIT_CAT_COLORS: Record<HabitCat, string> = {
-  Kebiasaan: '#A3C489',
-  Kerja: '#749B58',
-  Kesehatan: '#D98E6B',
-  Pribadi: '#8C7B6B',
-  Belajar: '#C7A17A',
+  Kebiasaan: 'var(--habit-cat-kebiasaan)',
+  Kerja: 'var(--habit-cat-kerja)',
+  Kesehatan: 'var(--habit-cat-kesehatan)',
+  Pribadi: 'var(--habit-cat-pribadi)',
+  Belajar: 'var(--habit-cat-belajar)',
 }
 
 /** Label hari singkat, indeks 0 = Minggu … 6 = Sabtu (urutan Date#getDay). */

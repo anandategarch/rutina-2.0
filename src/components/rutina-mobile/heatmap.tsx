@@ -102,10 +102,10 @@ export default function Heatmap() {
       transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
       className="rounded-[16px] border border-border bg-cocoa p-5 shadow-soft"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-inverse/70">
+      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-inverse/70">
         Konsistensi
       </p>
-      <p className="mt-1 text-[11px] font-medium text-content-inverse/70">
+      <p className="mt-1 text-eyebrow font-medium text-content-inverse/70">
         12 pekan terakhir
       </p>
 
@@ -140,14 +140,14 @@ export default function Heatmap() {
         )}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-content-inverse/70">
+      <p className="mt-3 text-eyebrow font-medium text-content-inverse/70">
         {sel && selEntry
           ? `Pekan ${WEEKS - sel.w}, ${cellText(selEntry)}`
           : 'Ketuk sel untuk melihat detail hari.'}
       </p>
 
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-content-inverse/70">
+        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-inverse/70">
           Sedikit
         </span>
         {LEVEL_COLORS.map((c) => (
@@ -157,7 +157,7 @@ export default function Heatmap() {
             style={{ backgroundColor: c }}
           />
         ))}
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-content-inverse/70">
+        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-inverse/70">
           Banyak
         </span>
       </div>

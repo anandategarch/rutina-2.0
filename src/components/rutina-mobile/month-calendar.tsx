@@ -98,8 +98,9 @@ export function MonthCalendar({
     if (doneCount > 0) {
       const sched = d?.scheduled ?? 0
       const ratio = sched > 0 ? doneCount / sched : 1
-      /* Rasio tinggi = matcha pekat; rasio rendah = pistachio muda. */
-      dots.push(dotVisual(ratio >= 0.7 ? 'bg-matcha' : 'bg-pistachio'))
+      /* Rasio tinggi = hijau stroke pekat (kontras AA di atas parchment);
+         rasio rendah = matcha identitas (≥3:1, masih terbaca sebagai titik). */
+      dots.push(dotVisual(ratio >= 0.7 ? 'bg-chart-stroke-1' : 'bg-matcha'))
     }
     if (d?.hasTx) dots.push(dotVisual('bg-module-finance'))
     if (d?.hasWorkout) dots.push(dotVisual('bg-cocoa'))
@@ -125,7 +126,7 @@ export function MonthCalendar({
         }
       >
         <span
-          className={`text-[13px] font-semibold leading-none tabular-nums ${
+          className={`text-note font-semibold leading-none tabular-nums ${
             isSel ? '' : muted ? 'text-content-muted/50' : 'text-content-primary'
           }`}
         >
@@ -157,7 +158,7 @@ export function MonthCalendar({
         >
           <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
         </button>
-        <p aria-live="polite" className="text-[13px] font-bold text-content-primary">
+        <p aria-live="polite" className="text-note font-semibold text-content-primary">
           {monthLabel(month)}
         </p>
         <button
@@ -179,7 +180,7 @@ export function MonthCalendar({
         {DAYS.map((d) => (
           <span
             key={d}
-            className="text-center text-[10px] font-bold uppercase tracking-[0.06em] text-content-muted"
+            className="text-center text-chart-label font-semibold uppercase tracking-[0.06em] text-content-muted"
           >
             {d}
           </span>

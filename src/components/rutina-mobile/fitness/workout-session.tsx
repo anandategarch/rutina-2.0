@@ -187,7 +187,7 @@ function Stepper({
     <div className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-3.5">
       <p
         aria-hidden="true"
-        className="text-[11px] font-bold uppercase tracking-[0.16em] text-hero-content-muted"
+        className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-content-muted"
       >
         {label}
       </p>
@@ -205,11 +205,11 @@ function Stepper({
           aria-live="polite"
           className="flex min-w-0 flex-1 items-baseline justify-center gap-1"
         >
-          <span className="text-[36px] font-bold leading-none tabular-nums text-hero-content">
+          <span className="text-kpi-lg font-bold leading-none tabular-nums text-hero-content">
             {value}
           </span>
           {suffix && (
-            <span className="text-[14px] font-semibold text-hero-content-muted">
+            <span className="text-body font-semibold text-hero-content-muted">
               {suffix}
             </span>
           )}
@@ -296,7 +296,7 @@ function RestCard({
       className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
+        <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-content-muted">
           <Timer className="h-3.5 w-3.5" aria-hidden="true" />
           Istirahat · Timer berjalan
         </p>
@@ -381,7 +381,7 @@ function RestCard({
               ensureAudio()
               onExtend(15)
             }}
-            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-hero-content/25 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-hero-content/25 text-note font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             15 dtk
@@ -389,7 +389,7 @@ function RestCard({
           <button
             type="button"
             onClick={onSkip}
-            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/15 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/25 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/15 text-note font-bold text-hero-content transition-colors hover:bg-hero-content/25 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <SkipForward className="h-4 w-4" aria-hidden="true" />
             Lewati
@@ -419,14 +419,14 @@ function AddExercisePanel({
       transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
       className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-hero-content-muted">
+      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
         Tambah Gerakan
       </p>
       <select
         aria-label="Pilih gerakan untuk ditambahkan"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="mt-2.5 h-11 w-full cursor-pointer rounded-xl border border-hero-content/15 bg-hero-surface-raised px-3 text-[14px] font-semibold text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+        className="mt-2.5 h-11 w-full cursor-pointer rounded-xl border border-hero-content/15 bg-hero-surface-raised px-3 text-body font-semibold text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
       >
         <option value="">Pilih gerakan…</option>
         {EX_OPTIONS.map((g) => (
@@ -440,7 +440,7 @@ function AddExercisePanel({
         ))}
       </select>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-[13px] font-medium text-hero-content-muted">
+        <p className="text-note font-medium text-hero-content-muted">
           Target set
         </p>
         <div className="flex h-11 items-center rounded-xl border border-hero-content/15">
@@ -452,7 +452,7 @@ function AddExercisePanel({
           >
             <Minus className="h-4 w-4" />
           </button>
-          <span className="w-10 text-center text-[16px] font-bold tabular-nums text-hero-content">
+          <span className="w-10 text-center text-section-lg font-bold tabular-nums text-hero-content">
             {targetSets}
           </span>
           <button
@@ -469,7 +469,7 @@ function AddExercisePanel({
         <button
           type="button"
           onClick={onCancel}
-          className="h-11 cursor-pointer rounded-full border border-hero-content/25 text-[13px] font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="h-11 cursor-pointer rounded-full border border-hero-content/25 text-note font-bold text-hero-content transition-colors hover:bg-hero-content/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Batal
         </button>
@@ -477,7 +477,7 @@ function AddExercisePanel({
           type="button"
           onClick={() => onAdd(name, targetSets)}
           disabled={!name}
-          className="h-11 cursor-pointer rounded-full bg-primary text-[13px] font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-11 cursor-pointer rounded-full bg-primary text-note font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Tambahkan
         </button>
@@ -711,10 +711,10 @@ function SessionView({
         {/* Header sesi */}
         <header className="flex shrink-0 items-center justify-between gap-3 px-5 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-hero-content">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content">
               Sesi Latihan
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-hero-content-muted">
+            <p className="mt-1 flex items-center gap-1.5 text-eyebrow font-medium text-hero-content-muted">
               <span
                 aria-hidden="true"
                 className="h-1.5 w-1.5 rounded-full bg-pistachio animate-pulse-soft"
@@ -725,7 +725,7 @@ function SessionView({
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            className={`flex h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            className={`flex h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-note font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               allDone
                 ? 'bg-gold text-espresso shadow-gold animate-pulse-soft'
                 : 'border border-hero-content/25 text-hero-content hover:bg-hero-content/10'
@@ -758,7 +758,7 @@ function SessionView({
                     )
                     goToExercise(i)
                   }}
-                  className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     active
                       ? 'bg-pistachio text-espresso'
                       : 'bg-hero-content/10 text-hero-content-muted hover:bg-hero-content/20'
@@ -766,7 +766,7 @@ function SessionView({
                 >
                   {done && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
                   <span className="max-w-[140px] truncate">{e.name}</span>
-                  <span className="text-[11px] font-semibold tabular-nums opacity-70">
+                  <span className="text-eyebrow font-semibold tabular-nums opacity-70">
                     {e.sets.length}/{e.targetSets}
                   </span>
                 </button>
@@ -775,7 +775,7 @@ function SessionView({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-hero-content/30 px-3.5 text-[12px] font-bold text-hero-content-muted transition-colors hover:bg-hero-content/10 hover:text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-hero-content/30 px-3.5 text-meta font-bold text-hero-content-muted transition-colors hover:bg-hero-content/10 hover:text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               Tambah
@@ -795,7 +795,7 @@ function SessionView({
                 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-hero-accent"
                 aria-hidden="true"
               />
-              <p className="text-[12px] leading-relaxed text-hero-content">
+              <p className="text-meta leading-relaxed text-hero-content">
                 Masa deload aktif — pertimbangkan{' '}
                 <span className="font-bold text-hero-accent">50% beban</span>{' '}
                 dari biasa. Tubuh sedang memulihkan diri.
@@ -822,7 +822,7 @@ function SessionView({
               }}
               className="select-none pb-2"
             >
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-hero-content-muted">
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
                 {KIND_LABEL[ex.kind]} · Set{' '}
                 <span className="text-hero-accent">
                   {Math.min(ex.sets.length + 1, ex.targetSets)}
@@ -830,12 +830,12 @@ function SessionView({
                 dari {ex.targetSets}
               </p>
               <h2
-                className={`${playfair.className} mt-1.5 text-balance text-[34px] font-semibold leading-[1.05] tracking-tight text-hero-content`}
+                className={`${playfair.className} mt-1.5 text-balance text-kpi-lg font-semibold leading-[1.05] tracking-tight text-hero-content`}
               >
                 {ex.name}
               </h2>
               {exMeta && (
-                <p className="mt-1 truncate text-[12px] font-medium text-hero-content-muted">
+                <p className="mt-1 truncate text-meta font-medium text-hero-content-muted">
                   {exMeta.muscle} · {exMeta.equipment} · {EX_LEVELS[exMeta.level]}
                 </p>
               )}
@@ -872,7 +872,7 @@ function SessionView({
                 />
               </div>
 
-              <p className="mt-3 text-[12px] font-medium tabular-nums text-hero-content-muted">
+              <p className="mt-3 text-meta font-medium tabular-nums text-hero-content-muted">
                 {prevLabel}
               </p>
 
@@ -881,7 +881,7 @@ function SessionView({
                   {ex.sets.map((s, i) => (
                     <span
                       key={i}
-                      className="rounded-full bg-hero-content/10 px-2.5 py-1 text-[11px] font-bold tabular-nums text-hero-content-muted"
+                      className="rounded-full bg-hero-content/10 px-2.5 py-1 text-eyebrow font-semibold tabular-nums text-hero-content-muted"
                     >
                       {fmtKg(s.weight)} × {s.reps}
                     </span>
@@ -915,17 +915,17 @@ function SessionView({
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
+                      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
                         Saran Coach
                       </p>
-                      <p className="mt-0.5 text-[13px] font-semibold leading-relaxed text-hero-content">
+                      <p className="mt-0.5 text-note font-semibold leading-relaxed text-hero-content">
                         {fmtKg(advice.nextWeight)} kg — {advice.reason}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => applyAdvice(advice.nextWeight)}
-                      className="h-8 shrink-0 cursor-pointer rounded-full bg-primary px-3.5 text-[12px] font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.95] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="h-8 shrink-0 cursor-pointer rounded-full bg-primary px-3.5 text-meta font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.95] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Terapkan
                     </button>
@@ -934,7 +934,7 @@ function SessionView({
               )}
 
               {session.exercises.length > 1 && (
-                <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-medium text-hero-content-muted">
+                <p className="mt-5 flex items-center justify-center gap-1.5 text-eyebrow font-medium text-hero-content-muted">
                   <ChevronLeft className="h-3 w-3" aria-hidden="true" />
                   Geser untuk pindah gerakan
                   <ChevronRight className="h-3 w-3" aria-hidden="true" />
@@ -952,17 +952,17 @@ function SessionView({
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-hero-content/10 text-hero-accent">
                 <Dumbbell className="h-6 w-6" aria-hidden="true" />
               </span>
-              <p className="text-[15px] font-bold text-hero-content">
+              <p className="text-section font-bold text-hero-content">
                 Sesi masih kosong
               </p>
-              <p className="max-w-[280px] text-[13px] leading-relaxed text-hero-content-muted">
+              <p className="max-w-[280px] text-note leading-relaxed text-hero-content-muted">
                 Tambahkan gerakan pertama untuk mulai mencatat set — atau akhiri
                 sesi bila berubah pikiran.
               </p>
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="mt-1 flex h-11 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 Tambah gerakan
@@ -991,7 +991,7 @@ function SessionView({
               type="button"
               onClick={handleComplete}
               whileTap={{ scale: 0.97 }}
-              className="h-14 w-full cursor-pointer rounded-full bg-primary text-[15px] font-bold tracking-[0.06em] text-primary-foreground shadow-leaf transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="h-14 w-full cursor-pointer rounded-full bg-primary text-section font-bold tracking-[0.06em] text-primary-foreground shadow-leaf transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               SET SELESAI
             </m.button>
@@ -1004,7 +1004,7 @@ function SessionView({
                 onClick={goPrev}
                 disabled={!prevEx}
                 aria-label="Gerakan sebelumnya"
-                className="flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/10 px-3 text-[12px] font-bold text-hero-content transition-colors hover:bg-hero-content/20 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/10 px-3 text-meta font-bold text-hero-content transition-colors hover:bg-hero-content/20 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{prevEx?.name}</span>
@@ -1014,7 +1014,7 @@ function SessionView({
                 onClick={goNext}
                 disabled={!nextEx}
                 aria-label="Gerakan berikutnya"
-                className="flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/10 px-3 text-[12px] font-bold text-hero-content transition-colors hover:bg-hero-content/20 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-11 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-hero-content/10 px-3 text-meta font-bold text-hero-content transition-colors hover:bg-hero-content/20 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <span className="truncate">{nextEx?.name}</span>
                 <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -1033,7 +1033,7 @@ function SessionView({
         <h3 className="text-lg font-semibold tracking-tight text-content-primary">
           Akhiri sesi latihan?
         </h3>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-content-muted">
+        <p className="mt-1.5 text-note leading-relaxed text-content-muted">
           {totalSets > 0
             ? `Progres yang sudah dicatat akan disimpan (${totalSets} set).`
             : 'Belum ada set yang tercatat pada sesi ini.'}
@@ -1043,7 +1043,7 @@ function SessionView({
             <button
               type="button"
               onClick={handleSaveEnd}
-              className="h-12 w-full cursor-pointer rounded-full bg-primary text-[14px] font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="h-12 w-full cursor-pointer rounded-full bg-primary text-body font-bold text-primary-foreground transition-colors hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Simpan &amp; akhiri
             </button>
@@ -1051,14 +1051,14 @@ function SessionView({
           <button
             type="button"
             onClick={() => setConfirmOpen(false)}
-            className="h-11 w-full cursor-pointer rounded-full border border-border bg-surface-primary text-[14px] font-bold text-content-primary transition-colors hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="h-11 w-full cursor-pointer rounded-full border border-border bg-surface-primary text-body font-semibold text-content-primary transition-colors hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Lanjutkan
           </button>
           <button
             type="button"
             onClick={handleDiscard}
-            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-[13px] font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-note font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
             Buang sesi
@@ -1176,10 +1176,10 @@ function SessionCelebration({
             >
               <Trophy className="h-9 w-9" strokeWidth={2.2} aria-hidden="true" />
             </span>
-            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.24em] text-hero-accent">
+            <p className="mt-4 text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-accent">
               Sesi Latihan Tersimpan
             </p>
-            <p className="mt-2 text-[30px] font-bold leading-none tabular-nums text-hero-content">
+            <p className="mt-2 text-kpi-lg font-bold leading-none tabular-nums text-hero-content">
               {summary.sets} set
             </p>
             <div className="mt-5 grid grid-cols-3 gap-2 border-t border-hero-content/12 pt-4">
@@ -1192,10 +1192,10 @@ function SessionCelebration({
                 { label: 'Gerakan', value: String(summary.exercises) },
               ].map((s) => (
                 <div key={s.label} data-celebrate-stat style={{ opacity: 0 }}>
-                  <p className="text-[15px] font-bold tabular-nums text-hero-content">
+                  <p className="text-section font-bold tabular-nums text-hero-content">
                     {s.value}
                   </p>
-                  <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-hero-content-muted">
+                  <p className="mt-0.5 text-eyebrow font-semibold uppercase tracking-wide text-hero-content-muted">
                     {s.label}
                   </p>
                 </div>
@@ -1370,7 +1370,7 @@ export function SessionPickerSheet({
                 <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                   Mulai Sesi Latihan
                 </h2>
-                <p className="mt-0.5 text-[13px] leading-relaxed text-content-muted">
+                <p className="mt-0.5 text-note leading-relaxed text-content-muted">
                   Mode imersif layar penuh — timer istirahat otomatis, geser
                   antar gerakan, set tercatat seketika.
                 </p>
@@ -1378,7 +1378,7 @@ export function SessionPickerSheet({
 
               {/* Cepat mulai — dari riwayat nyata */}
               <div className="mt-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
                   Cepat Mulai
                 </p>
                 {recent.length > 0 ? (
@@ -1391,7 +1391,7 @@ export function SessionPickerSheet({
                           type="button"
                           aria-pressed={on}
                           onClick={() => toggleRecent(r)}
-                          className={`flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          className={`flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-note font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                             on
                               ? 'bg-primary text-primary-foreground'
                               : 'border border-border bg-surface-sunken text-content-secondary hover:bg-secondary'
@@ -1400,7 +1400,7 @@ export function SessionPickerSheet({
                           {on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />}
                           <span className="max-w-[150px] truncate">{r.name}</span>
                           <span
-                            className={`text-[11px] font-semibold tabular-nums ${on ? 'opacity-80' : 'text-content-muted'}`}
+                            className={`text-eyebrow font-semibold tabular-nums ${on ? 'opacity-80' : 'text-content-muted'}`}
                           >
                             {fmtKg(r.weight)}×{r.reps}
                           </span>
@@ -1409,7 +1409,7 @@ export function SessionPickerSheet({
                     })}
                   </div>
                 ) : (
-                  <p className="mt-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[12px] leading-relaxed text-content-muted">
+                  <p className="mt-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta leading-relaxed text-content-muted">
                     Belum ada riwayat latihan — pilih gerakan di bawah untuk
                     menyusun sesi pertamamu.
                   </p>
@@ -1420,7 +1420,7 @@ export function SessionPickerSheet({
               <div className="mt-4">
                 <label
                   htmlFor="session-add-ex"
-                  className="text-[11px] font-bold uppercase tracking-[0.16em] text-content-secondary"
+                  className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary"
                 >
                   Tambah Gerakan
                 </label>
@@ -1431,7 +1431,7 @@ export function SessionPickerSheet({
                     addFromSelect(e.target.value)
                     setPick('')
                   }}
-                  className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-surface-sunken px-3 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-surface-sunken px-3 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   <option value="">Pilih gerakan…</option>
                   {EX_OPTIONS.map((g) => (
@@ -1448,7 +1448,7 @@ export function SessionPickerSheet({
 
               {/* Rencana sesi */}
               {plan.length === 0 ? (
-                <p className="mt-4 rounded-2xl border-2 border-dashed border-primary/30 px-4 py-5 text-center text-[12px] leading-relaxed text-content-muted">
+                <p className="mt-4 rounded-2xl border-2 border-dashed border-primary/30 px-4 py-5 text-center text-meta leading-relaxed text-content-muted">
                   Belum ada gerakan dipilih — atau mulai dengan{' '}
                   <span className="font-bold text-success">latihan kosong</span>{' '}
                   dan susun sambil berlatih.
@@ -1467,10 +1467,10 @@ export function SessionPickerSheet({
                       >
                         <div className="flex items-center gap-2.5">
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[14px] font-bold text-content-primary">
+                            <span className="block truncate text-body font-semibold text-content-primary">
                               {it.name}
                             </span>
-                            <span className="mt-0.5 block truncate text-[11px] font-medium text-content-muted">
+                            <span className="mt-0.5 block truncate text-eyebrow font-medium text-content-muted">
                               {meta ? `${meta.muscle} · ${meta.equipment}` : '—'}
                             </span>
                           </span>
@@ -1483,7 +1483,7 @@ export function SessionPickerSheet({
                             >
                               <Minus className="h-3.5 w-3.5" />
                             </button>
-                            <span className="w-7 text-center text-[14px] font-bold tabular-nums text-content-primary">
+                            <span className="w-7 text-center text-body font-bold tabular-nums text-content-primary">
                               {it.targetSets}
                             </span>
                             <button
@@ -1519,7 +1519,7 @@ export function SessionPickerSheet({
                   onClick={start}
                   disabled={plan.length === 0}
                   whileTap={{ scale: 0.98 }}
-                  className="h-12 w-full cursor-pointer rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-12 w-full cursor-pointer rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Play className="h-4.5 w-4.5" strokeWidth={2.5} aria-hidden="true" />
@@ -1530,14 +1530,14 @@ export function SessionPickerSheet({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="h-11 cursor-pointer rounded-full text-[13px] font-bold text-content-secondary transition-colors hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="h-11 cursor-pointer rounded-full text-note font-bold text-content-secondary transition-colors hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     Batal
                   </button>
                   <button
                     type="button"
                     onClick={startEmpty}
-                    className="h-11 cursor-pointer rounded-full border border-border bg-surface-primary text-[13px] font-bold text-content-primary transition-colors hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="h-11 cursor-pointer rounded-full border border-border bg-surface-primary text-note font-semibold text-content-primary transition-colors hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     Latihan kosong
                   </button>

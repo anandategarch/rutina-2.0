@@ -110,7 +110,7 @@ export function FinChart({
                   }}
                   style={{ backgroundColor: INCOME, width: BAR_W }}
                   className={`rounded-full transition-opacity duration-300 ${
-                    isOn ? 'opacity-100' : 'opacity-45 group-hover:opacity-80'
+                    isOn ? 'opacity-100' : 'opacity-60 group-hover:opacity-85'
                   }`}
                 />
                 <m.span
@@ -125,7 +125,7 @@ export function FinChart({
                   }}
                   style={{ backgroundColor: EXPENSE, width: BAR_W }}
                   className={`rounded-full transition-opacity duration-300 ${
-                    isOn ? 'opacity-100' : 'opacity-45 group-hover:opacity-80'
+                    isOn ? 'opacity-100' : 'opacity-60 group-hover:opacity-85'
                   }`}
                 />
               </div>
@@ -133,7 +133,7 @@ export function FinChart({
               {/* Label + garis bawah aktif — span berukuran konten (w-max)
                   agar teks 3 huruf tidak terjepit lebar kolom sempit. */}
               <span
-                className={`relative z-10 flex h-[24px] w-max items-center justify-center text-[11px] font-bold tracking-wide transition-colors duration-300 ${
+                className={`relative z-10 flex h-[24px] w-max items-center justify-center text-eyebrow font-semibold tracking-wide transition-colors duration-300 ${
                   isOn ? 'text-content-secondary' : 'text-content-muted'
                 }`}
               >

@@ -161,7 +161,7 @@ export function FoodSheet() {
               <h2 className="text-lg font-semibold tracking-tight text-content-primary">
                 Tambah Asupan
               </h2>
-              <p className="mt-0.5 text-[13px] text-content-muted">
+              <p className="mt-0.5 text-note text-content-muted">
                 Cari di 179 makanan &amp; minuman Indonesia.
               </p>
             </div>
@@ -205,18 +205,18 @@ export function FoodSheet() {
                         <Utensils className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-bold text-content-primary">
+                        <span className="block truncate text-body font-semibold text-content-primary">
                           {f.name}
                         </span>
-                        <span className="block truncate text-[11px] font-medium text-content-muted">
+                        <span className="block truncate text-eyebrow font-medium text-content-muted">
                           {f.cat} · {f.unit}
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className="block text-[14px] font-bold tabular-nums text-content-primary">
+                        <span className="block text-body font-bold tabular-nums text-content-primary">
                           {fmt(f.kcal)}
                         </span>
-                        <span className="block text-[10px] font-bold uppercase text-content-muted">
+                        <span className="block text-chart-label font-semibold uppercase text-content-muted">
                           kkal
                         </span>
                       </span>
@@ -224,10 +224,10 @@ export function FoodSheet() {
                   ))}
                   {results.length === 0 && (
                     <div className="rounded-2xl border-2 border-dashed border-border px-5 py-6 text-center">
-                      <p className="text-[13px] font-semibold text-content-muted">
+                      <p className="text-note font-semibold text-content-muted">
                         Tidak ada “{query.trim()}” di master
                       </p>
-                      <p className="mt-0.5 text-[12px] text-content-muted">
+                      <p className="mt-0.5 text-meta text-content-muted">
                         Coba nama lain — mis. “nasi”, “ayam”, “kopi”.
                       </p>
                     </div>
@@ -247,17 +247,17 @@ export function FoodSheet() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-[15px] font-bold text-content-primary">
+                      <p className="truncate text-section font-bold text-content-primary">
                         {picked.name}
                       </p>
-                      <p className="text-[12px] font-medium text-content-muted">
+                      <p className="text-meta font-medium text-content-muted">
                         {picked.cat} · {picked.unit}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setPicked(null)}
-                      className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[12px] font-bold text-content-muted transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-meta font-bold text-content-muted transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Ganti
                     </button>
@@ -265,7 +265,7 @@ export function FoodSheet() {
 
                   {/* Stepper porsi */}
                   <div className="mt-3.5">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-content-muted">
+                    <p className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
                       Porsi
                     </p>
                     <div className="mt-1.5 flex gap-2">
@@ -277,7 +277,7 @@ export function FoodSheet() {
                             type="button"
                             onClick={() => setPortion(p)}
                             aria-pressed={on}
-                            className={`h-10 flex-1 cursor-pointer rounded-xl text-[14px] font-bold tabular-nums transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            className={`h-10 flex-1 cursor-pointer rounded-xl text-body font-bold tabular-nums transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                               on
                                 ? 'bg-primary text-primary-foreground shadow-soft'
                                 : 'border border-border bg-surface-sunken text-content-secondary'
@@ -288,7 +288,7 @@ export function FoodSheet() {
                         )
                       })}
                     </div>
-                    <p className="mt-1.5 text-[12px] font-medium text-content-muted">
+                    <p className="mt-1.5 text-meta font-medium text-content-muted">
                       = {portion === 1 ? picked.unit : `${portionLabel(portion)} ${picked.unit}`}
                     </p>
                   </div>
@@ -296,46 +296,46 @@ export function FoodSheet() {
                   {/* Estimasi nutrisi untuk porsi terpilih */}
                   <div className="mt-3 grid grid-cols-4 gap-2 rounded-xl bg-surface-sunken p-3 text-center">
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-content-primary">
+                      <p className="text-section-lg font-bold leading-none tabular-nums text-content-primary">
                         {fmt(picked.kcal * portion)}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-content-muted">
+                      <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
                         kkal
                       </p>
                     </div>
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-success">
+                      <p className="text-section-lg font-bold leading-none tabular-nums text-success">
                         {picked.protein == null ? '–' : fmt(picked.protein * portion)}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-content-muted">
+                      <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
                         protein
                       </p>
                     </div>
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-warning">
+                      <p className="text-section-lg font-bold leading-none tabular-nums text-warning">
                         {picked.carb == null ? '–' : fmt(picked.carb * portion)}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-content-muted">
+                      <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
                         karbo
                       </p>
                     </div>
                     <div>
-                      <p className="text-[16px] font-bold leading-none tabular-nums text-content-danger">
+                      <p className="text-section-lg font-bold leading-none tabular-nums text-content-danger">
                         {picked.fat == null ? '–' : fmt(picked.fat * portion)}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-content-muted">
+                      <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
                         lemak
                       </p>
                     </div>
                   </div>
-                  <p className="mt-2 flex items-center gap-1.5 text-[11px] text-content-muted">
+                  <p className="mt-2 flex items-center gap-1.5 text-eyebrow text-content-muted">
                     <Minus className="h-3 w-3" />
                     Tanda “–” = data makro belum tersedia; kalori tetap valid.
                   </p>
 
                   {/* Waktu makan */}
                   <div className="mt-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-content-muted">
+                    <p className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
                       Waktu makan
                     </p>
                     <div className="mt-1.5 flex flex-wrap gap-2">
@@ -347,7 +347,7 @@ export function FoodSheet() {
                             type="button"
                             onClick={() => setMeal(s.key)}
                             aria-pressed={on}
-                            className={`h-9 cursor-pointer rounded-full px-3.5 text-[12px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            className={`h-9 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                               on
                                 ? 'bg-surface-inverse text-content-inverse shadow-soft'
                                 : 'border border-border bg-surface-sunken text-content-secondary'
@@ -369,7 +369,7 @@ export function FoodSheet() {
               onClick={submit}
               whileTap={{ scale: 0.98 }}
               disabled={!picked}
-              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-[15px] font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus className="mr-1.5 inline h-4.5 w-4.5" />
               Tambah ke Jurnal Makan

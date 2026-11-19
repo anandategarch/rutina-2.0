@@ -145,7 +145,7 @@ export function TransferSheet() {
                 <ArrowLeftRight className="h-4.5 w-4.5 text-warning" />
                 Transfer Antar-Dompet
               </h2>
-              <p className="mt-0.5 text-[13px] text-content-muted">
+              <p className="mt-0.5 text-note text-content-muted">
                 Uang berpindah — tidak dihitung sebagai pemasukan/pengeluaran.
               </p>
             </div>
@@ -153,14 +153,14 @@ export function TransferSheet() {
             {/* Pemilih dompet */}
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <div className="space-y-1.5">
-                <Label htmlFor="tr-from" className="text-[13px] font-semibold text-content-secondary">
+                <Label htmlFor="tr-from" className="text-note font-semibold text-content-secondary">
                   Dari
                 </Label>
                 <select
                   id="tr-from"
                   value={fromId}
                   onChange={(e) => setFromId(e.target.value)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   {wallets.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -169,20 +169,20 @@ export function TransferSheet() {
                   ))}
                 </select>
                 {from && (
-                  <p className="text-[11px] font-medium tabular-nums text-content-muted">
+                  <p className="text-eyebrow font-medium tabular-nums text-content-muted">
                     Saldo: {formatIDR(fromBal)}
                   </p>
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="tr-to" className="text-[13px] font-semibold text-content-secondary">
+                <Label htmlFor="tr-to" className="text-note font-semibold text-content-secondary">
                   Ke
                 </Label>
                 <select
                   id="tr-to"
                   value={toId}
                   onChange={(e) => setToId(e.target.value)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-body font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   {wallets.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -191,7 +191,7 @@ export function TransferSheet() {
                   ))}
                 </select>
                 {to && (
-                  <p className="text-[11px] font-medium text-content-muted">
+                  <p className="text-eyebrow font-medium text-content-muted">
                     Tujuan: {to.name}
                   </p>
                 )}
@@ -201,7 +201,7 @@ export function TransferSheet() {
             {/* Nominal */}
             <div className="mt-5 text-center">
               <span
-                className={`text-[34px] font-bold leading-none tabular-nums transition-colors ${
+                className={`text-kpi-lg font-bold leading-none tabular-nums transition-colors ${
                   amount ? 'text-warning' : 'text-warning/35'
                 }`}
               >
@@ -211,7 +211,7 @@ export function TransferSheet() {
 
             {/* Catatan */}
             <div className="mt-4">
-              <Label htmlFor="tr-note" className="text-[13px] font-semibold text-content-secondary">
+              <Label htmlFor="tr-note" className="text-note font-semibold text-content-secondary">
                 Catatan <span className="font-normal text-content-muted">(opsional)</span>
               </Label>
               <input
@@ -220,7 +220,7 @@ export function TransferSheet() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="mis. Tarik tunai ATM"
                 maxLength={40}
-                className="mt-1.5 h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-[14px] text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
+                className="mt-1.5 h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-body text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
               />
             </div>
 
@@ -244,7 +244,7 @@ export function TransferSheet() {
                     type="button"
                     onClick={() => press(k)}
                     whileTap={{ scale: 0.92 }}
-                    className={`h-11 cursor-pointer rounded-2xl text-[17px] font-bold tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    className={`h-11 cursor-pointer rounded-2xl text-lead font-bold tabular-nums transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       k === '000'
                         ? 'bg-secondary text-success hover:bg-secondary/80'
                         : 'bg-surface-sunken text-content-primary hover:bg-surface-secondary'
@@ -260,7 +260,7 @@ export function TransferSheet() {
               type="button"
               onClick={submit}
               whileTap={{ scale: 0.98 }}
-              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-surface-inverse text-[15px] font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="mt-5 h-12 w-full cursor-pointer rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-espresso-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Transfer Sekarang
             </m.button>

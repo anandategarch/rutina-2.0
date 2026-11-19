@@ -21,6 +21,13 @@
 /* ---------- Lapisan 1 · Primitive tokens (nilai brand) ---------- */
 :root {
   --palette-matcha: #749b58;
+  /* Color System v2 — hijau aksi khusus CTA/solid: matcha asli (3,20:1 vs
+     putih) tidak lolos WCAG AA sebagai latar teks kecil. Matcha-action
+     4,86:1 & action-deep 5,63:1 vs putih; action-deep juga aman sebagai
+     TEKS di atas mist/parchment (4,75:1 / 5,05:1). Matcha asli tetap
+     dipakai untuk ilustrasi, aksen, garis progres & dekorasi. */
+  --palette-matcha-action: #587b40;
+  --palette-matcha-action-deep: #4f713a;
   --palette-matcha-deep: #5e8347;
   --palette-matcha-ink: #658a4c;
   --palette-pistachio: #a3c489;
@@ -66,12 +73,13 @@
   --content-muted: var(--palette-cocoa-muted);
   --content-inverse: var(--palette-parchment);
 
-  /* Garis & aksi */
+  /* Garis & aksi — Color System v2: aksi utama memakai matcha-action
+     (kontras AA vs putih), bukan matcha identitas. */
   --border-default: rgb(74 59 50 / 14%);
   --border-strong: rgb(74 59 50 / 24%);
-  --action-primary: var(--palette-matcha);
+  --action-primary: var(--palette-matcha-action);
   --action-primary-fg: #ffffff;
-  --action-hover: var(--palette-matcha-deep);
+  --action-hover: var(--palette-matcha-action-deep);
 
   /* Hero — kartu fokus identitas tetap (espresso + emas + parchment).
      TIDAK ikut terbalik saat dark mode: aksen emas #D9B98C hanya lolos
@@ -124,9 +132,12 @@
   /* Aksen modul kontekstual — default matcha (identitas global). Layar
      menimpa lewat data-module (lihat blok [data-module] di bawah), maka
      utilitas bg-module-accent / text-module-accent-strong otomatis mengikuti
-     domain layar aktif tanpa pemetaan per komponen. */
+     domain layar aktif tanpa pemetaan per komponen.
+     Color System v2: strong default memakai matcha-action-deep agar teks
+     module-accent-strong lolos AA di atas soft/mist (4,75:1) DAN layak
+     menjadi latar solid dengan teks putih (5,63:1). */
   --module-accent: var(--palette-matcha);
-  --module-accent-strong: var(--palette-matcha-deep);
+  --module-accent-strong: var(--palette-matcha-action-deep);
   --module-accent-soft: var(--palette-mist);
   --module-accent-fg: #ffffff;
 
@@ -155,12 +166,32 @@
   --input: var(--border-strong);
   --ring: var(--palette-matcha);
 
-  /* Grafik — turunan palet earth-tone */
+  /* Grafik — turunan palet earth-tone.
+     Color System v2 memisahkan dua peran:
+     · chart-N      = warna ISI/area (lembut, untuk fill & dekorasi);
+     · chart-stroke = varian GELAP untuk garis, titik data & indikator
+       penting di permukaan terang (WCAG 1.4.11 ≥ 3:1; nilai di bawah
+       4,1–4,9:1 di atas parchment). Di mode gelap stroke mengikuti
+       chart-N (sudah terang di atas permukaan gelap). */
   --chart-1: var(--palette-matcha);
   --chart-2: var(--palette-clay);
   --chart-3: var(--palette-gold);
   --chart-4: var(--palette-pistachio);
   --chart-5: var(--palette-cocoa-muted);
+  --chart-stroke-1: var(--palette-matcha-action); /* 4,62:1 parchment */
+  --chart-stroke-2: var(--palette-terracotta); /* 4,37:1 — clay tua */
+  --chart-stroke-3: #8a6a3b; /* gold tua — 4,75:1 */
+  --chart-stroke-4: var(--palette-matcha-deep); /* 4,14:1 — pistachio tua */
+  --chart-stroke-5: var(--palette-cocoa); /* 9,6:1 */
+
+  /* Warna kategori kebiasaan — Color System v2: dipusatkan sebagai token
+     (sebelumnya hard-code di store.ts) agar Kebiasaan & Statistik konsisten
+     dan mode gelap mendapat varian terang otomatis. */
+  --habit-cat-kebiasaan: #a3c489;
+  --habit-cat-kerja: #749b58;
+  --habit-cat-kesehatan: #d98e6b;
+  --habit-cat-pribadi: #8c7b6b;
+  --habit-cat-belajar: #c7a17a;
 
   /* Sidebar (dipetakan ke permukaan earth-tone bila dipakai) */
   --sidebar: var(--surface-primary);
@@ -278,6 +309,20 @@
   --chart-3: var(--palette-gold);
   --chart-4: var(--palette-matcha);
   --chart-5: #a89b8d;
+  /* Stroke grafik mode gelap = warna chart terang (sudah kontras di atas
+     permukaan arang); tidak perlu varian lebih gelap. */
+  --chart-stroke-1: var(--chart-1);
+  --chart-stroke-2: var(--chart-2);
+  --chart-stroke-3: var(--chart-3);
+  --chart-stroke-4: var(--chart-4);
+  --chart-stroke-5: var(--chart-5);
+
+  /* Kategori kebiasaan — varian terang untuk kanvas gelap. */
+  --habit-cat-kebiasaan: #b9d4a3;
+  --habit-cat-kerja: #93b878;
+  --habit-cat-kesehatan: #e3a988;
+  --habit-cat-pribadi: #b3a396;
+  --habit-cat-belajar: #d9bb92;
 
   --sidebar: var(--surface-primary);
   --sidebar-foreground: var(--content-primary);
@@ -296,9 +341,12 @@
   /* Primitive — utilitas bg-matcha, text-espresso, dst. tetap hidup.
      Pemakaian primitive dibatasi elemen dekoratif/ilustrasi; komponen
      fungsional wajib memakai token semantic. */
+  /* Primitif aksi — utilitas bg-matcha-action, text-matcha-action-deep. */
   --color-matcha: var(--palette-matcha);
   --color-matcha-deep: var(--palette-matcha-deep);
   --color-matcha-ink: var(--palette-matcha-ink);
+  --color-matcha-action: var(--palette-matcha-action);
+  --color-matcha-action-deep: var(--palette-matcha-action-deep);
   --color-pistachio: var(--palette-pistachio);
   --color-mist: var(--palette-mist);
   --color-sand: var(--palette-sand);
@@ -396,6 +444,20 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  /* Stroke grafik — utilitas bg-chart-stroke-N / text-chart-stroke-N /
+     border-chart-stroke-N untuk garis, titik & indikator di permukaan
+     terang. */
+  --color-chart-stroke-1: var(--chart-stroke-1);
+  --color-chart-stroke-2: var(--chart-stroke-2);
+  --color-chart-stroke-3: var(--chart-stroke-3);
+  --color-chart-stroke-4: var(--chart-stroke-4);
+  --color-chart-stroke-5: var(--chart-stroke-5);
+  /* Kategori kebiasaan — utilitas bg-habit-cat-*, dst. */
+  --color-habit-cat-kebiasaan: var(--habit-cat-kebiasaan);
+  --color-habit-cat-kerja: var(--habit-cat-kerja);
+  --color-habit-cat-kesehatan: var(--habit-cat-kesehatan);
+  --color-habit-cat-pribadi: var(--habit-cat-pribadi);
+  --color-habit-cat-belajar: var(--habit-cat-belajar);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -438,6 +500,27 @@
   --text-section--line-height: 1.4;
   --text-section-lg: 16px;
   --text-section-lg--line-height: 1.35;
+
+  /* ===== Tipografi System v1.1 — token lead & angka besar =====
+     Peran ukuran untuk teks menonjol & KPI (angka penting memakai
+     tabular-nums, weight 600–700; bukan serif):
+       lead      18  judul kartu menonjol / teks pengantar besar
+       kpi-sm    22  KPI sekunder (20–24px band)
+       kpi       28  KPI utama
+       kpi-lg    32  KPI utama besar / angka hero ringkas
+       kpi-hero  40  nilai hero — angka paling dominan layar
+     Judul halaman operasional 32–36px & editorial 28–32px tetap memakai
+     utilitas fluid (text-fluid-page / text-fluid-editorial). */
+  --text-lead: 18px;
+  --text-lead--line-height: 1.3;
+  --text-kpi-sm: 22px;
+  --text-kpi-sm--line-height: 1.12;
+  --text-kpi: 28px;
+  --text-kpi--line-height: 1.06;
+  --text-kpi-lg: 32px;
+  --text-kpi-lg--line-height: 1.05;
+  --text-kpi-hero: 40px;
+  --text-kpi-hero--line-height: 1;
 
   /* Radius — skala tetap sesuai spesifikasi governance
      (sm 8 · md 12 · lg 16 · xl 20 · 2xl 24 · sheet 28) */
@@ -513,10 +596,11 @@
     --module-accent-fg: var(--module-profil-fg);
   }
   /* Beranda — matcha eksplisit (identik aksen default global; dideklarasikan
-     agar layar Beranda tetap mandiri bila default global suatu saat berubah). */
+     agar layar Beranda tetap mandiri bila default global suatu saat berubah).
+     Strong memakai matcha-action-deep (AA sebagai teks maupun latar solid). */
   [data-module='home'] {
     --module-accent: var(--palette-matcha);
-    --module-accent-strong: var(--palette-matcha-deep);
+    --module-accent-strong: var(--palette-matcha-action-deep);
     --module-accent-soft: var(--palette-mist);
     --module-accent-fg: #ffffff;
   }

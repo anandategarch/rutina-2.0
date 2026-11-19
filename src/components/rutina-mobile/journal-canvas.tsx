@@ -342,7 +342,7 @@ function CanvasPanel() {
           type="button"
           onClick={handleClose}
           whileTap={{ scale: 0.95 }}
-          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-5 text-[14px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-5 text-body font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Selesai
         </m.button>
@@ -373,7 +373,7 @@ function CanvasPanel() {
               delay: 0.05,
               ease: motionTokens.easing.entrance,
             }}
-            className={`w-full bg-transparent text-[26px] font-semibold tracking-tight text-content-primary outline-none placeholder:text-content-muted/60 sm:text-3xl ${playfair.className}`}
+            className={`w-full bg-transparent text-kpi font-semibold tracking-tight text-content-primary outline-none placeholder:text-content-muted/60 sm:text-3xl ${playfair.className}`}
           />
 
           {/* Metadata — suasana hati + kategori, redup sampai aktif */}
@@ -388,7 +388,7 @@ function CanvasPanel() {
             className="mt-4 space-y-2 border-b border-border/60 pb-4"
           >
             <div className="flex items-center gap-2">
-              <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-[0.16em] text-content-muted">
+              <span className="w-20 shrink-0 text-chart-label font-semibold uppercase tracking-[0.16em] text-content-muted">
                 Suasana
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -405,7 +405,7 @@ function CanvasPanel() {
                         scheduleSave()
                       }}
                       className={
-                        'flex h-9 cursor-pointer items-center gap-1 rounded-full px-3 text-[12px] font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        'flex h-9 cursor-pointer items-center gap-1 rounded-full px-3 text-meta font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (active
                           ? 'bg-secondary text-primary'
                           : 'text-content-muted hover:bg-surface-secondary hover:text-content-secondary')
@@ -419,7 +419,7 @@ function CanvasPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-[0.16em] text-content-muted">
+              <span className="w-20 shrink-0 text-chart-label font-semibold uppercase tracking-[0.16em] text-content-muted">
                 Kategori
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -435,7 +435,7 @@ function CanvasPanel() {
                         scheduleSave()
                       }}
                       className={
-                        'h-9 cursor-pointer rounded-full px-3 text-[12px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        'h-9 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (active
                           ? 'bg-surface-inverse text-content-inverse'
                           : 'border border-border text-content-muted hover:bg-surface-secondary hover:text-content-secondary')
@@ -466,7 +466,7 @@ function CanvasPanel() {
               delay: 0.16,
               ease: motionTokens.easing.entrance,
             }}
-            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-[16px] leading-[1.8] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
+            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-section-lg leading-[1.8] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
           />
         </div>
       </div>
@@ -502,7 +502,7 @@ function CanvasPanel() {
         </button>
         <span
           aria-live="off"
-          className="ml-auto pr-2 text-[11px] font-semibold uppercase tracking-[0.12em] tabular-nums text-content-muted"
+          className="ml-auto pr-2 text-eyebrow font-semibold uppercase tracking-[0.12em] tabular-nums text-content-muted"
         >
           {wordCount} kata
         </span>
@@ -518,7 +518,7 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
 
   if (status === 'saving') {
     return (
-      <span className="flex items-center gap-1 text-[12px] font-semibold text-content-muted">
+      <span className="flex items-center gap-1 text-meta font-semibold text-content-muted">
         Menyimpan
         <span className="flex items-center gap-0.5" aria-hidden="true">
           {[0, 1, 2].map((i) => (
@@ -548,7 +548,7 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
         duration: motionTokens.duration.fast,
         ease: motionTokens.easing.standard,
       }}
-      className="flex items-center gap-1.5 text-[12px] font-semibold text-success"
+      className="flex items-center gap-1.5 text-meta font-semibold text-success"
     >
       <Check className="h-3.5 w-3.5" strokeWidth={2.6} />
       Tersimpan
