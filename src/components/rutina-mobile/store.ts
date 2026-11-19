@@ -7,7 +7,11 @@ import { createJSONStorage, persist } from 'zustand/middleware'
    ketergantungan runtime melingkar. */
 import { CATS_UNIFIED_LABELS } from './finance/cats'
 
-/* ===== Tipe & data demo (deterministik, tanpa Math.random) ===== */
+/* ===== Tipe domain ===== */
+
+/* Catatan integritas data (v2.19): aplikasi TIDAK lagi membawa data
+   contoh/dummy — layar pertama selalu jujur: histori asli pengguna dari
+   cloud (impor Rutina 1.0) atau keadaan kosong bila benar-benar baru. */
 
 export type Screen =
   | 'beranda'
@@ -477,200 +481,6 @@ export function scheduleLabel(h: Habit): string {
   return sorted.map((d) => WEEKDAY_MIN[d]).join(', ')
 }
 
-/* --- Data demo kebiasaan --- */
-
-/** Panjang histori demo: 84 hari (12 pekan) agar heatmap konsistensi penuh. */
-export const HISTORY_DAYS = 84
-
-/**
- * Pola demo deterministik per kebiasaan (true = selesai), `back` = jumlah
- * hari mundur dari hari ini. Dirancang agar streak awal bersumber data
- * nyata: Meditasi 5 hari, Baca 12 hari, Kosakata 21 hari.
- */
-function seedDone(id: string, back: number): boolean {
-  switch (id) {
-    case 'h1':
-      return back <= 4 ? true : back % 6 !== 5
-    case 'h2':
-      return back === 0 ? false : back <= 3 ? true : back % 5 !== 4
-    case 'h3':
-      return back <= 11 ? true : back % 4 !== 3
-    case 'h4':
-      return back === 0 ? false : back % 2 === 1
-    case 'h5':
-      return back === 0 ? false : back <= 21 ? true : back % 3 !== 2
-    case 'h6':
-      return back === 0 ? false : back % 14 !== 13
-    default:
-      return false
-  }
-}
-
-function buildSeedCompletions(habits: Habit[]): Completions {
-  const c: Completions = {}
-  const today = todayISO()
-  for (let back = HISTORY_DAYS; back >= 0; back--) {
-    const iso = addDaysISO(today, -back)
-    const day: Record<string, boolean> = {}
-    for (const h of habits) {
-      /* Hormati jadwal: kebiasaan hari-kerja/akhir-pekan hanya terisi
-         pada hari terjadwalnya. */
-      const scheduled =
-        h.schedule.length === 0 ||
-        h.schedule.includes(fromISO(iso).getDay())
-      if (scheduled && seedDone(h.id, back)) day[h.id] = true
-    }
-    if (Object.keys(day).length > 0) c[iso] = day
-  }
-  return c
-}
-
-const SEED_START = addDaysISO(todayISO(), -HISTORY_DAYS)
-
-const SEED_HABITS: Habit[] = [
-  {
-    id: 'h1',
-    title: 'Meditasi 10 menit',
-    desc: 'Duduk dengan punggung tegak, tarik napas 4 hitungan, tahan 4, hembuskan 6. Tutup sesi dengan tiga tarikan napas dalam dan ucapkan satu niat untuk hari ini.',
-    cat: 'Kebiasaan',
-    schedule: [],
-    weeklyTarget: 7,
-    reminder: '06:00',
-    restDays: [],
-    afterId: null,
-    mini: 'Duduk tegak dan tarik tiga napas dalam',
-    archived: false,
-    createdAt: SEED_START,
-  },
-  {
-    id: 'h2',
-    title: 'Review laporan mingguan',
-    desc: 'Bandingkan angka pekan ini dengan target bulanan, tandai tiga temuan utama, lalu siapkan poin pembahasan untuk rapat Senin.',
-    cat: 'Kerja',
-    schedule: [1, 2, 3, 4, 5],
-    weeklyTarget: 5,
-    reminder: '09:00',
-    restDays: [],
-    afterId: null,
-    mini: 'Buka laporan dan baca satu baris angka',
-    archived: false,
-    createdAt: SEED_START,
-  },
-  {
-    id: 'h3',
-    title: 'Baca 20 halaman buku',
-    desc: 'Lanjutkan bab tentang disiplin atomik. Catat satu kutipan yang paling relevan dengan pekan ini di jurnal bacaan.',
-    cat: 'Belajar',
-    schedule: [],
-    weeklyTarget: 7,
-    reminder: '21:00',
-    restDays: [],
-    afterId: 'h1',
-    mini: 'Baca satu halaman',
-    archived: false,
-    createdAt: SEED_START,
-  },
-  {
-    id: 'h4',
-    title: 'Jalan pagi 30 menit',
-    desc: 'Putaran kompleks dua kali sambil mendengarkan podcast. Jaga tempo ringan — ini jalan santai, bukan lomba.',
-    cat: 'Kesehatan',
-    schedule: [],
-    weeklyTarget: 4,
-    reminder: null,
-    restDays: [],
-    afterId: null,
-    mini: 'Pakai sepatu dan berdiri di depan pintu',
-    archived: false,
-    createdAt: SEED_START,
-  },
-  {
-    id: 'h5',
-    title: 'Belajar kosakata baru',
-    desc: 'Lima kosakata baru lengkap dengan contoh kalimat, lalu ulangi kosakata kemarin lewat kartu acak sampai lancar.',
-    cat: 'Belajar',
-    schedule: [],
-    weeklyTarget: 7,
-    reminder: '19:30',
-    restDays: [],
-    afterId: 'h3',
-    mini: 'Baca arti satu kosakata baru',
-    archived: false,
-    createdAt: SEED_START,
-  },
-  {
-    id: 'h6',
-    title: 'Rapikan meja kerja',
-    desc: 'Kosongkan meja dari kertas berserakan, lap layar laptop, dan kembalikan setiap barang ke tempatnya masing-masing.',
-    cat: 'Pribadi',
-    schedule: [0, 6],
-    weeklyTarget: 2,
-    reminder: null,
-    restDays: [],
-    afterId: null,
-    mini: 'Rapikan satu barang di meja',
-    archived: false,
-    createdAt: SEED_START,
-  },
-]
-
-const SEED_NOTES: Note[] = [
-  {
-    id: 'n1',
-    title: 'Ritual Pagi yang Tenang',
-    body: 'Bangun jam 5.30 tanpa langsung membuka ponsel. Air putih, peregangan singkat, lalu menulis tiga hal yang disyukuri.',
-    date: '15 Jun',
-    pinned: true,
-    tone: 1,
-    folder: 'pribadi',
-  },
-  {
-    id: 'n2',
-    title: 'Ide Fitur Rutina 2.0',
-    body: 'Mode fokus dengan timer pomodoro, laporan mingguan yang bisa diekspor, dan widget streak di layar utama.',
-    date: '13 Jun',
-    pinned: false,
-    tone: 0,
-    folder: 'ide',
-  },
-  {
-    id: 'n3',
-    title: 'Refleksi: Pekan ke-3',
-    body: 'Konsistensi mulai terasa. Meditasi jadi lebih mudah dan otak tidak lagi menolak saat bangun pagi.',
-    date: '12 Jun',
-    pinned: false,
-    tone: 2,
-    folder: 'pribadi',
-  },
-  {
-    id: 'n4',
-    title: 'Bahan Bacaan Bulan Ini',
-    body: 'Atomic Habits (ulang bab 3), Deep Work, dan artikel tentang kebiasaan digital minimalis.',
-    date: '10 Jun',
-    pinned: false,
-    tone: 1,
-    folder: 'bacaan',
-  },
-  {
-    id: 'n5',
-    title: 'Yang Aku Syukuri Hari Ini',
-    body: 'Es kopi di warung pojok, obrolan singkat dengan Ibu, dan hujan sore yang tepat waktu.',
-    date: '9 Jun',
-    pinned: true,
-    tone: 0,
-    folder: 'pribadi',
-  },
-  {
-    id: 'n6',
-    title: 'Rencana Proyek Desain',
-    body: 'Kumpulkan referensi moodboard earth tone, sketsa tiga arah layout, lalu uji kontras warna.',
-    date: '7 Jun',
-    pinned: false,
-    tone: 2,
-    folder: 'kerja',
-  },
-]
-
 /* ===== Domain Keuangan ===== */
 
 /** Transfer antar-dompet: uang berpindah, BUKAN pemasukan/pengeluaran —
@@ -953,51 +763,6 @@ export function todayFinISO(): string {
   return todayISO()
 }
 
-const SEED_WALLETS: Wallet[] = [
-  { id: 'w-tunai', name: 'Tunai', initial: 350_000 },
-  { id: 'w-bank', name: 'Rekening Bank', initial: 2_000_000 },
-]
-
-const SEED_TXS: Tx[] = (() => {
-  /* Tanggal relatif terhadap HARI INI — data demo selalu segar: pekan
-     berjalan selalu terisi, filter periode tidak pernah kedaluwarsa. */
-  const t = todayISO()
-  const d = (back: number) => addDaysISO(t, -back)
-  const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(fromISO(t))
-  return [
-    // Pemasukan — gaji di awal bulan berjalan, sisanya relatif pekan ini
-    { id: 'f-in-1', type: 'masuk', cat: 'gaji', amount: 8_500_000, note: `Gaji bulan ${monthName}`, ts: t.slice(0, 8) + '01', walletId: 'w-bank' },
-    { id: 'f-in-2', type: 'masuk', cat: 'proyek', amount: 1_250_000, note: 'Desain logo klien', ts: d(6), walletId: 'w-bank' },
-    { id: 'f-in-3', type: 'masuk', cat: 'bonus', amount: 300_000, note: 'Referral proyek', ts: t, walletId: 'w-tunai' },
-    // Transfer antar-dompet — bukan arus kas
-    { id: 'f-tr-1', type: 'transfer', cat: 'transfer', amount: 500_000, note: 'Tarik tunai ATM', ts: d(5), walletId: 'w-bank', toWalletId: 'w-tunai' },
-    // Pengeluaran — pekan-pekan sebelumnya
-    { id: 'f-ex-1', type: 'keluar', cat: 'makan', amount: 45_000, note: 'Sarapan oatmeal & kopi', ts: d(18), walletId: 'w-tunai' },
-    { id: 'f-ex-2', type: 'keluar', cat: 'transport', amount: 25_000, note: 'Ojek ke kantor', ts: d(17), walletId: 'w-tunai' },
-    { id: 'f-ex-3', type: 'keluar', cat: 'hiburan', amount: 54_000, note: 'Langganan streaming', ts: d(16), walletId: 'w-bank', recurrence: 'bulanan' },
-    { id: 'f-ex-4', type: 'keluar', cat: 'tagihan', amount: 350_000, note: 'Token listrik', ts: d(15), walletId: 'w-bank' },
-    { id: 'f-ex-5', type: 'keluar', cat: 'belanja', amount: 425_000, note: 'Belanja mingguan', ts: d(14), walletId: 'w-bank' },
-    { id: 'f-ex-6', type: 'keluar', cat: 'makan', amount: 128_000, note: 'Makan malam keluarga', ts: d(12), walletId: 'w-tunai' },
-    { id: 'f-ex-7', type: 'keluar', cat: 'kesehatan', amount: 75_000, note: 'Vitamin & suplemen', ts: d(11), walletId: 'w-bank' },
-    { id: 'f-ex-8', type: 'keluar', cat: 'transport', amount: 60_000, note: 'Isi bensin', ts: d(10), walletId: 'w-tunai' },
-    { id: 'f-ex-9', type: 'keluar', cat: 'makan', amount: 32_000, note: 'Nasi goreng bangka', ts: d(9), walletId: 'w-tunai' },
-    { id: 'f-ex-10', type: 'keluar', cat: 'hiburan', amount: 120_000, note: 'Tiket bioskop', ts: d(8), walletId: 'w-tunai' },
-    { id: 'f-ex-11', type: 'keluar', cat: 'belanja', amount: 189_000, note: 'Buku & alat tulis', ts: d(7), walletId: 'w-bank' },
-    // Pengeluaran — pekan berjalan
-    { id: 'f-ex-12', type: 'keluar', cat: 'makan', amount: 52_000, note: 'Kopi & roti pagi', ts: d(4), walletId: 'w-tunai' },
-    { id: 'f-ex-13', type: 'keluar', cat: 'transport', amount: 18_000, note: 'KRL ke kantor', ts: d(3), walletId: 'w-tunai' },
-    { id: 'f-ex-14', type: 'keluar', cat: 'makan', amount: 65_000, note: 'Makan siang tim', ts: d(2), walletId: 'w-tunai' },
-    { id: 'f-ex-15', type: 'keluar', cat: 'hiburan', amount: 45_000, note: 'Arcade sore', ts: d(1), walletId: 'w-tunai' },
-    { id: 'f-ex-16', type: 'keluar', cat: 'makan', amount: 38_000, note: 'Es kopi sore', ts: t, walletId: 'w-tunai' },
-  ]
-})()
-
-const SEED_GOALS: Goal[] = [
-  { id: 'g-1', name: 'Dana Darurat', target: 20_000_000, saved: 13_500_000 },
-  { id: 'g-2', name: 'Laptop Baru', target: 15_000_000, saved: 6_750_000 },
-  { id: 'g-3', name: 'Liburan Akhir Tahun', target: 10_000_000, saved: 2_400_000 },
-]
-
 /* ===== Tema layar — "Ruang Warna" (v2.5) =====
    Tiap layar adalah kamar dengan karakter sendiri: kanvas bernuansa warna
    domain (sangat halus, ~3-5% tint di atas Warm Sand) + tiga cahaya ambien
@@ -1111,9 +876,6 @@ interface RutinaState {
   celebrating: boolean
   bonusClaimed: boolean
   dailyGoal: number
-  /** Mode data contoh — true selagi pengguna masih melihat seed demo;
-   *  sekali pengguna memilih (mulai bersih / pakai contoh), false selamanya. */
-  demoMode: boolean
   /* Keuangan */
   txs: Tx[]
   goals: Goal[]
@@ -1251,9 +1013,8 @@ interface RutinaState {
   setCelebrating: (v: boolean) => void
   claimBonus: () => void
   setDailyGoal: (n: number) => void
-  /* Aksi data contoh */
+  /* Aksi data — reset penuh (Zona Bahaya Profil) */
   startFresh: () => void
-  keepSample: () => void
 }
 
 export const useRutina = create<RutinaState>()(
@@ -1264,12 +1025,12 @@ export const useRutina = create<RutinaState>()(
   journalFilter: 'semua',
   composeOpen: false,
   composeFolder: 'pribadi',
-  habits: SEED_HABITS,
-  completions: buildSeedCompletions(SEED_HABITS),
+  habits: [],
+  completions: {},
   selectedDate: todayISO(),
   habitSheetMode: 'closed',
   habitSheetId: null,
-  notes: SEED_NOTES,
+  notes: [],
   quoteSaved: false,
   quoteSavedDate: null,
   quoteOffset: 0,
@@ -1283,12 +1044,11 @@ export const useRutina = create<RutinaState>()(
   celebrating: false,
   bonusClaimed: false,
   dailyGoal: 4,
-  demoMode: true,
 
   /* Keuangan */
-  txs: SEED_TXS,
-  goals: SEED_GOALS,
-  wallets: SEED_WALLETS,
+  txs: [],
+  goals: [],
+  wallets: [],
   budgets: { ...DEFAULT_BUDGETS },
   customCats: [],
   finPeriod: 'bulan',
@@ -1851,14 +1611,13 @@ export const useRutina = create<RutinaState>()(
 
   setDailyGoal: (dailyGoal) => set({ dailyGoal }),
 
-  /* --- Aksi data contoh --- */
+  /* --- Reset penuh (Zona Bahaya Profil) --- */
 
-  /** Mulai bersih: buang seluruh data contoh & histori yang melekat —
-   *  pengguna baru tanpa data, jujur dari nol. Preferensi (dailyGoal)
-   *  dipertahankan karena bukan data domain. */
+  /** Hapus seluruh data domain — kebiasaan, histori, catatan, transaksi,
+   *  dompet & tujuan tabungan. Preferensi (dailyGoal) dipertahankan
+   *  karena bukan data domain. */
   startFresh: () =>
     set({
-      demoMode: false,
       habits: [],
       completions: {},
       notes: [],
@@ -1869,10 +1628,6 @@ export const useRutina = create<RutinaState>()(
       quoteSaved: false,
       selectedDate: todayISO(),
     }),
-
-  /** Pertahankan data contoh sebagai titik awal milik pengguna —
-   *  banner tidak lagi tampil, angka dianggap milik pengguna sendiri. */
-  keepSample: () => set({ demoMode: false }),
     }),
     {
       /* Persistensi lokal — histori pengguna nyata & permanen di perangkat,
@@ -1907,7 +1662,6 @@ export const useRutina = create<RutinaState>()(
       /* Hanya state domain yang dipersist — state UI sesaat (tab aktif,
          sheet terbuka, item terkembangi) selalu mulai segar. */
       partialize: (s) => ({
-        demoMode: s.demoMode,
         habits: s.habits,
         completions: s.completions,
         notes: s.notes,

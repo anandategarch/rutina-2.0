@@ -1037,13 +1037,28 @@ export default function BugarScreen() {
               </p>
             </div>
           </div>
+          {/* Keadaan kosong yang memandu (v2.19): empat angka nol tanpa
+              konteks terasa “mati” — satu kalimat pengarah + pintasan di
+              bawahnya mengubah nol menjadi ajakan memulai. */}
+          {week.runKm === 0 &&
+            week.badmintonHours === 0 &&
+            week.strengthSessions === 0 &&
+            week.activeDays === 0 && (
+              <p className="mt-3.5 rounded-2xl bg-espresso/25 px-3.5 py-3 text-meta font-medium leading-relaxed text-module-accent-fg/90 backdrop-blur-sm">
+                Belum ada aktivitas pekan ini — catat lari, jalan, badminton,
+                atau barbel lewat pintasan di bawah. Cukup ingatan dan angka
+                dari jam tanganmu.
+              </p>
+            )}
           {/* Pintasan template aktivitas (v2.18) — jawaban langsung
-              "template lari/jalan mana?": lima pintasan membuka lembar
-              Catat Aktivitas tepat di mode yang dimaksud. */}
+              “template lari/jalan mana?”: lima pintasan membuka lembar
+              Catat Aktivitas tepat di mode yang dimaksuk. Kisi 3 kolom
+              (v2.19) menggantikan flex-wrap — lebar chip seragam dan
+              baris kedua rapi, bukan menggantung tak beraturan. */}
           <div
             role="group"
             aria-label="Catat aktivitas baru"
-            className="mt-4 flex flex-wrap gap-1.5"
+            className="mt-4 grid grid-cols-3 gap-1.5 @[30rem]:flex @[30rem]:flex-wrap"
           >
             {([
               {
@@ -1079,7 +1094,7 @@ export default function BugarScreen() {
                   type="button"
                   onClick={() => openWorkoutSheet(undefined, { ...a.hint })}
                   aria-label={`Catat ${a.label}`}
-                  className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-espresso/25 px-3.5 text-eyebrow font-bold text-module-accent-fg backdrop-blur-sm transition-all hover:bg-espresso/40 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                  className="flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-espresso/25 px-2 text-center text-eyebrow font-bold text-module-accent-fg backdrop-blur-sm transition-all hover:bg-espresso/40 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {a.label}

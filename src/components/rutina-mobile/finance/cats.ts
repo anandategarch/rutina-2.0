@@ -9,7 +9,6 @@ import {
   Cookie,
   Droplet,
   Fuel,
-  Gamepad2,
   GraduationCap,
   HandCoins,
   Heart,
@@ -28,6 +27,7 @@ import {
   Tag,
   TrendingUp,
   TriangleAlert,
+  Tv,
   Users,
   Utensils,
   UtensilsCrossed,
@@ -52,7 +52,9 @@ export const CAT_META: Record<FinCat, { label: string; icon: LucideIcon }> = {
   makan: { label: 'Makan & Minum', icon: UtensilsCrossed },
   transport: { label: 'Transportasi', icon: Bus },
   belanja: { label: 'Belanja', icon: ShoppingBag },
-  hiburan: { label: 'Hiburan', icon: Gamepad2 },
+  /* v2.19: Tv menggantikan Gamepad2 — hiburan pengguna didominasi
+     langganan streaming, bukan bermain gim. */
+  hiburan: { label: 'Hiburan', icon: Tv },
   tagihan: { label: 'Tagihan', icon: Receipt },
   kesehatan: { label: 'Kesehatan', icon: HeartPulse },
   lainnya: { label: 'Lainnya', icon: MoreHorizontal },

@@ -667,10 +667,12 @@ export default function StatsScreen() {
         {/* Pintasan seksi (review Statistik v2.13): halaman observatorium
             panjang — chip melompat mulus ke seksi yang dituju tanpa
             menggulir manual. scrollIntoView bekerja pada wadah gulir
-            terdekat (root layar ini). */}
+            terdekat (root layar ini). Kisi 3 kolom (v2.19) mengganti
+            flex-wrap agar “Piala” tidak menggantung sendirian di baris
+            kedua — chip selebar-selaras, dua baris yang disengaja. */}
         <nav
           aria-label="Pintasan seksi Statistik"
-          className="mt-[var(--layout-gap)] flex flex-wrap gap-1.5"
+          className="mt-[var(--layout-gap)] grid grid-cols-3 gap-1.5 @[30rem]:flex @[30rem]:flex-wrap"
         >
           {[
             { id: 'stats-tren', label: 'Tren' },
@@ -687,7 +689,7 @@ export default function StatsScreen() {
                   .getElementById(s.id)
                   ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }
-              className="h-8 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex h-8 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-2 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               {s.label}
             </button>

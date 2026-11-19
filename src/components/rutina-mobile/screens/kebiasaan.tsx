@@ -58,6 +58,14 @@ import {
 
 /* ===== Utilitas pekan (senada home.tsx — Senin = awal pekan) ===== */
 
+/* variasi saran “terlewat kemarin” (v2.19) — bergilir agar tumpukan
+   kartu coach tidak menampilkan kalimat identik berulang-ulang. */
+const MISSED_NUDGES = [
+  'Terlewat kemarin — jangan bolong dua kali.',
+  'Satu hari kosong bukan gagal — tuntaskan kemarin, lanjutkan hari ini.',
+  'Runtun masih bisa diselamatkan — satu centang kemarian cukup.',
+] as const
+
 /** Jumlah selesai satu kebiasaan sepanjang pekan (sampai tanggal iso). */
 function weekDoneCount(c: Completions, habitId: string, iso: string): number {
   let cursor = weekStartISO(iso)
@@ -555,7 +563,7 @@ export default function KebiasaanScreen() {
                 animate="show"
                 className="mt-3 space-y-2.5"
               >
-                {coachCards.map((card) =>
+                {coachCards.map((card, cardIdx) =>
                   card.kind === 'missed' ? (
                     <m.div
                       key={`missed-${card.habit.id}`}
@@ -570,11 +578,23 @@ export default function KebiasaanScreen() {
                           <Flame className="h-4 w-4" strokeWidth={2.2} />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-note font-semibold text-content-primary">
-                            {card.habit.title}
+                          {/* Titik kategori (v2.19): pembeda visual antar
+                              kartu yang tadinya identik — warna kategori
+                              kebiasaan + saran yang berbeda-beda. */}
+                          <p className="flex items-center gap-1.5 text-note font-semibold text-content-primary">
+                            <span
+                              aria-hidden="true"
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{
+                                backgroundColor: HABIT_CAT_COLORS[card.habit.cat],
+                              }}
+                            />
+                            <span className="truncate">{card.habit.title}</span>
                           </p>
                           <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
-                            Terlewat kemarin — jangan bolong dua kali.
+                            {card.habit.mini
+                              ? `Kemarin terlewat — coba versi mini: “${card.habit.mini}”.`
+                              : MISSED_NUDGES[cardIdx % MISSED_NUDGES.length]}
                           </p>
                         </div>
                       </div>

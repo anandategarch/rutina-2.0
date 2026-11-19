@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaLibSQL } from '@prisma/adapter-libsql'
+import { createClient, type Client } from '@libsql/client'
 
 /**
  * Klien Prisma Rutina — satu titik konfigurasi untuk SEMUA lingkungan:
@@ -28,17 +29,30 @@ function resolveDatabaseConfig(): { url: string; authToken?: string } {
   return { url, authToken }
 }
 
+/** Koneksi libSQL mentah — dipakai PrismaLibSQL adapter sekaligus
+ *  eksekusi sistem (PRAGMA) yang tidak didukung jalur queryRaw Prisma
+ *  (lihat db-migrate.ts). Satu koneksi bersama, tanpa duplikasi. */
+function createLibsql(): Client {
+  const { url, authToken } = resolveDatabaseConfig()
+  /* authToken diabaikan untuk file: lokal; wajib untuk Turso. */
+  return createClient(authToken ? { url, authToken } : { url })
+}
+
+const globalForLibsql = globalThis as unknown as {
+  rutinaLibsql: Client | undefined
+}
+
+export const libsql = globalForLibsql.rutinaLibsql ?? createLibsql()
+
+if (process.env.NODE_ENV !== 'production') globalForLibsql.rutinaLibsql = libsql
+
 function createPrisma(): PrismaClient {
   const { url, authToken } = resolveDatabaseConfig()
-
-  const adapter = new PrismaLibSQL({
-    url,
-    /* authToken diabaikan untuk file: lokal; wajib untuk Turso. */
-    authToken,
-  })
-
   return new PrismaClient({
-    adapter,
+    /* Adapter 6.19 menerima konfigurasi (bukan instance klien) — koneksi
+       Prisma dan klien mentah libsql di atas berbagi konfigurasi yang
+       sama, file database identik. */
+    adapter: new PrismaLibSQL({ url, authToken }),
     log: process.env.NODE_ENV === 'production' ? ['error'] : ['error', 'warn'],
   })
 }

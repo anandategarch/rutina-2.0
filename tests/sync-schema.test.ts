@@ -24,7 +24,7 @@ import {
 
 function validState() {
   return {
-    demoMode: true,
+
     habits: [
       {
         id: 'h-1',

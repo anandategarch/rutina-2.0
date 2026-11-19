@@ -41,7 +41,6 @@ const META_KEY = 'rutina-2.0-sync-meta'
 
 /** Slice domain yang dipush ke server — selaras partialize store. */
 const DOMAIN_KEYS = [
-  'demoMode',
   'habits',
   'completions',
   'notes',
@@ -142,7 +141,6 @@ function snapshot(): SyncState {
  *  cast union aman (kandidat string identik dengan union di store). */
 function applyServerState(remote: SyncState): void {
   useRutina.setState({
-    demoMode: remote.demoMode,
     habits: remote.habits.map((h) => ({
       ...h,
       cat: h.cat as HabitCat,
@@ -260,6 +258,21 @@ interface StateResponse {
   syncedAt: string | null
 }
 
+/** Deteksi data contoh warisan (v≤2.18) lewat pola id seed lama.
+ *  Pengguna yang dulu memilih "pakai contoh" masih membawa id ini di
+ *  localStorage — data itu tidak boleh menimpa server yang berisi
+ *  histori asli (impor Rutina 1.0), seberapa pun suntingan lokalnya. */
+function hasLegacyDemoSeed(): boolean {
+  const s = useRutina.getState()
+  return (
+    s.habits.some((h) => /^h[1-6]$/.test(h.id)) ||
+    s.notes.some((n) => /^n[1-6]$/.test(n.id)) ||
+    s.txs.some((t) => t.id.startsWith('f-')) ||
+    s.wallets.some((w) => w.id.startsWith('w-')) ||
+    s.goals.some((g) => /^g-\d+$/.test(g.id))
+  )
+}
+
 /** Apakah snapshot server benar-benar kosong (belum ada data domain)? */
 function isRemoteEmpty(remote: SyncState): boolean {
   return (
@@ -315,14 +328,15 @@ async function boot(): Promise<void> {
     const serverPushAt = remote.syncedAt ? Date.parse(remote.syncedAt) : 0
     const localNewer = (meta?.lastEditAt ?? 0) > (serverPushAt || 0)
     /* v2.16 (audit T5-e #1/#3) — dua vektor kehilangan data ditutup:
-       (a) data contoh (demo seed) TIDAK boleh menimpa server yang sudah
+       (a) data contoh warisan (seed demo v≤2.18 yang masih tersisa di
+       localStorage perangkat lama) TIDAK boleh menimpa server yang sudah
        berisi data nyata, seberapa pun suntingan lokal pada data contoh;
        (b) server yang di-reset kosong secara sengaja (mis. "Mulai bersih"
        dari perangkat lain) tidak boleh dihidupkan ulang oleh perangkat
        lain yang masih memegang data lama. localBeatsEmpty kini hanya
        berlaku bagi lokal yang belum pernah sinkron sama sekali
        (unggah pertama histori lokal) — dan bukan data contoh. */
-    const demoSeed = useRutina.getState().demoMode === true
+    const demoSeed = hasLegacyDemoSeed()
     const neverSynced = (meta?.lastSyncedAt ?? 0) === 0
     const localBeatsEmpty =
       isRemoteEmpty(remote.state) && hasLocalData() && neverSynced && !demoSeed

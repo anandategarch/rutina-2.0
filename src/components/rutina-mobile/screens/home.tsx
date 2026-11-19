@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Clock,
   Flame,
-  FlaskConical,
   Gift,
   Heart,
   Lightbulb,
@@ -82,76 +81,6 @@ import {
 } from '../store'
 
 /* ===== Potongan kecil ===== */
-
-/* Banner mode data contoh — jujur memisahkan demo dari data milik
-   pengguna. Dua pilihan eksplisit: mulai bersih (hapus semua contoh)
-   atau pakai contoh sebagai titik awal. */
-function DemoBanner() {
-  const demoMode = useRutina((s) => s.demoMode)
-  const startFresh = useRutina((s) => s.startFresh)
-  const keepSample = useRutina((s) => s.keepSample)
-
-  return (
-    <AnimatePresence initial={false}>
-      {demoMode && (
-        <m.section
-          key="demo-banner"
-          initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-          animate={{
-            opacity: 1,
-            height: 'auto',
-            marginBottom: '0.75rem',
-          }}
-          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-          transition={{ duration: 0.38, ease: motionTokens.easing.standard }}
-          className="overflow-hidden"
-          aria-label="Mode data contoh"
-        >
-          <div className="rounded-2xl border border-dashed border-destructive/45 bg-surface-sunken px-4 py-3.5">
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-destructive/12 text-content-danger">
-                <FlaskConical className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-note font-semibold text-content-primary">
-                  Data contoh
-                </p>
-                <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
-                  Kebiasaan, catatan, dan transaksi yang tampil masih contoh —
-                  bukan datamu. Pilih cara memulai:
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      startFresh()
-                      toast.success(
-                        'Data contoh dibersihkan — mulailah dari nol.',
-                      )
-                    }}
-                    className="h-9 cursor-pointer rounded-full bg-destructive px-4 text-meta font-bold text-destructive-foreground shadow-soft transition-all hover:bg-destructive/90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
-                  >
-                    Mulai bersih
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      keepSample()
-                      toast('Data contoh dipertahankan sebagai milikmu.')
-                    }}
-                    className="h-9 cursor-pointer rounded-full border border-border bg-surface-primary px-4 text-meta font-bold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    Pakai contoh ini
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </m.section>
-      )}
-    </AnimatePresence>
-  )
-}
 
 const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
   kerja: BookOpen,
@@ -572,10 +501,8 @@ export default function HomeScreen() {
          lewat spesifisitas. */
       className="h-full overflow-y-auto no-scrollbar px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
     >
-      {/* Kepala layar — banner demo + sapaan yang menyusut halus saat digulir */}
+      {/* Kepala layar — sapaan yang menyusut halus saat digulir */}
       <div className="pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <DemoBanner />
-
         <m.header
           style={{ scale: headerScale }}
           className="origin-top"

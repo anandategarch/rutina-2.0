@@ -3,6 +3,66 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.19] — Data Asli Saja: Seed Demo Dihapus Total & Pemolesan Visual
+
+Permintaan pengguna: "cek data asli ku dan data dummy, data dummy hapus
+aja" — aplikasi kini **100% jujur**: yang tampil hanya histori asli
+Rutina 1.0 (dari cloud) atau keadaan kosong yang sesungguhnya. Tidak ada
+lagi "Meditasi 10 menit", "Sarapan oatmeal & kopi", atau histori palsu
+84 hari.
+
+### Data demo dihapus dari akar
+- **Seed dihapus dari store** (`store.ts`): `SEED_HABITS` (6 kebiasaan
+  contoh), `buildSeedCompletions` (histori palsu 84 hari), `SEED_NOTES`,
+  `SEED_TXS` (20 transaksi contoh), `SEED_WALLETS`, `SEED_GOALS` — state
+  awal kini kosong; server cloud (histori asli) mengambil alih saat boot.
+- **Konsep `demoMode` dihapus menyeluruh**: wire schema
+  (`sync-schema.ts`), pembacaan/penulisan setting (`sync-server.ts`),
+  DOMAIN_KEYS & applyServerState (`sync-engine.ts`), dan state store.
+  Baris `app.demoMode` lama di database diabaikan.
+- **Banner "Data contoh" dihapus** dari Beranda (beserta aksi
+  `keepSample`); `startFresh` dipertahankan sebagai reset penuh di
+  Zona Bahaya Profil.
+- **Penjaga warisan demo** (`hasLegacyDemoSeed()`): perangkat yang dulu
+  memilih "pakai contoh" masih memegang id seed (`h1–h6`, `n1–n6`,
+  `f-*`, `w-*`, `g-N`) di localStorage — data itu **tidak akan pernah**
+  menimpa server berisi histori asli, seberapa pun suntingan lokalnya
+  (terverifikasi E2E: seed demo + lastEditAt lebih baru → tetap kalah
+  dari server).
+- **Baris uji sesi audit dihapus dari database**: 2 kebiasaan uji
+  ("Test kebiasaan", "Tes Audit B"), 2 transaksi uji (101 & 15555),
+  kategori uji "Kebun", 3 sesi latihan uji-template, 1 body-log uji —
+  tersisa **17 kebiasaan, 283 transaksi, 4 dompet, 75 log kebiasaan,
+  21 catatan tubuh & mood — semuanya asli Rutina 1.0** (Juli–Desember).
+  `sync.lastPushAt` dinaikkan agar localStorage basi kalah dari server.
+
+### Pemolesan visual (review frontend)
+- **Bugar — keadaan kosong yang memandu**: saat empat angka pekan masih
+  nol, muncul kalimat pengarah ("Belum ada aktivitas pekan ini — catat
+  lewat pintasan di bawah…") alih-alih deretan nol yang "mati".
+- **Bugar & Statistik — chip kisi 3 kolom**: pintasan "Catat Lari/Jalan/
+  Lari+Jalan/Badminton/Barbel" dan navigasi seksi Statistik kini
+  se-lebar-selaras (baris kedua rapi, "Piala" tidak lagi menggantung
+  sendirian); layar lebar kembali ke satu baris flex.
+- **Kebiasaan — kartu Coach tidak lagi kembar**: titik warna kategori di
+  judul + saran yang bergilir (3 variasi) + saran "versi 2 menit" bila
+  kebiasaan punya `mini`.
+- **Keuangan**: ikon kategori Hiburan `Gamepad2` → `Tv` (penggunaan
+  dominan: langganan streaming).
+- **Beranda**: chip bonus tidak lagi menduplikasi angka tombol CTA
+  ("Hadiah harian gratis" vs "Klaim +120 XP").
+
+### Perbaikan lain
+- **Noise log `prisma:error` hilang**: `hasColumn()` di `db-migrate.ts`
+  memakai klien libSQL mentah (PRAGMA tidak didukung jalur `queryRaw`
+  Prisma sehingga pemeriksaan selalu gagal → ALTER memicu "duplicate
+  column" berulang di log). `src/lib/db.ts` kini mengekspor `libsql`
+  bersama `db`.
+- `bun run verify` hijau: typecheck + lint + **135 tes**; verifikasi
+  E2E browser: toggle kebiasaan pulang-pergi bersih (75 log tetap),
+  pintasan "Catat Lari" membuka lembar tepat di mode kardio-lari, data
+  asli tampil di semua tab mobile & desktop tanpa error konsol.
+
 ## [2.18] — Pemulihan Histori Rutina 1.0, Tanpa Subkategori & Pintasan Template Aktivitas
 
 Tiga hal sekaligus: **(1)** histori keuangan & kebiasaan Rutina 1.0 yang

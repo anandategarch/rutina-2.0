@@ -12,9 +12,10 @@ import { z } from 'zod'
  * menolak muatan sampah.
  * ===================================================================== */
 
-/** Kunci tabel rutina_app_settings — preferensi + penanda sinkronisasi. */
+/** Kunci tabel rutina_app_settings — preferensi + penanda sinkronisasi.
+ *  (v2.19: kunci app.demoMode dihapus — aplikasi tidak lagi membawa
+ *  data contoh; baris lama di database diabaikan.) */
 export const SYNC_SETTING_KEYS = {
-  demoMode: 'app.demoMode',
   calorieTarget: 'app.calorieTarget',
   dailyGoal: 'app.dailyGoal',
   mood: 'app.mood',
@@ -211,7 +212,6 @@ export const moodLogsSchema = z
 /* ===== Snapshot penuh ===== */
 
 export const syncStateSchema = z.object({
-  demoMode: z.boolean(),
   habits: z.array(habitSchema).max(500),
   completions: completionsSchema,
   notes: z.array(noteSchema).max(2000),

@@ -207,7 +207,6 @@ export async function readFullState(): Promise<FullStateResult> {
 
   result.initialized = true
   result.state = {
-    demoMode: settingsMap.get(SYNC_SETTING_KEYS.demoMode) !== 'false',
     habits: habitWires,
     completions,
     notes: noteWires,
@@ -287,7 +286,6 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
 
   const now = new Date().toISOString()
   const settingRows = [
-    { key: SYNC_SETTING_KEYS.demoMode, value: String(state.demoMode) },
     { key: SYNC_SETTING_KEYS.calorieTarget, value: String(state.calorieTarget) },
     { key: SYNC_SETTING_KEYS.dailyGoal, value: String(state.dailyGoal) },
     { key: SYNC_SETTING_KEYS.mood, value: state.mood ?? '' },

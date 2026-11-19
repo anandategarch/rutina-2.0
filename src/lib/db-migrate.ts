@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { db, libsql } from '@/lib/db'
 
 /* =====================================================================
  * Auto-migrasi skema (v2.18) — menyembuhkan drift kode ↔ database.
@@ -41,14 +41,14 @@ const DDL_STATEMENTS: string[] = [
 /** Janji tunggal per proses — pemanggil paralel berbagi satu eksekusi. */
 let migratePromise: Promise<void> | null = null
 
-/** Apakah kolom sudah ada? (PRAGMA table_info — mencegah error log
- *  "duplicate column" dari ALTER pada skema yang sudah mutakhir.) */
+/** Apakah kolom sudah ada? (PRAGMA table_info lewat klien libSQL mentah —
+ *  jalur queryRaw Prisma tidak mendukung PRAGMA dan selalu melempar,
+ *  membuat pemeriksaan ini dulunya selalu salah "belum ada" sehingga
+ *  ALTER memicu error "duplicate column" yang berulang di log.) */
 async function hasColumn(table: string, column: string): Promise<boolean> {
   try {
-    const rows = (await db.$queryRawUnsafe(
-      `PRAGMA table_info("${table}")`,
-    )) as unknown as { name?: string }[]
-    return Array.isArray(rows) && rows.some((r) => r?.name === column)
+    const result = await libsql.execute(`PRAGMA table_info("${table}")`)
+    return result.rows.some((row) => row.name === column)
   } catch {
     /* Tabel belum ada / PRAGMA tak didukung → biarkan ALTER yang bicara. */
     return false

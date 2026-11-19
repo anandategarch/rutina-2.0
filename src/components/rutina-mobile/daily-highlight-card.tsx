@@ -268,7 +268,7 @@ export function DailyHighlightCard() {
           {hl.visual.kind === 'bonus' && (
             <p className="mt-2.5 flex w-fit items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-meta font-bold text-success">
               <Gift className="h-3.5 w-3.5" strokeWidth={2.2} aria-hidden="true" />
-              +{hl.visual.xp} XP
+              Hadiah harian gratis
             </p>
           )}
 
