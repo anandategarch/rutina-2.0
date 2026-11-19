@@ -11,15 +11,17 @@ import { motionTokens } from '@/lib/motion/tokens'
 /* ===== Konsistensi 12 pekan — dari histori penyelesaian nyata ===== */
 
 const WEEKS = 12
-/** Skala intensitas 5 level — color-mix token --primary di atas permukaan
-    tinta (level 0–3); level penuh memakai token grafik pistachio
-    (var(--chart-4), satu sumber warna seluruh grafik). */
+/** Skala intensitas 5 level — di atas kartu instrumen parchment (audit
+    Tahap 2 #6): level 0 netral linen ("tanpa aktivitas"), level 1–3
+    color-mix token --primary di atas permukaan terang, level penuh memakai
+    varian stroke grafik yang tegas (var(--chart-stroke-1), kontras AA di
+    atas parchment). */
 const LEVEL_COLORS = [
-  'color-mix(in oklab, var(--primary) 15%, var(--hero-surface))',
-  'color-mix(in oklab, var(--primary) 35%, var(--hero-surface))',
-  'color-mix(in oklab, var(--primary) 60%, var(--hero-surface))',
-  'color-mix(in oklab, var(--primary) 85%, var(--hero-surface))',
-  'var(--chart-4)',
+  'var(--surface-secondary)',
+  'color-mix(in oklab, var(--primary) 35%, var(--surface-primary))',
+  'color-mix(in oklab, var(--primary) 55%, var(--surface-primary))',
+  'color-mix(in oklab, var(--primary) 80%, var(--surface-primary))',
+  'var(--chart-stroke-1)',
 ]
 
 /* Label legenda per level — jumlah kebiasaan selesai per hari. */
@@ -108,12 +110,12 @@ export default function Heatmap() {
       initial={{ opacity: 0, y: 16 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
-      className="rounded-2xl border border-border bg-hero-surface p-5 shadow-soft"
+      className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
     >
-      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">
         Konsistensi
       </p>
-      <p className="mt-1 text-eyebrow font-medium text-hero-content-muted">
+      <p className="mt-1 text-eyebrow font-medium text-content-muted">
         12 pekan terakhir
       </p>
 
@@ -139,7 +141,7 @@ export default function Heatmap() {
                 className={
                   'h-5 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
-                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-hero-surface'
+                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary'
                     : '')
                 }
                 style={{ backgroundColor: LEVEL_COLORS[level] }}
@@ -151,7 +153,7 @@ export default function Heatmap() {
 
       {/* v2.16 (audit T5-d #5): umumkan pilihan sel ke pembaca layar —
           selaras dengan spend-heatmap & month-calendar. */}
-      <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-hero-content-muted">
+      <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-content-muted">
         {sel && selEntry
           ? `Pekan ${WEEKS - sel.w}, ${cellText(selEntry)}`
           : 'Ketuk sel untuk melihat detail hari.'}
@@ -164,7 +166,7 @@ export default function Heatmap() {
         className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5"
         aria-label="Legenda intensitas: jumlah kebiasaan selesai per hari"
       >
-        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-hero-content-muted">
+        <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
           Selesai/hari
         </span>
         <span className="flex items-center gap-1.5">
@@ -174,7 +176,7 @@ export default function Heatmap() {
                 className="h-3 w-3 rounded-[3px]"
                 style={{ backgroundColor: c }}
               />
-              <span className="text-eyebrow font-semibold tabular-nums text-hero-content-muted">
+              <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
                 {LEVEL_LEGEND[i]}
               </span>
             </span>

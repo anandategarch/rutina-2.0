@@ -1,21 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
 import {
-  Archive,
   ArrowLeft,
   BatteryLow,
+  Bell,
   Check,
   ChevronRight,
-  Cloud,
   CloudDownload,
-  Download,
+  FileDown,
   FileJson,
   FileSpreadsheet,
   Fingerprint,
   Globe,
-  HardDrive,
   HeartPulse,
   Info,
   Laugh,
@@ -24,16 +22,20 @@ import {
   Meh,
   Minus,
   MonitorSmartphone,
+  Moon,
   Pencil,
   Plus,
   RotateCcw,
   Smile,
   Sparkles,
+  Sun,
   Target,
   TriangleAlert,
   Upload,
+  type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTheme } from 'next-themes'
 
 import { cn } from '@/lib/utils'
 
@@ -63,12 +65,12 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 
 import { Counter } from '../counter'
 import { MOOD_TONE } from '../journal-ui'
-import { BlurFade, SplitText } from '../motion-kit'
+import { SplitText } from '../motion-kit'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
 import { RutinaDialog } from '../rutina-dialog'
@@ -77,7 +79,8 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import { motionTokens } from '@/lib/motion/tokens'
-import { exportBackup, forcePull, importBackup, syncStatus } from '../sync-engine'
+import { SyncStatusCard } from '../sync-status-card'
+import { exportBackup, forcePull, importBackup } from '../sync-engine'
 import { catMetaOf } from '../finance/cats'
 import {
   activeSinceISO,
@@ -109,18 +112,23 @@ const FAQ_ITEMS = [
     q: 'Apakah data saya tersimpan otomatis?',
     a: 'Ya. Setiap perubahan tersinkron otomatis ke cloud pribadimu (Turso) dan tetap tersimpan di perangkat sebagai cadangan offline — tanpa perlu akun, lanjut bekerja bahkan tanpa internet.',
   },
+  {
+    q: 'Bisakah saya memindahkan data ke perangkat lain?',
+    a: 'Bisa. Data tersinkron otomatis lewat cloud pribadimu; sebagai cadangan, unduh berkas JSON dari grup "Data & Penyimpanan" lalu pulihkan di perangkat baru.',
+  },
 ]
 
-/* Chip kata kunci statis — tanpa animasi marquee (kejujuran interaksi). */
+/* Kata kunci fokus — chip cepat saat menyunting Suara Identitas
+   (dipindah dari tampilan statis agar tiap elemen punya fungsi). */
 const FOCUS_WORDS = [
   'Konsisten',
   'Fokus',
   'Hemat',
   'Bergerak',
   'Tenang',
-  'Baca Buku',
-  'Tidur Cukup',
-  'Syukur',
+  'Membaca',
+  'Tidur cukup',
+  'Bersyukur',
 ]
 
 /* Ikon suasana hati — padanan MOODS di store (selaras lembar check-in
@@ -132,9 +140,89 @@ const MOOD_ICONS: Record<string, typeof Laugh> = {
   Lelah: BatteryLow,
 }
 
-/* Tone ikon/label per mood — kelas teks + titik warna kini SATU sumber
-   (MOOD_TONE di journal-ui.ts) bersama layar Jurnal; semua merujuk token
-   --color-* earth-tone sehingga aman di mode gelap. */
+/* ===== Pola baris pengaturan standar (audit 2g) =====
+   Ikon kecil kiri · label text-body semibold · keterangan text-eyebrow
+   content-muted · kontrol kanan (nilai/chevron/Switch). Baris dipisah
+   hairline divide-y di dalam kartu grup — seperti aplikasi settings
+   premium. Varian: tombol (onClick), label berkas (htmlFor), statis. */
+interface SettingRowProps {
+  icon: LucideIcon
+  label: string
+  description?: string
+  /** Kontrol sisi kanan: nilai, chevron, Switch, dsb. */
+  control?: ReactNode
+  onClick?: () => void
+  /** Render baris sebagai <label> (mis. membungkus input berkas sr-only). */
+  htmlFor?: string
+  disabled?: boolean
+}
+
+function SettingRow({
+  icon: Icon,
+  label,
+  description,
+  control,
+  onClick,
+  htmlFor,
+  disabled,
+}: SettingRowProps) {
+  const body = (
+    <>
+      <span
+        aria-hidden="true"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+      >
+        <Icon className="h-4 w-4" strokeWidth={2.1} />
+      </span>
+      <span className="min-w-0 flex-1 py-0.5">
+        <span className="block text-body font-semibold leading-snug text-content-primary">
+          {label}
+        </span>
+        {description ? (
+          <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
+            {description}
+          </span>
+        ) : null}
+      </span>
+      {control != null && (
+        <span className="flex min-w-0 shrink-0 items-center gap-1.5 text-note font-semibold text-content-secondary">
+          {control}
+        </span>
+      )}
+    </>
+  )
+  const base = 'flex w-full items-center gap-3.5 px-4 py-3 text-left'
+
+  if (htmlFor) {
+    return (
+      <label
+        htmlFor={htmlFor}
+        className={cn(
+          base,
+          'interactive cursor-pointer hover:bg-surface-sunken focus-within:outline focus-within:outline-2 focus-within:outline-offset-[-2px] focus-within:outline-primary',
+        )}
+      >
+        {body}
+      </label>
+    )
+  }
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+          base,
+          'interactive cursor-pointer hover:bg-surface-sunken disabled:cursor-wait disabled:opacity-60',
+        )}
+      >
+        {body}
+      </button>
+    )
+  }
+  return <div className={base}>{body}</div>
+}
 
 export default function ProfileScreen() {
   const notes = useRutina((s) => s.notes)
@@ -164,6 +252,22 @@ export default function ProfileScreen() {
      bingkai di desktop). */
   const [aboutOpen, setAboutOpen] = useState(false)
 
+  /* Dialog "Ekspor cadangan" — satu pintu, dua pilihan format
+     (JSON lengkap / CSV transaksi); unduhan dipicu dari dialog. */
+  const [exportOpen, setExportOpen] = useState(false)
+
+  /* Panel "Target Misi Harian" terbuka? (baris pengaturan yang dapat
+     dikembangkan — slider muncul di bawah barisnya) */
+  const [goalOpen, setGoalOpen] = useState(false)
+
+  /* Preferensi tampilan — mode gelap via next-themes (satu sumber
+     kebenaran tema bersama cangkang aplikasi). Pola mounted mencegah
+     mismatch hidrasi: SSR selalu merender keadaan terang. */
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const dark = mounted && resolvedTheme === 'dark'
+
   const startEditIdentity = () => {
     setIdentityDraft(identityText)
     setEditingIdentity(true)
@@ -175,15 +279,16 @@ export default function ProfileScreen() {
     toast.success('Suara identitas tersimpan.')
   }
 
-  /* Status sinkronisasi cloud — dibaca dari meta engine (bukan state
-     React) lalu disegarkan berkala agar stempel waktu tetap hangat. */
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
-  useEffect(() => {
-    const refresh = () => setLastSyncedAt(syncStatus().lastSyncedAt)
-    refresh()
-    const timer = setInterval(refresh, 15_000)
-    return () => clearInterval(timer)
-  }, [])
+  /* Tambah kata kunci fokus ke draf identitas — chip kini fungsional:
+     draf kosong diawali kata itu, draf berisi disambung koma. */
+  const appendFocusWord = (word: string) => {
+    setIdentityDraft((d) => {
+      const trimmed = d.replace(/[\s,]+$/, '')
+      const next =
+        trimmed === '' ? word : `${trimmed}, ${word.toLowerCase()}`
+      return next.slice(0, 600)
+    })
+  }
 
   /* Tarik paksa snapshot cloud (server-menang, lewati negosiasi stempel
      waktu) — alat pemulihan eksplisit, mis. setelah impor data Rutina 1.0
@@ -195,7 +300,6 @@ export default function ProfileScreen() {
     const ok = await forcePull()
     setPulling(false)
     if (ok) {
-      setLastSyncedAt(syncStatus().lastSyncedAt)
       toast.success('Data cloud dimuat', {
         description: 'Snapshot terbaru dari Turso kini aktif di perangkat ini.',
       })
@@ -399,6 +503,10 @@ export default function ProfileScreen() {
 
   const streak = bestStreak(habits, completions, today).streak
 
+  /* Pengingat aktif — jumlah nyata kebiasaan yang memakai jam pengingat
+     (diatur per kebiasaan di lembar suntingnya, bukan saklar global). */
+  const reminderCount = habits.filter((h) => h.reminder !== null).length
+
   /* Jendela mood 14 hari (terlama → terbaru) untuk kartu Riwayat
      Mood (audit #25) + rekap jumlah per mood pada periode itu. */
   const moodDays = Array.from({ length: 14 }, (_, idx) => {
@@ -418,11 +526,6 @@ export default function ProfileScreen() {
   const moodLogged = moodCounts.some((c) => c.count > 0)
   const todayMood = moodDays[13].mood
 
-  /* ANIMATION OWNERSHIP RULE — sebelumnya anime.js menulis translateX+opacity
-     pada [data-row] yang sebagian adalah motion.section dengan initial/animate
-     opacity sendiri (dua pemilik properti yang sama). Kini seluruh koreografi
-     baris dipegang Motion lewat variants staggerRows/slideInRow. */
-
   const stats = [
     { label: 'Catatan', value: notes.length, percent: false },
     { label: 'Streak (hari)', value: streak, percent: false },
@@ -432,7 +535,7 @@ export default function ProfileScreen() {
   return (
     <div
       data-module="profil"
-      className="h-full overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      className="mx-auto h-full w-full max-w-[680px] overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
       <m.button
@@ -443,18 +546,18 @@ export default function ProfileScreen() {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3, ease: motionTokens.easing.standard }}
-        className="-ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-note font-semibold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive -ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-note font-semibold text-content-secondary shadow-soft hover:bg-surface-secondary"
       >
         <ArrowLeft className="h-4.5 w-4.5" />
         Kembali
       </m.button>
 
-      {/* Header editorial — eyebrow & titik memakai aksen Cocoa Gold
-          (identitas kamar preferensi; sebelumnya terracotta danger). */}
+      {/* Header editorial — eyebrow memakai aksen Cocoa Gold (identitas
+          kamar preferensi). */}
       <header className="mt-2">
         <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-module-accent-strong">
           <Leaf className="h-3.5 w-3.5 text-module-accent-strong" />
-          Akun & preferensi
+          Akun &amp; preferensi
         </p>
         <h1
           className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-none tracking-tight text-content-primary`}
@@ -464,614 +567,681 @@ export default function ProfileScreen() {
         </h1>
       </header>
 
-      {/* Kartu profil + progres level — permukaan hero identitas (espresso
-          + emas + parchment): satu-satunya kartu hero di layar ini, kartu
-          pengaturan lain tetap tenang. (shadcn Progress & Badge) */}
-      <m.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
-        className="mt-4 flex flex-col items-center rounded-2xl border border-border bg-hero-surface p-5 text-center text-hero-content shadow-soft"
-      >
-        {/* HoverCard avatar — alami desktop-only (butuh kursor); kartu kecil
-            identitas pengguna dengan aksen matcha. */}
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <Avatar className="h-16 w-16 border-4 border-hero-surface shadow-card ring-2 ring-hero-accent/40">
-              <AvatarFallback className="bg-cocoa text-lead font-bold text-parchment">
-                AN
-              </AvatarFallback>
-            </Avatar>
-          </HoverCardTrigger>
-          <HoverCardContent
-            side="bottom"
-            className="w-56 rounded-xl border-border bg-surface-primary p-4"
-          >
-            <div className="flex items-center gap-3">
-              <span
-                aria-hidden="true"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
-              >
-                <Leaf className="h-[18px] w-[18px]" strokeWidth={2} />
+      {/* ANIMATION OWNERSHIP RULE — koreografi seluruh baris/seksi dipegang
+          Motion lewat variants staggerRows/slideInRow (satu pemilik). */}
+      <m.div variants={staggerRows} initial="hidden" animate="show">
+        {/* ===== 1 · IDENTITAS PENGGUNA — paling atas ===== */}
+        <m.div variants={slideInRow} className="mt-4">
+          <RutinaSectionHeader
+            title="Identitas"
+            description="Siapa dirimu di Rutina — tanpa akun, tersinkron cloud"
+          />
+        </m.div>
+
+        {/* Kartu hero identitas (espresso + emas + parchment) — satu-satunya
+            kartu hero di layar ini; statistik ringkas dilipat ke dalamnya
+            (audit 2g: kurangi kartu kecil berserakan). */}
+        <m.section
+          variants={slideInRow}
+          aria-label="Identitas pengguna"
+          className="mt-3 flex flex-col items-center rounded-2xl border border-border bg-hero-surface p-5 text-center text-hero-content shadow-soft"
+        >
+          {/* HoverCard avatar — alami desktop-only (butuh kursor); kartu
+              kecil identitas pengguna dengan aksen matcha. */}
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <Avatar className="h-16 w-16 border-4 border-hero-surface shadow-card ring-2 ring-hero-accent/40">
+                <AvatarFallback className="bg-cocoa text-lead font-bold text-parchment">
+                  AN
+                </AvatarFallback>
+              </Avatar>
+            </HoverCardTrigger>
+            <HoverCardContent
+              side="bottom"
+              className="w-56 rounded-xl border-border bg-surface-primary p-4"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
+                >
+                  <Leaf className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-note font-semibold leading-tight text-content-primary">
+                    Ananda
+                  </p>
+                  <p className="mt-0.5 text-eyebrow font-medium leading-snug text-content-muted">
+                    Pengguna Rutina
+                  </p>
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+          <h2 className="mt-3 text-lead font-bold tracking-tight text-hero-content">
+            Ananda
+          </h2>
+          <p className="mt-0.5 text-meta font-medium text-hero-content-muted">
+            Profil pribadi · tersinkron cloud
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <Badge
+              variant="outline"
+              className="gap-1.5 rounded-full border-hero-accent/40 bg-hero-surface-raised px-3 py-1 text-eyebrow font-semibold text-hero-accent"
+            >
+              <Sparkles className="h-3 w-3" />
+              Level {level}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="rounded-full border-hero-content/20 bg-hero-surface-raised px-3 py-1 text-eyebrow font-semibold text-hero-content-muted"
+            >
+              {memberBadge}
+            </Badge>
+          </div>
+
+          {/* Progres XP menuju level berikutnya */}
+          <div className="mt-5 w-full">
+            <div className="flex items-baseline justify-between px-0.5">
+              <span className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+                Progres Level
               </span>
-              <div className="min-w-0">
-                <p className="text-note font-semibold leading-tight text-content-primary">
-                  Ananda
+              <span className="text-eyebrow font-semibold tabular-nums text-hero-accent">
+                <Counter to={xp} /> / {XP_TARGET} XP
+              </span>
+            </div>
+            <Progress
+              value={xpPct}
+              className="mt-2 h-2.5 rounded-full bg-hero-surface-raised [&_[data-slot=progress-indicator]]:bg-hero-accent"
+              aria-label="Progres XP menuju level berikutnya"
+            />
+            <p className="mt-2 text-eyebrow font-medium text-hero-content-muted">
+              {level >= 8
+                ? 'Level maksimal tercapai — petualang sejati!'
+                : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
+            </p>
+          </div>
+
+          {/* Statistik ringkas — satu baris di dalam hero (tanpa kartu
+              kecil terpisah), dipisah hairline hero. */}
+          <div className="mt-5 grid w-full grid-cols-3 gap-2 border-t border-hero-content/15 pt-4">
+            {stats.map((s) => (
+              <div key={s.label} className="flex flex-col items-center">
+                <p className="flex items-baseline">
+                  <span className="text-kpi-sm font-semibold leading-none tracking-tight text-hero-content">
+                    <Counter to={s.value} />
+                  </span>
+                  {s.percent ? (
+                    <span className="text-body font-semibold text-hero-content">
+                      %
+                    </span>
+                  ) : null}
                 </p>
-                <p className="mt-0.5 text-eyebrow font-medium leading-snug text-content-muted">
-                  Pengguna Rutina
+                <p className="mt-1.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-hero-content-muted">
+                  {s.label}
                 </p>
               </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
-        <h2 className="mt-3 text-lead font-bold tracking-tight text-hero-content">
-          Ananda
-        </h2>
-        <p className="mt-0.5 text-meta font-medium text-hero-content-muted">
-          Profil pribadi · tersinkron cloud
-        </p>
-        <div className="mt-3 flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="gap-1.5 rounded-full border-hero-accent/40 bg-hero-surface-raised px-3 py-1 text-eyebrow font-semibold text-hero-accent"
-          >
-            <Sparkles className="h-3 w-3" />
-            Level {level}
-          </Badge>
-          <Badge
-            variant="outline"
-            className="rounded-full border-hero-content/20 bg-hero-surface-raised px-3 py-1 text-eyebrow font-semibold text-hero-content-muted"
-          >
-            {memberBadge}
-          </Badge>
-        </div>
-
-        {/* Progres XP menuju level berikutnya */}
-        <div className="mt-5 w-full">
-          <div className="flex items-baseline justify-between px-0.5">
-            <span className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-              Progres Level
-            </span>
-            <span className="text-eyebrow font-semibold tabular-nums text-hero-accent">
-              <Counter to={xp} /> / {XP_TARGET} XP
-            </span>
+            ))}
           </div>
-          <Progress
-            value={xpPct}
-            className="mt-2 h-2.5 rounded-full bg-hero-surface-raised [&_[data-slot=progress-indicator]]:bg-hero-accent"
-            aria-label="Progres XP menuju level berikutnya"
-          />
-          <p className="mt-2 text-eyebrow font-medium text-hero-content-muted">
-            {level >= 8
-              ? 'Level maksimal tercapai — petualang sejati!'
-              : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
-          </p>
-        </div>
-      </m.div>
+        </m.section>
 
-      {/* Baris statistik ringkas */}
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        {stats.map((s, i) => (
-          <m.div
-            key={s.label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.5,
-              delay: 0.06 + i * 0.06,
-              ease: motionTokens.easing.standard,
-            }}
-            className="flex flex-col items-center rounded-lg border border-border bg-surface-primary p-3.5 shadow-soft"
-          >
-            <p className="flex items-baseline">
-              <span className="text-kpi-sm font-semibold leading-none tracking-tight text-content-primary">
-                <Counter to={s.value} />
-              </span>
-              {s.percent ? (
-                <span className="text-body font-semibold text-content-primary">%</span>
-              ) : null}
-            </p>
-            <p className="mt-1.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-              {s.label}
-            </p>
-          </m.div>
-        ))}
-      </div>
-
-      {/* Suara Identitas (audit #23) — pernyataan editorial "aku menjadi
-          orang yang…": tampil sebagai kutipan serif italic, disunting
-          lewat textarea dengan pembatas 600 karakter. */}
-      <m.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
-        className="mt-3 rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-        aria-label="Suara identitas"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-            <Fingerprint className="h-4 w-4" />
-          </span>
-          <div className="flex-1">
-            <p className="text-body font-semibold text-content-primary">
-              Suara Identitas
-            </p>
-            <p className="text-eyebrow font-medium text-content-muted">
-              Deklarasi siapa dirimu, bukan sekadar target
-            </p>
-          </div>
-          {identityText !== '' && !editingIdentity && (
-            <button
-              type="button"
-              onClick={startEditIdentity}
-              aria-label="Ubah suara identitas"
-              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-sunken text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        {/* Suara Identitas (audit #23) — pernyataan editorial "aku menjadi
+            orang yang…": kutipan serif italic, disunting lewat textarea
+            dengan pembatas 600 karakter + chip kata kunci fokus cepat. */}
+        <m.section
+          variants={slideInRow}
+          aria-label="Suara identitas"
+          className="mt-3 rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
+        >
+          <div className="flex items-center gap-3.5">
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
             >
-              <Pencil className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+              <Fingerprint className="h-4 w-4" />
+            </span>
+            <div className="flex-1">
+              <p className="text-body font-semibold text-content-primary">
+                Suara Identitas
+              </p>
+              <p className="text-eyebrow font-medium text-content-muted">
+                Deklarasi siapa dirimu, bukan sekadar target
+              </p>
+            </div>
+            {identityText !== '' && !editingIdentity && (
+              <button
+                type="button"
+                onClick={startEditIdentity}
+                aria-label="Ubah suara identitas"
+                className="interactive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-sunken text-content-secondary hover:bg-secondary"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-        {editingIdentity ? (
-          <div className="mt-4">
-            <textarea
-              value={identityDraft}
-              onChange={(e) => setIdentityDraft(e.target.value.slice(0, 600))}
-              placeholder="Aku menjadi orang yang…"
-              rows={4}
-              aria-label="Teks suara identitas"
-              className="w-full resize-none rounded-xl border border-border bg-surface-sunken px-3.5 py-3 text-body leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-muted focus-visible:border-primary"
-            />
-            <p className="mt-2 text-eyebrow font-medium leading-relaxed text-content-muted">
-              Tulis identitas yang ingin kamu bangun — bukan target,
-              melainkan siapa dirimu.
-            </p>
-            <div className="mt-2.5 flex items-center justify-between gap-3">
-              <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
-                {identityDraft.length}/600
+          {editingIdentity ? (
+            <div className="mt-4">
+              <textarea
+                value={identityDraft}
+                onChange={(e) => setIdentityDraft(e.target.value.slice(0, 600))}
+                placeholder="Aku menjadi orang yang…"
+                rows={4}
+                aria-label="Teks suara identitas"
+                className="w-full resize-none rounded-xl border border-border bg-surface-sunken px-3.5 py-3 text-body leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-muted focus-visible:border-primary"
+              />
+              <p className="mt-2 text-eyebrow font-medium leading-relaxed text-content-muted">
+                Tulis identitas yang ingin kamu bangun — bukan target,
+                melainkan siapa dirimu. Butuh kata? ketuk chip di bawah.
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {FOCUS_WORDS.map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() => appendFocusWord(w)}
+                    className="interactive h-8 cursor-pointer rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong hover:bg-module-accent-soft"
+                  >
+                    + {w}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  {identityDraft.length}/600
+                </span>
+                <div className="flex gap-2">
+                  <RutinaButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingIdentity(false)}
+                  >
+                    Batal
+                  </RutinaButton>
+                  <RutinaButton
+                    variant="primary"
+                    size="sm"
+                    onClick={saveIdentity}
+                  >
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                    Simpan
+                  </RutinaButton>
+                </div>
+              </div>
+            </div>
+          ) : identityText !== '' ? (
+            <figure className="relative mt-4 rounded-xl bg-secondary/50 px-5 pb-3.5 pt-5">
+              <span
+                aria-hidden="true"
+                className={`${playfair.className} pointer-events-none absolute -top-2 left-2.5 select-none text-[52px] leading-none text-primary/30`}
+              >
+                &ldquo;
               </span>
-              <div className="flex gap-2">
+              <blockquote
+                className={`${playfair.className} text-lead font-medium italic leading-relaxed text-content-primary`}
+              >
+                {identityText}
+              </blockquote>
+              <figcaption className="mt-2 text-right text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
+                Suara identitasku
+              </figcaption>
+            </figure>
+          ) : (
+            <div className="mt-4 rounded-xl bg-surface-sunken px-4 py-4">
+              <p
+                className={`${playfair.className} text-section-lg font-medium italic leading-relaxed text-content-secondary`}
+              >
+                Siapa yang ingin kamu jadi lewat kebiasaan ini?
+              </p>
+              <RutinaButton
+                variant="secondary"
+                size="sm"
+                className="mt-3"
+                onClick={startEditIdentity}
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                Tulis identitasku
+              </RutinaButton>
+            </div>
+          )}
+        </m.section>
+
+        {/* ===== Riwayat Mood — data pribadi, kartu editorial ===== */}
+        <m.div variants={slideInRow} className="mt-8">
+          <RutinaSectionHeader
+            title="Riwayat Mood"
+            description="Suasana hati 14 hari terakhir"
+            action={
+              moodLogged && !todayMood ? (
                 <RutinaButton
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  onClick={() => setEditingIdentity(false)}
+                  onClick={() => useCheckInSheet.getState().openCheckIn()}
                 >
-                  Batal
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  Check-in
                 </RutinaButton>
+              ) : undefined
+            }
+          />
+        </m.div>
+        <m.section
+          variants={slideInRow}
+          aria-label="Riwayat mood"
+          className="mt-3 rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
+        >
+          {moodLogged ? (
+            <>
+              <div
+                className="flex gap-1"
+                role="list"
+                aria-label="Mood per hari, 14 hari terakhir"
+              >
+                {moodDays.map((d) => {
+                  const MoodIcon = d.mood != null ? MOOD_ICONS[d.mood] : null
+                  return (
+                    <div
+                      key={d.iso}
+                      role="listitem"
+                      title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
+                      aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
+                      className={cn(
+                        'flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl py-2',
+                        d.isToday && 'bg-secondary/60 ring-1 ring-primary/30',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'text-chart-label font-semibold uppercase tracking-wide',
+                          d.isToday
+                            ? 'text-content-secondary'
+                            : 'text-content-muted',
+                        )}
+                      >
+                        {d.label}
+                      </span>
+                      {MoodIcon ? (
+                        <MoodIcon
+                          className={cn(
+                            'h-4.5 w-4.5',
+                            MOOD_TONE[d.mood ?? '']?.text,
+                          )}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <Minus
+                          className="h-4 w-4 text-content-muted/40"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
+                <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
+                  Rekap 14 hari
+                </span>
+                {moodCounts
+                  .filter((c) => c.count > 0)
+                  .map((c, i, arr) => (
+                    <span
+                      key={c.name}
+                      className="flex items-center gap-2 text-meta font-semibold"
+                    >
+                      <span>
+                        <span className={MOOD_TONE[c.name]?.text}>
+                          {c.name}
+                        </span>{' '}
+                        <span className="tabular-nums text-content-muted">
+                          {c.count}×
+                        </span>
+                      </span>
+                      {i < arr.length - 1 && (
+                        <span
+                          aria-hidden="true"
+                          className="text-content-muted/50"
+                        >
+                          ·
+                        </span>
+                      )}
+                    </span>
+                  ))}
+              </div>
+            </>
+          ) : (
+            <RutinaEmptyState
+              className="mt-1"
+              icon={<Smile className="h-6 w-6" aria-hidden="true" />}
+              title="Belum ada catatan mood"
+              description="Isi check-in harian untuk mulai melihat pola suasana hatimu di sini."
+              action={
                 <RutinaButton
                   variant="primary"
                   size="sm"
-                  onClick={saveIdentity}
+                  onClick={() => useCheckInSheet.getState().openCheckIn()}
                 >
-                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  Simpan
+                  Isi check-in hari ini
                 </RutinaButton>
-              </div>
-            </div>
-          </div>
-        ) : identityText !== '' ? (
-          <figure className="relative mt-4 rounded-xl bg-secondary/50 px-5 pb-3.5 pt-5">
-            <span
-              aria-hidden="true"
-              className={`${playfair.className} pointer-events-none absolute -top-2 left-2.5 select-none text-[52px] leading-none text-primary/30`}
-            >
-              &ldquo;
-            </span>
-            <blockquote
-              className={`${playfair.className} text-lead font-medium italic leading-relaxed text-content-primary`}
-            >
-              {identityText}
-            </blockquote>
-            <figcaption className="mt-2 text-right text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
-              Suara identitasku
-            </figcaption>
-          </figure>
-        ) : (
-          <div className="mt-4 rounded-xl bg-surface-sunken px-4 py-4">
-            <p
-              className={`${playfair.className} text-section-lg font-medium italic leading-relaxed text-content-secondary`}
-            >
-              Siapa yang ingin kamu jadi lewat kebiasaan ini?
-            </p>
-            <RutinaButton
-              variant="secondary"
-              size="sm"
-              className="mt-3"
-              onClick={startEditIdentity}
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-              Tulis identitasku
-            </RutinaButton>
-          </div>
-        )}
-      </m.section>
-
-      {/* Riwayat Mood (audit #25) — strip 14 hari (terlama → terbaru):
-          inisial hari kerja + ikon mood sesuai warna energi, hari ini
-          disorot; di bawahnya rekap jumlah per mood. Kosong → ajakan
-          check-in lewat toko modul check-in. */}
-      <m.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.5,
-          delay: 0.08,
-          ease: motionTokens.easing.standard,
-        }}
-        className="mt-3 rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-        aria-label="Riwayat mood"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-            <HeartPulse className="h-4 w-4" />
-          </span>
-          <div className="flex-1">
-            <p className="text-body font-semibold text-content-primary">
-              Riwayat Mood
-            </p>
-            <p className="text-eyebrow font-medium text-content-muted">
-              Suasana hati 14 hari terakhir
-            </p>
-          </div>
-          {moodLogged && !todayMood && (
-            <button
-              type="button"
-              onClick={() => useCheckInSheet.getState().openCheckIn()}
-              className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-secondary px-3 text-eyebrow font-semibold text-success transition-colors hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-              Check-in
-            </button>
+              }
+            />
           )}
-        </div>
+        </m.section>
 
-        {moodLogged ? (
-          <>
-            <div
-              className="mt-4 flex gap-1"
-              role="list"
-              aria-label="Mood per hari, 14 hari terakhir"
-            >
-              {moodDays.map((d) => {
-                const MoodIcon = d.mood != null ? MOOD_ICONS[d.mood] : null
-                return (
-                  <div
-                    key={d.iso}
-                    role="listitem"
-                    title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
-                    aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
-                    className={cn(
-                      'flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl py-2',
-                      d.isToday && 'bg-secondary/60 ring-1 ring-primary/30',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'text-chart-label font-semibold uppercase tracking-wide',
-                        d.isToday
-                          ? 'text-content-secondary'
-                          : 'text-content-muted',
-                      )}
-                    >
-                      {d.label}
-                    </span>
-                    {MoodIcon ? (
-                      <MoodIcon
-                        className={cn(
-                          'h-4.5 w-4.5',
-                          MOOD_TONE[d.mood ?? '']?.text,
-                        )}
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Minus
-                        className="h-4 w-4 text-content-muted/40"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
-              <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
-                Rekap 14 hari
-              </span>
-              {moodCounts
-                .filter((c) => c.count > 0)
-                .map((c, i, arr) => (
-                  <span
-                    key={c.name}
-                    className="flex items-center gap-2 text-meta font-semibold"
-                  >
-                    <span>
-                      <span className={MOOD_TONE[c.name]?.text}>
-                        {c.name}
-                      </span>{' '}
-                      <span className="tabular-nums text-content-muted">
-                        {c.count}×
-                      </span>
-                    </span>
-                    {i < arr.length - 1 && (
-                      <span
-                        aria-hidden="true"
-                        className="text-content-muted/50"
-                      >
-                        ·
-                      </span>
-                    )}
-                  </span>
-                ))}
-            </div>
-          </>
-        ) : (
-          <RutinaEmptyState
-            className="mt-4"
-            icon={<Smile className="h-6 w-6" aria-hidden="true" />}
-            title="Belum ada catatan mood"
-            description="Isi check-in harian untuk mulai melihat pola suasana hatimu di sini."
-            action={
-              <RutinaButton
-                variant="primary"
-                size="sm"
-                onClick={() => useCheckInSheet.getState().openCheckIn()}
-              >
-                Isi check-in hari ini
-              </RutinaButton>
-            }
+        {/* ===== 2 · PREFERENSI — tampilan & ritme ===== */}
+        <m.div variants={slideInRow} className="mt-8">
+          <RutinaSectionHeader
+            title="Preferensi"
+            description="Tampilan & ritme harianmu"
           />
-        )}
-      </m.section>
-
-      {/* Chip kata kunci statis — tanpa marquee; ikon Leaf Cocoa Gold. */}
-      <BlurFade delay={0.18} className="mt-4">
-        <div className="flex flex-wrap gap-2">
-          {FOCUS_WORDS.map((w) => (
-            <span
-              key={w}
-              className="flex items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3.5 py-1.5 text-eyebrow font-semibold text-module-accent-strong"
-            >
-              <Leaf className="h-3 w-3 text-module-accent" aria-hidden="true" />
-              {w}
-            </span>
-          ))}
-        </div>
-      </BlurFade>
-
-      {/* Pemisah halus di atas kanvas Warm Sand (shadcn Separator) */}
-      <Separator className="mt-5 bg-border" />
-
-      {/* Pengaturan — koreografi stagger Motion (satu pemilik animasi) */}
-      <m.div
-        variants={staggerRows}
-        initial="hidden"
-        animate="show"
-        className="mt-5 space-y-3"
-      >
-        {/* Judul seksi: preferensi aplikasi */}
-        <m.div variants={slideInRow} className="pt-2.5">
-          <RutinaSectionHeader title="Preferensi" />
         </m.div>
-
-        {/* Target harian (shadcn Slider) */}
         <m.section
           variants={slideInRow}
-          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-          aria-label="Target misi harian"
+          aria-label="Preferensi aplikasi"
+          className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-              <Target className="h-4 w-4" />
-            </span>
-            <div className="flex-1">
-              <p className="text-body font-semibold text-content-primary">
-                Target Misi Harian
-              </p>
-              <p className="text-eyebrow font-medium text-content-muted">
-                Berapa misi yang ingin kamu selesaikan tiap hari?
-              </p>
+          <div className="divide-y divide-border-default">
+            {/* Mode gelap — Switch (next-themes; satu sumber tema). */}
+            <SettingRow
+              icon={dark ? Moon : Sun}
+              label="Mode gelap"
+              description="Palet espresso yang tenang untuk malam hari"
+              control={
+                <Switch
+                  checked={dark}
+                  onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
+                  aria-label="Mode gelap"
+                />
+              }
+            />
+
+            {/* Bahasa — preferensi saat ini ditampilkan sebagai informasi
+                statis (review v2.13): menu interaktif dengan pilihan yang
+                belum benar-benar berfungsi memberi kesan ada pengaturan
+                yang bisa diubah. Menu dikembalikan saat multi-bahasa
+                benar-benar tersedia. */}
+            <SettingRow
+              icon={Globe}
+              label="Bahasa"
+              description="Bahasa antarmuka aplikasi"
+              control={
+                <>
+                  Indonesia
+                  <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
+                    aktif
+                  </span>
+                </>
+              }
+            />
+
+            {/* Pengingat kebiasaan — jujur tanpa saklar palsu: jam pengingat
+                memang diatur per kebiasaan, maka baris ini mengantar ke
+                layar Kebiasaan (tempat suntingan misi menyediakan pilihan
+                jam) sambil menampilkan jumlah nyata yang aktif. */}
+            <SettingRow
+              icon={Bell}
+              label="Pengingat kebiasaan"
+              description={`${reminderCount} dari ${habits.length} kebiasaan memakai jam pengingat`}
+              onClick={() => setScreen('kebiasaan')}
+              control={<ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />}
+            />
+
+            {/* Target misi harian — baris yang dapat dikembangkan (slider
+                muncul di bawahnya; shadcn Slider). Diletakkan di ujung
+                grup: baris biasa dulu, lalu baris yang "tumbuh". */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setGoalOpen((v) => !v)}
+                aria-expanded={goalOpen}
+                aria-controls="preferensi-target-slider"
+                className="interactive flex w-full cursor-pointer items-center gap-3.5 px-4 py-3 text-left hover:bg-surface-sunken"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                >
+                  <Target className="h-4 w-4" strokeWidth={2.1} />
+                </span>
+                <span className="min-w-0 flex-1 py-0.5">
+                  <span className="block text-body font-semibold leading-snug text-content-primary">
+                    Target Misi Harian
+                  </span>
+                  <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
+                    Berapa misi ingin kamu selesaikan tiap hari?
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-note font-bold tabular-nums text-primary-foreground"
+                >
+                  {dailyGoal}
+                </span>
+                <ChevronRight
+                  aria-hidden="true"
+                  className={cn(
+                    'h-4 w-4 shrink-0 text-content-muted transition-transform duration-200',
+                    goalOpen && 'rotate-90',
+                  )}
+                />
+              </button>
+              {goalOpen && (
+                <m.div
+                  id="preferensi-target-slider"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: motionTokens.duration.fast,
+                    ease: motionTokens.easing.standard,
+                  }}
+                  className="px-4 pb-4 pt-1"
+                >
+                  <Slider
+                    value={[dailyGoal]}
+                    onValueChange={(v) => setDailyGoal(v[0])}
+                    min={1}
+                    max={12}
+                    step={1}
+                    aria-label="Target misi harian"
+                    className="[&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:border-primary [&_[data-slot=slider-thumb]]:bg-surface-primary"
+                  />
+                  <div className="mt-2 flex justify-between text-eyebrow font-semibold text-content-muted">
+                    <span>Santai (1)</span>
+                    <span>Seimbang (6)</span>
+                    <span>Produktif (12)</span>
+                  </div>
+                </m.div>
+              )}
             </div>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-note font-bold tabular-nums text-primary-foreground">
-              {dailyGoal}
-            </span>
-          </div>
-          <Slider
-            value={[dailyGoal]}
-            onValueChange={(v) => setDailyGoal(v[0])}
-            min={1}
-            max={12}
-            step={1}
-            aria-label="Target misi harian"
-            className="mt-4 [&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-range]]:bg-primary [&_[data-slot=slider-thumb]]:border-primary [&_[data-slot=slider-thumb]]:bg-surface-primary"
-          />
-          <div className="mt-2 flex justify-between text-eyebrow font-semibold text-content-muted">
-            <span>Santai (1)</span>
-            <span>Seimbang (6)</span>
-            <span>Produktif (12)</span>
           </div>
         </m.section>
 
-        {/* Bahasa — preferensi saat ini ditampilkan sebagai informasi
-            statis (review v2.13): menu interaktif dengan pilihan yang
-            belum benar-benar berfungsi memberi kesan ada pengaturan
-            yang bisa diubah. Menu dikembalikan saat multi-bahasa
-            benar-benar tersedia. */}
-        <m.div
-          variants={slideInRow}
-          className="flex min-h-[54px] items-center gap-3 rounded-xl border border-border bg-surface-primary px-4 shadow-soft"
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-            <Globe aria-hidden="true" className="h-4 w-4" />
-          </span>
-          <span className="flex-1 text-body font-medium text-content-primary">
-            Bahasa
-          </span>
-          <span className="flex items-center gap-1.5 text-note font-semibold text-content-muted">
-            Indonesia
-            <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
-              aktif
-            </span>
-          </span>
+        {/* ===== 3 · DATA & PENYIMPANAN — grup tersendiri ===== */}
+        <m.div variants={slideInRow} className="mt-8">
+          <RutinaSectionHeader
+            title="Data &amp; Penyimpanan"
+            description={`${habits.length} kebiasaan · ${notes.length} catatan · ${txs.length} transaksi — milikmu sepenuhnya`}
+          />
         </m.div>
-
-        {/* Judul seksi: data & penyimpanan */}
-        <m.div variants={slideInRow} className="pt-2.5">
-          <RutinaSectionHeader title="Data & Penyimpanan" />
-        </m.div>
-
-        {/* Data & penyimpanan — status jujur + mulai dari awal */}
         <m.section
           variants={slideInRow}
-          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
           aria-label="Data dan penyimpanan"
+          className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-              <HardDrive className="h-4 w-4" />
-            </span>
-            <div className="flex-1">
-              <p className="text-body font-semibold text-content-primary">
-                Data &amp; Penyimpanan
-              </p>
-              <p className="text-eyebrow font-medium text-content-muted">
-                {habits.length} kebiasaan · {notes.length} catatan ·{' '}
-                {txs.length} transaksi — tersinkron otomatis ke cloud
-              </p>
-            </div>
-            <span
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-secondary px-2.5 py-1 text-eyebrow font-semibold text-success"
-              title={
-                lastSyncedAt
-                  ? `Terakhir tersinkron ${new Date(lastSyncedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Menunggu sinkronisasi pertama'
+          <div className="divide-y divide-border-default">
+            {/* Ekspor cadangan — satu pintu, dua pilihan format. Unduhan
+                dipicu dari dialog agar baris grup tetap ringkas (audit 2g). */}
+            <SettingRow
+              icon={FileDown}
+              label="Ekspor cadangan"
+              description="Unduh salinan data — JSON lengkap atau CSV transaksi"
+              onClick={() => setExportOpen(true)}
+              control={<ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />}
+            />
+            {/* Pulihkan cadangan — baris label membungkus input berkas
+                sr-only (ketuk di mana pun pada baris untuk memilih). */}
+            <SettingRow
+              icon={Upload}
+              label="Pulihkan dari cadangan"
+              description="Impor berkas JSON — mengganti seluruh data saat ini"
+              htmlFor="import-backup"
+              control={
+                importing ? (
+                  <>
+                    <Loader2
+                      className="h-4 w-4 animate-spin text-content-muted"
+                      aria-hidden="true"
+                    />
+                    Memulihkan…
+                  </>
+                ) : (
+                  <ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />
+                )
               }
-            >
-              <Cloud className="h-3 w-3" />
-              {lastSyncedAt
-                ? new Date(lastSyncedAt).toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : 'Sinkron'}
-            </span>
-          </div>
-          <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta leading-relaxed text-content-secondary">
-            Rutina bekerja tanpa akun: setiap perubahan tersinkron otomatis
-            ke cloud pribadimu (Turso) dan tetap tersimpan di perangkat
-            sebagai cadangan offline — aplikasi tetap hidup tanpa internet.
-            Mulai dari awal akan menghapus semuanya secara permanen, di
-            perangkat maupun cloud.
-          </p>
-          <div className="mt-3 grid gap-2">
-            <button
-              type="button"
+            />
+            <SettingRow
+              icon={CloudDownload}
+              label="Tarik ulang dari cloud"
+              description="Muat snapshot terbaru dari Turso ke perangkat ini"
               onClick={() => void handleForcePull()}
               disabled={pulling}
-              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-note font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60"
-            >
-              {pulling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CloudDownload className="h-4 w-4" />
-              )}
-              {pulling ? 'Menarik data…' : 'Tarik ulang dari cloud'}
-            </button>
+              control={
+                pulling ? (
+                  <>
+                    <Loader2
+                      className="h-4 w-4 animate-spin text-content-muted"
+                      aria-hidden="true"
+                    />
+                    Menarik…
+                  </>
+                ) : (
+                  <ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />
+                )
+              }
+            />
           </div>
+          <input
+            id="import-backup"
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            disabled={importing}
+            onChange={handleImportFile}
+          />
         </m.section>
 
-        {/* ===== Ekspor & cadangan (v2.22) — unduh JSON penuh + CSV
-            transaksi; pulihkan cadangan JSON lewat berkas. ===== */}
+        {/* Info sinkron hidup — keadaan nyata dari engine (bukan statis):
+            menyiapkan / menyinkronkan / tersinkron + jam / offline / gagal. */}
+        <m.div variants={slideInRow} className="mt-3">
+          <SyncStatusCard variant="rail" />
+        </m.div>
+
+        {/* Dialog ekspor — dua pilihan format dengan penjelasan isi
+            masing-masing; unduhan + toast dipicu dari sini. */}
+        <RutinaDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          label="Ekspor cadangan"
+          className="max-w-[320px] p-6 sm:max-w-[320px]"
+        >
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-content-secondary">
+            <FileDown className="h-6 w-6" />
+          </div>
+          <h2 className="mt-3 text-center text-lead font-bold tracking-tight text-content-primary">
+            Ekspor cadangan
+          </h2>
+          <p className="mt-1 text-center text-note leading-relaxed text-content-muted">
+            Pilih format salinan yang ingin kamu simpan di luar aplikasi.
+          </p>
+          <div className="mt-4 grid gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setExportOpen(false)
+                downloadJsonBackup()
+              }}
+              className="interactive flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary px-4 py-3 text-left hover:bg-surface-sunken"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+              >
+                <FileJson className="h-4 w-4" strokeWidth={2.1} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-body font-semibold text-content-primary">
+                  Cadangan JSON
+                </span>
+                <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
+                  Salinan penuh — kebiasaan, catatan, transaksi, histori
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setExportOpen(false)
+                downloadCsv()
+              }}
+              className="interactive flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary px-4 py-3 text-left hover:bg-surface-sunken"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+              >
+                <FileSpreadsheet className="h-4 w-4" strokeWidth={2.1} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-body font-semibold text-content-primary">
+                  Transaksi (CSV)
+                </span>
+                <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
+                  {txs.length} transaksi — untuk spreadsheet &amp; pembukuan
+                </span>
+              </span>
+            </button>
+          </div>
+        </RutinaDialog>
+
+        {/* ===== 4 · ZONA KRITIS — dipisahkan dari pengaturan umum ===== */}
+        <m.div variants={slideInRow} className="mt-10">
+          <RutinaSectionHeader
+            title="Zona Kritis"
+            description="Tindakan permanen — sengaja jauh dari pengaturan harian"
+          />
+        </m.div>
         <m.section
           variants={slideInRow}
-          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-          aria-label="Ekspor dan cadangan"
+          aria-label="Zona kritis"
+          className="mt-3 rounded-xl border border-destructive/30 bg-surface-primary p-4 shadow-soft"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-              <Archive className="h-4 w-4" />
+          <div className="flex items-center gap-3.5 px-0.5 py-1">
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-clay/20 text-content-danger"
+            >
+              <TriangleAlert className="h-4 w-4" strokeWidth={2.1} />
             </span>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <p className="text-body font-semibold text-content-primary">
-                Ekspor &amp; Cadangan
+                Mulai dari awal
               </p>
-              <p className="text-eyebrow font-medium text-content-muted">
-                Simpan salinan di luar aplikasi — data milikmu sepenuhnya
+              <p className="mt-0.5 text-eyebrow font-medium leading-snug text-content-muted">
+                Menghapus semua kebiasaan, histori, catatan, dan transaksi —
+                dari perangkat &amp; cloud, permanen.
               </p>
             </div>
           </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={downloadJsonBackup}
-              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-note font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <FileJson className="h-4 w-4" />
-              Cadangan JSON
-            </button>
-            <button
-              type="button"
-              onClick={downloadCsv}
-              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/40 bg-secondary/60 text-note font-bold text-content-secondary transition-all hover:bg-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Transaksi (CSV)
-            </button>
-          </div>
-          <div className="mt-2">
-            <label
-              htmlFor="import-backup"
-              className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong text-note font-bold text-content-secondary transition-all hover:border-primary/50 hover:bg-surface-sunken active:scale-[0.98] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary"
-            >
-              <Upload className="h-4 w-4" />
-              {importing ? 'Memulihkan…' : 'Pulihkan dari cadangan JSON'}
-              <input
-                id="import-backup"
-                type="file"
-                accept="application/json,.json"
-                className="sr-only"
-                disabled={importing}
-                onChange={handleImportFile}
-              />
-            </label>
-            <p className="mt-2 text-eyebrow leading-relaxed text-content-muted">
-              Impor mengganti seluruh data saat ini dengan isi berkas
-              cadangan lalu tersinkron ke cloud — pastikan memilih berkas
-              yang benar.
-            </p>
-          </div>
-        </m.section>
-
-        {/* Zona bahaya — mulai dari awal */}
-        <m.section
-          variants={slideInRow}
-          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-          aria-label="Zona bahaya"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-clay/25 text-content-danger">
-              <TriangleAlert className="h-4 w-4" />
-            </span>
-            <div className="flex-1">
-              <p className="text-body font-semibold text-content-primary">
-                Zona Bahaya
-              </p>
-              <p className="text-eyebrow font-medium text-content-muted">
-                Mulai dari awal menghapus semuanya secara permanen
-              </p>
-            </div>
-          </div>
-          <div className="mt-3">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button
-                  type="button"
-                  className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-note font-bold text-content-danger transition-all hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Mulai dari awal
-                </button>
-              </AlertDialogTrigger>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-note font-bold text-content-danger hover:bg-destructive/10"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Mulai dari awal
+              </button>
+            </AlertDialogTrigger>
             <AlertDialogContent className="max-w-[320px] rounded-2xl border-border">
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-section-lg font-bold tracking-tight text-content-primary">
@@ -1098,69 +1268,70 @@ export default function ProfileScreen() {
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-            </AlertDialog>
-          </div>
+          </AlertDialog>
         </m.section>
 
-        {/* Judul seksi: aplikasi (PWA) */}
-        <m.div variants={slideInRow} className="pt-2.5">
-          <RutinaSectionHeader title="Aplikasi" />
+        {/* ===== 5 · APLIKASI & BANTUAN — paling bawah ===== */}
+        <m.div variants={slideInRow} className="mt-8">
+          <RutinaSectionHeader
+            title="Aplikasi &amp; Bantuan"
+            description="Pemasangan, pertanyaan umum, dan tentang Rutina"
+          />
         </m.div>
-
-        {/* Pasang aplikasi (PWA) — instal native dari browser */}
         <m.section
           variants={slideInRow}
-          className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-          aria-label="Pasang aplikasi"
+          aria-label="Aplikasi dan bantuan"
+          className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-              <MonitorSmartphone className="h-4 w-4" />
-            </span>
-            <div className="flex-1">
-              <p className="text-body font-semibold text-content-primary">
-                Pasang di perangkat
-              </p>
-              <p className="text-eyebrow font-medium text-content-muted">
-                Aplikasi mandiri (PWA) — layar penuh, ikon sendiri, tetap
-                bekerja offline
-              </p>
-            </div>
-          </div>
-          {appInstalled ? (
-            <p className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3.5 py-2.5 text-meta font-bold text-success">
-              <Check className="h-3.5 w-3.5 shrink-0" />
-              Sudah terpasang — kamu sedang menjalankan versi aplikasinya.
-            </p>
-          ) : (
-            <>
-              <button
-                type="button"
+          <div className="divide-y divide-border-default">
+            {appInstalled ? (
+              <SettingRow
+                icon={MonitorSmartphone}
+                label="Pasang di perangkat"
+                description="Sudah terpasang — kamu menjalankan versi aplikasinya"
+                control={
+                  <>
+                    <Check
+                      className="h-4 w-4 text-success"
+                      aria-hidden="true"
+                    />
+                    Terpasang
+                  </>
+                }
+              />
+            ) : (
+              <SettingRow
+                icon={MonitorSmartphone}
+                label="Pasang di perangkat"
+                description="Aplikasi mandiri (PWA) — layar penuh, bekerja offline"
                 onClick={() => void handleInstall()}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-note font-bold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <Download className="h-4 w-4" />
-                {installPrompt ? 'Pasang aplikasi' : 'Tambahkan ke Layar Utama'}
-              </button>
-              <p className="mt-2.5 text-eyebrow leading-relaxed text-content-muted">
-                {installPrompt
-                  ? 'Browser sudah menawarkan instal — ketuk untuk memasang.'
-                  : 'Chrome/Edge/Android: buka menu browser → "Pasang aplikasi". iPhone/iPad: tombol Bagikan → "Tambahkan ke Layar Utama".'}
-              </p>
-            </>
-          )}
+                control={
+                  installPrompt ? (
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="h-4 w-4 text-content-muted"
+                    />
+                  ) : (
+                    <Plus className="h-4 w-4 text-content-muted" aria-hidden="true" />
+                  )
+                }
+              />
+            )}
+            <SettingRow
+              icon={Info}
+              label="Tentang Rutina"
+              description="Versi, teknologi, dan nilai produk"
+              onClick={() => setAboutOpen(true)}
+              control={<ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />}
+            />
+          </div>
         </m.section>
-
-        {/* Judul seksi: bantuan & FAQ */}
-        <m.div variants={slideInRow} className="pt-2.5">
-          <RutinaSectionHeader title="Bantuan & FAQ" />
-        </m.div>
 
         {/* Pertanyaan umum (shadcn Accordion) */}
         <m.section
           variants={slideInRow}
-          className="rounded-xl border border-border bg-surface-primary px-4 shadow-soft"
           aria-label="Pertanyaan umum"
+          className="mt-3 rounded-xl border border-border bg-surface-primary px-4 shadow-soft"
         >
           <Accordion type="single" collapsible className="w-full">
             {FAQ_ITEMS.map((f, i) => (
@@ -1183,64 +1354,47 @@ export default function ProfileScreen() {
         {/* Tentang — RutinaDialog: tetap di dalam bingkai ponsel
             (shadcn Dialog di-portal ke body dan lolos dari bingkai
             di desktop). */}
-        <m.div variants={slideInRow}>
-          <button
-            type="button"
-            onClick={() => setAboutOpen(true)}
-            aria-haspopup="dialog"
-            className="flex min-h-[54px] w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary px-4 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-              <Info className="h-4 w-4" />
-            </span>
-            <span className="flex-1 text-body font-medium text-content-primary">
-              Tentang Rutina
-            </span>
-            <ChevronRight className="h-4 w-4 text-content-muted" />
-          </button>
-          <RutinaDialog
-            open={aboutOpen}
-            onClose={() => setAboutOpen(false)}
-            label="Tentang Rutina"
-            className="max-w-[320px] p-6 sm:max-w-[320px]"
-          >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-              <Leaf className="h-6 w-6 text-primary" />
-            </div>
-            <h2 className="mt-3 text-center text-lead font-bold tracking-tight text-content-primary">
-              Rutina 2.0
-            </h2>
-            <p className="mt-1 text-center text-note leading-relaxed text-content-muted">
-              Aplikasi kebiasaan &amp; jurnal dengan palet earth tone.
-              Dibangun dengan Next.js, Tailwind CSS 4, shadcn/ui, Motion,
-              dan anime.js.
-            </p>
-            <div className="mt-4 flex justify-center gap-2">
-              <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
-                Earth Tone
-              </Badge>
-              <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
-                Gamified
-              </Badge>
-              <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
-                Editorial
-              </Badge>
-            </div>
-            <div className="mt-5 flex justify-center">
-              <Button
-                type="button"
-                className="h-9 rounded-full bg-primary px-6 text-note font-bold text-primary-foreground hover:bg-action-hover"
-                onClick={() => {
-                  setAboutOpen(false)
-                  toast('Terima kasih sudah memakai Rutina!')
-                }}
-              >
-                Mengerti
-              </Button>
-            </div>
-          </RutinaDialog>
-        </m.div>
-
+        <RutinaDialog
+          open={aboutOpen}
+          onClose={() => setAboutOpen(false)}
+          label="Tentang Rutina"
+          className="max-w-[320px] p-6 sm:max-w-[320px]"
+        >
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+            <Leaf className="h-6 w-6 text-primary" />
+          </div>
+          <h2 className="mt-3 text-center text-lead font-bold tracking-tight text-content-primary">
+            Rutina 2.0
+          </h2>
+          <p className="mt-1 text-center text-note leading-relaxed text-content-muted">
+            Aplikasi kebiasaan &amp; jurnal dengan palet earth tone.
+            Dibangun dengan Next.js, Tailwind CSS 4, shadcn/ui, Motion,
+            dan anime.js.
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
+              Earth Tone
+            </Badge>
+            <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
+              Gamified
+            </Badge>
+            <Badge className="rounded-full bg-secondary text-eyebrow font-semibold text-success hover:bg-secondary">
+              Editorial
+            </Badge>
+          </div>
+          <div className="mt-5 flex justify-center">
+            <Button
+              type="button"
+              className="h-9 rounded-full bg-primary px-6 text-note font-bold text-primary-foreground hover:bg-action-hover"
+              onClick={() => {
+                setAboutOpen(false)
+                toast('Terima kasih sudah memakai Rutina!')
+              }}
+            >
+              Mengerti
+            </Button>
+          </div>
+        </RutinaDialog>
       </m.div>
 
       {/* Penutup — teks versi, sekaligus pemicu easter egg developer
@@ -1249,7 +1403,7 @@ export default function ProfileScreen() {
         type="button"
         onClick={handleVersionTap}
         aria-label="Rutina 2.0 Kebun Kebiasaan"
-        className="mt-6 block w-full cursor-pointer text-center text-eyebrow font-medium uppercase tracking-[0.14em] text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive mt-8 block w-full cursor-pointer text-center text-eyebrow font-medium uppercase tracking-[0.14em] text-content-muted"
       >
         Rutina 2.0 · Kebun Kebiasaan
       </button>

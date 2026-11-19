@@ -46,10 +46,11 @@ import {
   weekStartISO,
   type BugarTab,
   type Workout,
+  type WorkoutSheetHint,
   type WoFilter,
   type WoRange,
 } from '../store'
-import { BlurFade } from '../motion-kit'
+import { Counter } from '../counter'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import {
   activitySummary,
@@ -118,6 +119,18 @@ const WO_RANGES: { id: WoRange; label: string }[] = [
   { id: 'semua', label: 'Semua' },
 ]
 
+/* Pintasan mode catat cepat (v2.18) — chip ringkas SEKUNDER di bawah
+   CTA utama "Mulai Sesi" (audit Tahap 2: satu tombol dominan, pintasan
+   tidak bersaing ukuran); tiap chip membuka lembar Catat Aktivitas
+   tepat di mode yang dimaksuk. */
+const QUICK_MODES: { label: string; icon: typeof Zap; hint: WorkoutSheetHint }[] = [
+  { label: 'Lari', icon: Zap, hint: { mode: 'kardio', cardioKind: 'lari' } },
+  { label: 'Jalan', icon: Footprints, hint: { mode: 'kardio', cardioKind: 'jalan' } },
+  { label: 'Lari + Jalan', icon: ArrowLeftRight, hint: { mode: 'kardio', cardioKind: 'lari-jalan' } },
+  { label: 'Badminton', icon: Volleyball, hint: { mode: 'badminton' } },
+  { label: 'Barbel', icon: Dumbbell, hint: { mode: 'beban' } },
+]
+
 /* ===== Kartu program ===== */
 
 function ProgramCard({ prog, index }: { prog: Program; index: number }) {
@@ -126,10 +139,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.45,
+        duration: 0.24,
         delay: Math.min(0.08 + index * 0.06, 0.3),
         ease: motionTokens.easing.standard,
       }}
@@ -139,7 +152,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full cursor-pointer items-center gap-3.5 text-left transition-all active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive flex w-full cursor-pointer items-center gap-3.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-success">
           <Dumbbell className="h-5 w-5" />
@@ -226,7 +239,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                         workouts,
                       )
                     }
-                    className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-note font-bold text-primary-foreground transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-note font-bold text-primary-foreground hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Play className="h-3.5 w-3.5" />
                     Mulai sesi {day.label}
@@ -280,21 +293,23 @@ function WorkoutRow({
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{
-        duration: 0.35,
+        duration: 0.24,
         delay: Math.min(index * 0.04, 0.2),
         ease: motionTokens.easing.standard,
       }}
-      className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
+      /* Timeline vertikal hairline (ledger-row) — audit Tahap 2:
+         riwayat ringkas ala buku kas, bukan kartu berbayang per item. */
+      className="ledger-row py-3"
     >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full cursor-pointer items-center gap-3 text-left transition-all active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cls}`}
@@ -450,7 +465,7 @@ function WorkoutRow({
               <AlertDialogTrigger asChild>
                 <button
                   type="button"
-                  className="mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-meta font-bold text-content-danger transition-colors hover:bg-destructive/10 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                  className="interactive mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-destructive/35 text-meta font-bold text-content-danger hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Hapus aktivitas
@@ -516,7 +531,7 @@ function ExerciseCard({ name }: { name: string }) {
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        className="flex w-full cursor-pointer items-center gap-3 text-left transition-all active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="min-w-0 flex-1">
           <span className="block text-body font-semibold text-content-primary">
@@ -582,7 +597,7 @@ function ExerciseCard({ name }: { name: string }) {
                 onClick={() =>
                   openWorkoutSheet([{ name: ex.name, count: 3, reps: 8 }])
                 }
-                className="flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-note font-bold text-content-inverse transition-all hover:bg-surface-inverse-raised active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="interactive flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-note font-bold text-content-inverse hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Catat gerakan ini
@@ -618,47 +633,56 @@ function TonaseStrip() {
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
   /* Tonase per hari = Σ (beban × repetisi) dari sesi beban hari itu —
-     pecahan per tanggal dari logika weekSummary + tonaseOf yang sama. */
-  const { days, values, max } = useMemo(() => {
-    const start = weekRange().start
-    const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
-    const values = days.map((d) =>
+     pecahan per tanggal dari logika weekSummary + tonaseOf yang sama.
+     Deret pekan lalu (hari sama) + jumlah sesi dipakai blok detail
+     hari terpilih: volume, sesi, dan ±% vs pekan lalu (audit Tahap 2). */
+  const { days, values, lastValues, sessCounts, max } = useMemo(() => {
+    const tonaseOn = (d: string) =>
       workouts
         .filter((w) => w.date === d)
-        .reduce((a, w) => a + tonaseOf(w), 0),
+        .reduce((a, w) => a + tonaseOf(w), 0)
+    const start = weekRange().start
+    const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
+    const values = days.map(tonaseOn)
+    const lastValues = days.map((d) => tonaseOn(addDaysISO(d, -7)))
+    const sessCounts = days.map(
+      (d) => workouts.filter((w) => w.date === d && w.kind === 'beban').length,
     )
     return {
       days,
       values,
+      lastValues,
+      sessCounts,
       max: Math.max(...values, 0),
     }
   }, [workouts])
 
   const todayIdx = (new Date(todayISO() + 'T00:00:00').getDay() + 6) % 7
 
-  /* Bacaan header: hari terpilih bila ada — total pekan sengaja tidak
-     ditampilkan lagi di sini karena hero sudah memuatnya (audit
-     visualisasi v2.12). */
+  /* Rekap pekan di header — perbandingan ringkas “vs pekan lalu”
+     (audit Tahap 2); bacaan hari terpilih pindah ke blok detail di
+     bawah batang, bukan menumpuk di header. */
+  const fmtKg = (n: number) => `${Math.round(n).toLocaleString('id-ID')} kg`
+  const total = values.reduce((a, b) => a + b, 0)
+  const lastTotal = lastValues.reduce((a, b) => a + b, 0)
+  const weekDelta =
+    lastTotal > 0 ? Math.round(((total - lastTotal) / lastTotal) * 100) : null
   const headerRight =
-    selIdx != null
-      ? `${TONASE_DAY_NAMES[selIdx]} · ${
-          values[selIdx] > 0
-            ? `${Math.round(values[selIdx]).toLocaleString('id-ID')} kg`
-            : 'tidak ada latihan'
-        }${
-          values[selIdx] > 0 && max > 0 && values[selIdx] === max
-            ? ' · terberat pekan ini'
-            : ''
-        }`
-      : 'ketuk batang untuk detail'
+    total === 0 && lastTotal === 0
+      ? 'ketuk hari untuk detail'
+      : lastTotal === 0
+        ? `${fmtKg(total)} pekan ini`
+        : `${fmtKg(total)} · ${
+            weekDelta! >= 0 ? '+' : '−'
+          }${Math.abs(weekDelta!)}% vs lalu`
 
   return (
     <m.section
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: motionTokens.duration.enter,
-        delay: 0.1,
+        duration: 0.24,
+        delay: 0.06,
         ease: motionTokens.easing.standard,
       }}
       aria-label="Tonase 7 hari pekan ini"
@@ -670,7 +694,9 @@ function TonaseStrip() {
         </h2>
         <p
           className={`text-eyebrow font-medium tabular-nums ${
-            selIdx != null ? 'text-module-accent-strong' : 'text-content-muted'
+            total > 0 || lastTotal > 0
+              ? 'text-module-accent-strong'
+              : 'text-content-muted'
           }`}
         >
           {headerRight}
@@ -698,7 +724,7 @@ function TonaseStrip() {
                 has ? `${Math.round(v).toLocaleString('id-ID')} kg tonase` : 'tidak ada latihan'
               }`}
               onClick={() => setSelIdx(isSel ? null : i)}
-              className="group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+              className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
             >
               <div className="flex h-16 w-full items-end">
                 <m.div
@@ -734,6 +760,55 @@ function TonaseStrip() {
           )
         })}
       </div>
+
+      {/* Detail hari terpilih — volume, jumlah sesi, dan ±% vs hari
+          yang sama pekan lalu (audit grafik tonase Tahap 2). */}
+      <AnimatePresence initial={false}>
+        {selIdx != null && (
+          <m.div
+            key="detail"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
+              <p className="text-body font-semibold leading-snug text-content-primary">
+                {TONASE_DAY_NAMES[selIdx]} ·{' '}
+                {values[selIdx] > 0 ? fmtKg(values[selIdx]) : 'tidak ada latihan'}
+                {values[selIdx] > 0 && max > 0 && values[selIdx] === max
+                  ? ' · terberat pekan ini'
+                  : ''}
+              </p>
+              <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-meta tabular-nums text-content-muted">
+                <span>{sessCounts[selIdx]} sesi beban</span>
+                {(() => {
+                  const v = values[selIdx]
+                  const lv = lastValues[selIdx]
+                  if (v === 0 && lv === 0)
+                    return <span>pekan lalu juga kosong</span>
+                  if (lv === 0)
+                    return (
+                      <span className="text-success">
+                        pekan lalu 0 kg — baru tercatat
+                      </span>
+                    )
+                  const d = Math.round(((v - lv) / lv) * 100)
+                  return (
+                    <span
+                      className={d >= 0 ? 'text-success' : 'text-content-danger'}
+                    >
+                      vs hari sama lalu ({fmtKg(lv)}): {d >= 0 ? '+' : '−'}
+                      {Math.abs(d)}%
+                    </span>
+                  )
+                })()}
+              </p>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </m.section>
   )
 }
@@ -986,149 +1061,42 @@ export default function BugarScreen() {
               agar teks putih lolos AA 6,4:1; base dipertahankan untuk ikon/
               aksen), teks module-accent-fg ikut terbalik di mode gelap. */}
           <m.section
-            initial={{ opacity: 0, y: 22 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
+            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
             aria-label="Ringkasan latihan pekan ini"
-            className="relative overflow-hidden rounded-2xl bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
+            className="relative overflow-hidden rounded-2xl bg-module-accent-strong p-5 text-module-accent-fg shadow-leaf @[24rem]:p-6"
           >
         <div className="relative z-10">
           <p className="text-note font-medium text-module-accent-fg/80">
             Aktivitas minggu ini
           </p>
-          {/* Empat jenis aktivitas dalam satu ringkasan (v2.17) —
-              lari & jalan (km), badminton (jam), barbel (sesi), hari
-              aktif. Angka dari histori nyata, bukan target. */}
-          <div className="mt-3 grid grid-cols-2 gap-3 @[24rem]:grid-cols-4">
-            <div>
-              <p className="flex items-baseline">
-                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
-                  {week.runKm > 0 ? week.runKm.toFixed(1).replace('.', ',') : 0}
-                </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/80">km</span>
-              </p>
-              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                lari &amp; jalan{week.runSessions > 0 ? ` · ${week.runSessions}×` : ''}
-              </p>
-            </div>
-            <div>
-              <p className="flex items-baseline">
-                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
-                  {week.badmintonHours > 0
-                    ? week.badmintonHours.toFixed(1).replace('.', ',')
-                    : 0}
-                </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/80">jam</span>
-              </p>
-              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                badminton{week.badmintonSessions > 0 ? ` · ${week.badmintonSessions}×` : ''}
-              </p>
-            </div>
-            <div>
-              <p className="flex items-baseline">
-                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
-                  {week.strengthSessions}
-                </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/80">
-                  {week.strengthSessions === 1 ? 'sesi' : 'sesi'}
-                </span>
-              </p>
-              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                latihan barbel
-              </p>
-            </div>
-            <div>
-              <p className="flex items-baseline">
-                <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums @[24rem]:text-kpi-lg">
-                  {week.activeDays}
-                </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/80">
-                  {week.activeDays === 1 ? 'hari' : 'hari'}
-                </span>
-              </p>
-              <p className="mt-1 text-eyebrow font-medium text-module-accent-fg/85">
-                hari aktif
-              </p>
-            </div>
-          </div>
-          {/* Keadaan kosong yang memandu (v2.19): empat angka nol tanpa
-              konteks terasa “mati” — satu kalimat pengarah + pintasan di
-              bawahnya mengubah nol menjadi ajakan memulai. */}
-          {week.runKm === 0 &&
-            week.badmintonHours === 0 &&
-            week.strengthSessions === 0 &&
-            week.activeDays === 0 && (
-              <p className="mt-3.5 rounded-2xl bg-espresso/25 px-3.5 py-3 text-meta font-medium leading-relaxed text-module-accent-fg/90 backdrop-blur-sm">
-                Belum ada aktivitas pekan ini — catat lari, jalan, badminton,
-                atau barbel lewat pintasan di bawah. Cukup ingatan dan angka
-                dari jam tanganmu.
-              </p>
-            )}
-          {/* Pintasan template aktivitas (v2.18) — jawaban langsung
-              “template lari/jalan mana?”: lima pintasan membuka lembar
-              Catat Aktivitas tepat di mode yang dimaksuk. Kisi 3 kolom
-              (v2.19) menggantikan flex-wrap — lebar chip seragam dan
-              baris kedua rapi, bukan menggantung tak beraturan. */}
-          <div
-            role="group"
-            aria-label="Catat aktivitas baru"
-            className="mt-4 grid grid-cols-3 gap-1.5 @[30rem]:flex @[30rem]:flex-wrap"
-          >
-            {([
-              {
-                label: 'Lari',
-                icon: Zap,
-                hint: { mode: 'kardio', cardioKind: 'lari' } as const,
-              },
-              {
-                label: 'Jalan',
-                icon: Footprints,
-                hint: { mode: 'kardio', cardioKind: 'jalan' } as const,
-              },
-              {
-                label: 'Lari + Jalan',
-                icon: ArrowLeftRight,
-                hint: { mode: 'kardio', cardioKind: 'lari-jalan' } as const,
-              },
-              {
-                label: 'Badminton',
-                icon: Volleyball,
-                hint: { mode: 'badminton' } as const,
-              },
-              {
-                label: 'Barbel',
-                icon: Dumbbell,
-                hint: { mode: 'beban' } as const,
-              },
-            ]).map((a) => {
-              const Icon = a.icon
-              return (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={() => openWorkoutSheet(undefined, { ...a.hint })}
-                  aria-label={`Catat ${a.label}`}
-                  className="flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-espresso/25 px-2 text-center text-eyebrow font-bold text-module-accent-fg backdrop-blur-sm transition-all hover:bg-espresso/40 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  {a.label}
-                </button>
-              )
-            })}
-          </div>
+          {/* SATU komposisi hero (audit Tahap 2): metrik utama paling
+              dominan — total durasi menit — dengan SATU count-up;
+              jarak/badminton/sesi/hari aktif jadi baris pendukung kecil
+              di bawah hairline (statis, fade-in saja). */}
+          <p className="mt-3 flex items-baseline">
+            <span className="text-kpi-hero font-bold leading-none tracking-tight tabular-nums">
+              {reducedMotion ? (
+                Math.round(week.minutes).toLocaleString('id-ID')
+              ) : (
+                <Counter to={Math.round(week.minutes)} />
+              )}
+            </span>
+            <span className="ml-1.5 text-lead font-semibold text-module-accent-fg/85">
+              mnt
+            </span>
+          </p>
+          <p className="mt-1 text-meta font-medium text-module-accent-fg/85">
+            menit bergerak pekan ini
+            {week.minutes >= 60 &&
+              ` · ≈ ${(week.minutes / 60).toFixed(1).replace('.', ',')} jam`}
+          </p>
 
-          {week.minutes > 0 && (
-            <p className="mt-2.5 text-eyebrow font-medium text-module-accent-fg/80">
-              Total {Math.round(week.minutes / 60 * 10) / 10 === 0 ? `${week.minutes} menit` : `${(week.minutes / 60).toFixed(1).replace('.', ',')} jam`} bergerak pekan ini
-              {week.tonase > 0 &&
-                ` · ${Math.round(week.tonase).toLocaleString('id-ID')} kg tonase barbel`}
-            </p>
-          )}
-
-          {/* Menit vs sasaran pekan (v2.22) — bar progres menuju target
-              Sasaran Musim; sesi vs sasaran ikut tampil di baris kecil. */}
+          {/* Menit vs sasaran pekan (v2.22) — progres untuk metrik utama;
+              sesi vs sasaran ikut tampil di baris kecilnya. */}
           {fitTargets.minutes > 0 && (
-            <div className="mt-2.5">
+            <div className="mt-3">
               <div className="flex items-baseline justify-between gap-2 text-eyebrow font-semibold text-module-accent-fg/85">
                 <span className="tabular-nums">
                   {week.minutes} / {fitTargets.minutes} menit sasaran
@@ -1156,6 +1124,80 @@ export default function BugarScreen() {
             </div>
           )}
 
+          {/* Empat metrik pendukung — baris kecil di bawah hairline;
+              angka dari histori nyata, bukan target (v2.17). */}
+          <m.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.24,
+              delay: 0.18,
+              ease: motionTokens.easing.standard,
+            }}
+            className="mt-4 grid grid-cols-2 gap-3 border-t border-module-accent-fg/25 pt-4 @[24rem]:grid-cols-4"
+          >
+            <div className="min-w-0">
+              <p className="flex items-baseline">
+                <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                  {week.runKm > 0 ? week.runKm.toFixed(1).replace('.', ',') : 0}
+                </span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">km</span>
+              </p>
+              <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                lari &amp; jalan{week.runSessions > 0 ? ` · ${week.runSessions}×` : ''}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="flex items-baseline">
+                <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                  {week.badmintonHours > 0
+                    ? week.badmintonHours.toFixed(1).replace('.', ',')
+                    : 0}
+                </span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">jam</span>
+              </p>
+              <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                badminton{week.badmintonSessions > 0 ? ` · ${week.badmintonSessions}×` : ''}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="flex items-baseline">
+                <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                  {week.strengthSessions}
+                </span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">sesi</span>
+              </p>
+              <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                latihan barbel
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="flex items-baseline">
+                <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                  {week.activeDays}
+                </span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">hari</span>
+              </p>
+              <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                hari aktif
+              </p>
+            </div>
+          </m.div>
+
+          {/* Keadaan kosong yang memandu (v2.19): empat angka nol tanpa
+              konteks terasa “mati” — satu kalimat pengarah + pintasan di
+              bawahnya mengubah nol menjadi ajakan memulai. */}
+          {week.runKm === 0 &&
+            week.badmintonHours === 0 &&
+            week.strengthSessions === 0 &&
+            week.activeDays === 0 && (
+              <p className="mt-3.5 rounded-2xl bg-espresso/25 px-3.5 py-3 text-meta font-medium leading-relaxed text-module-accent-fg/90 backdrop-blur-sm">
+                Belum ada aktivitas pekan ini — catat lari, jalan, badminton,
+                atau barbel lewat pintasan di bawah. Cukup ingatan dan angka
+                dari jam tanganmu.
+              </p>
+            )}
+
           {topPr && (
             <div className="mt-4 flex items-center gap-2 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
               <Trophy className="h-4 w-4 shrink-0 text-pistachio" />
@@ -1168,29 +1210,65 @@ export default function BugarScreen() {
             </div>
           )}
 
-          {weekKcal > 0 && (
-            <p className="mt-2 text-eyebrow font-medium text-module-accent-fg/80">
-              ≈ {weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini
-              {weight == null && ' (asumsi 60 kg — timbang dirimu di tab Tubuh)'}
+          {/* Footer angka pekan — tonase barbel + estimasi kkal terbakar
+              dalam satu baris eyebrow ringkas (menggantikan dua baris lama
+              yang tumpang-tindih dengan metrik utama). */}
+          {(week.tonase > 0 || weekKcal > 0) && (
+            <p className="mt-2.5 text-eyebrow font-medium leading-relaxed text-module-accent-fg/80">
+              {week.tonase > 0 &&
+                `${Math.round(week.tonase).toLocaleString('id-ID')} kg tonase barbel`}
+              {week.tonase > 0 && weekKcal > 0 && ' · '}
+              {weekKcal > 0 &&
+                `≈ ${weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini${
+                  weight == null ? ' (asumsi 60 kg — timbang dirimu di tab Tubuh)' : ''
+                }`}
             </p>
           )}
         </div>
       </m.section>
 
-      {/* Tombol mulai sesi imersif — template catat cepat (lari, jalan,
-          badminton, barbel) sudah tersedia sebagai chip di hero atas. */}
+      {/* Tombol utama dominan — SATU CTA terbesar di layar (matcha
+          aksi, audit Tahap 2); pintasan mode di bawahnya jadi chip
+          ringkas sekunder yang tidak bersaing ukuran. */}
       <m.button
         type="button"
         onClick={() => setSessionPickerOpen(true)}
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.08, ease: motionTokens.easing.standard }}
-        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        transition={{ duration: 0.24, delay: 0.06, ease: motionTokens.easing.standard }}
+        className="interactive mt-3 flex h-13 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-lift hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        <Play className="h-5 w-5" strokeWidth={2.5} />
+        <Play className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
         Mulai Sesi Barbel
       </m.button>
+
+      {/* Pintasan catat cepat (v2.18) — chip horizontal sekunder; tiap
+          chip membuka lembar Catat Aktivitas di mode yang tepat. */}
+      <div
+        role="group"
+        aria-label="Catat aktivitas baru"
+        className="mt-2 flex gap-1.5 overflow-x-auto no-scrollbar pb-1"
+      >
+        {QUICK_MODES.map((a) => {
+          const Icon = a.icon
+          return (
+            <button
+              key={a.label}
+              type="button"
+              onClick={() => openWorkoutSheet(undefined, { ...a.hint })}
+              aria-label={`Catat ${a.label}`}
+              className="interactive flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 text-meta font-bold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+            >
+              <Icon
+                className="h-3.5 w-3.5 shrink-0 text-module-accent-strong"
+                aria-hidden="true"
+              />
+              {a.label}
+            </button>
+          )
+        })}
+      </div>
               </RutinaBentoItem>
               <RutinaBentoItem span="feature">
       {/* ===== Coach Bugar — kesiapan, deload, guard, alat ===== */}
@@ -1204,9 +1282,9 @@ export default function BugarScreen() {
         <div className="mt-3 space-y-2.5">
           {/* a. Kesiapan latihan — ringkas dari check-in hari ini */}
           <m.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
+            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
             className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
           >
             <div className="flex items-center gap-3">
@@ -1242,7 +1320,7 @@ export default function BugarScreen() {
               <button
                 type="button"
                 onClick={openCheckIn}
-                className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-surface-inverse pl-4 pr-[72px] text-note font-bold text-content-inverse transition-all hover:bg-surface-inverse-raised active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="interactive mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-surface-inverse pl-4 pr-[72px] text-note font-bold text-content-inverse hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {/* pr-[72px] = FAB 56px + jarak 16px: label tak pernah
                     tertindih FAB mengambang yang anchored di kanan-bawah. */}
@@ -1251,12 +1329,15 @@ export default function BugarScreen() {
             )}
           </m.div>
 
-          {/* b. Deload aktif / plateau terdeteksi */}
+          {/* b. SATU peringatan paling relevan — prioritas: deload aktif
+              > plateau > guard kardio. Maksimal satu kartu peringatan
+              (di samping kesiapan) agar Coach bukan daftar panjang
+              (audit Tahap 2: saring saran, 1–2 rekomendasi saja). */}
           {deloadOn && deloadUntil ? (
             <m.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.05, ease: motionTokens.easing.standard }}
+              transition={{ duration: 0.24, delay: 0.05, ease: motionTokens.easing.standard }}
               className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
@@ -1278,16 +1359,16 @@ export default function BugarScreen() {
                   endDeload()
                   toast.success('Deload diakhiri — beban kembali normal.')
                 }}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-note font-bold text-content-danger transition-colors hover:bg-destructive/15 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-note font-bold text-content-danger hover:bg-destructive/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Akhiri deload sekarang
               </button>
             </m.div>
           ) : stalledNames.length > 0 ? (
             <m.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.05, ease: motionTokens.easing.standard }}
+              transition={{ duration: 0.24, delay: 0.05, ease: motionTokens.easing.standard }}
               className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
@@ -1323,19 +1404,16 @@ export default function BugarScreen() {
                   startDeload(7)
                   toast.success('Deload 7 hari dimulai — target beban dipangkas 50%.')
                 }}
-                className="mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-note font-bold text-destructive-foreground transition-colors hover:bg-destructive/90 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Mulai deload 7 hari
               </button>
             </m.div>
-          ) : null}
-
-          {/* c. Guard latihan silang — kardio berlebihan 7 hari */}
-          {guard.tooMuch && guard.suggestion && (
+          ) : guard.tooMuch && guard.suggestion ? (
             <m.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.08, ease: motionTokens.easing.standard }}
+              transition={{ duration: 0.24, delay: 0.08, ease: motionTokens.easing.standard }}
               className="rounded-xl border border-destructive/30 bg-surface-sunken p-4"
             >
               <div className="flex items-start gap-3">
@@ -1352,13 +1430,13 @@ export default function BugarScreen() {
                 </div>
               </div>
             </m.div>
-          )}
+          ) : null}
 
-          {/* d. Pintasan Alat Barbel */}
+          {/* c. Pintasan Alat Barbel — alat bantu, bukan rekomendasi */}
           <button
             type="button"
             onClick={() => setBarbellOpen(true)}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-4 text-left shadow-soft transition-all hover:bg-surface-secondary/60 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="interactive flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-4 text-left shadow-soft hover:bg-surface-secondary/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
               <Calculator className="h-5 w-5" aria-hidden="true" />
@@ -1445,7 +1523,7 @@ export default function BugarScreen() {
                 }}
                 aria-pressed={on}
                 className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                  'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                   (on
                     ? 'bg-surface-inverse text-content-inverse shadow-soft'
                     : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -1487,9 +1565,9 @@ export default function BugarScreen() {
             (v2.17); kompak, satu grafik saja agar halaman tidak penuh. */}
         {distSeries.length >= 3 && (woFilter === 'semua' || woFilter === 'kardio') && (
           <m.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
             className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
             role="img"
             aria-label={`Grafik perkembangan jarak ${distSeries.length} sesi kardio terakhir: ${distSeries
@@ -1510,12 +1588,16 @@ export default function BugarScreen() {
                 return distSeries.map((d, i) => (
                   <m.div
                     key={`${d.date}-${i}`}
-                    initial={{ height: 0 }}
-                    animate={{ height: `${Math.max(8, (d.km / max) * 100)}%` }}
+                    initial={{ scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
                     transition={{
                       duration: 0.5,
-                      delay: i * 0.05,
+                      delay: i * motionTokens.stagger.normal,
                       ease: motionTokens.easing.standard,
+                    }}
+                    style={{
+                      height: `${Math.max(8, (d.km / max) * 100)}%`,
+                      transformOrigin: 'bottom',
                     }}
                     className="min-w-0 flex-1 rounded-t-md bg-module-accent/70"
                     title={`${shortDateLabel(d.date)} · ${d.km.toFixed(2).replace('.', ',')} km`}
@@ -1533,7 +1615,9 @@ export default function BugarScreen() {
           </m.div>
         )}
 
-        <div className="mt-3 max-h-[430px] space-y-2.5 overflow-y-auto no-scrollbar pr-1">
+        {/* Daftar riwayat — hairline ledger-row per item (audit Tahap 2),
+            bukan tumpukan kartu berbayang; tetap digulir bertahap. */}
+        <div className="mt-3 max-h-[430px] overflow-y-auto no-scrollbar pr-1">
           <AnimatePresence initial={false} mode="popLayout">
             {historySlice.map((w, i) => (
               <WorkoutRow key={w.id} w={w} index={i} bodyWeight={weight} />
@@ -1543,7 +1627,7 @@ export default function BugarScreen() {
                 key="wo-more"
                 type="button"
                 onClick={() => setHistoryLimit((n) => n + 15)}
-                className="w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Tampilkan {Math.min(15, historyHidden)} aktivitas lagi
                 {historyHidden > 15 ? ` (${historyHidden} tersisa)` : ''}
@@ -1552,10 +1636,10 @@ export default function BugarScreen() {
             {filteredWorkouts.length === 0 && workouts.length > 0 && (
               <m.div
                 key="wo-nofilter"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+                transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
               >
                 <RutinaEmptyState
                   icon={<Search />}
@@ -1567,10 +1651,10 @@ export default function BugarScreen() {
             {workouts.length === 0 && (
               <m.div
                 key="wo-empty"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+                transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
               >
                 <RutinaEmptyState
                   icon={<History />}
@@ -1581,7 +1665,7 @@ export default function BugarScreen() {
                       type="button"
                       onClick={() => openWorkoutSheet()}
                       whileTap={{ scale: 0.95 }}
-                      className="flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="interactive flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />
                       Catat Aktivitas
@@ -1618,7 +1702,7 @@ export default function BugarScreen() {
                 type="button"
                 onClick={() => openWorkoutSheet(undefined, { mode: 'beban' })}
                 whileTap={{ scale: 0.95 }}
-                className="flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="interactive flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Dumbbell className="h-4 w-4" aria-hidden="true" />
                 Catat Latihan Barbel
@@ -1630,10 +1714,10 @@ export default function BugarScreen() {
             {prs.map((r, i) => (
               <m.div
                 key={r.name}
-                initial={{ opacity: 0, x: -14 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: 0.35,
+                  duration: 0.24,
                   delay: Math.min(i * 0.05, 0.3),
                   ease: motionTokens.easing.standard,
                 }}
@@ -1663,7 +1747,7 @@ export default function BugarScreen() {
                   <PrSpark points={prHistory.get(r.name)!.slice(-8)} />
                 )}
                 <div className="shrink-0 text-right">
-                  <p className="text-section-lg font-bold leading-none tabular-nums text-content-primary">
+                  <p className="text-kpi-sm font-bold leading-none tabular-nums text-content-primary">
                     {r.best.toFixed(1).replace('.', ',')}
                   </p>
                   <p className="font-mono text-chart-label font-medium uppercase tracking-[0.08em] text-content-muted">
@@ -1687,7 +1771,14 @@ export default function BugarScreen() {
           </span>
         </div>
 
-        <BlurFade delay={0.05} className="mt-3">
+        {/* Pencarian pustaka — entrance fade+rise standar (audit Tahap 2:
+            tanpa blur — BlurFade dipensiunkan dari informasi harian). */}
+        <m.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.24, delay: 0.05, ease: motionTokens.easing.standard }}
+          className="mt-3"
+        >
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
             <Input
@@ -1697,7 +1788,7 @@ export default function BugarScreen() {
               className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-body text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
             />
           </div>
-        </BlurFade>
+        </m.div>
 
         <div className="relative mt-3">
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -1710,7 +1801,7 @@ export default function BugarScreen() {
                   aria-pressed={active}
                   onClick={() => setLibMuscle(g)}
                   className={
-                    'h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                    'interactive h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                     (active
                       ? 'bg-surface-inverse text-content-inverse shadow-soft'
                       : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')

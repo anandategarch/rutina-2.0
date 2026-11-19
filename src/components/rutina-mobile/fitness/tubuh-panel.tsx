@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
   BatteryCharging,
@@ -53,6 +53,10 @@ const ENERGY_OPTIONS: { v: number; label: string }[] = [
  *  naik/turun berat belum tentu baik/buruk tanpa konteks target. */
 function WeightSpark({ logs }: { logs: BodyLogs }) {
   const series = useMemo(() => weightSeries(logs).slice(-14), [logs])
+  /* Id gradient isian — dibersihkan dari “:” useId agar aman dipakai
+     sebagai fragmen url(#…) SVG di semua browser. Dipanggil di puncak
+     komponen (sebelum return awal) demi aturan urutan hook. */
+  const fillId = `tubuh-weight-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
 
   const fmtKg = (n: number) => n.toFixed(1).replace('.', ',')
   const dateShort = (iso: string) =>
@@ -110,6 +114,14 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
     return { x, y }
   })
   const path = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  /* Isian lembut di bawah garis (audit Tahap 2): gradasi vertikal dari
+     chart-stroke-1 pekat 20% menjadi transparan — garis tetap tegas
+     (stroke token chart-stroke), area hanya nuansa. */
+  const baseY = H - 6
+  const area = `M ${pts[0]!.x.toFixed(1)},${baseY} L ${path.replaceAll(
+    ' ',
+    ' L ',
+  )} L ${pts[pts.length - 1]!.x.toFixed(1)},${baseY} Z`
 
   return (
     <div>
@@ -141,6 +153,21 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
           role="img"
           aria-label={`Tren berat badan ${series.length} catatan terakhir: dari ${fmtKg(first.kg)} kg menjadi ${fmtKg(last.kg)} kg, ${deltaText}. Rentang ${fmtKg(min)}–${fmtKg(max)} kg`}
         >
+          <defs>
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="0%"
+                stopColor="var(--chart-stroke-1)"
+                stopOpacity="0.2"
+              />
+              <stop
+                offset="100%"
+                stopColor="var(--chart-stroke-1)"
+                stopOpacity="0"
+              />
+            </linearGradient>
+          </defs>
+          <path d={area} fill={`url(#${fillId})`} />
           <polyline
             points={path}
             fill="none"
@@ -222,9 +249,9 @@ export function TubuhPanel() {
     <div>
       {/* Check-in tidur & energi */}
       <m.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
+        transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
         aria-label="Check-in harian tubuh"
         className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -259,7 +286,7 @@ export function TubuhPanel() {
               onClick={() =>
                 logBodyCheckIn({ sleepH: Math.max(0, (sleepH ?? 7) - 0.5) })
               }
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -275,7 +302,7 @@ export function TubuhPanel() {
               onClick={() =>
                 logBodyCheckIn({ sleepH: Math.min(12, (sleepH ?? 7) + 0.5) })
               }
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -297,7 +324,7 @@ export function TubuhPanel() {
                   aria-pressed={on}
                   aria-label={`Energi ${o.v} — ${o.label}`}
                   onClick={() => logBodyCheckIn({ energy: o.v })}
-                  className={`flex h-[52px] flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`interactive flex h-[52px] flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl text-meta font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     on
                       ? 'bg-primary text-primary-foreground shadow-soft'
                       : 'border border-border bg-surface-sunken text-content-muted'
@@ -319,9 +346,9 @@ export function TubuhPanel() {
 
       {/* Kesiapan latihan — turunan check-in */}
       <m.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.06, ease: motionTokens.easing.standard }}
+        transition={{ duration: 0.24, delay: 0.06, ease: motionTokens.easing.standard }}
         aria-label="Kesiapan latihan"
         className={`mt-3 overflow-hidden rounded-2xl p-5 shadow-leaf ${
           readiness
@@ -368,7 +395,7 @@ export function TubuhPanel() {
                 <button
                   type="button"
                   onClick={openCheckIn}
-                  className="mt-2.5 flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary-foreground/15 px-4 text-meta font-bold text-primary-foreground transition-colors hover:bg-primary-foreground/25 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+                  className="interactive mt-2.5 flex h-10 items-center justify-center gap-1.5 rounded-full bg-primary-foreground/15 px-4 text-meta font-bold text-primary-foreground hover:bg-primary-foreground/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
                 >
                   <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
                   Isi check-in pagi
@@ -383,9 +410,9 @@ export function TubuhPanel() {
           (tidur 30% · nyeri 30% · stres 20% · energi 20%) */}
       {readiness && (
         <m.section
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.09, ease: motionTokens.easing.standard }}
+          transition={{ duration: 0.24, delay: 0.09, ease: motionTokens.easing.standard }}
           aria-label="Rincian kesiapan latihan"
           className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
         >
@@ -437,7 +464,7 @@ export function TubuhPanel() {
             <button
               type="button"
               onClick={openCheckIn}
-              className="mt-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl bg-surface-sunken p-3.5 text-left transition-all hover:bg-secondary/60 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive mt-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl bg-surface-sunken p-3.5 text-left hover:bg-secondary/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <ClipboardList
                 className="mt-0.5 h-4 w-4 shrink-0 text-content-muted"
@@ -457,9 +484,9 @@ export function TubuhPanel() {
 
       {/* Hidrasi */}
       <m.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.1, ease: motionTokens.easing.standard }}
+        transition={{ duration: 0.24, delay: 0.1, ease: motionTokens.easing.standard }}
         aria-label="Hidrasi hari ini"
         className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -483,7 +510,7 @@ export function TubuhPanel() {
               type="button"
               aria-label="Kurangi satu gelas"
               onClick={() => setWaterToday(-1)}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -497,7 +524,7 @@ export function TubuhPanel() {
                 }
               }}
               whileTap={{ scale: 0.92 }}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} />
             </m.button>
@@ -536,9 +563,9 @@ export function TubuhPanel() {
 
       {/* Berat badan */}
       <m.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.14, ease: motionTokens.easing.standard }}
+        transition={{ duration: 0.24, delay: 0.14, ease: motionTokens.easing.standard }}
         aria-label="Berat badan"
         className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -594,7 +621,7 @@ export function TubuhPanel() {
           <button
             type="button"
             onClick={saveWeight}
-            className="h-11 shrink-0 cursor-pointer rounded-xl bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="interactive h-11 shrink-0 cursor-pointer rounded-xl bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Catat
           </button>
@@ -611,9 +638,9 @@ export function TubuhPanel() {
           tujuan, dan tinggi badan (dasar BMI). Semua dipakai lintas
           panel: Latihan (menit vs sasaran), Asupan (makro), Tubuh ini. */}
       <m.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.16, ease: motionTokens.easing.standard }}
+        transition={{ duration: 0.24, delay: 0.16, ease: motionTokens.easing.standard }}
         aria-label="Sasaran bugar musim ini"
         className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -638,7 +665,7 @@ export function TubuhPanel() {
               toast.success('Sasaran dikembalikan ke bawaan')
             }}
             aria-label="Kembalikan sasaran ke bawaan"
-            className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="interactive flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-eyebrow font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <RotateCcw className="h-3 w-3" aria-hidden="true" />
             Bawaan
@@ -727,7 +754,7 @@ export function TubuhPanel() {
                       [f.key]: Math.max(f.min, fitTargets[f.key] - f.step),
                     })
                   }
-                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="interactive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
@@ -745,7 +772,7 @@ export function TubuhPanel() {
                       [f.key]: Math.min(f.max, fitTargets[f.key] + f.step),
                     })
                   }
-                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="interactive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>

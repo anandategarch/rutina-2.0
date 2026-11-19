@@ -107,7 +107,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
   return (
     <m.div
       layout="position"
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
@@ -140,7 +140,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
           <button
             type="button"
             aria-label={`Hapus ${entry.name}`}
-            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-destructive/10 hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+            className="interactive flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-destructive/10 hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -250,9 +250,9 @@ export function AsupanPanel() {
     <div>
       {/* Neraca kalori hari ini */}
       <m.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
+        transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
         aria-label="Neraca kalori hari ini"
         className="overflow-hidden rounded-2xl bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
       >
@@ -281,7 +281,7 @@ export function AsupanPanel() {
               setEditingTarget((v) => !v)
             }}
             aria-expanded={editingTarget}
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-meta font-bold text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+            className="interactive flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-meta font-bold text-module-accent-fg hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
           >
             <Target className="h-3.5 w-3.5" />
             Atur target
@@ -305,7 +305,7 @@ export function AsupanPanel() {
                   onClick={() =>
                     setTargetDraft(String(Math.max(1200, Number(targetDraft) - 100)))
                   }
-                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-module-accent-fg/15 text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                  className="interactive flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-module-accent-fg/15 text-module-accent-fg hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -324,7 +324,7 @@ export function AsupanPanel() {
                   onClick={() =>
                     setTargetDraft(String(Math.min(4500, Number(targetDraft) + 100)))
                   }
-                  className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-module-accent-fg/15 text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                  className="interactive flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-module-accent-fg/15 text-module-accent-fg hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -340,7 +340,7 @@ export function AsupanPanel() {
                       toast.warning('Target antara 1.200 – 4.500 kkal')
                     }
                   }}
-                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-note font-semibold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                  className="interactive h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-note font-semibold text-content-primary hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   Simpan
                 </button>
@@ -514,8 +514,8 @@ export function AsupanPanel() {
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.06, ease: motionTokens.easing.standard }}
-        className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        transition={{ duration: 0.24, delay: 0.06, ease: motionTokens.easing.standard }}
+        className="interactive mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
         Tambah Asupan
@@ -573,9 +573,9 @@ export function AsupanPanel() {
 
           {todayEntries.length === 0 && (
             <m.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: motionTokens.easing.standard }}
+              transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
               className="rounded-xl border-2 border-dashed border-primary/30 px-6 py-9 text-center"
             >
               <Apple className="mx-auto h-6 w-6 text-content-muted" />
@@ -645,15 +645,19 @@ export function AsupanPanel() {
                     aria-pressed={isSel}
                     aria-label={`${dayLongLabel(d)}: ${kcal > 0 ? `${fmt(kcal)} kkal` : 'tidak tercatat'}`}
                     onClick={() => setSelDay(isSel && selDay !== null ? null : d)}
-                    className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col justify-end rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+                    className="interactive group flex h-full min-w-0 flex-1 cursor-pointer flex-col justify-end rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
                   >
                     <m.div
-                      initial={{ height: 0 }}
-                      animate={{ height: kcal > 0 ? `${h}%` : '3px' }}
+                      initial={{ scaleY: 0 }}
+                      animate={{ scaleY: 1 }}
                       transition={{
                         duration: 0.5,
-                        delay: i * 0.05,
+                        delay: i * motionTokens.stagger.normal,
                         ease: motionTokens.easing.standard,
+                      }}
+                      style={{
+                        height: kcal > 0 ? `${h}%` : '3px',
+                        transformOrigin: 'bottom',
                       }}
                       className={`w-full rounded-t-lg transition-colors ${
                         kcal === 0

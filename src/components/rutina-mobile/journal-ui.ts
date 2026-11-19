@@ -93,6 +93,24 @@ export const useJournalUi = create<JournalUiState>()(
 /* ===== Penulisan catatan ===== */
 
 /**
+ * Apakah catatan masih berupa draf? Proxy jujur tanpa mengubah model store:
+ * kanvas menulis menyimpan catatan TANPA judul sejak autosave pertama
+ * (pengguna bisa langsung menulis isi), sedangkan alur cepat compose-sheet
+ * selalu meminta judul. Maka "tanpa judul" = lahir dari kanvas dan belum
+ * diberi nama — layak ditandai chip "Draft" agar dibedakan dari catatan
+ * tersimpan/disematkan di daftar jurnal.
+ */
+export function isDraftNote(note: Note): boolean {
+  return note.title.trim() === ''
+}
+
+/** Baris pertama isi catatan — jadi "judul efektif" draf di daftar
+ *  (pola aplikasi catatan premium: baris pertama = judul). */
+export function noteFirstLine(note: Note): string {
+  return note.body.trim().split('\n')[0]?.trim() ?? ''
+}
+
+/**
  * Buat catatan baru dan kembalikan id-nya secara sinkron. Meniru `addNote`
  * di store utama persis (skema id, catatan terbaru di depan, tone) namun
  * mengembalikan id — kanvas autosave membutuhkan id itu untuk pembaruan

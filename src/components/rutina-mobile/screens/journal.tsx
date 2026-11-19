@@ -9,7 +9,7 @@ import { pressSnappy } from '@/lib/motion/transitions'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
 
-import { MOOD_DOT, useJournalUi } from '../journal-ui'
+import { MOOD_DOT, isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
 import {
   FOLDERS,
   FOLDER_SHORT,
@@ -46,10 +46,21 @@ export default function JournalScreen() {
 
   const total = notes.length
   const pinnedCount = notes.filter((n) => n.pinned).length
+  const draftCount = notes.filter((n) => isDraftNote(n)).length
+
+  /* Ringkasan kepala seksi — bagian kosong disembunyikan agar tenang. */
+  const summary = [
+    `${total} catatan`,
+    draftCount > 0 ? `${draftCount} draf` : null,
+    pinnedCount > 0 ? `${pinnedCount} disematkan` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   /* Pencarian + filter kategori bekerja bersama; catatan terbaru tetap
-     di depan (addNote menambah di awal daftar). */
-  const { pinned, rest } = useMemo(() => {
+     di depan (addNote menambah di awal daftar). Draf (tanpa judul, lahir
+     dari kanvas menulis) mendapat kelompok sendiri agar mudah dikenali. */
+  const { pinned, drafts, rest } = useMemo(() => {
     const q = query.trim().toLowerCase()
     const filtered = notes.filter(
       (n) =>
@@ -59,14 +70,15 @@ export default function JournalScreen() {
     )
     return {
       pinned: filtered.filter((n) => n.pinned),
-      rest: filtered.filter((n) => !n.pinned),
+      drafts: filtered.filter((n) => !n.pinned && isDraftNote(n)),
+      rest: filtered.filter((n) => !n.pinned && !isDraftNote(n)),
     }
   }, [notes, journalFilter, query])
 
   return (
     <div
       data-module="journal"
-      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      className="mx-auto h-full w-full max-w-[680px] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
       <m.header
@@ -80,7 +92,7 @@ export default function JournalScreen() {
         <RutinaSectionHeader
           eyebrow={longDateLabel(todayISO())}
           title="Jurnal"
-          description={`${total} catatan · ${pinnedCount} disematkan`}
+          description={summary}
           accent
         />
       </m.header>
@@ -97,79 +109,88 @@ export default function JournalScreen() {
           delay: 0.06,
           ease: motionTokens.easing.standard,
         }}
-        className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft hover:bg-action-hover"
       >
         <PenLine className="h-[18px] w-[18px]" strokeWidth={2.4} />
         Tulis catatan
       </m.button>
 
-      {/* Pencarian */}
-      <m.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.5,
-          delay: 0.1,
-          ease: motionTokens.easing.standard,
-        }}
-        className="relative mt-4"
-      >
-        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari judul atau isi catatan…"
-          aria-label="Cari catatan jurnal"
-          className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-body text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
-        />
-      </m.div>
+      {/* Bilah pencarian + folder — MENEMPEL di tepi atas agar pencarian
+          dan kategori selalu mudah dijangkau sambil menelusuri catatan.
+          Latar solid parchment (tanpa blur) — ruang jurnal tetap tenang. */}
+      <div className="sticky top-0 z-30 -mx-4 mt-4 border-b border-border-default bg-surface-primary px-4 pb-2.5 pt-2">
+        <m.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.1,
+            ease: motionTokens.easing.standard,
+          }}
+          className="relative"
+        >
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari judul atau isi catatan…"
+            aria-label="Cari catatan jurnal"
+            className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-body text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
+          />
+        </m.div>
 
-      {/* Chip filter kategori + jumlah catatan nyata */}
-      <m.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.5,
-          delay: 0.14,
-          ease: motionTokens.easing.standard,
-        }}
-        className="relative mt-3"
-      >
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {FILTERS.map((f) => {
-            const active = journalFilter === f.key
-            const count =
-              f.key === 'semua' ? total : folderCount(notes, f.key)
-            return (
-              <m.button
-                key={f.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setJournalFilter(f.key)}
-                whileTap={{ scale: 0.96 }}
-                transition={pressSnappy}
-                className={
-                  'h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
-                  (active
-                    ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
-                    : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
-                }
-              >
-                {f.label}
-                <span className="ml-1.5 tabular-nums opacity-60">
-                  {count}
-                </span>
-              </m.button>
-            )
-          })}
-        </div>
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background to-transparent"
-        />
-      </m.div>
+        {/* Chip filter kategori + jumlah catatan nyata */}
+        <m.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.5,
+            delay: 0.14,
+            ease: motionTokens.easing.standard,
+          }}
+          className="relative mt-2.5"
+        >
+          <div
+            role="group"
+            aria-label="Filter kategori catatan"
+            className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+          >
+            {FILTERS.map((f) => {
+              const active = journalFilter === f.key
+              const count =
+                f.key === 'semua' ? total : folderCount(notes, f.key)
+              return (
+                <m.button
+                  key={f.key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setJournalFilter(f.key)}
+                  whileTap={{ scale: 0.96 }}
+                  transition={pressSnappy}
+                  className={
+                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold ' +
+                    (active
+                      ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
+                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                  }
+                >
+                  {f.label}
+                  <span className="ml-1.5 tabular-nums opacity-60">
+                    {count}
+                  </span>
+                </m.button>
+              )
+            })}
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface-primary to-transparent"
+          />
+        </m.div>
+      </div>
 
-      {/* Daftar catatan — hierarki tenang: sematan dulu, lingga sisanya */}
+      {/* Daftar catatan — hierarki tenang: sematan, lalu draf yang belum
+          diberi nama, lalu catatan tersimpan. */}
       <section className="mt-6" aria-label="Daftar catatan jurnal">
         {pinned.length > 0 && (
           <div className="mt-2 first:mt-0">
@@ -183,10 +204,22 @@ export default function JournalScreen() {
             />
           </div>
         )}
+        {drafts.length > 0 && (
+          <div className="mt-6 first:mt-0">
+            <SectionLabel>Draf · {drafts.length}</SectionLabel>
+            <NoteList
+              items={drafts}
+              noteMoods={noteMoods}
+              onOpen={openReading}
+              onEdit={openCanvas}
+              onTogglePin={togglePin}
+            />
+          </div>
+        )}
         {rest.length > 0 && (
           <div className="mt-6 first:mt-0">
             <SectionLabel>
-              {pinned.length > 0 ? 'Catatan lain' : 'Catatan'} ·{' '}
+              {pinned.length > 0 || drafts.length > 0 ? 'Catatan lain' : 'Catatan'} ·{' '}
               {rest.length}
             </SectionLabel>
             {/* Batas awal 30 kartu — jurnal panjang (ratusan catatan)
@@ -202,7 +235,7 @@ export default function JournalScreen() {
           </div>
         )}
 
-        {pinned.length === 0 && rest.length === 0 && (
+        {pinned.length === 0 && drafts.length === 0 && rest.length === 0 && (
           <>
             {total === 0 ? (
               <RutinaEmptyState
@@ -214,7 +247,7 @@ export default function JournalScreen() {
                     type="button"
                     onClick={() => openCanvas()}
                     whileTap={{ scale: 0.95 }}
-                    className="flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover"
                   >
                     <PenLine className="h-4 w-4" strokeWidth={2.4} />
                     Tulis catatan pertama
@@ -234,7 +267,7 @@ export default function JournalScreen() {
                       type="button"
                       onClick={() => setQuery('')}
                       whileTap={{ scale: 0.95 }}
-                      className="flex h-10 cursor-pointer items-center rounded-full border border-border bg-surface-primary px-5 text-note font-semibold text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="interactive flex h-10 cursor-pointer items-center rounded-full border border-border bg-surface-primary px-5 text-note font-semibold text-content-secondary hover:bg-secondary"
                     >
                       Hapus pencarian
                     </m.button>
@@ -303,7 +336,7 @@ function NoteList({
         <button
           type="button"
           onClick={() => setLimit((n) => n + (initialLimit ?? hidden))}
-          className="w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
         >
           Tampilkan {Math.min(initialLimit ?? hidden, hidden)} catatan lagi
           {hidden > (initialLimit ?? hidden) ? ` (${hidden} tersisa)` : ''}
@@ -315,8 +348,10 @@ function NoteList({
 
 /**
  * Kartu catatan tenang: judul tegas, cuplikan dua baris redup, metadata
- * (kategori, suasana hati, tanggal) di kaki kartu. Kartu dibuka ke mode
- * baca; sematan & sunting tetap satu ketukan.
+ * (kategori, draf, suasana hati, tanggal) di kaki kartu. Kartu dibuka ke
+ * mode baca; sematan & sunting tetap satu ketukan. Draf (tanpa judul)
+ * memakai baris pertama isi sebagai judul efektif — pola aplikasi
+ * catatan premium — plus chip "Draft" Dusty Mauve yang jelas.
  */
 function NoteCard({
   note,
@@ -331,6 +366,19 @@ function NoteCard({
   onEdit: () => void
   onTogglePin: () => void
 }) {
+  const draft = isDraftNote(note)
+  const firstLine = noteFirstLine(note)
+  /* Draf: cuplikan menampilkan isi SETELAH baris pertama (baris pertama
+     sudah menjadi judul) agar tidak ada pengulangan teks. */
+  const snippet = draft
+    ? note.body
+        .trim()
+        .split('\n')
+        .slice(1)
+        .join(' ')
+        .trim()
+    : note.body
+
   return (
     <m.article
       variants={journalCard}
@@ -344,17 +392,19 @@ function NoteCard({
           tombol buka. */}
       <button
         type="button"
-        aria-label={`Baca catatan: ${note.title || 'tanpa judul'}`}
+        aria-label={`Baca catatan: ${note.title || firstLine || 'tanpa judul'}`}
         onClick={onOpen}
-        className="absolute inset-0 z-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive absolute inset-0 z-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       />
       <div className="pointer-events-none relative z-10">
         <div className="flex items-start justify-between gap-1">
-          <h3 className="min-w-0 flex-1 text-section font-bold leading-snug text-content-primary">
-            {note.title === '' ? (
-              <span className="italic text-content-muted">Tanpa judul</span>
-            ) : (
+          <h3 className="line-clamp-2 min-w-0 flex-1 text-section font-bold leading-snug text-content-primary">
+            {note.title !== '' ? (
               note.title
+            ) : (
+              <span className="italic text-content-secondary">
+                {firstLine !== '' ? firstLine : 'Tanpa judul'}
+              </span>
             )}
           </h3>
           <div className="flex shrink-0 items-center">
@@ -368,7 +418,7 @@ function NoteCard({
                 onTogglePin()
               }}
               className={
-                'pointer-events-auto -mr-1.5 -mt-1.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-cocoa/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                'interactive pointer-events-auto -mr-1.5 -mt-1.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-cocoa/10 ' +
                 (note.pinned
                   ? 'text-content-secondary'
                   : 'text-content-muted')
@@ -381,24 +431,32 @@ function NoteCard({
             </button>
             <button
               type="button"
-              aria-label={`Sunting catatan: ${note.title || 'tanpa judul'}`}
+              aria-label={`Sunting catatan: ${note.title || firstLine || 'tanpa judul'}`}
               onClick={(e) => {
                 e.stopPropagation()
                 onEdit()
               }}
-              className="pointer-events-auto -mr-1.5 -mt-1.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-cocoa/10 hover:text-content-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive pointer-events-auto -mr-1.5 -mt-1.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-cocoa/10 hover:text-content-secondary"
             >
               <PenLine className="h-4 w-4" />
             </button>
           </div>
         </div>
-        <p className="mt-1 line-clamp-2 text-note leading-relaxed text-content-muted">
-          {note.body}
-        </p>
+        {snippet !== '' && (
+          <p className="mt-1 line-clamp-2 text-note leading-relaxed text-content-muted">
+            {snippet}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold uppercase tracking-[0.1em] text-content-secondary">
             {FOLDER_SHORT[note.folder]}
           </span>
+          {draft && (
+            <span className="flex items-center gap-1 rounded-full bg-module-accent-soft px-2 py-0.5 text-chart-label font-semibold uppercase tracking-[0.1em] text-module-accent-strong">
+              <PenLine className="h-3 w-3" aria-hidden="true" />
+              Draft
+            </span>
+          )}
           {mood ? (
             <span className="flex items-center gap-1.5 text-eyebrow font-semibold text-content-muted">
               <span

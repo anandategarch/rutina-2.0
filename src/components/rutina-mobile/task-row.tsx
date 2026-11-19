@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Clock,
   Flame,
   Gauge,
   Link2,
@@ -252,12 +253,32 @@ export function TaskRow({
           {habit.title}
         </span>
 
-        {/* Grup pil meta (streak/kategori, XP, chevron) — satu unit yang
-            utuh: muat di baris judul bila lega, menurun rapi bila sempit. */}
+        {/* Grup pil meta (jam·kategori, streak, mini-history, XP, chevron)
+            — satu unit yang utuh: muat di baris judul bila lega, menurun
+            rapi bila sempit. Audit Tahap 2: baris agenda memuat jam
+            pengingat ATAU kategori dengan teks kecil + mini-history 7
+            hari yang bisa dipindai sekilas. */}
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
-        {/* Pil meta: streak nyata (kompak — angka + api, satuan "hari"
-            di title & sr-only agar baris tetap lega di layar sempit) atau kategori */}
-        {streak > 0 ? (
+        {/* Pil "07.00 · Belajar" — jam pengingat + kategori dalam SATU
+            pil (informasi paling operasional); tanpa pengingat, streak /
+            kategori yang tampil. */}
+        {habit.reminder ? (
+          <span
+            title={`Pengingat ${habit.reminder} · ${habit.cat}`}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-eyebrow font-semibold text-content-secondary"
+          >
+            <Clock className="h-3 w-3" aria-hidden="true" />
+            <span className="tabular-nums">{habit.reminder}</span>
+            {habit.cat !== 'Kebiasaan' && (
+              <>
+                <span aria-hidden="true" className="text-content-muted">
+                  ·
+                </span>
+                <span>{habit.cat}</span>
+              </>
+            )}
+          </span>
+        ) : streak > 0 ? (
           <span
             title={`${streak} hari berturut-turut`}
             className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-eyebrow font-semibold text-content-secondary"
@@ -267,10 +288,44 @@ export function TaskRow({
             <span className="sr-only"> hari</span>
           </span>
         ) : habit.cat !== 'Kebiasaan' ? (
-          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-eyebrow font-semibold text-content-secondary">
+          <span className="shrink-0 rounded-full bg-surface-secondary px-2.5 py-1 text-eyebrow font-semibold text-content-secondary">
             {habit.cat}
           </span>
         ) : null}
+
+        {/* Streak tetap tampil meski ada jam pengingat — kompak (ikon
+            lebih kecil) agar dua pil tetap lega berkat flex-wrap basis-36. */}
+        {habit.reminder && streak > 0 && (
+          <span
+            title={`${streak} hari berturut-turut`}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2 py-1 text-eyebrow font-semibold text-content-secondary"
+          >
+            <Flame className="h-3 w-3" aria-hidden="true" />
+            <span className="tabular-nums">{streak}</span>
+            <span className="sr-only"> hari</span>
+          </span>
+        )}
+
+        {/* Mini-history 7 hari — deret titik mini dipindai sekilas;
+            hanya bila ada histori (minimal satu hari terisi) dan layar
+            cukup lega (sm+; ponsel sempit mengandalkan pil saja). */}
+        {recent.slice(-7).some(Boolean) && (
+          <span
+            aria-hidden="true"
+            title="7 hari terakhir"
+            className="hidden shrink-0 items-center gap-[3px] sm:flex"
+          >
+            {recent.slice(-7).map((ok, j) => (
+              <span
+                key={j}
+                className={
+                  'h-1.5 w-1.5 rounded-full ' +
+                  (ok ? 'bg-primary' : 'bg-surface-secondary')
+                }
+              />
+            ))}
+          </span>
+        )}
 
         {/* Ganjaran XP */}
         {typeof xp === 'number' && (

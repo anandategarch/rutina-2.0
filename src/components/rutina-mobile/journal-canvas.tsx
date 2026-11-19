@@ -6,7 +6,6 @@ import * as m from 'motion/react-m'
 import {
   BatteryLow,
   Bold,
-  Check,
   ChevronLeft,
   Italic,
   Laugh,
@@ -41,6 +40,14 @@ const AUTOSAVE_MS = 800
 
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
+/** "HH.MM" gaya Indonesia (pemisah titik) dari stempel waktu. */
+function clockID(ts: number): string {
+  return new Date(ts).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 type SaveResult = 'saved' | 'unchanged' | 'skipped' | 'discarded' | 'deleted'
 
 interface Draft {
@@ -51,10 +58,13 @@ interface Draft {
 }
 
 /**
- * JournalCanvas — mode MENULIS layar penuh: kertas parchment hangat tanpa
- * elemen dasbor, tipografi editorial (judul serif), metadata ringkas
- * (suasana hati + kategori), autosave ber-debounce dengan indikator
- * "Tersimpan", dan bilah format mungil (tebal/miring + hitung kata).
+ * JournalCanvas — mode MENULIS layar penuh: kertas parchment hangat
+ * (surface-primary) tanpa elemen dasbor, tipografi editorial (judul serif
+ * Playfair, UI operasional Geist), metadata ringkas (suasana hati +
+ * kategori), autosave ber-debounce dengan indikator tiga keadaan yang
+ * tenang di pojok bilah bawah ("Menyimpan…" / "Tersimpan +waktu" /
+ * "Offline — tersimpan di perangkat"), dan bilah format mungil
+ * (tebal/miring + hitung kata).
  *
  * Dipasang di tingkat cangkang (lihat compose-sheet.tsx) sehingga overlay
  * absolutnya menutupi seluruh aplikasi termasuk navigasi bawah.
@@ -100,6 +110,24 @@ function CanvasPanel() {
   const [status, setStatus] = useState<SaveStatus>(
     session.editing ? 'saved' : 'idle',
   )
+  /* Stempel waktu simpan terakhir — ditampilkan tenang di indikator
+     ("Tersimpan 14.32"). Null saat belum pernah menyimpan di sesi ini. */
+  const [savedAt, setSavedAt] = useState<number | null>(null)
+
+  /* Deteksi online/offline (navigator.onLine + event listener) — saat
+     offline, draf tetap ditulis ke penyimpanan perangkat (persist lokal)
+     dan indikator jujur mengatakannya. */
+  const [online, setOnline] = useState(true)
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine)
+    sync()
+    window.addEventListener('online', sync)
+    window.addEventListener('offline', sync)
+    return () => {
+      window.removeEventListener('online', sync)
+      window.removeEventListener('offline', sync)
+    }
+  }, [])
 
   const panelRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
@@ -197,6 +225,7 @@ function CanvasPanel() {
       timerRef.current = null
       try {
         const result = performSave('auto')
+        if (result === 'saved') setSavedAt(Date.now())
         setStatus(result === 'discarded' ? 'idle' : 'saved')
       } catch {
         toast.error('Gagal menyimpan — draf tetap aman di layar ini')
@@ -317,32 +346,29 @@ function CanvasPanel() {
         duration: motionTokens.duration.normal,
         ease: motionTokens.easing.standard,
       }}
-      className="absolute inset-0 z-[70] flex flex-col bg-background"
+      className="absolute inset-0 z-[70] flex flex-col bg-surface-primary"
     >
-      {/* Bilah atas minimal — kembali, indikator simpan, selesai */}
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background px-2 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      {/* Bilah atas minimal — kembali & selesai; status autosave hidup
+          tenang di pojok kanan bawah (dekat jempol, jauh dari tulisan). */}
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border-default bg-surface-primary px-2 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <m.button
           type="button"
           aria-label="Kembali ke jurnal"
           onClick={handleClose}
           whileTap={{ scale: 0.92 }}
-          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="interactive flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
         </m.button>
 
-        <span
-          aria-live="polite"
-          className="flex min-w-0 items-center justify-center"
-        >
-          <SaveIndicator status={status} />
-        </span>
+        {/* Pengisi tenang — menjaga tombol Selesai tetap di kanan */}
+        <span aria-hidden="true" className="min-w-0 flex-1" />
 
         <m.button
           type="button"
           onClick={handleClose}
           whileTap={{ scale: 0.95 }}
-          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-5 text-body font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="interactive h-10 shrink-0 cursor-pointer rounded-full bg-primary px-5 text-body font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Selesai
         </m.button>
@@ -405,7 +431,7 @@ function CanvasPanel() {
                         scheduleSave()
                       }}
                       className={
-                        'flex h-9 cursor-pointer items-center gap-1 rounded-full px-3 text-meta font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        'interactive flex h-9 cursor-pointer items-center gap-1 rounded-full px-3 text-meta font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (active
                           ? 'bg-secondary text-primary'
                           : 'text-content-muted hover:bg-surface-secondary hover:text-content-secondary')
@@ -435,7 +461,7 @@ function CanvasPanel() {
                         scheduleSave()
                       }}
                       className={
-                        'h-9 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        'interactive h-9 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (active
                           ? 'bg-surface-inverse text-content-inverse'
                           : 'border border-border text-content-muted hover:bg-surface-secondary hover:text-content-secondary')
@@ -471,7 +497,7 @@ function CanvasPanel() {
         </div>
       </div>
 
-      {/* Bilah format ringkas — tebal, miring, hitung kata */}
+      {/* Bilah format ringkas — tebal, miring, status simpan, hitung kata */}
       <m.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -480,14 +506,14 @@ function CanvasPanel() {
           delay: 0.22,
           ease: motionTokens.easing.standard,
         }}
-        className="flex shrink-0 items-center gap-1 border-t border-border/60 bg-background px-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-1.5"
+        className="flex shrink-0 items-center gap-1 border-t border-border-default bg-surface-primary px-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-1.5"
       >
         <button
           type="button"
           aria-label="Tebalkan teks terpilih"
           title="Tebal"
           onClick={() => wrapSelection('**')}
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <Bold className="h-4 w-4" strokeWidth={2.4} />
         </button>
@@ -496,13 +522,28 @@ function CanvasPanel() {
           aria-label="Miringkan teks terpilih"
           title="Miring"
           onClick={() => wrapSelection('_')}
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full font-serif text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-full font-serif text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <Italic className="h-4 w-4" strokeWidth={2.4} />
         </button>
+        {/* Status autosave — kecil di pojok kanan bawah, tidak mengganggu:
+            Menyimpan… (titik emas) / Tersimpan + waktu (matcha) /
+            Offline — tersimpan di perangkat (cocoa). */}
+        <span
+          aria-live="polite"
+          className="ml-auto flex min-w-0 items-center justify-end"
+        >
+          <SaveIndicator status={status} savedAt={savedAt} online={online} />
+        </span>
+        {(!online || status !== 'idle') && (
+          <span
+            aria-hidden="true"
+            className="h-3 w-px shrink-0 bg-border-default"
+          />
+        )}
         <span
           aria-live="off"
-          className="ml-auto pr-2 text-eyebrow font-semibold uppercase tracking-[0.12em] tabular-nums text-content-muted"
+          className="shrink-0 pr-1 text-eyebrow font-semibold uppercase tracking-[0.12em] tabular-nums text-content-muted"
         >
           {wordCount} kata
         </span>
@@ -511,42 +552,67 @@ function CanvasPanel() {
   )
 }
 
-/* ===== Indikator autosave ===== */
+/* ===== Indikator autosave — tiga keadaan, tenang ===== */
 
-function SaveIndicator({ status }: { status: SaveStatus }) {
+interface SaveIndicatorProps {
+  status: SaveStatus
+  /** Stempel simpan terakhir (epoch ms) — null bila belum pernah. */
+  savedAt: number | null
+  online: boolean
+}
+
+function SaveIndicator({ status, savedAt, online }: SaveIndicatorProps) {
   /* Loop denyut opacity tidak sempatan oleh MotionConfig reducedMotion
      (hanya mematikan transform/layout) — titik "Menyimpan" dirender
      statis saat pengguna memilih kurangi gerak. */
   const reduceMotion = useReducedMotion()
 
+  /* Offline menimpa segalanya: draf tetap ditulis ke penyimpanan lokal,
+     jadi pesannya jujur dan menenangkan, bukan mengancam. */
+  if (!online) {
+    return (
+      <m.span
+        key="offline"
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: motionTokens.duration.fast,
+          ease: motionTokens.easing.standard,
+        }}
+        className="flex min-w-0 items-center gap-1.5 text-eyebrow font-semibold text-content-muted"
+      >
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 shrink-0 rounded-full bg-cocoa"
+        />
+        <span className="truncate">Offline — tersimpan di perangkat</span>
+      </m.span>
+    )
+  }
+
   if (status === 'idle') return null
 
   if (status === 'saving') {
     return (
-      <span className="flex items-center gap-1 text-meta font-semibold text-content-muted">
-        Menyimpan
-        <span className="flex items-center gap-0.5" aria-hidden="true">
-          {[0, 1, 2].map((i) =>
-            reduceMotion ? (
-              <span
-                key={i}
-                className="h-1 w-1 rounded-full bg-content-muted"
-              />
-            ) : (
-              <m.span
-                key={i}
-                className="h-1 w-1 rounded-full bg-content-muted"
-                animate={{ opacity: [0.25, 1, 0.25] }}
-                transition={{
-                  duration: 1.1,
-                  repeat: Infinity,
-                  delay: i * 0.18,
-                  ease: 'easeInOut',
-                }}
-              />
-            ),
-          )}
-        </span>
+      <span className="flex min-w-0 items-center gap-1.5 text-eyebrow font-semibold text-content-muted">
+        {reduceMotion ? (
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold"
+          />
+        ) : (
+          <m.span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold"
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{
+              duration: 1.1,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        )}
+        Menyimpan…
       </span>
     )
   }
@@ -560,10 +626,18 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
         duration: motionTokens.duration.fast,
         ease: motionTokens.easing.standard,
       }}
-      className="flex items-center gap-1.5 text-meta font-semibold text-success"
+      className="flex min-w-0 items-center gap-1.5 text-eyebrow font-semibold text-content-muted"
     >
-      <Check className="h-3.5 w-3.5" strokeWidth={2.6} />
+      <span
+        aria-hidden="true"
+        className="h-1.5 w-1.5 shrink-0 rounded-full bg-matcha"
+      />
       Tersimpan
+      {savedAt != null && (
+        <span className="tabular-nums text-content-muted/75">
+          {clockID(savedAt)}
+        </span>
+      )}
     </m.span>
   )
 }

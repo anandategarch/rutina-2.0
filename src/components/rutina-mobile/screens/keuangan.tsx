@@ -321,6 +321,9 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   const openGoalSheet = useRutina((s) => s.openGoalSheet)
   const pct = Math.min(100, Math.round((goal.saved / goal.target) * 100))
   const complete = goal.saved >= goal.target
+  /* Hampir tercapai (audit Tahap 2): cincin bernapas lembut — rayuan
+     kecil untuk menuntaskan sisa langkah, tanpa konfeti berlebihan. */
+  const near = !complete && pct >= 80
   const remaining = Math.max(0, goal.target - goal.saved)
   const Icon = GOAL_ICONS[index] ?? PiggyBank
   const R = 24
@@ -336,7 +339,12 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
       >
         <div className="flex items-center gap-3.5">
           <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-            <svg viewBox="0 0 56 56" className="absolute inset-0 h-full w-full -rotate-90">
+            <svg
+              viewBox="0 0 56 56"
+              className={`absolute inset-0 h-full w-full -rotate-90 ${
+                near ? 'motion-safe:animate-breathe' : ''
+              }`}
+            >
               <circle
                 cx="28"
                 cy="28"
@@ -369,7 +377,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
               <span className="text-note">%</span>
             </p>
             <p className="mt-1 text-eyebrow uppercase tracking-[0.14em] text-content-muted">
-              terkumpul
+              {near ? 'hampir tiba' : 'terkumpul'}
             </p>
           </div>
         </div>

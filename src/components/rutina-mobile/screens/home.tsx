@@ -604,9 +604,11 @@ export default function HomeScreen() {
                       >
                         {todayHabits.length === 0
                           ? 'Belum ada misi terjadwal.'
-                          : missionRemaining > 0
-                            ? `${missionRemaining} misi tersisa`
-                            : 'Semua misi selesai — hari yang sempurna.'}
+                          : missionRemaining === 1
+                            ? 'Satu langkah lagi menuju hari sempurna.'
+                            : missionRemaining > 0
+                              ? `${missionRemaining} misi tersisa`
+                              : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className="flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-meta font-bold text-espresso">

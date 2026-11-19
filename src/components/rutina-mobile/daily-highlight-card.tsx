@@ -153,7 +153,15 @@ export function DailyHighlightCard() {
         ease: motionTokens.easing.standard,
       }}
       aria-label="Sorotan hari ini"
-      className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+      /* Dua tingkat (audit Tahap 2): normal = kartu tenang hairline;
+         mendesak = tepi ikut bernuansa modul (35%) + suar bernapas —
+         pengguna langsung tahu mana yang benar-benar menunggu. */
+      className="rounded-[20px] border bg-surface-primary p-4 shadow-soft sm:p-5"
+      style={
+        urgent
+          ? { borderColor: `color-mix(in oklab, ${accent.icon} 35%, transparent)` }
+          : undefined
+      }
     >
       <div className="flex items-start gap-3.5">
         {/* Suar ikon — lingkaran lembut bernuansa modul; versi mendesak

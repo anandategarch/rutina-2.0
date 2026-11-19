@@ -3,6 +3,76 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.24] — Tahap 2 · Pemolesan Layar: 7 Modul dalam Warm Editorial Productivity
+
+Eksekusi audit Tahap 2 — tiap layar dipoles menurut karakter fungsinya,
+tanpa library baru, seluruhnya token desain 2.0.
+
+### Beranda — personal dashboard
+- **Hero progres**: kalimat editorial "Satu langkah lagi menuju hari
+  sempurna." saat tersisa 1 misi (hierarki: cincin % → X dari Y → dukungan).
+- **Baris agenda** (TaskRow): pil "07.00 · Kategori" (jam pengingat +
+  kategori SATU pil, informasi paling operasional), streak kompak terpisah,
+  **mini-history 7 hari** (titik-titik, sm+), XP & chevron tetap.
+- **Sorotan Hari Ini dua tingkat**: normal = kartu hairline tenang;
+  mendesak = tepi bertint modul 35% + suar bernapas (selaras glow ikon).
+- **Rekap Pekan interaktif**: setiap hari pada strip kecambah kini
+  DAPAT DITEKAN — panel ringkas (tanggal, X misi, status target,
+  sesi latihan, arus kas ±) + tombol membuka DayDetailSheet penuh.
+
+### Keuangan — vault & ledger
+- Verifikasi menyeluruh struktur audit (sudah paten): hero Rutina Vault,
+  Jatah Hari Ini, Arus Kas + Masuk/Keluar/Net, ledger profesional
+  (ikon·nama·dompet·nominal kanan tabular-nums ±), anggaran 3-warna
+  (matcha <80% · gold ≥80% · terracotta lewat) + sisa, Spotlight hanya
+  di Tujuan, ShineBorder hanya di hero.
+- **Tujuan hampir tercapai**: cincin progres bernapas lembut (≥80%)
+  + label "hampir tiba" — rayuan halus menuntaskan sisa langkah.
+
+### Bugar — performance studio
+- Hero mingguan SATU komposisi (menit aktif utama + km/jam/sesi pendukung);
+  SATU CTA dominan "Mulai Sesi" + shortcut chip ringkas; grafik tonase
+  hari-dapat-ditekan dengan detail + "vs hari sama lalu"; riwayat
+  timeline hairline; Coach maks 2 saran; counter hanya di metrik utama.
+
+### Kebiasaan — tiga ruang berbeda
+- **Agenda hari ini** (header "X dari Y selesai" + progress + kelompok
+  Pagi/Siang/Malam) · **Konsistensi** (streak + taman dalam garden
+  surface) · **Perpustakaan** (inventaris per kategori, ledger-row,
+  mini-history 7 hari) — tiga komposisi berbeda, bukan kartu seragam.
+
+### Jurnal — writing app premium
+- Kolom editor 640–720px di desktop; latar parchment tenang; Playfair
+  untuk judul, Geist untuk toolbar; leading-relaxed isi.
+- **Indikator autosave 3 keadaan**: "Menyimpan…" (debounce) → "Tersimpan"
+  → "Offline — tersimpan di perangkat" (navigator.onLine) — kecil,
+  tenang, selalu terlihat.
+
+### Statistik — data observatory
+- **FIX KRITIS KPI terpotong**: akar masalah breakpoint grid 12-kolom
+  RutinaBentoGrid di kontainer lebar → semua grid custom kini menimpa
+  seluruh breakpoint; label KPI terbaca penuh di 320/390/1500px.
+- Hierarki: KPI → Fokus Periode → Tren → Kalender → Laporan → Wawasan
+  (donut + mood) → Pekan vs Pekan → Bugar & Tubuh → Piala.
+- Tooltip Recharts token earth-tone; batang grafik jadi tombol dengan
+  readout aria; sumbu X tanggal nyata; legenda + label periode selalu
+  terlihat; animasi grafik hanya saat pertama masuk viewport; empty
+  state menjelaskan data yang perlu dikumpulkan.
+
+### Profil — grouped settings tenang
+- Identitas → Riwayat Mood → Preferensi → Data & Penyimpanan →
+  **Zona Kritis** (operasi destruktif dipisah) → Aplikasi & Bantuan.
+  Pola baris standar: ikon · label · keterangan · kontrol kanan.
+
+### Ketahanan infrastruktur sandbox (post-mortem insiden 19 Nov)
+- Mount platform `upload/` (ossfs) mati → readdir menggantung → git
+  status & worker postcss beku >3 jam. Perbaikan: (1) file upload warisan
+  di-untrack dari index git; (2) `postcss.config.mjs` kini membatasi
+  basis pemindaian Tailwind ke `src/` sehingga pipeline CSS tak pernah
+  menyentuh direktori mount; (3) dev server sandbox dijalankan dari
+  clone hardlink `/tmp/projcopy` (file identik via inode) karena mount
+  mati tak dapat dilepas tanpa akses root.
+
 ## [2.23] — Tahap 1 · Fondasi Visual: Shell Desktop Profesional
 
 Permintaan pengguna: eksekusi audit desain frontend 4 tahap (Warm Editorial

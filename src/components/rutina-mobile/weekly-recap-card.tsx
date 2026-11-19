@@ -1,10 +1,14 @@
 'use client'
 
+import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  CalendarCheck,
+  CheckCircle2,
   Dumbbell,
   Flame,
   Sprout,
@@ -16,10 +20,11 @@ import {
 
 import { motionTokens } from '@/lib/motion/tokens'
 
+import { DayDetailSheet } from './day-detail-sheet'
 import { playfair } from './serif'
 import { Counter } from './counter'
 import { formatIDRShort } from './finance/utils'
-import { todayISO, useRutina } from './store'
+import { longDateLabel, todayISO, useRutina } from './store'
 import { weeklyRecapOf } from './weekly-recap'
 
 /* ===== Rekap Pekan — kartu perjalanan =====
@@ -50,6 +55,12 @@ export function WeeklyRecapCard() {
   const txs = useRutina((s) => s.txs)
   const setScreen = useRutina((s) => s.setScreen)
 
+  /* Hari terpilih pada strip perjalanan (audit Tahap 2: menekan hari
+     menampilkan jumlah misi, aktivitas, dan status target hari itu) dan
+     tanggal yang dibuka di sheet detail lengkap. */
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [sheetDay, setSheetDay] = useState<string | null>(null)
+
   const recap = weeklyRecapOf({
     today: todayISO(),
     habits,
@@ -58,6 +69,26 @@ export function WeeklyRecapCard() {
     workouts,
     txs,
   })
+
+  /* Aktivitas hari terpilih — sesi latihan & arus kas nyata. */
+  const sel = recap.days.find((d) => d.iso === selectedDay) ?? null
+  const selWorkouts = sel
+    ? workouts.filter((w) => w.date === sel.iso).length
+    : 0
+  const selFlow = sel
+    ? txs.reduce(
+        (acc, t) =>
+          acc +
+          (t.ts === sel.iso
+            ? t.type === 'masuk'
+              ? t.amount
+              : t.type === 'keluar'
+                ? -t.amount
+                : 0
+            : 0),
+        0,
+      )
+    : 0
 
   /* Chip visual lintas modul — ikon + angka, bukan angka telanjang. */
   const chips: ChipSpec[] = [
@@ -149,10 +180,12 @@ export function WeeklyRecapCard() {
 
       {/* Strip perjalanan — jejak 7 hari; kecambah menetas di hari yang
           hidup, mekar penuh saat target harian tercapai, titik di hari
-          kosong, lingkar putus untuk hari yang belum tiba. */}
+          kosong, lingkar putus untuk hari yang belum tiba. Setiap hari
+          yang sudah berjalan bisa DITEKAN untuk membuka ringkasan
+          hari itu (misi, aktivitas, status target) di bawah strip. */}
       <div
         className="relative mt-4"
-        role="img"
+        role="group"
         aria-label={`Perjalanan pekan ini: ${stripAria}`}
       >
         {/* Jalur tanah di belakang sel — menyatukan 7 hari jadi satu
@@ -169,47 +202,63 @@ export function WeeklyRecapCard() {
               : d.done > 0
                 ? 'partial'
                 : 'none'
+            const daySelected = selectedDay === d.iso
             return (
               <div
                 key={d.iso}
                 className="flex w-full flex-col items-center gap-1.5"
               >
-                <m.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  whileInView={{ scale: 1, opacity: 1 }}
-                  viewport={{ once: true, margin: '-30px' }}
-                  transition={{
-                    ...motionTokens.spring.playful,
-                    delay: i * 0.05,
-                  }}
-                  className={
-                    'flex h-9 w-9 items-center justify-center rounded-full sm:h-11 sm:w-11 ' +
-                    (d.isFuture
-                      ? 'border border-dashed border-border bg-transparent'
-                      : sprout === 'full'
-                        ? 'bg-secondary'
-                        : sprout === 'partial'
-                          ? 'bg-surface-primary/90 shadow-soft'
-                          : 'bg-transparent') +
-                    (d.isToday && !d.isFuture
-                      ? ' outline outline-2 outline-offset-2 outline-primary'
-                      : '')
-                  }
-                  aria-hidden="true"
-                >
-                  {sprout === 'full' && (
-                    <Sprout className="h-4.5 w-4.5 text-success sm:h-5 sm:w-5" strokeWidth={2.4} />
-                  )}
-                  {sprout === 'partial' && (
-                    <Sprout
-                      className="h-3.5 w-3.5 text-[var(--palette-matcha)] sm:h-4 sm:w-4"
-                      strokeWidth={2.2}
-                    />
-                  )}
-                  {sprout === 'none' && !d.isFuture && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-content-muted/50" />
-                  )}
-                </m.div>
+                {d.isFuture ? (
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-border bg-transparent sm:h-11 sm:w-11"
+                    aria-label={`${d.label} belum berjalan`}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay(daySelected ? null : d.iso)}
+                    aria-pressed={daySelected}
+                    aria-label={`${longDateLabel(d.iso)} — ${d.done} misi${d.metGoal ? ', target tercapai' : ''}`}
+                    className="interactive flex cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <m.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      viewport={{ once: true, margin: '-30px' }}
+                      transition={{
+                        ...motionTokens.spring.playful,
+                        delay: i * 0.05,
+                      }}
+                      className={
+                        'flex h-9 w-9 items-center justify-center rounded-full sm:h-11 sm:w-11 ' +
+                        (sprout === 'full'
+                          ? 'bg-secondary'
+                          : sprout === 'partial'
+                            ? 'bg-surface-primary/90 shadow-soft'
+                            : 'bg-transparent') +
+                        (daySelected
+                          ? ' ring-2 ring-primary ring-offset-2 ring-offset-surface-primary'
+                          : d.isToday
+                            ? ' outline outline-2 outline-offset-2 outline-primary'
+                            : '')
+                      }
+                      aria-hidden="true"
+                    >
+                      {sprout === 'full' && (
+                        <Sprout className="h-4.5 w-4.5 text-success sm:h-5 sm:w-5" strokeWidth={2.4} />
+                      )}
+                      {sprout === 'partial' && (
+                        <Sprout
+                          className="h-3.5 w-3.5 text-[var(--palette-matcha)] sm:h-4 sm:w-4"
+                          strokeWidth={2.2}
+                        />
+                      )}
+                      {sprout === 'none' && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-content-muted/50" />
+                      )}
+                    </m.div>
+                  </button>
+                )}
                 <span
                   className={
                     'text-chart-label font-semibold ' +
@@ -223,6 +272,84 @@ export function WeeklyRecapCard() {
           })}
         </div>
       </div>
+
+      {/* Ringkasan hari terpilih — misi selesai, aktivitas, dan status
+          target hari itu (audit Tahap 2: interaksi yang lebih informatif
+          saat menekan hari pada strip perjalanan). */}
+      <AnimatePresence initial={false}>
+        {sel && !sel.isFuture && (
+          <m.div
+            key={sel.iso}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              duration: motionTokens.duration.fast,
+              ease: motionTokens.easing.standard,
+            }}
+            className="overflow-hidden"
+          >
+            <div className="mt-3.5 rounded-[14px] border border-border bg-surface-primary/85 p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-note font-bold tracking-tight text-content-primary">
+                  {longDateLabel(sel.iso)}
+                  {sel.isToday ? ' · hari ini' : ''}
+                </p>
+                <span
+                  className={
+                    'flex items-center gap-1 rounded-full px-2.5 py-1 text-eyebrow font-bold ' +
+                    (sel.metGoal
+                      ? 'bg-secondary text-success'
+                      : 'bg-surface-secondary text-content-secondary')
+                  }
+                >
+                  {sel.metGoal && (
+                    <CheckCircle2
+                      className="h-3 w-3"
+                      strokeWidth={2.4}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {sel.metGoal
+                    ? `Target ${dailyGoal} misi tercapai`
+                    : sel.done > 0
+                      ? `Belum sampai target ${dailyGoal} misi`
+                      : 'Belum ada misi selesai'}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-eyebrow font-semibold text-content-muted">
+                <span className="tabular-nums">{sel.done} misi selesai</span>
+                {selWorkouts > 0 && (
+                  <span className="flex items-center gap-1 tabular-nums">
+                    <Dumbbell className="h-3 w-3" aria-hidden="true" />
+                    {selWorkouts} sesi latihan
+                  </span>
+                )}
+                {selFlow !== 0 && (
+                  <span
+                    className={
+                      'tabular-nums ' +
+                      (selFlow > 0 ? 'text-success' : 'text-content-danger')
+                    }
+                  >
+                    {selFlow > 0 ? '+' : '−'}
+                    {formatIDRShort(Math.abs(selFlow))} arus kas
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSheetDay(sel.iso)}
+                className="interactive mt-2.5 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 text-eyebrow font-bold text-content-secondary hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                {sel.isToday ? 'Detail lengkap hari ini' : 'Lihat detail lengkap'}
+              </button>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+      <DayDetailSheet date={sheetDay} onClose={() => setSheetDay(null)} />
 
       {/* Headline — total misi + perbandingan vs pekan lalu. */}
       <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
