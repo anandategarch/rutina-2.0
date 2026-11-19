@@ -159,6 +159,19 @@ const NAV_ITEMS: {
   { key: 'nav-profil', label: 'Buka Profil & Pengaturan', value: 'buka profil pengaturan settings preferensi akun', icon: UserRound, screen: 'profil' },
 ]
 
+/* Layar non-tab untuk baris "Jelajahi" pada kisi kosong — bersama
+   tombol plus tengah (v2.14), hub menjadi pusat navigasi global. */
+const EXPLORE_ITEMS: {
+  key: string
+  label: string
+  icon: LucideIcon
+  screen: Screen
+}[] = [
+  { key: 'ex-statistik', label: 'Statistik', icon: BarChart3, screen: 'statistik' },
+  { key: 'ex-jurnal', label: 'Jurnal', icon: BookOpen, screen: 'jurnal' },
+  { key: 'ex-profil', label: 'Profil', icon: UserRound, screen: 'profil' },
+]
+
 /** Ikon + nada warna nominal per arah arus — selaras layar Keuangan. */
 function txVisual(type: string): {
   icon: LucideIcon
@@ -458,6 +471,37 @@ export function QuickActionHub() {
                           </m.button>
                         ))}
                       </div>
+
+                      {/* Jelajahi — pintu layar non-tab (v2.14: tab bawah
+                          kini 4 item + plus tengah; Statistik, Jurnal &
+                          Profil dijangkau dari sini tanpa mengetik). */}
+                      <div className="border-t border-border px-5 py-3">
+                        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                          Jelajahi
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {EXPLORE_ITEMS.map((item) => (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() =>
+                                run(() =>
+                                  useRutina.getState().setScreen(item.screen),
+                                )
+                              }
+                              className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3.5 text-meta font-semibold text-content-secondary transition-colors hover:border-primary/35 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            >
+                              <item.icon
+                                className="h-3.5 w-3.5"
+                                strokeWidth={2}
+                                aria-hidden="true"
+                              />
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <p className="px-5 pb-4 pt-1.5 text-center text-meta font-medium text-content-muted">
                         Ketik untuk mencari di seluruh aplikasi
                       </p>
@@ -628,13 +672,14 @@ export function QuickActionHub() {
 }
 
 /**
- * QuickActionFab — tombol aksi mengambang global.
+ * QuickActionFab — tombol aksi mengambang, KHUSUS DESKTOP (lg+).
  *
- * Dipasang di cangkang (rutina-app) dengan posisi absolut di dalam wadah
- * aplikasi: di ponsel melayang di atas navigasi bawah (offset aman
- * safe-area), di desktop (lg+, tanpa navigasi bawah) menempel sudut
- * kanan-bawah. Ikon Plus berputar 45 derajat menjadi tanda tutup saat
- * hub terbuka. Disembunyikan di layar Profil — konsisten dengan BottomNav.
+ * Di ponsel, pintu aksi cepat berpindah ke tombol plus besar di tengah
+ * navigasi bawah (v2.14) — FAB disembunyikan di bawah lg agar tidak
+ * ada dua pemicu yang bersaing. Di desktop (tanpa navigasi bawah)
+ * FAB tetap menempel sudut kanan-bawah. Ikon Plus berputar 45 derajat
+ * menjadi tanda tutup saat hub terbuka. Disembunyikan di layar Profil
+ * — konsisten dengan BottomNav.
  */
 export function QuickActionFab() {
   const open = useQuickHub((s) => s.open)
@@ -646,7 +691,7 @@ export function QuickActionFab() {
       {screen !== 'profil' && (
         <m.div
           key="quick-fab"
-          className="absolute bottom-[calc(84px+env(safe-area-inset-bottom))] right-4 z-30 lg:bottom-6 lg:right-6"
+          className="absolute bottom-6 right-6 z-30 hidden lg:block"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0, opacity: 0 }}

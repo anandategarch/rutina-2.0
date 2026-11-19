@@ -21,6 +21,7 @@ import {
   Minimize2,
   Plus,
   Quote,
+  RefreshCw,
   Sun,
   Sunrise,
   Sunset,
@@ -34,19 +35,13 @@ import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
-import { PunchCard, punchWeekInfo } from '../punch-card'
 import { TaskRow } from '../task-row'
-import { FocusWidget } from '../focus-widget'
-import { StreakWidget } from '../streak-widget'
 import { HomeProgressRing } from '../home-progress-ring'
 import { HomeFinanceCard } from '../home-finance-card'
+import { DailyHighlightCard } from '../daily-highlight-card'
+import { WeeklyRecapCard } from '../weekly-recap-card'
 import { PlantGarden } from '../plant-garden'
 import {
   goldilocksOf,
@@ -65,7 +60,6 @@ import {
   bestStreak,
   computeLevel,
   computeXp,
-  dailyQuote,
   doneCountOn,
   FOLDERS,
   folderCount,
@@ -74,6 +68,7 @@ import {
   habitStreak,
   isDoneOn,
   longDateLabel,
+  quoteFor,
   shortDateLabel,
   todayISO,
   useRutina,
@@ -163,62 +158,6 @@ const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
   ide: Lightbulb,
   bacaan: BookOpen,
   pribadi: Heart,
-}
-
-/* ===== Punch card terlipat — progres lanjutan (review Beranda v2.13).
-   Pemicu selalu menampilkan ringkasan "X dari 7 hari tuntas"; detail
-   lubang stempel dibuka bila pengguna ingin melihat. State lipatan
-   sesaat per kunjungan (default tertutup) — bukan preferensi penting. */
-function FoldedPunchCard() {
-  const completions = useRutina((s) => s.completions)
-  const dailyGoal = useRutina((s) => s.dailyGoal)
-  const { stampedCount } = useMemo(
-    () => punchWeekInfo(completions, Math.max(dailyGoal, 1)),
-    [completions, dailyGoal],
-  )
-  return (
-    <Collapsible defaultOpen={false}>
-      <div className="overflow-hidden rounded-[20px] border-2 border-dashed border-primary/35 bg-surface-primary shadow-card">
-        <CollapsibleTrigger asChild>
-          <button
-            type="button"
-            aria-label={`Kartu stempel pekan: ${stampedCount} dari 7 hari tuntas — buka untuk melihat detail`}
-            className="group flex w-full cursor-pointer items-center gap-3 p-3.5 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-              <Flame className="h-[18px] w-[18px]" strokeWidth={2.1} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-body font-semibold text-content-primary">
-                Kartu Stempel Pekan
-              </span>
-              <span className="mt-0.5 block text-meta font-medium text-content-muted">
-                {stampedCount} dari 7 hari tuntas
-                {stampedCount === 7 ? ' — pekan sempurna!' : ''}
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5">
-              {stampedCount === 7 && (
-                <span className="rounded-full bg-primary px-2.5 py-1 text-eyebrow font-semibold text-primary-foreground shadow-leaf">
-                  Sempurna
-                </span>
-              )}
-              <ChevronDown
-                aria-hidden="true"
-                className="h-4 w-4 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
-              />
-            </span>
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          {/* mt-3 internal PunchCard dinetralkan oleh pembungkus */}
-          <div className="border-t border-primary/15 p-5 [&>section]:mt-0 [&>section]:rounded-none [&>section]:border-0">
-            <PunchCard />
-          </div>
-        </CollapsibleContent>
-      </div>
-    </Collapsible>
-  )
 }
 
 /* Tanggal & sapaan live — nilai khusus klien yang aman dari hydration:
@@ -531,8 +470,16 @@ export default function HomeScreen() {
     [dayHabits, completions, selectedDate],
   )
 
-  /* Kutipan harian — berganti tiap tanggal, stabil sepanjang hari. */
-  const quote = dailyQuote(today)
+  /* Refleksi hari ini — sadar offset "Ganti" (v2.14): kutipan harian
+     bisa diganti-ganti dalam hari yang sama; hari baru kembali ke
+     kutipan default. saveQuote menyimpan kutipan yang SEDANG tampil. */
+  const quoteOffset = useRutina((s) => s.quoteOffset)
+  const quoteDate = useRutina((s) => s.quoteDate)
+  const cycleQuote = useRutina((s) => s.cycleQuote)
+  const quote = useMemo(
+    () => quoteFor(today, quoteDate === today ? quoteOffset : 0),
+    [today, quoteDate, quoteOffset],
+  )
   const quoteSavedToday = quoteSavedDate === today
 
   /* Nudge "Jangan Bolong Dua Kali" — terlewat kemarin DAN belum
@@ -670,6 +617,12 @@ export default function HomeScreen() {
           </m.p>
         </m.header>
       </div>
+
+      {/* 0 — Sorotan Hari Ini: SATU hal paling relevan untuk hari ini
+          (streak terancam, anggaran hampir lewat, tubuh menunggu
+          bergerak, tuangan hampir tercapai, bonus, rayakan hari
+          sempurna) — selalu di posisi pertama, di atas segalanya. */}
+      <DailyHighlightCard />
 
       {/* 1 — Komposisi bento hero: progres utama (tile lebar) + insight
           pendamping (tile sempit) pada xl; ponsel tetap satu kolom. */}
@@ -1280,38 +1233,26 @@ export default function HomeScreen() {
         </button>
       </m.section>
 
-      {/* 4 — Baris bento arus kas (5) + insight pekan (7): satu baris
-          komposisi ruang kerja lebar (≥52rem), ponsel menumpuk finance → insight pekan.
-          mt-8 internal HomeFinanceCard dinetralkan agar tepi atas kedua
-          tile sejajar. */}
+      {/* 4 — Baris bento rekap pekan (7) + arus kas (5): satu baris
+          komposisi ruang kerja lebar (≥52rem), ponsel menumpuk rekap →
+          finance (perjalanan pertumbuhan didahulukan). mt-8 internal
+          HomeFinanceCard dinetralkan agar tepi atas kedua tile sejajar.
+          v2.14: Rekap Pekan menggantikan "Insight pekan" (FocusWidget +
+          StreakWidget) — strip perjalanan 7 hari, perbandingan vs pekan
+          lalu, dan chip visual lintas modul; kartu stempel pekan yang
+          terlipat ikut diserap ke strip perjalanan. */}
       <RutinaBentoGrid>
+        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
+          <WeeklyRecapCard />
+        </RutinaBentoItem>
+
         <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5 [&>section]:mt-0">
           {/* Ringkasan finansial harian (audit #11) */}
           <HomeFinanceCard />
         </RutinaBentoItem>
-
-        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
-          {/* Insight pekan: aktivitas & streak berdampingan */}
-          <section aria-label="Insight pekan ini">
-            <RutinaSectionHeader
-              title="Insight pekan"
-              description="Aktivitas misi & konsistensi terpanjang"
-            />
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FocusWidget />
-              <StreakWidget />
-            </div>
-          </section>
-        </RutinaBentoItem>
       </RutinaBentoGrid>
 
-      {/* 5 — Kartu stempel pekan — TINGKAT "AKTIVITAS TAMBAHAN": dilipat
-          (review Beranda v2.13: punch card adalah progres lanjutan, bukan
-          fokus utama; ringkasan "X dari 7" selalu terlihat di pemicu,
-          detail lubang dibuka bila diminati). */}
-      <FoldedPunchCard />
-
-      {/* 6 — Pintu Jurnal & catatan — menggantikan kisi folder penuh:
+      {/* 5 — Pintu Jurnal & catatan — menggantikan kisi folder penuh:
           kini satu kartu ringkas (review v2.13: "koleksi folder lebih
           cocok menjadi pintu masuk Jurnal"); kisi folder lengkap ada
           di layar Jurnal. */}
@@ -1387,7 +1328,9 @@ export default function HomeScreen() {
         </div>
       )}
 
-      {/* 7 — Kartu Kutipan & Pengingat (pembatas visual) */}
+      {/* 7 — Kartu Refleksi (pembatas visual) — kutipan bisa DIGANTI-GANTI
+          (v2.14): tombol "Ganti" menjalankan cycleQuote; kutipan berputar
+          dengan transisi lembut; simpan menyimpan kutipan yang tampil. */}
       <m.section
         initial={{ opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -1399,18 +1342,40 @@ export default function HomeScreen() {
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">
             <Quote aria-hidden="true" className="h-6 w-6 shrink-0 text-content-inverse/45" />
-            <span className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
-              Refleksi Hari Ini
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-inverse/70">
+                Refleksi Hari Ini
+              </span>
+              <m.button
+                type="button"
+                onClick={() => cycleQuote()}
+                aria-label="Ganti kutipan refleksi"
+                title="Ganti kutipan refleksi"
+                whileTap={{ scale: 0.9 }}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-content-inverse/25 text-content-inverse/75 transition-colors hover:bg-content-inverse/10 hover:text-content-inverse focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content-inverse"
+              >
+                <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.2} />
+              </m.button>
+            </div>
           </div>
-          <p
-            className={`${playfair.className} mt-4 text-balance text-lead italic leading-relaxed text-content-inverse`}
-          >
-            &ldquo;{quote.text}&rdquo;
-          </p>
-          <p className="mt-3 text-xs font-medium text-content-inverse/75">
-            — {quote.author}
-          </p>
+          <AnimatePresence mode="wait" initial={false}>
+            <m.div
+              key={`${today}-${quoteDate === today ? quoteOffset : 0}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+            >
+              <p
+                className={`${playfair.className} mt-4 text-balance text-lead italic leading-relaxed text-content-inverse`}
+              >
+                &ldquo;{quote.text}&rdquo;
+              </p>
+              <p className="mt-3 text-xs font-medium text-content-inverse/75">
+                — {quote.author}
+              </p>
+            </m.div>
+          </AnimatePresence>
           <Button
             type="button"
             variant="ghost"

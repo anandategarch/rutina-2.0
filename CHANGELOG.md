@@ -3,6 +3,79 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.14] — Sorotan Harian, Rekap Pekan & Navigasi Plus Tengah
+
+Fokus: Beranda selalu menunjukkan satu hal paling relevan untuk hari itu,
+rekap perjalanan pekan yang memancing rasa ingin melihat perkembangan diri,
+navigasi bawah "plus di tengah", dan refleksi yang bisa diganti-ganti.
+
+### Ditambahkan
+- **Sorotan Hari Ini** (`daily-highlight.ts` + `daily-highlight-card.tsx`) —
+  kartu pertama Beranda, memilih SATU hal terpenting hari ini lewat logika
+  prioritas murni: streak ≥3 hari belum selesai (runtun tertinggi menang) →
+  anggaran kategori ≥85% terpakai bulan ini (rasio tertinggi menang, hanya
+  transaksi bulan berjalan) → ≥3 hari tanpa latihan (hanya bila punya
+  histori latihan) → tujuan tabungan ≥80% terdanai (belum 100%) → bonus
+  harian (hanya bila punya kebiasaan aktif — pengguna baru disambut dulu) →
+  hari sempurna (semua misi selesai) → jadwal kosong → sambutan. Tiap
+  sorotan membawa aksen warna modul asal (kebiasaan/keuangan/bugar/beranda),
+  suar bernapas untuk kandidat mendesak, mini-visual (chip runtun, batang
+  anggaran & tujuan dengan role="progressbar", chip hitungan), dan satu CTA
+  yang memetakan langsung ke aksi store (selesaikan misi, buka tab anggaran,
+  buka lembar latihan, isi tabungan, klaim bonus, buka statistik, tambah
+  kebiasaan).
+- **Rekap Pekan** (`weekly-recap.ts` + `weekly-recap-card.tsx`) — ringkasan
+  perjalanan pekan berjalan di permukaan garden-surface: strip perjalanan
+  7 hari Senin–Minggu (kecambah penuh saat target harian tercapai, kecambah
+  kecil saat beraktivitas, titik di hari kosong, lingkar putus hari
+  mendatang, outline pada hari ini; ringkasan nonvisual role="img"),
+  headline "N misi selesai" + chip perbandingan vs pekan lalu pada RENTANG
+  HARI YANG SAMA (Senin..hari-setara), chip visual lintas modul (streak
+  terpanjang, sesi latihan, XP misi, arus kas bersih dengan transfer
+  netral), kalimat penutup naratif sesuai arah perkembangan, dan tombol
+  "Statistik" (pintu utama ke layar Statistik yang turun dari tab).
+- **Tombol plus besar di tengah navigasi bawah** — tab bawah kini
+  **Beranda · Bugar · [＋] · Keuangan · Kebiasaan**: dock 56px menonjol ke
+  atas bar dengan "kerah" ring senada permukaan, halo bernapas, plus
+  berputar 45° menjadi silang saat hub terbuka; membuka Quick Action Hub
+  (tambah kebiasaan, catatan, transaksi, latihan, asupan, check-in).
+- **Baris "Jelajahi" di Quick Action Hub** — chip Statistik · Jurnal ·
+  Profil di bawah kisi enam aksi (tampilan kueri kosong) — layar non-tab
+  terjangkau satu ketuk tanpa mengetik.
+- **Tombol "Ganti" pada Refleksi Hari Ini** — `cycleQuote` mengganti
+  kutipan ke pilihan berikutnya dengan transisi slide lembut
+  (AnimatePresence mode="wait"); offset hanya berlaku pada hari
+  penggantian (hari baru kembali ke kutipan harian deterministik);
+  bank kutipan diperluas 10 → 16.
+- **`quoteFor` / `nextQuoteOffset` / `currentQuoteOf`** — helper murni
+  (teruji) untuk matematika refleksi bergilir; state `quoteOffset` +
+  `quoteDate` dipersist lokal.
+
+### Diubah
+- **Statistik bukan lagi tab bawah** — pintunya: tombol "Statistik" pada
+  Rekap Pekan Beranda, baris Jelajahi + pencarian di hub, dan bilah sisi
+  desktop (keenam layar tetap tampil di lg+).
+- **QuickActionFab kini khusus desktop** (lg+) — di ponsel digantikan
+  tombol plus tengah agar tidak ada dua pemicu yang bersaing.
+- **"Insight pekan" (FocusWidget + StreakWidget) digantikan Rekap Pekan**
+  — informasi keduanya (misi pekan, streak) terserap ke headline & chip
+  rekap; kartu stempel pekan terlipat ikut diserap ke strip perjalanan
+  (informasi "X dari 7 hari target" sama persis).
+- **Urutan baris bento tier-3 Beranda** — Rekap Pekan (7 kolom) didahulukan
+  sebelum kartu arus kas (5 kolom); ponsel menumpuk rekap → finance.
+- **`saveQuote`** — menyimpan kutipan yang SEDANG tampil (sadar offset),
+  bukan selalu kutipan default harian.
+
+### Pengujian
+- `tests/calc-highlight.test.ts` (22 tes baru, total suite 97 / 5 file):
+  prioritas & ambang sorotan (streak-risk memilih runtun tertinggi,
+  ambang 85%/80%/3-hari, pengeluaran bulan lalu tak dihitung, tanpa
+  histori latihan tidak dinag, tujuan 100% tidak ditonjolkan, onboarding
+  menang atas bonus), rekap pekan (strip Sen–Min, total sampai hari ini,
+  pembanding rentang-sama + delta, Sabtu/Minggu pekan lalu dikecualikan,
+  transfer netral, pekan kosong valid), refleksi bergilir (offset maju,
+  modulo penuh, reset harian, bank ≥10 & unik).
+
 ## [2.13] — Hardening & Review Frontend
 
 Fokus: menutup utang rekayasa (konfirmasi hapus, pemeriksaan tipe, pengujian

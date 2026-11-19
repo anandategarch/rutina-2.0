@@ -64,15 +64,54 @@ export const DAILY_QUOTES: { text: string; author: string }[] = [
   { text: 'Fokus pada sistem, bukan hanya tujuan. Tujuan menetapkan arah; sistemlah yang membawamu ke sana.', author: 'James Clear' },
   { text: 'Tubuhmu mendengarkan semua yang pikiranmu katakan. Berikan kata-kata yang baik.', author: 'Naomi Judd' },
   { text: 'Uang tidak membeli kebahagiaan, tetapi mengelolanya dengan baik membeli ketenangan.', author: 'Anonim' },
+  { text: 'Kamu tidak harus hebat untuk memulai, tetapi kamu harus memulai untuk menjadi hebat.', author: 'Zig Ziglar' },
+  { text: 'Kebahagiaan bukanlah sesuatu yang siap jadi — ia lahir dari tindakanmu sendiri.', author: 'Dalai Lama' },
+  { text: 'Waktu yang dihabiskan untuk merawat diri tidak pernah sia-sia.', author: 'Anonim' },
+  { text: 'Menulis adalah cara berpikir paling jernih — menuangkan gagasan membuatnya nyata.', author: 'Anonim' },
+  { text: 'Tanaman tidak berbunga karena dimarahi — begitu pula dirimu; airi dengan sabar.', author: 'Anonim' },
+  { text: 'Setiap hari adalah halaman baru; tulis sedikit, tapi tulis dengan jujur.', author: 'Anonim' },
 ]
 
 /** Kutipan hari ini — index dari hari-dalam-tahun sehingga berganti
  *  tiap tanggal namun stabil sepanjang hari yang sama. */
 export function dailyQuote(today: string): { text: string; author: string } {
+  return quoteFor(today, 0)
+}
+
+/** Kutipan pada offset dari kutipan harian — dipakai fitur "ganti refleksi":
+ *  offset berputar modulo jumlah kutipan sehingga selalu valid. */
+export function quoteFor(
+  today: string,
+  offset: number,
+): { text: string; author: string } {
   const d = fromISO(today)
   const start = new Date(d.getFullYear(), 0, 0)
   const dayOfYear = Math.floor((d.getTime() - start.getTime()) / 86_400_000)
-  return DAILY_QUOTES[Math.abs(dayOfYear) % DAILY_QUOTES.length]!
+  const len = DAILY_QUOTES.length
+  const idx =
+    ((Math.abs(dayOfYear) % len) + (offset % len) + len) % len
+  return DAILY_QUOTES[idx]!
+}
+
+/** Offset "Ganti refleksi" berikutnya — murni agar mudah diuji: offset
+ *  hanya berlanjut bila pengguna mengganti pada HARI yang sama; hari
+ *  baru selalu mulai dari kutipan pertama sesudah default (offset 1). */
+export function nextQuoteOffset(
+  prevDate: string | null,
+  prevOffset: number,
+  today: string,
+): number {
+  return prevDate === today ? prevOffset + 1 : 1
+}
+
+/** Kutipan refleksi yang tampil saat ini — sadar offset & pergantian
+ *  hari (murni; kebalikan aksi currentQuote() di store). */
+export function currentQuoteOf(
+  quoteDate: string | null,
+  quoteOffset: number,
+  today: string,
+): { text: string; author: string } {
+  return quoteFor(today, quoteDate === today ? quoteOffset : 0)
 }
 
 /* ===== Ekonomi XP (gabungan varian Gamified ke dalam app utuh) ===== */
@@ -978,6 +1017,12 @@ interface RutinaState {
   /** Tanggal ISO kutipan terakhir yang disimpan — kutipan harian boleh
    *  disimpan ulang setiap ganti hari. */
   quoteSavedDate: string | null
+  /** Berapa kali pengguna menekan "Ganti" pada refleksi hari ini — kutipan
+   *  yang tampil = dailyQuote + offset (v2.14: refleksi bisa diganti-ganti). */
+  quoteOffset: number
+  /** Tanggal ISO terakhir pengguna mengganti refleksi — offset hanya berlaku
+   *  pada hari yang sama; hari baru kembali ke kutipan harian default. */
+  quoteDate: string | null
   mood: string | null
   /** Riwayat mood per tanggal ISO — histori wellness jujur seperti
    *  DailyLog Rutina lama (mood tetap tercermin di state `mood`). */
@@ -1110,6 +1155,10 @@ interface RutinaState {
   togglePin: (id: string) => void
   deleteNote: (id: string) => void
   saveQuote: () => void
+  /** Ganti kutipan refleksi hari ini ke pilihan berikutnya (bergilir). */
+  cycleQuote: () => void
+  /** Kutipan refleksi yang sedang tampil (sadar offset & pergantian hari). */
+  currentQuote: () => { text: string; author: string }
   setMood: (mood: string | null) => void
   toggleExpandedTask: (id: string) => void
   openReading: (id: string) => void
@@ -1138,6 +1187,8 @@ export const useRutina = create<RutinaState>()(
   notes: SEED_NOTES,
   quoteSaved: false,
   quoteSavedDate: null,
+  quoteOffset: 0,
+  quoteDate: null,
   mood: null,
   moodLogs: {},
   identityText: '',
@@ -1596,7 +1647,7 @@ export const useRutina = create<RutinaState>()(
   saveQuote: () => {
     const today = todayISO()
     if (get().quoteSavedDate === today) return
-    const q = dailyQuote(today)
+    const q = get().currentQuote()
     set((s) => ({
       quoteSaved: true,
       quoteSavedDate: today,
@@ -1613,6 +1664,22 @@ export const useRutina = create<RutinaState>()(
         ...s.notes,
       ],
     }))
+  },
+
+  /* Ganti refleksi — maju satu kutipan dari yang sedang tampil. Offset
+     hanya hidup sepanjang hari yang sama: hari berikutnya kembali ke
+     kutipan harian default (deterministik per tanggal). */
+  cycleQuote: () => {
+    const today = todayISO()
+    set((s) => ({
+      quoteDate: today,
+      quoteOffset: nextQuoteOffset(s.quoteDate, s.quoteOffset, today),
+    }))
+  },
+
+  currentQuote: () => {
+    const s = get()
+    return currentQuoteOf(s.quoteDate, s.quoteOffset, todayISO())
   },
 
   setMood: (mood) =>
@@ -1718,6 +1785,8 @@ export const useRutina = create<RutinaState>()(
         bonusClaimed: s.bonusClaimed,
         quoteSaved: s.quoteSaved,
         quoteSavedDate: s.quoteSavedDate,
+        quoteOffset: s.quoteOffset,
+        quoteDate: s.quoteDate,
         /* Preferensi perangkat — ikut persist lokal, tidak disinkronkan */
         uiPrefs: s.uiPrefs,
       }),

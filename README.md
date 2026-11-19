@@ -5,6 +5,28 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+## v2.14 — Sorotan Harian, Rekap Pekan & Navigasi Plus Tengah
+
+Beranda kini selalu menunjukkan SATU hal paling relevan untuk hari itu, rekap
+perjalanan pekan yang membuat pengguna ingin melihat perkembangan dirinya,
+dan navigasi bawah dirancang ulang: tombol plus besar di tengah dengan empat
+tab utama mengapit di kiri-kanan.
+
+| Fitur | Rincian |
+|---|---|
+| **Sorotan Hari Ini** | Kartu pertama di Beranda — logika prioritas murni (`daily-highlight.ts`, teruji): streak ≥3 hari yang belum selesai hari ini → anggaran kategori terpakai ≥85% bulan ini → ≥3 hari tanpa latihan → tujuan tabungan terdanai ≥80% → bonus harian → rayakan hari sempurna → jadwal kosong → sambutan pengguna baru. Tiap sorotan membawa aksen warna modul asal, suar bernapas untuk yang mendesak, mini-visual (chip runtun, batang anggaran/tujuan, chip hari-tanpa-latihan), dan satu CTA langsung ke aksinya. |
+| **Rekap Pekan** | Kartu perjalanan (`weekly-recap-card.tsx`) menggantikan "Insight pekan" (FocusWidget + StreakWidget) dan menyerap kartu stempel: strip perjalanan 7 hari Senin–Minggu bertema taman (kecambah menetas di hari beraktivitas, **mekar penuh** saat target harian tercapai, titik di hari kosong, lingkar putus untuk hari mendatang, hari ini disorot outline), headline "N misi selesai" + perbandingan jujur vs pekan lalu **pada rentang hari yang sama**, chip visual lintas modul (streak, latihan, XP, arus kas bersih), kalimat penutup naratif, dan pintu "Statistik". |
+| **Navigasi plus di tengah** | Tab bawah dirancang ulang: **Beranda · Bugar · [＋] · Keuangan · Kebiasaan** — tombol plus besar (dock menonjol, halo bernapas, berputar 45° jadi silang saat terbuka) membuka Quick Action Hub: tambah kebiasaan, catatan, transaksi, latihan, asupan, check-in. FAB lama kini khusus desktop (lg+). Statistik turun dari deret tab — pintunya: tombol "Statistik" di Rekap Pekan + baris **Jelajahi** di hub. |
+| **Jelajahi di Quick Action Hub** | Baris chip di bawah kisi enam aksi: Statistik · Jurnal · Profil — layar non-tab terjangkau satu ketuk tanpa mengetik; pencarian tetap menjangkau semua layar. |
+| **Refleksi bisa diganti-ganti** | Tombol "Ganti" pada kartu Refleksi (`cycleQuote`) — kutipan bergilir (bank diperluas 10 → 16) dengan transisi lembut; offset hanya berlaku pada hari penggantian, hari baru kembali ke kutipan harian deterministik. "Simpan ke Jurnal" menyimpan kutipan yang sedang tampil (bukan selalu kutipan default). |
+| **Visual, bukan sekadar angka** | Sorotan & rekap dirancang ikon-dulu: chip berwarna, batang progres, strip kecambah, panah tren — angka tetap ada sebagai tabular-nums kecil, bukan satu-satunya bahasa. |
+| **97 pengujian otomatis** | Suite baru `tests/calc-highlight.test.ts` (22 tes): prioritas & ambang sorotan harian (termasuk keputusan onboarding: pengguna tanpa kebiasaan disambut dulu, bukan disuruh klaim bonus), rekap pekan (strip 7 hari, pembanding rentang-sama, transfer netral, pekan kosong), dan matematika kutipan bergilir (modulo, reset harian). |
+
+Verifikasi browser (agent-browser): sorotan hari ini muncul & CTA berfungsi,
+rekap pekan menampilkan strip perjalanan + chip, tombol plus tengah membuka
+hub & enam aksi + Jelajahi berpindah layar, refleksi berganti dengan animasi,
+navigasi 4-tab tetap menampilkan pil aksen — tanpa error konsol.
+
 ## v2.13 — Hardening & Review Frontend: Konfirmasi Hapus, UIPrefs, Beranda 3 Tingkat
 
 Iterasi pengerasan kualitas dari review frontend eksternal + audit rekayasa:
