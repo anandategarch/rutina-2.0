@@ -1,20 +1,31 @@
 'use client'
 
-import { useSyncExternalStore, type ReactNode } from 'react'
+import {
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react'
 import * as m from 'motion/react-m'
 import {
   ArrowDownRight,
   ArrowLeftRight,
   ArrowUpRight,
   BarChart3,
+  BookOpen,
   Check,
+  Database,
   Droplets,
   Dumbbell,
   Flame,
   Leaf,
+  Medal,
   Minus,
   Moon,
+  PanelRightClose,
+  PanelRightOpen,
   PiggyBank,
+  Smile,
+  Sparkles,
   Sprout,
   Target,
   Timer,
@@ -31,20 +42,27 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { useCatMeta } from './finance/use-cat-meta'
 import { formatIDRShort, monthFlow, monthSpendByCat } from './finance/utils'
 import { prBoard } from './fitness/fit-utils'
-import { MODULE_TEXT, MODULE_TINT } from './rutina-module'
+import { MODULE_TEXT, MODULE_TINT, type RutinaModule } from './rutina-module'
 import { RutinaCard } from './rutina-card'
 import { RutinaSectionHeader } from './rutina-section-header'
+import { SyncStatusCard } from './sync-status-card'
 import {
   addDaysISO,
   bestStreak,
+  computeLevel,
+  computeXp,
   dayCounts,
+  doneCountOn,
   habitsOn,
   HABIT_CAT_COLORS,
+  longestStreak,
   shortDateLabel,
   todayISO,
   useRutina,
+  XP_TARGET,
   type FinCat,
   type Habit,
+  type Screen,
 } from './store'
 
 /* Baris metrik rata (ikon + nilai + label) — tenang, bukan kartu melayang. */
@@ -585,7 +603,7 @@ function GardenCard() {
   )
 }
 
-/* ===== Kartu Statistik — insight pekan & fokus kebiasaan ===== */
+/* ===== Kartu Statistik — insight, pencapaian, fokus ===== */
 
 function InsightCard() {
   const completions = useRutina((s) => s.completions)
@@ -687,14 +705,181 @@ function FocusCard() {
   )
 }
 
+/* Pencapaian — level petualangan, progres XP, dan streak terbaik
+   sepanjang masa (semua kebiasaan, data nyata). */
+function AchievementCard() {
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
+  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+
+  const today = todayISO()
+  const xp = computeXp(doneCountOn(completions, today), bonusClaimed)
+  const level = computeLevel(xp)
+  const bestEver = habits.reduce(
+    (a, h) => Math.max(a, longestStreak(h, completions, today)),
+    0,
+  )
+
+  return (
+    <RutinaCard>
+      <RutinaSectionHeader title="Pencapaian" />
+      <ul className="mt-4 flex flex-col gap-3.5">
+        <MetricRow
+          icon={Medal}
+          iconClass={MODULE_TINT.stats}
+          value={`Level ${level}`}
+          valueClass={MODULE_TEXT.stats}
+          label="Petualang Rutina"
+        />
+        <MetricRow
+          icon={Sparkles}
+          iconClass={MODULE_TINT.stats}
+          value={`${xp} / ${XP_TARGET} XP`}
+          label={
+            level >= 8 ? 'Level maksimal tercapai' : 'Menuju level berikutnya'
+          }
+        />
+        <MetricRow
+          icon={Trophy}
+          iconClass={MODULE_TINT.stats}
+          value={`${bestEver} hari`}
+          label="Streak terbaik sepanjang masa"
+        />
+      </ul>
+    </RutinaCard>
+  )
+}
+
+/* ===== Kartu Profil — penyimpanan & preferensi (identitas Cocoa Gold) ===== */
+
+/* Penyimpanan — inventaris data nyata yang dikandung aplikasi. */
+function StorageRailCard() {
+  const txs = useRutina((s) => s.txs)
+  const habits = useRutina((s) => s.habits)
+  const notes = useRutina((s) => s.notes)
+  const workouts = useRutina((s) => s.workouts)
+
+  const activeHabits = habits.filter((h) => !h.archived).length
+
+  return (
+    <RutinaCard>
+      <RutinaSectionHeader title="Penyimpanan" />
+      <ul className="mt-4 flex flex-col gap-3.5">
+        <MetricRow
+          icon={Database}
+          iconClass={MODULE_TINT.profil}
+          value={`${txs.length} transaksi`}
+          label="Buku kas"
+        />
+        <MetricRow
+          icon={Sprout}
+          iconClass={MODULE_TINT.profil}
+          value={`${activeHabits} kebiasaan`}
+          label="Taman aktif"
+        />
+        <MetricRow
+          icon={BookOpen}
+          iconClass={MODULE_TINT.profil}
+          value={`${notes.length} catatan`}
+          label="Jurnal tersimpan"
+        />
+      </ul>
+      <p className="mt-3 text-eyebrow font-medium leading-relaxed text-content-muted">
+        Termasuk {workouts.length} sesi Bugar — tersimpan lokal + cloud.
+      </p>
+    </RutinaCard>
+  )
+}
+
+/* Preferensi cepat — target harian, mood hari ini, dan streak aktif. */
+function PreferencesRailCard() {
+  const dailyGoal = useRutina((s) => s.dailyGoal)
+  const mood = useRutina((s) => s.mood)
+  const habits = useRutina((s) => s.habits)
+  const completions = useRutina((s) => s.completions)
+
+  const streak = bestStreak(habits, completions, todayISO()).streak
+
+  return (
+    <RutinaCard>
+      <RutinaSectionHeader title="Preferensi" />
+      <ul className="mt-4 flex flex-col gap-3.5">
+        <MetricRow
+          icon={Target}
+          iconClass={MODULE_TINT.profil}
+          value={`${dailyGoal} misi / hari`}
+          label="Target harian"
+        />
+        <MetricRow
+          icon={Smile}
+          iconClass={MODULE_TINT.profil}
+          value={mood ?? 'Belum check-in'}
+          label="Mood hari ini"
+        />
+        <MetricRow
+          icon={Flame}
+          iconClass={MODULE_TINT.profil}
+          value={`${streak} hari`}
+          label="Streak menyala"
+        />
+      </ul>
+    </RutinaCard>
+  )
+}
+
+/* ===== Tata letak rail kolapsibel ===== */
+
+/** Preferensi ringkas/terbuka rail — '1' ringkas, '0' terbuka, null
+ *  berarti otomatis: terbuka penuh mulai 1440px, ringkas pada 1280–1439px
+ *  (audit Tahap 1: tiga kolom penuh hanya di layar yang benar-benar lega). */
+const RAIL_PREF_KEY = 'rutina-2.0-rail-collapsed'
+
+function readRailPref(): boolean | null {
+  try {
+    const v = localStorage.getItem(RAIL_PREF_KEY)
+    return v === '1' ? true : v === '0' ? false : null
+  } catch {
+    return null
+  }
+}
+
+/** matchMedia reaktif — aman SSR (snapshot server selalu false). */
+function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(query)
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  )
+}
+
+/** Domain warna layar aktif — menyalakan titik aksen pada strip ringkas. */
+const SCREEN_MODULE: Partial<Record<Screen, RutinaModule>> = {
+  bugar: 'bugar',
+  keuangan: 'finance',
+  kebiasaan: 'kebiasaan',
+  statistik: 'stats',
+  profil: 'profil',
+}
+
 /**
  * Rail konteks desktop (xl+) — panel kanan ADAPTIF terhadap layar aktif.
+ *
+ * Tata letak (audit Tahap 1 — "desktop application shell"):
+ *   · 1280–1439px → strip ringkas 56px (bisa dibuka manual, preferensi
+ *     tersimpan di localStorage);
+ *   · ≥1440px      → tiga kolom penuh (rail 288px, tetap bisa diringkas);
+ *   · Jurnal       → rail disembunyikan total — ruang menulis yang tenang.
+ *
  * Isi tiga kartunya berganti mengikuti domain layar (Bugar, Keuangan,
- * Kebiasaan, Statistik); beranda/profil/jurnal memakai set default
- * (ringkasan pekan, berikutnya, tips). Seluruh angka berasal dari data
- * NYATA store — satu sumber dengan layar aplikasi; aksen ikon memakai
- * peta modul eksplisit agar cocok dengan domain layar. Di bawah xl rail
- * disembunyikan; tidak ada duplikasi state.
+ * Kebiasaan, Statistik, Profil); beranda memakai set default (ringkasan
+ * pekan, berikutnya, tips). Seluruh angka berasal dari data NYATA store —
+ * satu sumber dengan layar aplikasi; aksen ikon memakai peta modul
+ * eksplisit agar cocok dengan domain layar. Di bawah xl rail disembunyikan;
+ * tidak ada duplikasi state.
  */
 export function ContextRail() {
   const screen = useRutina((s) => s.screen)
@@ -714,11 +899,90 @@ export function ContextRail() {
     () => false,
   )
 
+  /* Kolapsibel: preferensi pengguna dibaca malas saat render klien pertama
+     (aman SSR — output pra-mount selalu strip ringkas, tak ada mismatch:
+     gerbang `mounted` di bawah), keadaan otomatis mengikuti breakpoint
+     1440px. */
+  const [userCollapsed, setUserCollapsed] = useState<boolean | null>(() =>
+    typeof window === 'undefined' ? null : readRailPref(),
+  )
+  const wide1440 = useMediaQuery('(min-width: 1440px)')
+
+  const expanded = userCollapsed !== null ? !userCollapsed : wide1440
+
+  const toggleRail = () => {
+    /* Nilai COLLAPSED baru = keadaan TERBUKA saat ini (toggle terbalik:
+       terbuka → tersimpan '1' (ringkas), ringkas → '0' (terbuka)). */
+    const nextCollapsed = expanded
+    setUserCollapsed(nextCollapsed)
+    try {
+      localStorage.setItem(RAIL_PREF_KEY, nextCollapsed ? '1' : '0')
+    } catch {
+      /* localStorage diblokir — preferensi hanya bertahan sesi ini. */
+    }
+  }
+
+  /* Jurnal — ruang tulis tenang: rail disembunyikan total. */
+  if (screen === 'jurnal') return null
+
+  const domain = SCREEN_MODULE[screen]
+
+  /* Pra-mount (SSR + hidrasi) selalu strip ringkas — menjamin output hidrasi
+     identik dengan server berapa pun preferensi localStorage. */
+  const showFull = mounted && expanded
+
+  /* Strip ringkas — pintu kecil berisi tombol buka + tiga titik domain. */
+  if (!showFull) {
+    return (
+      <aside
+        aria-label="Panel konteks (ringkas)"
+        data-module={domain}
+        className="hidden h-full w-14 shrink-0 flex-col items-center gap-1 border-l border-border bg-surface-primary/60 py-4 xl:flex"
+      >
+        <button
+          type="button"
+          onClick={toggleRail}
+          aria-label="Buka panel konteks"
+          title="Buka panel konteks"
+          className="interactive flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-content-muted hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <PanelRightOpen className="h-[18px] w-[18px]" strokeWidth={2.1} />
+        </button>
+        <div
+          aria-hidden="true"
+          className="mt-3 flex flex-col items-center gap-2.5"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-module-accent" />
+          <span className="h-1.5 w-1.5 rounded-full bg-module-accent/55" />
+          <span className="h-1.5 w-1.5 rounded-full bg-module-accent/25" />
+        </div>
+      </aside>
+    )
+  }
+
   return (
     <aside
       aria-label="Panel konteks"
+      data-module={domain}
       className="hidden h-full w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface-primary/60 p-5 pb-6 xl:flex"
     >
+      {/* Baris judul + tombol ringkas — rail terasa seperti panel program
+          desktop profesional, bukan kolom statis. */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+          Panel konteks
+        </p>
+        <button
+          type="button"
+          onClick={toggleRail}
+          aria-label="Ringkas panel konteks"
+          title="Ringkas panel konteks"
+          className="interactive flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-content-muted hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <PanelRightClose className="h-4 w-4" strokeWidth={2.2} />
+        </button>
+      </div>
+
       {mounted && (
         <>
           {/* Kartu 1 — ringkasan utama domain layar aktif */}
@@ -731,12 +995,14 @@ export function ContextRail() {
               <ConsistencyCard />
             ) : screen === 'statistik' ? (
               <InsightCard />
+            ) : screen === 'profil' ? (
+              <SyncStatusCard variant="rail" />
             ) : (
               <WeekSummaryCard />
             )}
           </RailSection>
 
-          {/* Kartu 2 — agenda / rekor / anggaran sesuai domain */}
+          {/* Kartu 2 — agenda / rekor / anggaran / pencapaian sesuai domain */}
           <RailSection delay={0.13}>
             {screen === 'bugar' ? (
               <PrCard />
@@ -744,12 +1010,16 @@ export function ContextRail() {
               <BudgetCard />
             ) : screen === 'kebiasaan' ? (
               <NextUpCard title="Agenda" />
+            ) : screen === 'statistik' ? (
+              <AchievementCard />
+            ) : screen === 'profil' ? (
+              <StorageRailCard />
             ) : (
               <NextUpCard />
             )}
           </RailSection>
 
-          {/* Kartu 3 — hidrasi / aktivitas / taman / tips */}
+          {/* Kartu 3 — hidrasi / aktivitas / taman / fokus / preferensi */}
           <RailSection delay={0.21}>
             {screen === 'bugar' ? (
               <HydrationCard />
@@ -757,6 +1027,10 @@ export function ContextRail() {
               <RecentTxsCard />
             ) : screen === 'kebiasaan' ? (
               <GardenCard />
+            ) : screen === 'statistik' ? (
+              <FocusCard />
+            ) : screen === 'profil' ? (
+              <PreferencesRailCard />
             ) : (
               <TipsCard />
             )}

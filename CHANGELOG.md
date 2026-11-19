@@ -3,6 +3,47 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.23] — Tahap 1 · Fondasi Visual: Shell Desktop Profesional
+
+Permintaan pengguna: eksekusi audit desain frontend 4 tahap (Warm Editorial
+Productivity — calmer, premium, data-rich). Tahap 1 memoles fondasi tanpa
+menambah library baru.
+
+### Shell desktop (prioritas tertinggi audit)
+- **Rail konteks kolapsibel**: 1280–1439px tampil sebagai strip ringkas 56px
+  (tombol buka + tiga titik aksen domain); ≥1440px tiga kolom penuh. Toggle
+  tersimpan di localStorage (`rutina-2.0-rail-collapsed`); pra-mount selalu
+  render strip agar hidrasi SSR bebas mismatch.
+- **Konten rail per halaman** (sebelumnya jurnal/profil jatuh ke set umum):
+  Statistik → Insight · Pencapaian (Level/XP/streak terbaik) · Fokus;
+  Profil → Sinkronisasi · Penyimpanan (inventaris data nyata) · Preferensi
+  (target harian, mood, streak). Beranda/Bugar/Keuangan/Kebiasaan tetap.
+- **Jurnal tanpa rail** — ruang menulis tenang, panel kanan disembunyikan
+  total saat layar Jurnal aktif.
+- Header rail "PANEL KONTEKS" + tombol ringkas — terasa seperti panel
+  program desktop, bukan kolom statis.
+
+### Status sinkronisasi dinamis (mengganti teks statis "Tersinkron cloud")
+- Empat keadaan + boot: **Tersinkron** (jam sinkron terakhir "pukul HH.MM"),
+  **Menyinkronkan** (perubahan sedang dikirim), **Offline** (tersimpan di
+  perangkat), **Gagal** (+ tombol "Coba lagi").
+- `syncStatusStore` (zustand vanilla, bukan slice domain — tak ikut
+  ter-persist/ter-push) dibaca lewat `useSyncStatus()`; transisi mengalir
+  dari push/boot/forcePull; listener `online`/`offline` otomatis mendorong
+  ulang perubahan tertunda saat koneksi kembali.
+- Kartu status dipakai di dua tempat: sidebar desktop (varian ringkas) &
+  rail Profil (varian kartu) — `sync-status-card.tsx`.
+
+### Konsistensi state & governance CSS
+- Utility `interactive` baru di globals.css: transisi 160ms, umpan balik
+  tekan scale(0.98), focus-visible ring 2px, disabled redup — kontrak
+  minimal seluruh elemen interaktif (RutinaButton sudah selaras).
+
+### Pemulihan data
+- Snapshot sandbox tertimpa data uji sesi verifikasi lama → dipulihkan
+  via `pull-production` (18 kebiasaan · 281 transaksi · 4 dompet · 3 tujuan)
+  + transaksi uji warisan dibersihkan.
+
 ## [2.22] — Gelombang Paritas Rutina 1.0: P0 + Kilat + P1
 
 Permintaan pengguna: adaptasi fitur Rutina 1.0 yang belum ada di 2.0

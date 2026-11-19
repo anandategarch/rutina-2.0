@@ -18,8 +18,9 @@
  *    dan dicoba ulang pada perubahan berikutnya / boot berikutnya.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+import { createStore } from 'zustand/vanilla'
 import { useRutina } from './store'
 import type {
   FinCat,
@@ -100,6 +101,49 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null
 let inFlight = false
 let queued = false
 let lastErrorToast = 0
+
+/* ===== Status sinkronisasi reaktif (v2.23) =====
+   Empat keadaan yang dibaca UI indikator (sidebar desktop & rail Profil):
+     'synced'  — snapshot terakhir berhasil dikirim/ditarik
+     'syncing' — perubahan sedang dikirim (push berjalan)
+     'offline' — perangkat tanpa koneksi; data aman di localStorage
+     'error'   — server merespons gagal / jaringan drop mid-push
+   'boot' hanyalah keadaan awal sebelum GET pertama selesai. */
+export type SyncKind = 'boot' | 'syncing' | 'synced' | 'offline' | 'error'
+
+export interface SyncStatusState {
+  kind: SyncKind
+  lastSyncedAt: number | null
+}
+
+/* Store vanilla (bukan slice useRutina) — status sinkron bukan data domain
+   dan tidak boleh ikut ter-persist/ter-push ke server. */
+export const syncStatusStore = createStore<SyncStatusState>()(() => ({
+  kind: 'boot',
+  lastSyncedAt: null,
+}))
+
+function setSyncKind(kind: SyncKind, lastSyncedAt?: number): void {
+  syncStatusStore.setState({
+    kind,
+    lastSyncedAt: lastSyncedAt ?? syncStatusStore.getState().lastSyncedAt,
+  })
+}
+
+/** Langganan reaktif untuk komponen UI (sidebar, rail Profil). */
+export function useSyncStatus(): SyncStatusState {
+  return useSyncExternalStore(
+    syncStatusStore.subscribe,
+    syncStatusStore.getState,
+    syncStatusStore.getInitialState,
+  )
+}
+
+/** Aksi "Coba lagi" pada indikator gagal/offline — dorong snapshot
+ *  sekarang; push() sendiri yang menuntaskan transisi status. */
+export function retrySync(): void {
+  schedulePush(0)
+}
 
 /* ===== Meta di localStorage ===== */
 
@@ -227,6 +271,7 @@ async function push(): Promise<void> {
     return
   }
   inFlight = true
+  setSyncKind('syncing')
   try {
     const res = await fetch('/api/state', {
       method: 'PUT',
@@ -234,9 +279,16 @@ async function push(): Promise<void> {
       body: JSON.stringify({ state: snapshot() }),
     })
     if (!res.ok) throw new Error(`PUT /api/state → HTTP ${res.status}`)
-    patchMeta({ lastSyncedAt: Date.now() })
+    const now = Date.now()
+    patchMeta({ lastSyncedAt: now })
+    setSyncKind('synced', now)
   } catch (error) {
     console.warn('[sync] push gagal:', error)
+    setSyncKind(
+      typeof navigator !== 'undefined' && navigator.onLine === false
+        ? 'offline'
+        : 'error',
+    )
     notifyError()
   } finally {
     inFlight = false
@@ -332,9 +384,14 @@ async function boot(): Promise<void> {
       cache: 'no-store',
       headers: syncHeaders(),
     })
-    if (res.ok) remote = (await res.json()) as StateResponse
+    if (res.ok) {
+      remote = (await res.json()) as StateResponse
+    } else {
+      setSyncKind('error')
+    }
   } catch (error) {
     console.warn('[sync] GET /api/state gagal (mode offline):', error)
+    setSyncKind('offline')
   }
 
   if (remote?.initialized && remote.state) {
@@ -362,7 +419,9 @@ async function boot(): Promise<void> {
       suppress = true
       try {
         applyServerState(remote.state)
-        patchMeta({ lastSyncedAt: Date.now() })
+        const now = Date.now()
+        patchMeta({ lastSyncedAt: now })
+        setSyncKind('synced', now)
       } finally {
         suppress = false
       }
@@ -409,7 +468,26 @@ export function useSyncEngine(): void {
       schedulePush()
     })
 
-    return unsub
+    /* Koneksi datang/pergi — indikator status ikut bernapas: saat kembali
+       online, dorong perubahan tertunda (bila ada) atau cukup pulihkan
+       keadaan "tersinkron". */
+    const onOnline = () => {
+      const meta = readMeta()
+      if ((meta?.lastEditAt ?? 0) > (meta?.lastSyncedAt ?? 0)) {
+        schedulePush(0)
+      } else if (syncStatusStore.getState().kind === 'offline') {
+        setSyncKind('synced')
+      }
+    }
+    const onOffline = () => setSyncKind('offline')
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+
+    return () => {
+      unsub()
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
   }, [])
 }
 
@@ -424,24 +502,38 @@ export function syncStatus(): { lastSyncedAt: number | null } {
  *  lastEditAt di-nol-kan agar boot berikutnya tidak mengunggah ulang state
  *  lama yang baru saja ditimpa. */
 export async function forcePull(): Promise<boolean> {
+  setSyncKind('syncing')
   try {
     const res = await fetch('/api/state', {
       cache: 'no-store',
       headers: syncHeaders(),
     })
-    if (!res.ok) return false
+    if (!res.ok) {
+      setSyncKind('error')
+      return false
+    }
     const remote = (await res.json()) as StateResponse
-    if (!remote?.initialized || !remote.state) return false
+    if (!remote?.initialized || !remote.state) {
+      setSyncKind('error')
+      return false
+    }
     suppress = true
     try {
       applyServerState(remote.state)
-      patchMeta({ lastSyncedAt: Date.now(), lastEditAt: 0 })
+      const now = Date.now()
+      patchMeta({ lastSyncedAt: now, lastEditAt: 0 })
+      setSyncKind('synced', now)
     } finally {
       suppress = false
     }
     return true
   } catch (error) {
     console.warn('[sync] forcePull gagal:', error)
+    setSyncKind(
+      typeof navigator !== 'undefined' && navigator.onLine === false
+        ? 'offline'
+        : 'error',
+    )
     return false
   }
 }

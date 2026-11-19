@@ -729,6 +729,33 @@
   }
 }
 
+/* ===== State interaktif standar (audit Tahap 1 — konsistensi state) =====
+   Kontrak minimal setiap elemen interaktif: transisi tenang 160ms,
+   umpan balik tekan (scale 0.98), focus-visible jelas, dan disabled
+   redup — sehingga tombol di Keuangan tak terasa berbeda dari Bugar.
+   Cukup tambahkan kelas `interactive` pada tombol/chip/kartu-klik;
+   warna hover/fokus tetap diatur per-komponen via token semantic.
+   (prefers-reduced-motion sudah mematikan transisi global di @layer base.) */
+@utility interactive {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+}
+
 /* ===== Permukaan khas Layout Grammar =====
    Kelima tab berbagi fondasi (sand/parchment, hairline, radius 12–24),
    namun tiap ruang kerja punya permukaan khasnya sendiri. */

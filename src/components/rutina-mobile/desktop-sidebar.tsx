@@ -3,7 +3,6 @@
 import * as m from 'motion/react-m'
 import {
   BarChart3,
-  CloudCheck,
   Dumbbell,
   Home,
   Sprout,
@@ -22,6 +21,7 @@ import {
 } from '@/components/ui/tooltip'
 
 import { useRutina, type Screen } from './store'
+import { SyncStatusCard } from './sync-status-card'
 
 /* Navigasi desktop — keenam layar (termasuk Profil: di desktop tidak ada
    avatar header yang selalu terlihat, jadi Profil sah menjadi item nav).
@@ -131,24 +131,10 @@ export function DesktopSidebar() {
         </ul>
       </TooltipProvider>
 
-      {/* Kartu status sinkronisasi + versi */}
+      {/* Kartu status sinkronisasi dinamis (4 keadaan: tersinkron /
+          menyinkronkan / offline / gagal + aksi coba lagi) + versi */}
       <div className="px-3 pb-5">
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-secondary/60 p-3.5">
-          <span
-            aria-hidden="true"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-success"
-          >
-            <CloudCheck className="h-[18px] w-[18px]" strokeWidth={2} />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-note font-semibold leading-tight text-content-primary">
-              Tersinkron cloud
-            </span>
-            <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
-              Data tersimpan otomatis
-            </span>
-          </span>
-        </div>
+        <SyncStatusCard variant="sidebar" />
         <p className="mt-3 px-1 text-eyebrow font-medium text-content-muted">
           Rutina 2.0
         </p>
