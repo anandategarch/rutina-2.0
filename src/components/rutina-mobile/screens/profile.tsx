@@ -588,7 +588,7 @@ export default function ProfileScreen() {
             >
               {identityText}
             </blockquote>
-            <figcaption className="mt-2 text-right text-[10.5px] font-bold uppercase tracking-[0.16em] text-content-muted">
+            <figcaption className="mt-2 text-right text-[11px] font-bold uppercase tracking-[0.16em] text-content-muted">
               Suara identitasku
             </figcaption>
           </figure>
@@ -673,7 +673,7 @@ export default function ProfileScreen() {
                   >
                     <span
                       className={cn(
-                        'text-[9.5px] font-bold uppercase tracking-wide',
+                        'text-[10px] font-bold uppercase tracking-wide',
                         d.isToday
                           ? 'text-content-secondary'
                           : 'text-content-muted',
@@ -705,7 +705,7 @@ export default function ProfileScreen() {
                 .map((c, i, arr) => (
                   <span
                     key={c.name}
-                    className="flex items-center gap-2 text-[11.5px] font-semibold"
+                    className="flex items-center gap-2 text-[12px] font-semibold"
                   >
                     <span>
                       <span className={MOOD_TONE[c.name]}>{c.name}</span>{' '}
@@ -892,7 +892,7 @@ export default function ProfileScreen() {
               </p>
             </div>
             <span
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-secondary px-2.5 py-1 text-[10.5px] font-bold text-success"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-secondary px-2.5 py-1 text-[11px] font-bold text-success"
               title={
                 lastSyncedAt
                   ? `Terakhir tersinkron ${new Date(lastSyncedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
@@ -908,7 +908,7 @@ export default function ProfileScreen() {
                 : 'Sinkron'}
             </span>
           </div>
-          <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[11.5px] leading-relaxed text-content-secondary">
+          <p className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-[12px] leading-relaxed text-content-secondary">
             Rutina bekerja tanpa akun: setiap perubahan tersinkron otomatis
             ke cloud pribadimu (Turso) dan tetap tersimpan di perangkat
             sebagai cadangan offline — aplikasi tetap hidup tanpa internet.
@@ -944,14 +944,14 @@ export default function ProfileScreen() {
                 <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-content-primary">
                   Hapus semua data?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-[12.5px] leading-relaxed text-content-muted">
+                <AlertDialogDescription className="text-[13px] leading-relaxed text-content-muted">
                   Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
                   tabungan akan dihapus permanen — dari perangkat ini dan
                   penyimpanan cloud. Tindakan ini tidak bisa dibatalkan.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-row gap-2">
-                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[12.5px] font-bold text-content-secondary">
+                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[13px] font-bold text-content-secondary">
                   Batal
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -959,7 +959,7 @@ export default function ProfileScreen() {
                     useRutina.getState().startFresh()
                     toast.success('Aplikasi direset — mulailah dari nol.')
                   }}
-                  className="h-10 flex-1 rounded-full border-none bg-destructive text-[12.5px] font-bold text-white hover:bg-destructive/90"
+                  className="h-10 flex-1 rounded-full border-none bg-destructive text-[13px] font-bold text-white hover:bg-destructive/90"
                 >
                   Ya, hapus
                 </AlertDialogAction>
@@ -995,7 +995,7 @@ export default function ProfileScreen() {
             </div>
           </div>
           {appInstalled ? (
-            <p className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3.5 py-2.5 text-[11.5px] font-bold text-success">
+            <p className="mt-3 flex items-center gap-2 rounded-xl bg-secondary px-3.5 py-2.5 text-[12px] font-bold text-success">
               <Check className="h-3.5 w-3.5 shrink-0" />
               Sudah terpasang — kamu sedang menjalankan versi aplikasinya.
             </p>
@@ -1036,10 +1036,10 @@ export default function ProfileScreen() {
                 value={`faq-${i}`}
                 className="border-border"
               >
-                <AccordionTrigger className="py-4 text-left text-[13.5px] font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
+                <AccordionTrigger className="py-4 text-left text-[14px] font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="pb-4 text-[12.5px] leading-relaxed text-content-muted">
+                <AccordionContent className="pb-4 text-[13px] leading-relaxed text-content-muted">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
@@ -1072,7 +1072,7 @@ export default function ProfileScreen() {
                 <DialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
                   Rutina 2.0
                 </DialogTitle>
-                <DialogDescription className="text-center text-[12.5px] leading-relaxed text-content-muted">
+                <DialogDescription className="text-center text-[13px] leading-relaxed text-content-muted">
                   Aplikasi kebiasaan &amp; jurnal dengan palet earth tone.
                   Dibangun dengan Next.js, Tailwind CSS 4, shadcn/ui, Motion,
                   dan anime.js.

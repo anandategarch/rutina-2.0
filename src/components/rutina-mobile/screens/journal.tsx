@@ -378,7 +378,7 @@ function NoteCard({
               {mood}
             </span>
           ) : null}
-          <span className="ml-auto text-[10.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
+          <span className="ml-auto text-[11px] font-bold uppercase tracking-[0.12em] text-content-muted">
             {note.date}
           </span>
         </div>

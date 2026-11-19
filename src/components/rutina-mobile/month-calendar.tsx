@@ -125,7 +125,7 @@ export function MonthCalendar({
         }
       >
         <span
-          className={`text-[12.5px] font-semibold leading-none tabular-nums ${
+          className={`text-[13px] font-semibold leading-none tabular-nums ${
             isSel ? '' : muted ? 'text-content-muted/50' : 'text-content-primary'
           }`}
         >

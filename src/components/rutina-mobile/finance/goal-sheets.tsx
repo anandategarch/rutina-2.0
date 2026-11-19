@@ -204,7 +204,7 @@ export function ContributeGoalSheet() {
                       transition={{ type: 'spring', stiffness: 160, damping: 22 }}
                     />
                   </div>
-                  <p className="mt-1.5 text-[10.5px] text-content-muted">
+                  <p className="mt-1.5 text-[11px] text-content-muted">
                     dari {beforePct}% sekarang — naik {afterPct - beforePct} poin
                   </p>
                 </div>

@@ -113,7 +113,7 @@ function PlateLoaderTab() {
 
   return (
     <div>
-      <p className="text-[12.5px] leading-relaxed text-content-muted">
+      <p className="text-[13px] leading-relaxed text-content-muted">
         Susun piring IWF untuk beban total — piring dihitung untuk
         masing-masing sisi barbel.
       </p>
@@ -123,7 +123,7 @@ function PlateLoaderTab() {
         <div className="space-y-1.5">
           <label
             htmlFor="bb-total"
-            className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted"
+            className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
           >
             Total beban (kg)
           </label>
@@ -139,7 +139,7 @@ function PlateLoaderTab() {
           />
         </div>
         <div className="space-y-1.5">
-          <p className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-content-muted">
             Barbel
           </p>
           <div className="flex gap-1.5">
@@ -205,7 +205,7 @@ function PlateLoaderTab() {
                 bar {barKg} kg · piring per sisi
               </p>
               {load.remainder > 0 && (
-                <p className="mt-1 text-[11.5px] font-semibold text-content-danger">
+                <p className="mt-1 text-[12px] font-semibold text-content-danger">
                   Sisa {fmtKg(load.remainder)} kg tidak terwakili piring
                 </p>
               )}
@@ -220,7 +220,7 @@ function PlateLoaderTab() {
         ) : (
           <div className="flex min-h-14 flex-col items-center justify-center gap-1.5 py-2 text-center">
             <Dumbbell className="h-5 w-5 text-content-muted" />
-            <p className="max-w-[260px] text-[11.5px] leading-relaxed text-content-muted">
+            <p className="max-w-[260px] text-[12px] leading-relaxed text-content-muted">
               {invalid
                 ? `Masukkan total beban minimal seberat barbel (${barKg} kg).`
                 : 'Masukkan total beban — piring tersusun otomatis di kiri-kanan bar.'}
@@ -229,7 +229,7 @@ function PlateLoaderTab() {
         )}
       </div>
 
-      <p className="mt-2 px-0.5 text-[10.5px] font-medium text-content-muted">
+      <p className="mt-2 px-0.5 text-[11px] font-medium text-content-muted">
         Warna piring mengikuti standar IWF (25 merah · 20 biru · 15 kuning ·
         10 hijau · 5 putih · 2,5 hitam · 1,25 krom).
       </p>
@@ -263,7 +263,7 @@ function OneRmTab() {
 
   return (
     <div>
-      <p className="text-[12.5px] leading-relaxed text-content-muted">
+      <p className="text-[13px] leading-relaxed text-content-muted">
         Estimasi kekuatan Epley — beban × (1 + reps/30), pembulatan 2,5 kg
         agar langsung terpakai di barbel.
       </p>
@@ -272,7 +272,7 @@ function OneRmTab() {
         <div className="space-y-1.5">
           <label
             htmlFor="bb-rm-w"
-            className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted"
+            className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
           >
             Beban (kg)
           </label>
@@ -290,7 +290,7 @@ function OneRmTab() {
         <div className="space-y-1.5">
           <label
             htmlFor="bb-rm-r"
-            className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted"
+            className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
           >
             Repetisi
           </label>
@@ -308,7 +308,7 @@ function OneRmTab() {
       {e1rm != null && table ? (
         <>
           <div className="mt-3.5 rounded-2xl border border-border bg-secondary p-4 text-center">
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-content-muted">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-content-muted">
               Estimasi 1RM
             </p>
             <p className="mt-1 text-[40px] font-bold leading-none tabular-nums text-content-primary">
@@ -327,7 +327,7 @@ function OneRmTab() {
                 <span className="text-[12px] font-bold tabular-nums text-content-muted">
                   {row.pct}%
                 </span>
-                <span className="text-[13.5px] font-bold tabular-nums text-content-primary">
+                <span className="text-[14px] font-bold tabular-nums text-content-primary">
                   {fmtKg(row.kg)} kg
                 </span>
               </div>
@@ -336,7 +336,7 @@ function OneRmTab() {
         </>
       ) : (
         <div className="mt-3.5 rounded-2xl border border-dashed border-border bg-surface-sunken px-4 py-6 text-center">
-          <p className="text-[11.5px] leading-relaxed text-content-muted">
+          <p className="text-[12px] leading-relaxed text-content-muted">
             Isi beban dan repetisi (1–50) — estimasi 1RM dan tabel 95–65%
             muncul otomatis.
           </p>
@@ -363,7 +363,7 @@ function WarmupTab() {
 
   return (
     <div>
-      <p className="text-[12.5px] leading-relaxed text-content-muted">
+      <p className="text-[13px] leading-relaxed text-content-muted">
         Pemanasan bertahap menuju beban kerja — bar kosong → 40% → 60% →
         80%, pembulatan 2,5 kg.
       </p>
@@ -371,7 +371,7 @@ function WarmupTab() {
       <div className="mt-3 space-y-1.5">
         <label
           htmlFor="bb-wu"
-          className="text-[10.5px] font-bold uppercase tracking-wide text-content-muted"
+          className="text-[11px] font-bold uppercase tracking-wide text-content-muted"
         >
           Beban kerja (kg)
         </label>
@@ -456,7 +456,7 @@ function WarmupTab() {
         </>
       ) : (
         <div className="mt-3.5 rounded-2xl border border-dashed border-border bg-surface-sunken px-4 py-6 text-center">
-          <p className="text-[11.5px] leading-relaxed text-content-muted">
+          <p className="text-[12px] leading-relaxed text-content-muted">
             {ladder && ladder.length === 0
               ? 'Beban kerja terlalu dekat dengan bar — tangga tidak tersusun.'
               : 'Isi beban kerja — tangga pemanasan tersusun otomatis.'}

@@ -269,7 +269,7 @@ export function AddTxSheet() {
                           strokeWidth={on ? 2.4 : 2}
                         />
                         <span
-                          className={`px-1 text-center text-[10.5px] font-semibold leading-tight ${
+                          className={`px-1 text-center text-[11px] font-semibold leading-tight ${
                             on ? 'text-success' : 'text-content-muted'
                           }`}
                         >
@@ -315,7 +315,7 @@ export function AddTxSheet() {
                         type="button"
                         onClick={() => setWalletId(w.id)}
                         aria-pressed={on}
-                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        className={`h-10 shrink-0 cursor-pointer rounded-full px-4 text-[13px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                           on
                             ? 'bg-surface-inverse text-content-inverse shadow-soft'
                             : 'border border-border bg-surface-sunken text-content-secondary'
@@ -346,7 +346,7 @@ export function AddTxSheet() {
                       type="button"
                       onClick={() => setRecurrence(r as Recurrence | null)}
                       aria-pressed={on}
-                      className={`h-10 flex-1 cursor-pointer rounded-xl text-[12.5px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      className={`h-10 flex-1 cursor-pointer rounded-xl text-[13px] font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         on
                           ? 'bg-primary text-primary-foreground shadow-soft'
                           : 'border border-border bg-surface-sunken text-content-secondary'

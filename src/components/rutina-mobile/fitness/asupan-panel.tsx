@@ -194,7 +194,7 @@ export function AsupanPanel() {
               setEditingTarget((v) => !v)
             }}
             aria-expanded={editingTarget}
-            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-[11.5px] font-bold text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+            className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-module-accent-fg/15 px-3 py-1.5 text-[12px] font-bold text-module-accent-fg transition-colors hover:bg-module-accent-fg/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
           >
             <Target className="h-3.5 w-3.5" />
             Atur target
@@ -253,7 +253,7 @@ export function AsupanPanel() {
                       toast.warning('Target antara 1.200 – 4.500 kkal')
                     }
                   }}
-                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-[12.5px] font-bold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
+                  className="h-10 shrink-0 cursor-pointer rounded-xl bg-module-accent-fg px-4 text-[13px] font-bold text-content-primary transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-fg"
                 >
                   Simpan
                 </button>
@@ -286,7 +286,7 @@ export function AsupanPanel() {
           </p>
         </div>
         {burned === 0 && (
-          <p className="mt-1.5 px-0.5 text-[10.5px] font-medium text-module-accent-fg/70">
+          <p className="mt-1.5 px-0.5 text-[11px] font-medium text-module-accent-fg/70">
             Catat latihan di Bugar untuk menambah jatah.
           </p>
         )}
@@ -349,7 +349,7 @@ export function AsupanPanel() {
           </div>
         </div>
         {!sum.macroKnown && todayEntries.length > 0 && (
-          <p className="mt-2 text-[10.5px] leading-relaxed text-module-accent-fg/70">
+          <p className="mt-2 text-[11px] leading-relaxed text-module-accent-fg/70">
             Sebagian makanan di master belum punya rincian makro — kalori tetap
             dihitung penuh.
           </p>
@@ -393,7 +393,7 @@ export function AsupanPanel() {
             return (
               <div key={slot.key}>
                 <div className="mb-2 flex items-center justify-between px-0.5">
-                  <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                  <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-content-muted">
                     {slot.label}
                   </p>
                   {rows.length > 0 && (
@@ -411,7 +411,7 @@ export function AsupanPanel() {
                 </AnimatePresence>
                 {rows.length === 0 && todayEntries.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-border px-4 py-3 text-center">
-                    <p className="text-[11.5px] font-medium text-content-muted">
+                    <p className="text-[12px] font-medium text-content-muted">
                       Belum ada catatan {slot.label.toLowerCase()}
                     </p>
                   </div>
@@ -431,7 +431,7 @@ export function AsupanPanel() {
               <p className="mt-2 text-[13px] font-semibold text-content-muted">
                 Jurnal makan masih kosong
               </p>
-              <p className="mt-0.5 text-[11.5px] text-content-muted">
+              <p className="mt-0.5 text-[12px] text-content-muted">
                 Cari makanan Indonesia di master — kalori &amp; makro terisi
                 otomatis.
               </p>
@@ -489,7 +489,7 @@ export function AsupanPanel() {
           </div>
           {/* Garis target */}
           <div className="mt-3 border-t border-dashed border-border pt-2.5">
-            <p className="text-center text-[10.5px] font-semibold text-content-muted">
+            <p className="text-center text-[11px] font-semibold text-content-muted">
               Garis batang hijau = hari ini · target {fmt(calorieTarget)} kkal/hari
             </p>
           </div>

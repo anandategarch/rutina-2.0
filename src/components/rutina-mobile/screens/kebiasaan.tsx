@@ -37,6 +37,7 @@ import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { playfair } from '../serif'
 import { TaskRow } from '../task-row'
 import {
   HABIT_CATS,
@@ -148,7 +149,7 @@ function HabitDetailPanel({
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: HABIT_CAT_COLORS[habit.cat] }}
           />
-          <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
+          <span className="text-[12px] font-medium tracking-tight text-content-secondary">
             {habit.cat}
           </span>
         </p>
@@ -387,12 +388,25 @@ export default function KebiasaanScreen() {
           ease: motionTokens.easing.standard,
         }}
       >
-        <RutinaSectionHeader
-          eyebrow={longDateLabel(today)}
-          title="Kebiasaan"
-          description={`${activeHabits.length} kebiasaan aktif · ${doneToday.length}/${scheduledToday.length} selesai hari ini`}
-          accent
-        />
+        {/* Judul halaman editorial — Playfair Display sebagai aksen botanical
+            (Tipografi System v1: satu-satunya serif di luar sapaan Beranda;
+            nama kebiasaan & kontrol tetap Geist Sans demi kecepatan). */}
+        <p className="flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.14em] text-module-accent-strong">
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
+          />
+          {longDateLabel(today)}
+        </p>
+        <h1
+          className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
+        >
+          Kebiasaan<span className="text-module-accent">.</span>
+        </h1>
+        <p className="mt-2 text-[14px] font-medium text-content-muted">
+          {activeHabits.length} kebiasaan aktif · {doneToday.length}/
+          {scheduledToday.length} selesai hari ini
+        </p>
       </m.header>
 
       {hasNoHabits ? (
@@ -652,7 +666,7 @@ export default function KebiasaanScreen() {
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <Check className="h-4 w-4" strokeWidth={2.6} />
                       </span>
-                      <span className="flex-1 text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
+                      <span className="flex-1 text-[13px] font-semibold tracking-tight text-content-secondary">
                         Selesai ({doneToday.length})
                       </span>
                       <m.span
@@ -748,7 +762,7 @@ export default function KebiasaanScreen() {
                             className="h-2.5 w-2.5 shrink-0 rounded-full"
                             style={{ backgroundColor: HABIT_CAT_COLORS[g.cat] }}
                           />
-                          <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                          <h3 className="text-[14px] font-semibold tracking-tight text-content-secondary">
                             {g.cat}
                           </h3>
                           <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">

@@ -170,7 +170,7 @@ export function ReadingSheet() {
               }}
               className="mt-5 border-t border-border/60 pt-5"
             >
-              <p className="max-w-[62ch] whitespace-pre-wrap text-left text-[15.5px] leading-[1.85] text-content-secondary">
+              <p className="max-w-[62ch] whitespace-pre-wrap text-left text-[16px] leading-[1.85] text-content-secondary">
                 {note.body}
               </p>
             </m.div>
@@ -232,7 +232,7 @@ export function ReadingSheet() {
                     <AlertDialogTitle className="text-center text-lg font-bold tracking-tight text-content-primary">
                       Hapus catatan ini?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-center text-[12.5px] leading-relaxed text-content-muted">
+                    <AlertDialogDescription className="text-center text-[13px] leading-relaxed text-content-muted">
                       Catatan “{note.title || 'tanpa judul'}” akan dihapus
                       permanen dan tidak bisa dikembalikan.
                     </AlertDialogDescription>

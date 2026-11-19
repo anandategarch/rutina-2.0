@@ -41,7 +41,7 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
   const series = useMemo(() => weightSeries(logs).slice(-14), [logs])
   if (series.length < 2) {
     return (
-      <p className="text-[11.5px] font-medium text-content-muted">
+      <p className="text-[12px] font-medium text-content-muted">
         Catat berat minimal dua kali untuk melihat tren.
       </p>
     )
@@ -85,7 +85,7 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
           />
         ))}
       </svg>
-      <p className="mt-1 text-[11.5px] font-semibold text-content-muted">
+      <p className="mt-1 text-[12px] font-semibold text-content-muted">
         {series.length} catatan ·{' '}
         {delta === 0 ? 'berat stabil' : delta < 0 ? `turun ${Math.abs(delta).toFixed(1).replace('.', ',')} kg` : `naik ${delta.toFixed(1).replace('.', ',')} kg`}
       </p>
@@ -139,10 +139,10 @@ export function TubuhPanel() {
             <Moon className="h-4.5 w-4.5" />
           </span>
           <div className="flex-1">
-            <p className="text-[14.5px] font-bold text-content-primary">
+            <p className="text-[14px] font-bold text-content-primary">
               Check-in Harian
             </p>
-            <p className="text-[11.5px] font-medium text-content-muted">
+            <p className="text-[12px] font-medium text-content-muted">
               Tidur semalam &amp; energi kamu — dasar kesiapan latihan
             </p>
           </div>
@@ -267,7 +267,7 @@ export function TubuhPanel() {
               </>
             ) : (
               <>
-                <p className="mt-0.5 text-[12.5px] leading-relaxed text-primary-foreground/85">
+                <p className="mt-0.5 text-[13px] leading-relaxed text-primary-foreground/85">
                   Isi check-in — kesiapan dihitung otomatis dari empat
                   komponen: tidur, nyeri otot, stres, dan energi.
                 </p>
@@ -300,10 +300,10 @@ export function TubuhPanel() {
               <Sparkles className="h-4.5 w-4.5" />
             </span>
             <div>
-              <p className="text-[14.5px] font-bold text-content-primary">
+              <p className="text-[14px] font-bold text-content-primary">
                 Rincian Kesiapan
               </p>
-              <p className="text-[11.5px] font-medium text-content-muted">
+              <p className="text-[12px] font-medium text-content-muted">
                 Bobot komponen Coach Bugar — skor rendah jadi perhatian
               </p>
             </div>
@@ -349,7 +349,7 @@ export function TubuhPanel() {
                 className="mt-0.5 h-4 w-4 shrink-0 text-content-muted"
                 aria-hidden="true"
               />
-              <span className="text-[11.5px] leading-relaxed text-content-muted">
+              <span className="text-[12px] leading-relaxed text-content-muted">
                 Lengkapi check-in:{' '}
                 <span className="font-bold text-content-secondary">
                   {readiness.missing.join(', ')}
@@ -375,10 +375,10 @@ export function TubuhPanel() {
               <Droplets className="h-4.5 w-4.5" />
             </span>
             <div>
-              <p className="text-[14.5px] font-bold text-content-primary">
+              <p className="text-[14px] font-bold text-content-primary">
                 Hidrasi
               </p>
-              <p className="text-[11.5px] font-medium text-content-muted">
+              <p className="text-[12px] font-medium text-content-muted">
                 {water} dari {WATER_TARGET} gelas (≈2 liter)
               </p>
             </div>
@@ -452,10 +452,10 @@ export function TubuhPanel() {
             <Scale className="h-4.5 w-4.5" />
           </span>
           <div className="flex-1">
-            <p className="text-[14.5px] font-bold text-content-primary">
+            <p className="text-[14px] font-bold text-content-primary">
               Berat Badan
             </p>
-            <p className="text-[11.5px] font-medium text-content-muted">
+            <p className="text-[12px] font-medium text-content-muted">
               {weight != null
                 ? `Terakhir tercatat ${weight.toString().replace('.', ',')} kg`
                 : 'Belum pernah ditimbang'}

@@ -574,7 +574,7 @@ export default function HomeScreen() {
           aria-label="Sapaan hari ini"
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.22em] text-content-muted">
+            <p className="min-w-0 truncate text-eyebrow font-bold uppercase tracking-[0.16em] text-content-muted">
               {dateBadge}
             </p>
             <m.button
@@ -592,13 +592,13 @@ export default function HomeScreen() {
             </m.button>
           </div>
           <h1
-            className={`${playfair.className} mt-2.5 text-[28px] font-semibold leading-tight tracking-tight text-content-primary`}
+            className={`${playfair.className} mt-2.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
           >
             {greeting}
           </h1>
           <m.p
             style={{ opacity: subtitleOpacity }}
-            className="text-[13px] font-medium text-content-muted"
+            className="mt-1 text-[14px] font-medium text-content-muted"
           >
             Mari mulai dengan satu langkah kecil.
           </m.p>
@@ -850,7 +850,7 @@ export default function HomeScreen() {
                                 className="h-4 w-4 text-primary"
                                 strokeWidth={2}
                               />
-                              <h3 className="text-[12px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                              <h3 className="text-[13px] font-semibold tracking-tight text-content-secondary">
                                 {g.label}
                               </h3>
                               <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-content-secondary">
@@ -898,7 +898,7 @@ export default function HomeScreen() {
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                             <Check className="h-4 w-4" strokeWidth={2.6} />
                           </span>
-                          <span className="flex-1 text-[12px] font-bold uppercase tracking-[0.14em] text-content-secondary">
+                          <span className="flex-1 text-[13px] font-semibold tracking-tight text-content-secondary">
                             Selesai ({doneHabits.length})
                           </span>
                           <m.span
@@ -1342,7 +1342,7 @@ export default function HomeScreen() {
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">
             <Quote aria-hidden="true" className="h-6 w-6 shrink-0 text-content-inverse/45" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-content-inverse/70">
+            <span className="text-eyebrow font-bold uppercase tracking-[0.16em] text-content-inverse/70">
               Refleksi Hari Ini
             </span>
           </div>

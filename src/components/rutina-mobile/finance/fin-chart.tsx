@@ -133,7 +133,7 @@ export function FinChart({
               {/* Label + garis bawah aktif — span berukuran konten (w-max)
                   agar teks 3 huruf tidak terjepit lebar kolom sempit. */}
               <span
-                className={`relative z-10 flex h-[24px] w-max items-center justify-center text-[10.5px] font-bold tracking-wide transition-colors duration-300 ${
+                className={`relative z-10 flex h-[24px] w-max items-center justify-center text-[11px] font-bold tracking-wide transition-colors duration-300 ${
                   isOn ? 'text-content-secondary' : 'text-content-muted'
                 }`}
               >

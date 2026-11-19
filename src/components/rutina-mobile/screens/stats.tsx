@@ -146,7 +146,7 @@ function categoryData(habits: Habit[]) {
 function SectionTitle({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+      <h2 className="flex items-center gap-1.5 text-section font-semibold tracking-tight text-content-secondary">
         <span
           aria-hidden="true"
           className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
@@ -597,8 +597,29 @@ export default function StatsScreen() {
         data-layout="observatory"
         className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
       >
-        {/* Header pemain */}
-        <header className="flex items-center gap-3">
+        {/* Kepala halaman — Tipografi System v1: judul operasional Geist
+            Sans weight 700; disiplin angka tabular di seluruh layar. */}
+        <header>
+          <p className="flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.16em] text-module-accent-strong">
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
+            />
+            Observatorium data
+          </p>
+          <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight">
+            Statistik
+          </h1>
+          <p className="mt-2 text-[14px] font-medium text-content-muted">
+            Petualanganmu dalam angka
+          </p>
+        </header>
+
+        {/* Profil pemain */}
+        <section
+          aria-label="Profil pemain"
+          className="mt-[var(--layout-gap)] flex items-center gap-3"
+        >
           <Avatar className="h-10 w-10 border-2 border-matcha/40">
             <AvatarFallback className="bg-matcha text-[11px] font-bold tracking-widest text-parchment">
               AN
@@ -616,7 +637,7 @@ export default function StatsScreen() {
             <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
             LV {level}
           </span>
-        </header>
+        </section>
 
         {/* Tumpukan seksi utama — ritme antar-bagian memakai token layout
             observatory (var(--layout-gap)) agar seluruh layar berbagi satu
@@ -722,7 +743,7 @@ export default function StatsScreen() {
                       {tile.unit}
                     </span>
                   </p>
-                  <p className="mt-auto truncate pt-2 text-[10.5px] font-medium leading-snug text-content-inverse/70">
+                  <p className="mt-auto truncate pt-2 text-[11px] font-medium leading-snug text-content-inverse/70">
                     {tile.caption}
                   </p>
                 </m.div>
@@ -768,7 +789,7 @@ export default function StatsScreen() {
                 </TabsList>
               </Tabs>
               <p className="mt-4 flex items-baseline gap-1.5">
-                <span className="text-[38px] font-semibold leading-none tracking-tight text-content-inverse">
+                <span className="text-[40px] font-semibold leading-none tracking-tight text-content-inverse">
                   <Counter to={chartTotal} />
                 </span>
                 <span className="text-sm font-medium text-content-inverse/70">
@@ -1092,7 +1113,7 @@ export default function StatsScreen() {
                         Tren Penyelesaian
                       </p>
                       <p className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-[38px] font-semibold leading-none tracking-tight text-content-inverse">
+                        <span className="text-[40px] font-semibold leading-none tracking-tight text-content-inverse">
                           <Counter to={trendAvg} decimals={1} />
                         </span>
                         <span className="text-sm font-medium text-content-inverse/70">
@@ -1307,7 +1328,7 @@ export default function StatsScreen() {
                               return (
                                 <li key={c.cat}>
                                   <div className="flex items-baseline justify-between gap-2">
-                                    <span className="flex min-w-0 items-center gap-1.5 truncate text-[12.5px] font-semibold text-content-primary">
+                                    <span className="flex min-w-0 items-center gap-1.5 truncate text-[13px] font-semibold text-content-primary">
                                       <Icon
                                         aria-hidden="true"
                                         className="h-3.5 w-3.5 shrink-0 text-content-secondary"
@@ -1327,7 +1348,7 @@ export default function StatsScreen() {
                                       className="h-full rounded-full bg-clay"
                                     />
                                   </div>
-                                  <p className="mt-1 text-[10.5px] font-medium tabular-nums text-content-muted">
+                                  <p className="mt-1 text-[11px] font-medium tabular-nums text-content-muted">
                                     {c.share}% dari total pengeluaran
                                   </p>
                                 </li>
@@ -1356,7 +1377,7 @@ export default function StatsScreen() {
                                   : 0
                               return (
                                 <li key={b.cat}>
-                                  <p className="text-[12.5px] font-semibold text-content-primary">
+                                  <p className="text-[13px] font-semibold text-content-primary">
                                     {CAT_META[b.cat].label} — {formatIDR(b.used)}{' '}
                                     <span className="font-medium text-content-muted">
                                       dari {formatIDR(b.limit)}
@@ -1372,7 +1393,7 @@ export default function StatsScreen() {
                                     />
                                   </div>
                                   <p
-                                    className={`mt-1 text-[10.5px] ${
+                                    className={`mt-1 text-[11px] ${
                                       over
                                         ? 'font-bold text-content-danger'
                                         : 'text-content-muted'
@@ -1401,7 +1422,7 @@ export default function StatsScreen() {
                           Suara identitasmu: &ldquo;{identityText}&rdquo;
                         </p>
                       ) : (
-                        <p className="mt-2 text-[12.5px] leading-relaxed text-content-muted">
+                        <p className="mt-2 text-[13px] leading-relaxed text-content-muted">
                           Belum ada suara identitas — atur di Profil.
                         </p>
                       )}
@@ -1460,7 +1481,7 @@ export default function StatsScreen() {
                         className="flex items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="break-words text-[12.5px] font-bold leading-snug text-content-primary">
+                          <p className="break-words text-[13px] font-bold leading-snug text-content-primary">
                             {row.label}
                           </p>
                           <p className="mt-0.5 break-words text-[11px] font-medium leading-snug tabular-nums text-content-muted">
@@ -1468,7 +1489,7 @@ export default function StatsScreen() {
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="text-[13.5px] font-bold leading-tight tabular-nums text-content-primary">
+                          <p className="text-[14px] font-bold leading-tight tabular-nums text-content-primary">
                             {row.cur}
                           </p>
                           <p
@@ -1514,7 +1535,7 @@ export default function StatsScreen() {
                       <p className="text-[24px] font-semibold leading-none tabular-nums text-content-inverse">
                         {fitSessions}
                       </p>
-                      <p className="mt-1 text-[10.5px] font-bold uppercase tracking-wide text-content-inverse/70">
+                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-content-inverse/70">
                         sesi
                       </p>
                     </div>
@@ -1524,23 +1545,23 @@ export default function StatsScreen() {
                           ? `${(fitTonase / 1000).toFixed(1).replace('.', ',')}t`
                           : Math.round(fitTonase).toLocaleString('id-ID')}
                       </p>
-                      <p className="mt-1 text-[10.5px] font-bold uppercase tracking-wide text-content-inverse/70">
+                      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-content-inverse/70">
                         kg tonase
                       </p>
                     </div>
                   </div>
                   <div className="mt-3 space-y-1.5 border-t border-content-inverse/10 pt-3">
                     {topPr ? (
-                      <p className="text-[11.5px] font-medium text-content-inverse/80">
+                      <p className="text-[12px] font-medium text-content-inverse/80">
                         PR e1RM: <span className="font-bold">{topPr.name}</span>{' '}
                         ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
                       </p>
                     ) : (
-                      <p className="text-[11.5px] font-medium text-content-inverse/70">
+                      <p className="text-[12px] font-medium text-content-inverse/70">
                         Belum ada PR — catat sesi beban pertamamu.
                       </p>
                     )}
-                    <p className="text-[11.5px] font-medium tabular-nums text-content-inverse/80">
+                    <p className="text-[12px] font-medium tabular-nums text-content-inverse/80">
                       Kardio: {cardio.km.toFixed(1).replace('.', ',')} km
                       {cardio.sessions > 0 &&
                         ` dari ${cardio.sessions} sesi jalan/lari`}
@@ -1575,7 +1596,7 @@ export default function StatsScreen() {
                       </p>
                     </>
                   ) : (
-                    <p className="mt-3 text-[11.5px] font-medium leading-relaxed text-content-inverse/70">
+                    <p className="mt-3 text-[12px] font-medium leading-relaxed text-content-inverse/70">
                       Belum ada jurnal makan — isi di tab Bugar › Asupan untuk
                       melihat neraca kalori.
                     </p>
@@ -1645,7 +1666,7 @@ export default function StatsScreen() {
                       </div>
                     )}
                     {avgSleep == null && avgEnergy == null && (
-                      <p className="text-[11.5px] font-medium leading-relaxed text-content-inverse/70">
+                      <p className="text-[12px] font-medium leading-relaxed text-content-inverse/70">
                         Isi check-in harian di Bugar › Tubuh untuk memantau
                         pemulihan.
                       </p>

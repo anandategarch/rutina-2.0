@@ -69,7 +69,6 @@ import {
   type TxType,
   type Wallet as FinWallet,
 } from '../store'
-import { playfair } from '../serif'
 import { FinChart } from '../finance/fin-chart'
 import { BUDGETABLE_CATS, CAT_META } from '../finance/cats'
 import { SpendHeatmap } from '../spend-heatmap'
@@ -292,11 +291,12 @@ function PillAction({
   )
 }
 
-/** Judul bagian standar layar Keuangan — kapital renggang, tenang. */
+/** Judul bagian standar layar Keuangan — normal case, tenang
+    (Tipografi System v1: uppercase hanya untuk eyebrow). */
 function SectionTitle({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 px-0.5">
-      <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+      <h2 className="text-section font-semibold tracking-tight text-content-secondary">
         {title}
       </h2>
       {action}
@@ -368,7 +368,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
           {formatIDRShort(goal.saved)}{' '}
           <span className="text-content-muted">dari {formatIDRShort(goal.target)}</span>
         </p>
-        <p className="mt-0.5 text-[11.5px] tabular-nums text-content-muted">
+        <p className="mt-0.5 text-[12px] tabular-nums text-content-muted">
           {complete ? 'Target tercapai' : `Sisa ${formatIDRShort(remaining)} lagi`}
         </p>
 
@@ -530,7 +530,7 @@ function TxRow({ tx }: { tx: Tx }) {
 
               {tx.note && (
                 <div className="mt-2.5 rounded-xl bg-surface-sunken px-3 py-2 text-left">
-                  <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
                     Catatan
                   </p>
                   <p className="mt-0.5 text-[12px] leading-relaxed text-content-secondary">
@@ -726,7 +726,7 @@ function TxInspectorDetail({
     >
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar p-5">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-content-muted">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-content-muted">
             Detail Transaksi
           </p>
           <Badge
@@ -747,7 +747,7 @@ function TxInspectorDetail({
         </div>
 
         <p
-          className={`mt-3 text-[17px] font-semibold leading-snug tracking-tight text-content-primary ${playfair.className}`}
+          className="mt-3 text-[16px] font-semibold leading-snug tracking-tight text-content-primary"
         >
           {tx.note || CAT_META[tx.cat].label}
         </p>
@@ -803,10 +803,10 @@ function TxInspectorDetail({
 
         {tx.note && (
           <div className="mt-3 rounded-xl bg-surface-sunken px-3 py-2.5 text-left">
-            <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-content-muted">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-content-muted">
               Catatan
             </p>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-content-secondary">
+            <p className="mt-1 text-[13px] leading-relaxed text-content-secondary">
               {tx.note}
             </p>
           </div>
@@ -897,10 +897,10 @@ function TxInspector({
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-sunken text-content-muted">
               <ScrollText className="h-5 w-5" strokeWidth={2} />
             </span>
-            <p className="text-[13.5px] font-bold text-content-primary">
+            <p className="text-[14px] font-bold text-content-primary">
               Pilih transaksi untuk melihat detail
             </p>
-            <p className="max-w-[260px] text-[11.5px] leading-relaxed text-content-muted">
+            <p className="max-w-[260px] text-[12px] leading-relaxed text-content-muted">
               Klik baris mutasi di panel kiri — rincian, catatan, dan aksi
               akan tampil di sini.
             </p>
@@ -994,7 +994,7 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
                       type="button"
                       aria-pressed={active}
                       onClick={() => setFilter(f.id)}
-                      className={`h-8 cursor-pointer rounded-full border px-3.5 text-[11.5px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                      className={`h-8 cursor-pointer rounded-full border px-3.5 text-[12px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
                         active
                           ? 'border-module-accent/40 bg-module-accent/15 text-module-accent-strong'
                           : 'border-border text-content-secondary hover:bg-surface-sunken hover:text-content-primary'
@@ -1021,7 +1021,7 @@ function MutasiWorkspace({ className = '' }: { className?: string }) {
                     <p className="text-[13px] font-bold text-content-primary">
                       Tidak ada mutasi yang cocok
                     </p>
-                    <p className="text-[11.5px] text-content-muted">
+                    <p className="text-[12px] text-content-muted">
                       Coba kata kunci lain atau ganti filter arus.
                     </p>
                   </div>
@@ -1167,28 +1167,28 @@ function SaldoCard({
       />
 
       {/* Baris merek */}
-      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.26em] text-hero-accent">
+      <p className="relative z-10 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-hero-accent">
         <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2.2} />
         Rutina Vault
       </p>
 
       {/* Saldo + perubahan periode */}
       <div className="relative z-10 mt-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-hero-content-muted">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
           Saldo Tersedia
         </p>
         <div className="mt-0.5 flex items-baseline gap-1">
           <span className="text-[19px] font-bold text-hero-accent">Rp</span>
           <span
             ref={saldoRef}
-            className="text-[31px] font-bold leading-none tabular-nums text-hero-content"
+            className="text-[32px] font-bold leading-none tabular-nums text-hero-content"
           >
             <Counter to={saldo} />
           </span>
         </div>
         {delta !== null && (
           <p
-            className={`mt-1.5 flex items-center gap-1 text-[11.5px] font-bold tabular-nums ${
+            className={`mt-1.5 flex items-center gap-1 text-[12px] font-bold tabular-nums ${
               up
                 ? 'text-pistachio'
                 : down
@@ -1215,7 +1215,7 @@ function SaldoCard({
       {/* Transaksi bulan ini + pemegang */}
       <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-hero-content-muted">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
             Transaksi bulan ini
           </p>
           <p className="mt-0.5 text-[13px] font-semibold tabular-nums text-hero-accent">
@@ -1223,10 +1223,10 @@ function SaldoCard({
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-hero-content-muted">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
             Pemegang
           </p>
-          <p className="mt-0.5 text-[12.5px] font-bold tracking-[0.1em] text-hero-accent">
+          <p className="mt-0.5 text-[13px] font-bold tracking-[0.1em] text-hero-accent">
             ANANDA
           </p>
         </div>
@@ -1278,16 +1278,16 @@ function BudgetRow({
             ikut bar progres di bawahnya agar label panjang (mis.
             "Makan & Minum") tidak terpotong di layar sempit. */}
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="min-w-0 truncate text-[13.5px] font-semibold">
+          <span className="min-w-0 truncate text-[14px] font-semibold">
             {CAT_META[cat].label}
           </span>
           {over && (
-            <Badge className="h-5 shrink-0 border-transparent bg-clay/20 px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-content-danger hover:bg-clay/20">
+            <Badge className="h-5 shrink-0 border-transparent bg-clay/20 px-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-content-danger hover:bg-clay/20">
               Melebihi
             </Badge>
           )}
           {warn && !over && (
-            <Badge className="h-5 shrink-0 border-transparent bg-gold/25 px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-warning hover:bg-gold/25">
+            <Badge className="h-5 shrink-0 border-transparent bg-gold/25 px-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-warning hover:bg-gold/25">
               Hampir batas
             </Badge>
           )}
@@ -1338,7 +1338,7 @@ function BudgetRow({
             <AlertDialogTitle className="text-[16px] font-bold tracking-tight text-content-primary">
               Batas {CAT_META[cat].label}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-[12.5px] leading-relaxed text-content-muted">
+            <AlertDialogDescription className="text-[13px] leading-relaxed text-content-muted">
               Terpakai {formatIDR(used)} bulan ini. Tentukan batas bulanan
               baru (Rp).
             </AlertDialogDescription>
@@ -1360,11 +1360,11 @@ function BudgetRow({
                 removeBudget(cat)
                 toast(`${CAT_META[cat].label} dihapus dari anggaran.`)
               }}
-              className="h-10 flex-1 cursor-pointer rounded-full border border-destructive/35 text-[12.5px] font-bold text-content-danger transition-colors hover:bg-destructive/10"
+              className="h-10 flex-1 cursor-pointer rounded-full border border-destructive/35 text-[13px] font-bold text-content-danger transition-colors hover:bg-destructive/10"
             >
               Hapus
             </button>
-            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[12.5px] font-bold text-content-secondary">
+            <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-[13px] font-bold text-content-secondary">
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
@@ -1377,7 +1377,7 @@ function BudgetRow({
                   )
                 }
               }}
-              className="h-10 flex-1 rounded-full border-none bg-primary text-[12.5px] font-bold text-primary-foreground hover:bg-action-hover"
+              className="h-10 flex-1 rounded-full border-none bg-primary text-[13px] font-bold text-primary-foreground hover:bg-action-hover"
             >
               Simpan
             </AlertDialogAction>
@@ -1407,7 +1407,7 @@ function WalletDialog() {
       <h2 className="text-[16px] font-bold tracking-tight text-content-primary">
         Dompet Baru
       </h2>
-      <p className="mt-0.5 text-[12.5px] leading-relaxed text-content-muted">
+      <p className="mt-0.5 text-[13px] leading-relaxed text-content-muted">
         Sumber dana terpisah — tunai, bank, atau e-wallet.
       </p>
       <div className="mt-4 space-y-3">
@@ -1807,13 +1807,28 @@ export default function KeuanganScreen() {
       data-layout="vault"
       className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
+      {/* Kepala halaman — Tipografi System v1: judul operasional Geist
+          Sans (bukan serif); hierarki jelas sebelum segmented tabs. */}
+      <header>
+        <p className="flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.16em] text-module-accent-strong">
+          <Wallet className="h-3.5 w-3.5" />
+          Vault &amp; ledger
+        </p>
+        <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight">
+          Keuangan
+        </h1>
+        <p className="mt-2 text-[14px] font-medium text-content-muted">
+          Ringkasan kondisi keuanganmu
+        </p>
+      </header>
+
       {/* Subtab Keuangan — Radix Tabs: state aktif terkelola penuh,
           dukungan papan tombol otomatis (pengganti pil aria-pressed). */}
       <RutinaTabs value={finTab} onValueChange={(v) => setFinTab(v as FinTab)}>
         <RutinaTabsList
           variant="segment"
           aria-label="Bagian Keuangan"
-          className="w-full border-transparent p-1"
+          className="mt-4 w-full border-transparent p-1"
         >
           {FIN_TABS.map((t) => (
             <RutinaTabsTrigger
@@ -1860,7 +1875,7 @@ export default function KeuanganScreen() {
           className="rounded-[24px] border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
         >
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+            <h2 className="text-section font-semibold tracking-tight text-content-secondary">
               Arus Kas
             </h2>
             <span className="text-[11px] font-medium tabular-nums text-content-muted">
@@ -1899,7 +1914,7 @@ export default function KeuanganScreen() {
             >
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                  <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.1em] text-content-muted">
                     <ArrowUpRight className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
                     Masuk
                   </p>
@@ -1908,7 +1923,7 @@ export default function KeuanganScreen() {
                   </p>
                 </div>
                 <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                  <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.1em] text-content-muted">
                     <ArrowDownRight className="h-3 w-3 text-clay" strokeWidth={2.6} />
                     Keluar
                   </p>
@@ -1917,7 +1932,7 @@ export default function KeuanganScreen() {
                   </p>
                 </div>
                 <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                  <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.1em] text-content-muted">
                     {net > 0 ? (
                       <TrendingUp className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
                     ) : net < 0 ? (
@@ -1941,7 +1956,7 @@ export default function KeuanganScreen() {
                   "—" bila belum ada pemasukan pada periode ini. */}
               <div className="mt-2.5 flex items-center justify-between gap-3 rounded-2xl bg-surface-sunken px-3 py-2.5">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-content-muted">
+                  <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.1em] text-content-muted">
                     <PiggyBank className="h-3 w-3 text-module-accent-strong" strokeWidth={2.6} />
                     Rasio Tabungan
                   </p>
@@ -1991,12 +2006,12 @@ export default function KeuanganScreen() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: -8, opacity: 0 }}
                   transition={motionTokens.preset.interaction}
-                  className="text-[12.5px] font-bold text-content-primary"
+                  className="text-[13px] font-bold text-content-primary"
                 >
                   {detailLabel}
                 </m.p>
               </AnimatePresence>
-              <p className="shrink-0 text-[10.5px] font-medium text-content-muted">
+              <p className="shrink-0 text-[11px] font-medium text-content-muted">
                 ketuk batang
               </p>
             </div>
@@ -2013,7 +2028,7 @@ export default function KeuanganScreen() {
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-content-muted">
                     Masuk
                   </p>
-                  <p className="mt-0.5 text-[13.5px] font-bold tabular-nums text-success">
+                  <p className="mt-0.5 text-[14px] font-bold tabular-nums text-success">
                     {pt && pt.masuk > 0 ? `+${formatIDRShort(pt.masuk)}` : '—'}
                   </p>
                 </div>
@@ -2021,7 +2036,7 @@ export default function KeuanganScreen() {
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-content-muted">
                     Keluar
                   </p>
-                  <p className="mt-0.5 text-[13.5px] font-bold tabular-nums text-content-danger">
+                  <p className="mt-0.5 text-[14px] font-bold tabular-nums text-content-danger">
                     {pt && pt.keluar > 0 ? `−${formatIDRShort(pt.keluar)}` : '—'}
                   </p>
                 </div>
@@ -2030,7 +2045,7 @@ export default function KeuanganScreen() {
                     Net
                   </p>
                   <p
-                    className={`mt-0.5 text-[13.5px] font-bold tabular-nums ${
+                    className={`mt-0.5 text-[14px] font-bold tabular-nums ${
                       dayNet > 0
                         ? 'text-success'
                         : dayNet < 0
@@ -2136,7 +2151,7 @@ export default function KeuanganScreen() {
               />
             ) : (
               <>
-                <p className="mt-2 px-0.5 text-[11.5px] font-medium tabular-nums text-content-muted">
+                <p className="mt-2 px-0.5 text-[12px] font-medium tabular-nums text-content-muted">
                   Terkumpul {formatIDRShort(totalSaved)} dari{' '}
                   {formatIDRShort(totalTarget)}
                 </p>
@@ -2155,7 +2170,7 @@ export default function KeuanganScreen() {
                       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-sunken">
                         <Plus className="h-5 w-5" />
                       </span>
-                      <span className="text-[12.5px] font-bold">Tujuan Baru</span>
+                      <span className="text-[13px] font-bold">Tujuan Baru</span>
                       <span className="text-center text-[11px] leading-tight opacity-70">
                         tetapkan nama &amp; target
                       </span>
@@ -2263,7 +2278,7 @@ export default function KeuanganScreen() {
                       <p className="mt-1 text-[12px] leading-relaxed text-content-secondary">
                         {f.body}
                       </p>
-                      <p className="mt-2 flex gap-1.5 border-l-2 border-gold/60 pl-2.5 text-[11.5px] leading-relaxed text-content-muted">
+                      <p className="mt-2 flex gap-1.5 border-l-2 border-gold/60 pl-2.5 text-[12px] leading-relaxed text-content-muted">
                         <ArrowRight
                           aria-hidden="true"
                           className="mt-[3px] h-3 w-3 shrink-0 text-warning"
@@ -2324,7 +2339,7 @@ export default function KeuanganScreen() {
                   {dayGroups.map((g) => (
                     <div key={g.date}>
                       <div className="mb-2 flex items-center justify-between px-0.5">
-                        <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] text-content-muted">
+                        <p className="text-eyebrow font-bold uppercase tracking-[0.12em] text-content-muted">
                           {fmtDate(g.date)}
                         </p>
                         <p className="text-[11px] font-semibold tabular-nums text-content-muted">
@@ -2359,7 +2374,7 @@ export default function KeuanganScreen() {
             <div className="relative rounded-[24px] bg-surface-primary p-4 text-content-primary shadow-ink-deep">
               <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[13px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                <h2 className="text-section font-semibold tracking-tight text-content-secondary">
                   Anggaran {currentMonthLabel()}
                 </h2>
                 <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
@@ -2479,7 +2494,7 @@ export default function KeuanganScreen() {
                           <Wallet className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[14.5px] font-bold text-content-primary">
+                          <p className="truncate text-[14px] font-bold text-content-primary">
                             {w.name}
                           </p>
                           <p className="text-[11px] font-medium text-content-muted">
@@ -2503,7 +2518,7 @@ export default function KeuanganScreen() {
             {/* Riwayat transfer */}
             {transfers.length > 0 && (
               <BlurFade delay={0.08}>
-                <h3 className="px-0.5 text-[12px] font-bold uppercase tracking-[0.14em] text-content-muted">
+                <h3 className="px-0.5 text-[13px] font-semibold tracking-tight text-content-muted">
                   Riwayat Transfer
                 </h3>
                 <div className="mt-2 space-y-2">
@@ -2516,14 +2531,14 @@ export default function KeuanganScreen() {
                         className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
                       >
                         <ArrowLeftRight className="h-4 w-4 shrink-0 text-warning" />
-                        <p className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-content-primary">
+                        <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-content-primary">
                           {fromW?.name ?? 'Dompet'} → {toW?.name ?? 'Dompet'}
                           <span className="font-medium text-content-muted">
                             {' '}
                             · {fmtDate(t.ts)}
                           </span>
                         </p>
-                        <p className="shrink-0 text-[12.5px] font-bold tabular-nums text-content-muted">
+                        <p className="shrink-0 text-[13px] font-bold tabular-nums text-content-muted">
                           {formatIDRShort(t.amount)}
                         </p>
                       </div>

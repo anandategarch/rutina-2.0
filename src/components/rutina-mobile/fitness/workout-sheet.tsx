@@ -377,7 +377,7 @@ export function WorkoutSheet() {
                       <button
                         type="button"
                         onClick={applyDeload}
-                        className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-[12.5px] font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
+                        className="mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-warning text-[13px] font-bold text-content-inverse transition-colors hover:bg-gold/50 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warning"
                       >
                         Terapkan 50%
                       </button>
@@ -399,7 +399,7 @@ export function WorkoutSheet() {
                             aria-label={`Gerakan blok ${i + 1}`}
                             value={b.exercise}
                             onChange={(e) => patchBlock(i, { exercise: e.target.value })}
-                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-surface-sunken px-2.5 text-[13.5px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+                            className={`h-10 min-w-0 flex-1 cursor-pointer rounded-xl border bg-surface-sunken px-2.5 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
                               b.exercise ? 'border-primary' : 'border-border text-content-muted'
                             }`}
                           >
@@ -431,7 +431,7 @@ export function WorkoutSheet() {
 
                         <div className="mt-2.5 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                           <div>
-                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
+                            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-content-muted">
                               Beban (kg)
                             </p>
                             <Input
@@ -448,7 +448,7 @@ export function WorkoutSheet() {
                             />
                           </div>
                           <div>
-                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
+                            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-content-muted">
                               Repetisi
                             </p>
                             <Input
@@ -465,7 +465,7 @@ export function WorkoutSheet() {
                             />
                           </div>
                           <div>
-                            <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wide text-content-muted">
+                            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-content-muted">
                               Set
                             </p>
                             <div className="flex h-10 items-center rounded-xl border border-border bg-surface-sunken">

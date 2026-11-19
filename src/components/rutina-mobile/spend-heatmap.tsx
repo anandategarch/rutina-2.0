@@ -201,7 +201,7 @@ export function SpendHeatmap() {
       </div>
 
       {/* Keterangan sel terpilih. */}
-      <p aria-live="polite" className="mt-3 text-[11.5px] font-medium text-content-muted">
+      <p aria-live="polite" className="mt-3 text-[12px] font-medium text-content-muted">
         {caption}
       </p>
 

@@ -187,7 +187,7 @@ function Stepper({
     <div className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-3.5">
       <p
         aria-hidden="true"
-        className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-hero-content-muted"
+        className="text-[11px] font-bold uppercase tracking-[0.16em] text-hero-content-muted"
       >
         {label}
       </p>
@@ -296,7 +296,7 @@ function RestCard({
       className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
           <Timer className="h-3.5 w-3.5" aria-hidden="true" />
           Istirahat · Timer berjalan
         </p>
@@ -419,14 +419,14 @@ function AddExercisePanel({
       transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
       className="rounded-[20px] border border-hero-content/12 bg-hero-content/[0.06] p-4"
     >
-      <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-hero-content-muted">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-hero-content-muted">
         Tambah Gerakan
       </p>
       <select
         aria-label="Pilih gerakan untuk ditambahkan"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="mt-2.5 h-11 w-full cursor-pointer rounded-xl border border-hero-content/15 bg-hero-surface-raised px-3 text-[13.5px] font-semibold text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+        className="mt-2.5 h-11 w-full cursor-pointer rounded-xl border border-hero-content/15 bg-hero-surface-raised px-3 text-[14px] font-semibold text-hero-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
       >
         <option value="">Pilih gerakan…</option>
         {EX_OPTIONS.map((g) => (
@@ -440,7 +440,7 @@ function AddExercisePanel({
         ))}
       </select>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-[12.5px] font-medium text-hero-content-muted">
+        <p className="text-[13px] font-medium text-hero-content-muted">
           Target set
         </p>
         <div className="flex h-11 items-center rounded-xl border border-hero-content/15">
@@ -725,7 +725,7 @@ function SessionView({
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            className={`flex h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-[12.5px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            className={`flex h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               allDone
                 ? 'bg-gold text-espresso shadow-gold animate-pulse-soft'
                 : 'border border-hero-content/25 text-hero-content hover:bg-hero-content/10'
@@ -766,7 +766,7 @@ function SessionView({
                 >
                   {done && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
                   <span className="max-w-[140px] truncate">{e.name}</span>
-                  <span className="text-[10.5px] font-semibold tabular-nums opacity-70">
+                  <span className="text-[11px] font-semibold tabular-nums opacity-70">
                     {e.sets.length}/{e.targetSets}
                   </span>
                 </button>
@@ -822,7 +822,7 @@ function SessionView({
               }}
               className="select-none pb-2"
             >
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-hero-content-muted">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-hero-content-muted">
                 {KIND_LABEL[ex.kind]} · Set{' '}
                 <span className="text-hero-accent">
                   {Math.min(ex.sets.length + 1, ex.targetSets)}
@@ -835,7 +835,7 @@ function SessionView({
                 {ex.name}
               </h2>
               {exMeta && (
-                <p className="mt-1 truncate text-[11.5px] font-medium text-hero-content-muted">
+                <p className="mt-1 truncate text-[12px] font-medium text-hero-content-muted">
                   {exMeta.muscle} · {exMeta.equipment} · {EX_LEVELS[exMeta.level]}
                 </p>
               )}
@@ -915,10 +915,10 @@ function SessionView({
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-hero-content-muted">
                         Saran Coach
                       </p>
-                      <p className="mt-0.5 text-[12.5px] font-semibold leading-relaxed text-hero-content">
+                      <p className="mt-0.5 text-[13px] font-semibold leading-relaxed text-hero-content">
                         {fmtKg(advice.nextWeight)} kg — {advice.reason}
                       </p>
                     </div>
@@ -934,7 +934,7 @@ function SessionView({
               )}
 
               {session.exercises.length > 1 && (
-                <p className="mt-5 flex items-center justify-center gap-1.5 text-[10.5px] font-medium text-hero-content-muted">
+                <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-medium text-hero-content-muted">
                   <ChevronLeft className="h-3 w-3" aria-hidden="true" />
                   Geser untuk pindah gerakan
                   <ChevronRight className="h-3 w-3" aria-hidden="true" />
@@ -955,7 +955,7 @@ function SessionView({
               <p className="text-[15px] font-bold text-hero-content">
                 Sesi masih kosong
               </p>
-              <p className="max-w-[280px] text-[12.5px] leading-relaxed text-hero-content-muted">
+              <p className="max-w-[280px] text-[13px] leading-relaxed text-hero-content-muted">
                 Tambahkan gerakan pertama untuk mulai mencatat set — atau akhiri
                 sesi bila berubah pikiran.
               </p>
@@ -1051,7 +1051,7 @@ function SessionView({
           <button
             type="button"
             onClick={() => setConfirmOpen(false)}
-            className="h-11 w-full cursor-pointer rounded-full border border-border bg-surface-primary text-[13.5px] font-bold text-content-primary transition-colors hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="h-11 w-full cursor-pointer rounded-full border border-border bg-surface-primary text-[14px] font-bold text-content-primary transition-colors hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Lanjutkan
           </button>
@@ -1195,7 +1195,7 @@ function SessionCelebration({
                   <p className="text-[15px] font-bold tabular-nums text-hero-content">
                     {s.value}
                   </p>
-                  <p className="mt-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-hero-content-muted">
+                  <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-hero-content-muted">
                     {s.label}
                   </p>
                 </div>
@@ -1378,7 +1378,7 @@ export function SessionPickerSheet({
 
               {/* Cepat mulai — dari riwayat nyata */}
               <div className="mt-4">
-                <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-content-secondary">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-content-secondary">
                   Cepat Mulai
                 </p>
                 {recent.length > 0 ? (
@@ -1391,7 +1391,7 @@ export function SessionPickerSheet({
                           type="button"
                           aria-pressed={on}
                           onClick={() => toggleRecent(r)}
-                          className={`flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[12.5px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          className={`flex h-11 min-w-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                             on
                               ? 'bg-primary text-primary-foreground'
                               : 'border border-border bg-surface-sunken text-content-secondary hover:bg-secondary'
@@ -1420,7 +1420,7 @@ export function SessionPickerSheet({
               <div className="mt-4">
                 <label
                   htmlFor="session-add-ex"
-                  className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-content-secondary"
+                  className="text-[11px] font-bold uppercase tracking-[0.16em] text-content-secondary"
                 >
                   Tambah Gerakan
                 </label>
@@ -1431,7 +1431,7 @@ export function SessionPickerSheet({
                     addFromSelect(e.target.value)
                     setPick('')
                   }}
-                  className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-surface-sunken px-3 text-[13.5px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-border bg-surface-sunken px-3 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   <option value="">Pilih gerakan…</option>
                   {EX_OPTIONS.map((g) => (
@@ -1467,7 +1467,7 @@ export function SessionPickerSheet({
                       >
                         <div className="flex items-center gap-2.5">
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13.5px] font-bold text-content-primary">
+                            <span className="block truncate text-[14px] font-bold text-content-primary">
                               {it.name}
                             </span>
                             <span className="mt-0.5 block truncate text-[11px] font-medium text-content-muted">

@@ -160,7 +160,7 @@ export function TransferSheet() {
                   id="tr-from"
                   value={fromId}
                   onChange={(e) => setFromId(e.target.value)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-[13.5px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   {wallets.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -182,7 +182,7 @@ export function TransferSheet() {
                   id="tr-to"
                   value={toId}
                   onChange={(e) => setToId(e.target.value)}
-                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-[13.5px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                  className="h-11 w-full cursor-pointer rounded-xl border border-input bg-surface-sunken px-2.5 text-[14px] font-semibold text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
                 >
                   {wallets.map((w) => (
                     <option key={w.id} value={w.id}>

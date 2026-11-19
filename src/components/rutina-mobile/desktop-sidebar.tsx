@@ -120,7 +120,7 @@ export function DesktopSidebar() {
                   </TooltipTrigger>
                   <TooltipContent
                     side="right"
-                    className="rounded-full border-border bg-surface-inverse text-[11.5px] font-bold text-content-inverse"
+                    className="rounded-full border-border bg-surface-inverse text-[12px] font-bold text-content-inverse"
                   >
                     {item.label} · tekan {i + 1}
                   </TooltipContent>
@@ -141,7 +141,7 @@ export function DesktopSidebar() {
             <CloudCheck className="h-[18px] w-[18px]" strokeWidth={2} />
           </span>
           <span className="min-w-0">
-            <span className="block text-[12.5px] font-bold leading-tight text-content-primary">
+            <span className="block text-[13px] font-bold leading-tight text-content-primary">
               Tersinkron cloud
             </span>
             <span className="mt-0.5 block text-[11px] font-medium leading-snug text-content-muted">

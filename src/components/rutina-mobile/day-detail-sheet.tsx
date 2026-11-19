@@ -301,14 +301,14 @@ function DayDetailBody({
                         key={n.id}
                         className="rounded-2xl bg-surface-sunken px-3 py-2.5"
                       >
-                        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-content-primary">
+                        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-content-primary">
                           <NotebookPen
                             aria-hidden="true"
                             className="h-3.5 w-3.5 shrink-0 text-primary"
                           />
                           <span className="truncate">{n.title}</span>
                         </p>
-                        <p className="mt-1 line-clamp-1 text-[11.5px] leading-relaxed text-content-muted">
+                        <p className="mt-1 line-clamp-1 text-[12px] leading-relaxed text-content-muted">
                           {n.body}
                         </p>
                       </li>
@@ -407,7 +407,7 @@ function DayDetailBody({
                             )}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[12.5px] font-semibold text-content-primary">
+                            <span className="block text-[13px] font-semibold text-content-primary">
                               {isStrength
                                 ? `Beban · ${w.sets} set`
                                 : `${w.kind === 'jalan' ? 'Jalan' : 'Lari'}${km ? ` · ${km} km` : ''}`}
@@ -427,7 +427,7 @@ function DayDetailBody({
                           <UtensilsCrossed className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[12.5px] font-semibold text-content-primary">
+                          <span className="block text-[13px] font-semibold text-content-primary">
                             Asupan — {data.foodCount} catatan
                           </span>
                           <span className="mt-0.5 block text-[11px] font-medium tabular-nums text-content-muted">
@@ -448,7 +448,7 @@ function DayDetailBody({
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {data.mood && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[11.5px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
                         {(() => {
                           const MoodIcon = MOOD_ICONS[data.mood] ?? Smile
                           return (
@@ -462,19 +462,19 @@ function DayDetailBody({
                       </span>
                     )}
                     {data.water != null && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[11.5px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
                         <Droplets aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Hidrasi {data.water} gelas
                       </span>
                     )}
                     {data.sleepH != null && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[11.5px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
                         <Moon aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Tidur {data.sleepH.toString().replace('.', ',')} jam
                       </span>
                     )}
                     {data.energy != null && (
-                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[11.5px] font-semibold text-content-secondary">
+                      <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-[12px] font-semibold text-content-secondary">
                         <Zap aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                         Energi {data.energy}/5
                       </span>

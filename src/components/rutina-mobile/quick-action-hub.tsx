@@ -454,7 +454,7 @@ export function QuickActionHub() {
                           </m.button>
                         ))}
                       </div>
-                      <p className="px-5 pb-4 pt-1.5 text-center text-[11.5px] font-medium text-content-muted">
+                      <p className="px-5 pb-4 pt-1.5 text-center text-[12px] font-medium text-content-muted">
                         Ketik untuk mencari di seluruh aplikasi
                       </p>
                     </m.div>
@@ -470,7 +470,7 @@ export function QuickActionHub() {
                           key={a.key}
                           value={a.value}
                           onSelect={() => run(a.run)}
-                          className="rounded-lg py-2.5 text-[13.5px]"
+                          className="rounded-lg py-2.5 text-[14px]"
                         >
                           <a.icon aria-hidden="true" />
                           <span className="min-w-0 flex-1 truncate">
@@ -490,7 +490,7 @@ export function QuickActionHub() {
                               useRutina.getState().setScreen(item.screen),
                             )
                           }
-                          className="rounded-lg py-2.5 text-[13.5px]"
+                          className="rounded-lg py-2.5 text-[14px]"
                         >
                           <item.icon aria-hidden="true" />
                           <span className="min-w-0 flex-1 truncate">
@@ -507,7 +507,7 @@ export function QuickActionHub() {
                             key={h.id}
                             value={`${h.title} ${h.cat}`}
                             onSelect={() => openHabit(h.id)}
-                            className="rounded-lg py-2.5 text-[13.5px]"
+                            className="rounded-lg py-2.5 text-[14px]"
                           >
                             <span
                               aria-hidden="true"
@@ -534,7 +534,7 @@ export function QuickActionHub() {
                             onSelect={() =>
                               run(() => useRutina.getState().openReading(n.id))
                             }
-                            className="rounded-lg py-2.5 text-[13.5px]"
+                            className="rounded-lg py-2.5 text-[14px]"
                           >
                             <PenLine aria-hidden="true" />
                             <span className="min-w-0 flex-1 truncate">
@@ -561,7 +561,7 @@ export function QuickActionHub() {
                                   useRutina.getState().setScreen('keuangan'),
                                 )
                               }
-                              className="rounded-lg py-2.5 text-[13.5px]"
+                              className="rounded-lg py-2.5 text-[14px]"
                             >
                               <v.icon
                                 aria-hidden="true"
@@ -590,7 +590,7 @@ export function QuickActionHub() {
                           className="h-5 w-5 text-content-muted"
                           aria-hidden="true"
                         />
-                        <p className="text-[13.5px] font-semibold text-content-secondary">
+                        <p className="text-[14px] font-semibold text-content-secondary">
                           Tidak ditemukan
                         </p>
                         <p className="text-[12px] leading-snug text-content-muted">

@@ -576,7 +576,7 @@ export function CssLab({ open, onClose }: { open: boolean; onClose: () => void }
             <div className="relative shrink-0 border-b border-border-default bg-surface-primary px-5 pb-4 pt-[max(1.1rem,env(safe-area-inset-top))]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-[#B25E3F]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#B25E3F]">
                     Lab efek · CSS murni
                   </p>
                   <h1
@@ -584,7 +584,7 @@ export function CssLab({ open, onClose }: { open: boolean; onClose: () => void }
                   >
                     CSS Lab
                   </h1>
-                  <p className="mt-1.5 text-[11.5px] font-medium text-content-muted">
+                  <p className="mt-1.5 text-[12px] font-medium text-content-muted">
                     {EFFECTS.length} efek hidup dalam {CATEGORIES.length}{' '}
                     kategori — salin, tempel, pakai.
                   </p>
@@ -681,7 +681,7 @@ export function CssLab({ open, onClose }: { open: boolean; onClose: () => void }
                             className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[12.5px] font-bold text-content-primary">
+                              <span className="block truncate text-[13px] font-bold text-content-primary">
                                 {e.title}
                               </span>
                               <span className="block text-[10px] font-bold uppercase tracking-[0.1em] text-content-muted">
@@ -699,7 +699,7 @@ export function CssLab({ open, onClose }: { open: boolean; onClose: () => void }
 
                           {/* Kode CSS — meluas saat kartu diketuk */}
                           {isExpanded && (
-                            <pre className="max-h-56 overflow-auto border-t border-border-default bg-surface-sunken px-3 py-2.5 font-mono text-[10.5px] leading-relaxed text-content-secondary">
+                            <pre className="max-h-56 overflow-auto border-t border-border-default bg-surface-sunken px-3 py-2.5 font-mono text-[11px] leading-relaxed text-content-secondary">
                               {copyableCss(e)}
                             </pre>
                           )}

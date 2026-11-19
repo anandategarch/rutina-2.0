@@ -342,7 +342,7 @@ function CanvasPanel() {
           type="button"
           onClick={handleClose}
           whileTap={{ scale: 0.95 }}
-          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-5 text-[13.5px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="h-10 shrink-0 cursor-pointer rounded-full bg-primary px-5 text-[14px] font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Selesai
         </m.button>
@@ -405,7 +405,7 @@ function CanvasPanel() {
                         scheduleSave()
                       }}
                       className={
-                        'flex h-9 cursor-pointer items-center gap-1 rounded-full px-3 text-[11.5px] font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        'flex h-9 cursor-pointer items-center gap-1 rounded-full px-3 text-[12px] font-semibold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (active
                           ? 'bg-secondary text-primary'
                           : 'text-content-muted hover:bg-surface-secondary hover:text-content-secondary')
@@ -435,7 +435,7 @@ function CanvasPanel() {
                         scheduleSave()
                       }}
                       className={
-                        'h-9 cursor-pointer rounded-full px-3 text-[11.5px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        'h-9 cursor-pointer rounded-full px-3 text-[12px] font-bold transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                         (active
                           ? 'bg-surface-inverse text-content-inverse'
                           : 'border border-border text-content-muted hover:bg-surface-secondary hover:text-content-secondary')
@@ -466,7 +466,7 @@ function CanvasPanel() {
               delay: 0.16,
               ease: motionTokens.easing.entrance,
             }}
-            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-[15.5px] leading-[1.8] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
+            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-[16px] leading-[1.8] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
           />
         </div>
       </div>

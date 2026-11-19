@@ -176,10 +176,10 @@ function SpringDemo({
         onClick={() => setN((v) => v + 1)}
         className="flex-1 cursor-pointer rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-left transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        <span className="block text-[12.5px] font-semibold text-content-primary">
+        <span className="block text-[13px] font-semibold text-content-primary">
           {label}
         </span>
-        <span className="block text-[10.5px] font-medium tabular-nums text-content-muted">
+        <span className="block text-[11px] font-medium tabular-nums text-content-muted">
           stiffness {transition.stiffness} · damping {transition.damping}
         </span>
       </button>
@@ -207,7 +207,7 @@ function EaseCurve({
         <rect x="0" y="0" width="100" height="100" rx="10" className="fill-surface-secondary" />
         <path d={d} fill="none" stroke="var(--palette-matcha)" strokeWidth="3.5" strokeLinecap="round" />
       </svg>
-      <span className="text-[10.5px] font-bold text-content-secondary">
+      <span className="text-[11px] font-bold text-content-secondary">
         {label}
       </span>
     </div>
@@ -272,7 +272,7 @@ export function DesignBoard({
           <div className="relative shrink-0 border-b border-border-default bg-surface-primary px-5 pb-4 pt-[max(1.1rem,env(safe-area-inset-top))]">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10.5px] font-bold uppercase tracking-[0.22em] text-[#B25E3F]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#B25E3F]">
                   Spesifikasi visual · v2.0
                 </p>
                 <h1
@@ -280,7 +280,7 @@ export function DesignBoard({
                 >
                   Papan Sistem Desain
                 </h1>
-                <p className="mt-1.5 text-[11.5px] font-medium text-content-muted">
+                <p className="mt-1.5 text-[12px] font-medium text-content-muted">
                   Calm by design. Precise by engineering.
                 </p>
               </div>
@@ -325,14 +325,14 @@ export function DesignBoard({
                       style={{ background: `var(--palette-${p.key})` }}
                     />
                     <div className="px-2.5 py-2">
-                      <p className="truncate text-[10.5px] font-bold text-content-primary">
+                      <p className="truncate text-[11px] font-bold text-content-primary">
                         {p.key}
                       </p>
                       <CssVarText
                         token={`--palette-${p.key}`}
-                        className="text-[9.5px] font-medium tabular-nums uppercase text-content-muted"
+                        className="text-[10px] font-medium tabular-nums uppercase text-content-muted"
                       />
-                      <p className="mt-0.5 text-[9.5px] font-medium text-content-muted">
+                      <p className="mt-0.5 text-[10px] font-medium text-content-muted">
                         {p.note}
                       </p>
                     </div>
@@ -355,14 +355,14 @@ export function DesignBoard({
                       style={{ background: `var(${s.token})` }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-mono text-[10.5px] font-semibold text-content-primary">
+                      <p className="truncate font-mono text-[11px] font-semibold text-content-primary">
                         {s.token}
                       </p>
                       <p className="text-[10px] text-content-muted">{s.label}</p>
                     </div>
                     <CssVarText
                       token={s.token}
-                      className="shrink-0 font-mono text-[9.5px] tabular-nums text-content-muted"
+                      className="shrink-0 font-mono text-[10px] tabular-nums text-content-muted"
                     />
                   </div>
                 ))}
@@ -428,7 +428,7 @@ export function DesignBoard({
                       <div
                         className={`h-11 w-14 border-2 border-[#749B58] bg-[#E4EFE0] ${r.cls}`}
                       />
-                      <span className="text-[9.5px] font-bold tabular-nums text-content-secondary">
+                      <span className="text-[10px] font-bold tabular-nums text-content-secondary">
                         {r.px}px
                       </span>
                     </div>
@@ -468,7 +468,7 @@ export function DesignBoard({
                     <p className="font-mono text-[10px] font-bold text-content-primary">
                       {s.token}
                     </p>
-                    <p className="text-[9.5px] font-medium text-content-muted">
+                    <p className="text-[10px] font-medium text-content-muted">
                       {s.note}
                     </p>
                   </div>
@@ -505,7 +505,7 @@ export function DesignBoard({
                     +
                   </button>
                 </div>
-                <p className="text-[10.5px] font-medium tabular-nums text-content-muted">
+                <p className="text-[11px] font-medium tabular-nums text-content-muted">
                   --button-height: <CssVarText token="--button-height" /> (target
                   sentuh minimum) · --nav-height: <CssVarText token="--nav-height" />
                 </p>
@@ -628,7 +628,7 @@ export function DesignBoard({
                   <div className="rounded-lg bg-action-primary px-3 py-2 text-center text-[10px] font-bold text-white">
                     Kaki — aksi utama (tinggi 44px)
                   </div>
-                  <p className="text-center text-[9.5px] font-medium text-content-muted">
+                  <p className="text-center text-[10px] font-medium text-content-muted">
                     + env(safe-area-inset-bottom) · drag-to-dismiss · focus trap
                   </p>
                 </div>
@@ -661,7 +661,7 @@ export function DesignBoard({
                     {Object.entries(motionTokens.duration).map(([k, v]) => (
                       <span
                         key={k}
-                        className="rounded-full bg-surface-secondary px-2.5 py-1 font-mono text-[9.5px] font-bold text-content-secondary"
+                        className="rounded-full bg-surface-secondary px-2.5 py-1 font-mono text-[10px] font-bold text-content-secondary"
                       >
                         {k} {v}s
                       </span>
@@ -696,7 +696,7 @@ export function DesignBoard({
                 ].map((rule) => (
                   <p
                     key={rule}
-                    className="flex gap-2 text-[11.5px] font-medium leading-relaxed"
+                    className="flex gap-2 text-[12px] font-medium leading-relaxed"
                   >
                     <span className="text-[#A3C489]" aria-hidden="true">
                       ✓

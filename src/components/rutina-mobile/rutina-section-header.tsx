@@ -3,11 +3,12 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
-import { playfair } from './serif'
 
 /**
  * RutinaSectionHeader — judul standar setiap bagian layar.
- * Skala tipografi: section title 18–20px (spesifikasi design system).
+ * Tipografi System v1: judul seksi memakai Geist Sans 16px semibold
+ * normal case (token --text-section-lg) — Playfair hanya untuk aksen
+ * editorial di tingkat halaman, bukan judul seksi operasional.
  * `accent` mewarnai titik & eyebrow dengan warna domain layar (token
  * module-accent kontekstual) — identitas modul tanpa mengubah judul.
  */
@@ -46,7 +47,7 @@ export function RutinaSectionHeader({
         {eyebrow && (
           <p
             className={cn(
-              'mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em]',
+              'mb-0.5 flex items-center gap-1.5 text-eyebrow font-bold uppercase tracking-[0.14em]',
               accent
                 ? 'text-module-accent-strong'
                 : 'text-content-muted',
@@ -63,8 +64,7 @@ export function RutinaSectionHeader({
         )}
         <h2
           className={cn(
-            'font-semibold leading-tight tracking-tight text-content-primary text-[19px]',
-            playfair.className,
+            'text-section-lg font-semibold leading-tight tracking-tight text-content-primary',
           )}
         >
           {title}

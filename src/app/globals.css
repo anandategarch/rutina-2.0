@@ -408,6 +408,37 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* ===== Tipografi System v1 — skala baku seluruh layar =====
+     Peran ukuran (mobile-first, px — tanpa pecahan):
+       chart-label 10  info sangat padat (label sumbu grafik, badge mini)
+       eyebrow     11  label pengantar uppercase, tracking 0.12–0.16em
+       meta        12  metadata & keterangan pendukung
+       note        13  deskripsi & teks pendamping
+       body        14  isi utama, judul kartu, transaksi
+       section     15  judul seksi — normal case, semibold
+       section-lg  16  judul seksi utama blok (dengan eyebrow+deskripsi)
+     Aturan pakai:
+     · Geist Sans untuk SEMUA konten operasional (navigasi, judul, kartu,
+       formulir, data). Playfair Display hanya aksen editorial: sapaan
+       Beranda, judul halaman Kebiasaan, refleksi naratif.
+     · Eyebrow adalah satu-satunya pemakai uppercase yang wajar; judul
+       seksi & kartu normal case agar tidak terasa dashboard administratif.
+     · Angka penting memakai tabular-nums — bukan serif/dekoratif. */
+  --text-chart-label: 10px;
+  --text-chart-label--line-height: 1.3;
+  --text-eyebrow: 11px;
+  --text-eyebrow--line-height: 1.45;
+  --text-meta: 12px;
+  --text-meta--line-height: 1.45;
+  --text-note: 13px;
+  --text-note--line-height: 1.5;
+  --text-body: 14px;
+  --text-body--line-height: 1.55;
+  --text-section: 15px;
+  --text-section--line-height: 1.4;
+  --text-section-lg: 16px;
+  --text-section-lg--line-height: 1.35;
+
   /* Radius — skala tetap sesuai spesifikasi governance
      (sm 8 · md 12 · lg 16 · xl 20 · 2xl 24 · sheet 28) */
   --radius-sm: 8px;
@@ -713,6 +744,22 @@
 @utility text-fluid-body {
   font-size: clamp(0.875rem, 3.6cqi, 1rem);
   line-height: 1.6;
+}
+
+/* Judul halaman operasional (Bugar, Keuangan, Statistik) — Geist Sans,
+   weight 700, 32→36px mengikuti ruang kontainer. Tegas & presisi. */
+@utility text-fluid-page {
+  font-size: clamp(2rem, 10cqi, 2.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+/* Judul editorial (sapaan Beranda, judul Kebiasaan) — Playfair Display,
+   28→32px; personal & hangat, bukan operasional. */
+@utility text-fluid-editorial {
+  font-size: clamp(1.75rem, 8cqi, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
 }
 
 /* Kunci animasi tambahan untuk Rutina 2.0 */

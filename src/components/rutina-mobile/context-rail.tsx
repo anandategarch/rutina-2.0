@@ -127,7 +127,7 @@ function RailCalm({
       >
         <Icon className="h-4 w-4" strokeWidth={2.1} />
       </span>
-      <p className="text-[12.5px] font-medium leading-snug text-content-secondary">
+      <p className="text-[13px] font-medium leading-snug text-content-secondary">
         {text}
       </p>
     </div>
@@ -240,7 +240,7 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
           >
             <Check className="h-4 w-4" strokeWidth={2.4} />
           </span>
-          <p className="text-[12.5px] font-medium leading-snug text-content-secondary">
+          <p className="text-[13px] font-medium leading-snug text-content-secondary">
             Semua misi hari ini telah dijadwalkan.
           </p>
         </div>
@@ -260,7 +260,7 @@ function TipsCard() {
         >
           <Leaf className="h-4 w-4" strokeWidth={2} />
         </span>
-        <p className="text-[12.5px] font-medium leading-relaxed text-content-secondary">
+        <p className="text-[13px] font-medium leading-relaxed text-content-secondary">
           Konsistensi kecil setiap hari lebih kuat daripada sempurna
           sesekali.
         </p>
