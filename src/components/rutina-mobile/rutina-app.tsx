@@ -35,15 +35,50 @@ import { WorkoutSheet } from './fitness/workout-sheet'
 import { FoodSheet } from './fitness/food-sheet'
 import { CONTENT_W } from './layout-widths'
 import HomeScreen from './screens/home'
-import JournalScreen from './screens/journal'
-import KebiasaanScreen from './screens/kebiasaan'
-import KeuanganScreen from './screens/keuangan'
-import StatsScreen from './screens/stats'
-import ProfileScreen from './screens/profile'
-import BugarScreen from './screens/bugar'
-
 import { canvasFade } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
+
+/* ===== Tahap 4 — code splitting (audit performa) =====
+   Hanya Beranda yang statis (layar pertama); enam layar lain dimuat
+   MALAS lewat dynamic() dengan skeleton tenang. Prefetch idle memuat
+   semuanya di latar belakang ±1,5 dtk setelah app siap — navigasi tetap
+   instan sementara bundel awal jauh lebih ringan (Keuangan ±3.1rb,
+   Statistik ±2.1rb, Bugar ±1.8rb baris tidak lagi ikut chunk utama,
+   begitu juga Recharts yang hanya dipakai dua layar itu). */
+const loadBugar = () => import('./screens/bugar')
+const loadJournal = () => import('./screens/journal')
+const loadKebiasaan = () => import('./screens/kebiasaan')
+const loadKeuangan = () => import('./screens/keuangan')
+const loadStats = () => import('./screens/statistik')
+const loadProfile = () => import('./screens/profil')
+
+const BugarScreen = dynamic(loadBugar, { ssr: false, loading: ScreenSkeleton })
+const JournalScreen = dynamic(loadJournal, { ssr: false, loading: ScreenSkeleton })
+const KebiasaanScreen = dynamic(loadKebiasaan, { ssr: false, loading: ScreenSkeleton })
+const KeuanganScreen = dynamic(loadKeuangan, { ssr: false, loading: ScreenSkeleton })
+const StatsScreen = dynamic(loadStats, { ssr: false, loading: ScreenSkeleton })
+const ProfileScreen = dynamic(loadProfile, { ssr: false, loading: ScreenSkeleton })
+
+/** Skeleton layar — blok kertas tenang bergaya Rutina (rutina-skeleton),
+ *  bentuk mengikuti anatomi umum layar: kepala + hero + deretan bento. */
+function ScreenSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      aria-busy="true"
+      className="flex h-full flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))]"
+    >
+      <div className="h-8 w-40 rounded-lg rutina-skeleton" />
+      <div className="h-36 rounded-2xl rutina-skeleton" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-24 rounded-xl rutina-skeleton" />
+        <div className="h-24 rounded-xl rutina-skeleton" />
+      </div>
+      <div className="h-64 rounded-2xl rutina-skeleton" />
+    </div>
+  )
+}
+
 /* Papan desain + lab CSS adalah alat internal (easter egg ketuk versi
    5×) — dimuat malas agar ±40KB kode dev tidak ikut bundel utama. */
 const DesignBoard = dynamic(
@@ -65,12 +100,15 @@ const ORDER: Screen[] = [
   'profil',
 ]
 
-/* Variants transisi berarah — masuk dari sisi sesuai arah pindah tab. */
+/* Variants transisi berarah — masuk dari sisi sesuai arah pindah tab.
+   Audit Tahap 3: jarak & durasi DIPERKECIL (72px/0,32dtk → 24px/0,24dtk)
+   karena perpindahan antarmodul adalah aktivitas SERING — transisi lebar
+   membuat aplikasi terasa lambat; cukup isyarat arah, bukan perayaan. */
 const slide: Variants = {
   enter: (dir: number) => ({
-    x: dir * 72,
+    x: dir * 24,
     opacity: 0,
-    scale: 0.985,
+    scale: 0.99,
   }),
   center: {
     x: 0,
@@ -78,9 +116,9 @@ const slide: Variants = {
     scale: 1,
   },
   exit: (dir: number) => ({
-    x: dir * -72,
+    x: dir * -24,
     opacity: 0,
-    scale: 0.985,
+    scale: 0.99,
   }),
 }
 
@@ -120,6 +158,21 @@ export function RutinaApp() {
     ) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
+  }, [])
+
+  /* Prefetch idle — enam layar malas dihangatkan di latar belakang
+     begitu app tenang, sehingga navigasi pertama ke modul mana pun
+     terasa instan tanpa membayar biaya ini di bundel awal. */
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      void loadBugar()
+      void loadJournal()
+      void loadKebiasaan()
+      void loadKeuangan()
+      void loadStats()
+      void loadProfile()
+    }, 1500)
+    return () => window.clearTimeout(t)
   }, [])
 
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
@@ -205,7 +258,7 @@ export function RutinaApp() {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
+                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
                   className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}
                 >
                   {screen === 'beranda' && <HomeScreen />}

@@ -3,6 +3,28 @@
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
 
+## [2.25] — Tahap 3+4 · Motion Terarah & Performa
+
+### Tahap 3 — Motion design
+- **Transisi layar distandarkan**: 72px/0,32dtk → **24px/0,24dtk** —
+  perpindahan antarmodul adalah aktivitas sering; transisi kini menjadi
+  isyarat arah yang cepat, bukan perayaan yang menghambat.
+- Lima micro-interaksi inti audit diverifikasi terpasang: checklist
+  (pressSnappy + tint matcha + XP pop), progress ring (spring + pop
+  100% via anime.js), bottom sheet (sheetSpring), grafik reveal sekali
+  viewport, milestone taman (usePlantGrowth per tanaman).
+
+### Tahap 4 — Performa & kualitas
+- **Code splitting**: hanya Beranda statis di chunk utama; enam layar
+  lain dimuat malas via next/dynamic + **skeleton Rutina** (rutina-
+  skeleton: kepala + hero + bento). Recharts & ribuan baris layar berat
+  (Keuangan ±3,1rb, Statistik ±2,1rb) keluar dari bundel awal.
+- **Prefetch idle**: keenam layar dihangatkan di latar belakang ±1,5
+  dtk setelah app siap — navigasi pertama tetap instan.
+- Audit a11y & reduced-motion: MotionConfig reducedMotion="user" +
+  LazyMotion strict; anime-kit menghormati prefers-reduced-motion;
+  focus-visible hadir di 20+ komponen; pintasan keyboard 1-6 desktop.
+
 ## [2.24] — Tahap 2 · Pemolesan Layar: 7 Modul dalam Warm Editorial Productivity
 
 Eksekusi audit Tahap 2 — tiap layar dipoles menurut karakter fungsinya,
