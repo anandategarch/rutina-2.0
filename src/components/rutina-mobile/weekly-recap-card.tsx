@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { firstVisit } from '@/lib/motion/first-visit'
 
 import { DayDetailSheet } from './day-detail-sheet'
 import { playfair } from './serif'
@@ -43,7 +44,6 @@ interface ChipSpec {
   key: string
   label: string
   icon: LucideIcon
-  iconClass: string
   value: string
 }
 
@@ -54,6 +54,9 @@ export function WeeklyRecapCard() {
   const workouts = useRutina((s) => s.workouts)
   const txs = useRutina((s) => s.txs)
   const setScreen = useRutina((s) => s.setScreen)
+
+  /* v2.27 audit motion: gerbang anti-replay entrance. */
+  const playEntrance = firstVisit('home-recap')
 
   /* Hari terpilih pada strip perjalanan (audit Tahap 2: menekan hari
      menampilkan jumlah misi, aktivitas, dan status target hari itu) dan
@@ -90,37 +93,31 @@ export function WeeklyRecapCard() {
       )
     : 0
 
-  /* Chip visual lintas modul — ikon + angka, bukan angka telanjang. */
+  /* Chip visual lintas modul — ikon + label + angka (v2.27: baris meta
+     inline, bukan angka telanjang / kisi kotak). */
   const chips: ChipSpec[] = [
     {
       key: 'streak',
       label: 'Streak',
       icon: Flame,
-      iconClass: 'bg-gold/25 text-espresso',
       value: `${recap.streak} hari`,
     },
     {
       key: 'latihan',
       label: 'Latihan',
       icon: Dumbbell,
-      iconClass: 'bg-[var(--module-bugar-soft)] text-[var(--module-bugar-strong)]',
       value: `${recap.workouts} sesi`,
     },
     {
       key: 'xp',
       label: 'XP misi',
       icon: Zap,
-      iconClass: 'bg-secondary text-success',
       value: `+${recap.xp}`,
     },
     {
       key: 'kas',
       label: 'Arus kas',
       icon: recap.netFlow >= 0 ? ArrowUpRight : ArrowDownRight,
-      iconClass:
-        recap.netFlow >= 0
-          ? 'bg-secondary text-success'
-          : 'bg-clay/25 text-content-danger',
       value:
         recap.netFlow >= 0
           ? formatIDRShort(recap.netFlow)
@@ -153,7 +150,7 @@ export function WeeklyRecapCard() {
   return (
     <section
       aria-label="Rekap pekan ini"
-      className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-5"
+      className="garden-surface rounded-xl border border-border-default p-4 shadow-soft sm:p-5"
     >
       {/* Kepala — judul + rentang + pintu ke Statistik (Statistik bukan
           tab sejak navigasi plus-tengah v2.14; rekap menjadi pintunya). */}
@@ -222,7 +219,7 @@ export function WeeklyRecapCard() {
                     className="interactive flex cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <m.div
-                      initial={{ scale: 0, opacity: 0 }}
+                      initial={playEntrance ? { scale: 0, opacity: 0 } : false}
                       whileInView={{ scale: 1, opacity: 1 }}
                       viewport={{ once: true, margin: '-30px' }}
                       transition={{
@@ -289,7 +286,7 @@ export function WeeklyRecapCard() {
             }}
             className="overflow-hidden"
           >
-            <div className="mt-3.5 rounded-[14px] border border-border bg-surface-primary/85 p-3.5">
+            <div className="mt-3.5 rounded-lg border border-border bg-surface-primary/85 p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-note font-bold tracking-tight text-content-primary">
                   {longDateLabel(sel.iso)}
@@ -355,7 +352,7 @@ export function WeeklyRecapCard() {
       <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="flex items-baseline gap-1.5">
           <span className="text-kpi font-semibold leading-none tracking-tight text-content-primary">
-            <Counter to={recap.missionsDone} />
+            <Counter to={recap.missionsDone} immediate={!playEntrance} />
           </span>
           <span className="text-note font-semibold text-content-secondary">
             misi selesai
@@ -374,36 +371,25 @@ export function WeeklyRecapCard() {
         </span>
       </div>
 
-      {/* Chip visual lintas modul. */}
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {chips.map((c, i) => (
-          <m.div
+      {/* Chip visual lintas modul — baris meta inline tanpa kotak (v2.27
+          Daybook: informasi pendamping dibaca sekali sapuan; tidak lagi
+          kisi 4 kotak seragam yang menyaingi headline & strip perjalanan). */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {chips.map((c) => (
+          <span
             key={c.key}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-30px' }}
-            transition={{
-              duration: motionTokens.duration.enter,
-              delay: i * 0.04,
-              ease: motionTokens.easing.standard,
-            }}
-            className="flex items-center gap-2.5 rounded-[14px] border border-border bg-surface-primary/80 p-2.5"
+            className="flex items-center gap-1.5 text-meta text-content-muted"
           >
-            <span
+            <c.icon
               aria-hidden="true"
-              className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-full ' + c.iconClass}
-            >
-              <c.icon className="h-4 w-4" strokeWidth={2.2} />
+              className="h-3.5 w-3.5 shrink-0 text-content-secondary"
+              strokeWidth={2.2}
+            />
+            {c.label}
+            <span className="font-bold tabular-nums text-content-primary">
+              {c.value}
             </span>
-            <span className="min-w-0">
-              <span className="block truncate text-note font-bold tabular-nums leading-tight text-content-primary">
-                {c.value}
-              </span>
-              <span className="mt-0.5 block text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
-                {c.label}
-              </span>
-            </span>
-          </m.div>
+          </span>
         ))}
       </div>
 

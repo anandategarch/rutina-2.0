@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { firstVisit } from '@/lib/motion/first-visit'
 import { useCatMeta } from './finance/use-cat-meta'
 import { allowanceInfo, formatIDR, formatIDRShort } from './finance/utils'
 import { RutinaCard } from './rutina-card'
@@ -29,6 +30,9 @@ export function HomeFinanceCard() {
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
   const setScreen = useRutina((s) => s.setScreen)
+
+  /* v2.27 audit motion: gerbang anti-replay entrance. */
+  const playEntrance = firstVisit('home-finance')
 
   const today = todayISO()
 
@@ -68,7 +72,7 @@ export function HomeFinanceCard() {
 
   return (
     <m.section
-      initial={{ opacity: 0, y: 18 }}
+      initial={playEntrance ? { opacity: 0, y: 18 } : false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
@@ -81,8 +85,12 @@ export function HomeFinanceCard() {
       />
       <RutinaCard
         density="comfortable"
-        radius="2xl"
-        className="mt-4 shadow-soft"
+        radius="xl"
+        /* v2.27 Daybook: permukaan bertint domain finance (antique
+           bronze) — band bawah Beranda kini bertingkat: flat insight,
+           dashed bonus, tint jurnal, garden rekap, tint finance —
+           bukan lagi deretan kartu parchment seragam. */
+        className="mt-4 border-module-finance/35 bg-module-finance-soft/65 shadow-soft"
       >
         {empty ? (
           <div className="flex flex-col items-center gap-1.5 py-6 text-center">
@@ -116,7 +124,7 @@ export function HomeFinanceCard() {
             {/* Tiga metrik harian */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div className="min-w-0">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.06em] text-content-muted">
+                <p className="flex items-center gap-1 text-meta font-semibold text-content-muted">
                   <TrendingDown
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-content-danger"
@@ -128,7 +136,7 @@ export function HomeFinanceCard() {
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.06em] text-content-muted">
+                <p className="flex items-center gap-1 text-meta font-semibold text-content-muted">
                   <TrendingUp
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-success"
@@ -140,7 +148,7 @@ export function HomeFinanceCard() {
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.06em] text-content-muted">
+                <p className="flex items-center gap-1 text-meta font-semibold text-content-muted">
                   <Scale
                     aria-hidden="true"
                     className="h-3 w-3 shrink-0 text-content-secondary"

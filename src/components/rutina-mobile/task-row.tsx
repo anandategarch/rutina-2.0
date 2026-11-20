@@ -506,7 +506,7 @@ export function TaskRow({
 
               {/* Riwayat 14 hari nyata */}
               <div className="mt-3 flex items-center gap-2">
-                <span className="shrink-0 text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                <span className="shrink-0 text-meta font-semibold text-content-muted">
                   14 hari
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -539,7 +539,7 @@ export function TaskRow({
                     <Zap className="h-4 w-4" strokeWidth={2.4} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
+                    <span className="block text-meta font-semibold text-content-muted">
                       Versi 2 menit
                     </span>
                     <span className="mt-0.5 block truncate text-note font-semibold text-content-primary">

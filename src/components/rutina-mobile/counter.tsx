@@ -24,12 +24,17 @@ export function Counter({
   decimals = 0,
   /** Tunda (detik) setelah terlihat — untuk efek berantai. */
   delay = 0,
+  /** Lompat langsung ke nilai akhir tanpa menghitung naik — dipakai
+   *  bersama gerbang firstVisit agar kunjungan ulang layar tidak
+   *  menghitung ulang dari nol (audit motion: anti-replay). */
+  immediate = false,
 }: {
   to: number
   stiffness?: number
   damping?: number
   decimals?: number
   delay?: number
+  immediate?: boolean
 }) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true, margin: '-20px' })
@@ -54,9 +59,13 @@ export function Counter({
 
   useEffect(() => {
     if (!inView) return
+    if (immediate) {
+      spring.jump(to)
+      return
+    }
     const t = setTimeout(() => spring.set(to), delay * 1000)
     return () => clearTimeout(t)
-  }, [spring, to, inView, delay])
+  }, [spring, to, inView, delay, immediate])
 
   return (
     <m.span ref={ref} className="tabular-nums">

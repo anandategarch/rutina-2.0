@@ -54,6 +54,7 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
+import { firstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
 import { useAnimePop } from '../anime-kit'
 import {
@@ -469,6 +470,11 @@ export default function HomeScreen() {
     () => 'Selamat pagi.',
   )
 
+  /* v2.27 audit motion: gerbang anti-replay entrance — kunjungan pertama
+     diantar animasi penuh, kunjungan ulang (remount antar-tab) tampil
+     instan (direktif: jangan animasikan seluruh layout tiap ganti tab). */
+  const playEntrance = firstVisit('home-daybook')
+
   /* Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali. */
   useEffect(() => {
     if (
@@ -546,16 +552,14 @@ export default function HomeScreen() {
         </m.header>
       </div>
 
-      {/* 0 — Sorotan Hari Ini: SATU hal paling relevan untuk hari ini
-          (streak terancam, anggaran hampir lewat, tubuh menunggu
-          bergerak, tuangan hampir tercapai, bonus, rayakan hari
-          sempurna) — selalu di posisi pertama, di atas segalanya. */}
-      <DailyHighlightCard />
-
-      {/* 1 — Komposisi bento hero: progres utama (tile lebar) + insight
-          pendamping (tile sempit) pada xl; ponsel tetap satu kolom. */}
+      {/* 1 — Komposisi bento hero: progres utama (tile lebar, garden-
+          surface, radius token hero) + insight pendamping FLAT editorial
+          tanpa bingkai (v2.27 Daybook: bukan semua bagian adalah kartu).
+          Sorotan Hari Ini dipindah ke kolom samping agenda sebagai panel
+          sekunder — hero progres tak lagi berebut dengan kartu sorotan
+          di posisi teratas. Ponsel tetap satu kolom. */}
       <m.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: motionTokens.duration.enter,
@@ -566,7 +570,7 @@ export default function HomeScreen() {
         <RutinaBentoGrid>
           <RutinaBentoItem span="hero">
             <m.section
-              initial={{ opacity: 0, y: 22 }}
+              initial={playEntrance ? { opacity: 0, y: 22 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: 0.55,
@@ -586,12 +590,12 @@ export default function HomeScreen() {
               >
                 <div className="sm:mx-auto sm:max-w-[600px]">
                   <div className="flex items-center gap-5">
-                    <HomeProgressRing pct={pct} />
+                    <HomeProgressRing pct={pct} entrance={playEntrance} />
                     <div className="min-w-0 flex-1">
                       <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                         Progres hari ini
                       </p>
-                      <p className="mt-1 text-lead font-bold leading-tight text-content-primary">
+                      <p className="mt-1 text-lead font-bold leading-tight tabular-nums text-content-primary">
                         {doneToday} dari {todayHabits.length} misi
                       </p>
                       <p
@@ -610,49 +614,59 @@ export default function HomeScreen() {
                               ? `${missionRemaining} misi tersisa`
                               : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-meta font-bold text-espresso">
-                          <Flame className="h-3.5 w-3.5" strokeWidth={2.2} />
-                          Streak {streak} hari
-                        </span>
-                        <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-meta font-semibold text-success">
-                          <Zap className="h-3.5 w-3.5" strokeWidth={2.2} />
-                          Level {level}
-                        </span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Mini-bar XP menuju target Level 8 */}
-                  <div className="mt-5">
-                    <div className="flex items-center justify-between text-eyebrow font-semibold text-content-muted">
-                      <span className="flex items-center gap-1 tabular-nums">
-                        <Zap
-                          aria-hidden="true"
-                          className="h-3 w-3 text-success"
-                          strokeWidth={2.4}
-                        />
-                        <Counter to={xp} /> XP
-                      </span>
-                      <span className="tabular-nums">
-                        {xpRemaining > 0 ? `${xpRemaining} XP lagi` : 'MAX'}
-                      </span>
-                    </div>
-                    <div
-                      className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken"
-                      role="progressbar"
-                      aria-label={`Progres XP menuju ${XP_TARGET}`}
-                      aria-valuenow={xp}
-                      aria-valuemin={0}
-                      aria-valuemax={XP_TARGET}
-                    >
-                      <m.div
-                        className="h-full origin-left rounded-full bg-secondary"
-                        style={{ width: '100%' }}
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: xpProgress }}
-                        transition={barFill}
-                      />
+                  {/* v2.27 Daybook: strip pendamping di bawah hairline —
+                      chip streak/level + mini-bar XP tidak lagi memadati
+                      ruang utama cincin (pola sub-metri studio Bugar:
+                      informasi tetap lengkap, tenang, tak berebut). */}
+                  <div className="mt-5 border-t border-border-default pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
+                          <Flame
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 text-warning"
+                            strokeWidth={2.2}
+                          />
+                          <span className="tabular-nums">
+                            Streak {streak} hari
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
+                          <Zap
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 text-success"
+                            strokeWidth={2.2}
+                          />
+                          <span className="tabular-nums">Level {level}</span>
+                        </span>
+                      </div>
+                      <div className="flex min-w-[200px] max-w-[260px] flex-1 items-center gap-2.5 sm:justify-end">
+                        <span className="shrink-0 text-meta font-bold tabular-nums text-content-primary">
+                          <Counter to={xp} immediate={!playEntrance} /> XP
+                        </span>
+                        <div
+                          className="h-1.5 min-w-14 flex-1 overflow-hidden rounded-full bg-surface-sunken"
+                          role="progressbar"
+                          aria-label={`Progres XP menuju ${XP_TARGET}`}
+                          aria-valuenow={xp}
+                          aria-valuemin={0}
+                          aria-valuemax={XP_TARGET}
+                        >
+                          <m.div
+                            className="h-full origin-left rounded-full bg-secondary"
+                            style={{ width: '100%' }}
+                            initial={playEntrance ? { scaleX: 0 } : false}
+                            animate={{ scaleX: xpProgress }}
+                            transition={barFill}
+                          />
+                        </div>
+                        <span className="shrink-0 text-meta font-medium tabular-nums text-content-muted">
+                          {xpRemaining > 0 ? `${xpRemaining} lagi` : 'MAX'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -660,34 +674,27 @@ export default function HomeScreen() {
             </m.section>
           </RutinaBentoItem>
 
-          {/* Insight hari ini — tile pendamping hero (audit visualisasi
-              v2.12: tile streak & misi-pekan dihapus — keduanya sudah
-              terbaca di chip hero dan Rekap Pekan; saldo bersih
-              dipertahankan karena informasinya
-              berbeda dan tidak digambarkan grafik lain). */}
+          {/* Insight hari ini — tile pendamping hero, FLAT editorial tanpa
+              bingkai (v2.27 Daybook: direktif “bukan semua bagian adalah
+              kartu”; hierarki lewat permukaan — hero terangkat, insight
+              tenang di kanvas). Saldo bersih dipertahankan karena
+              informasinya tidak digambarkan grafik lain. */}
           <RutinaBentoItem span="feature">
-            <section aria-label="Insight hari ini" className="h-full">
-              <RutinaCard
-                variant="default"
-                density="comfortable"
-                radius="2xl"
-                className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
-              >
-                <RutinaSectionHeader title="Insight hari ini" />
-                <div className="mt-4">
-                  <RutinaMetric
-                    label="Saldo bersih"
-                    value={
-                      netSaldo < 0
-                        ? `−${formatIDRShort(-netSaldo)}`
-                        : formatIDRShort(netSaldo)
-                    }
-                    icon={Wallet}
-                    iconClassName="bg-gold/25 text-warning"
-                    caption="seluruh transaksi — transfer antar-dompet dikecualikan"
-                  />
-                </div>
-              </RutinaCard>
+            <section aria-label="Insight hari ini" className="h-full pt-1">
+              <RutinaSectionHeader title="Insight hari ini" />
+              <div className="mt-4">
+                <RutinaMetric
+                  label="Saldo bersih"
+                  value={
+                    netSaldo < 0
+                      ? `−${formatIDRShort(-netSaldo)}`
+                      : formatIDRShort(netSaldo)
+                  }
+                  icon={Wallet}
+                  iconClassName="bg-gold/25 text-warning"
+                  caption="seluruh transaksi — transfer antar-dompet dikecualikan"
+                />
+              </div>
             </section>
           </RutinaBentoItem>
         </RutinaBentoGrid>
@@ -702,7 +709,7 @@ export default function HomeScreen() {
           kosong → agenda melebar penuh agar tak ada kolom mati
           (audit responsif v2.13). */}
       <m.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: motionTokens.duration.enter,
@@ -730,7 +737,7 @@ export default function HomeScreen() {
               <div className="paper-surface mt-4 rounded-2xl border-y border-e p-4 shadow-soft sm:p-6">
                 {/* Pita konteks tanggal lampau / masa depan */}
                 {!viewingToday && (
-                  <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
+                  <div className="mb-3 flex items-center gap-2.5 rounded-lg border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
                     <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
                     <p className="min-w-0 flex-1 text-meta font-medium text-content-muted">
                       {viewingPast
@@ -780,7 +787,7 @@ export default function HomeScreen() {
                       {pendingGroups.map((g, gi) => (
                         <m.div
                           key={g.key}
-                          initial={{ opacity: 0, y: 14 }}
+                          initial={playEntrance ? { opacity: 0, y: 14 } : false}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{
                             duration: 0.4,
@@ -839,7 +846,7 @@ export default function HomeScreen() {
                           onClick={() => setShowDone((v) => !v)}
                           aria-expanded={showDone}
                           aria-controls="agenda-done-panel"
-                          className="flex w-full cursor-pointer items-center gap-2.5 rounded-2xl border border-primary/20 bg-secondary/50 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-primary/20 bg-secondary/50 px-3.5 py-2.5 text-left transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                             <Check className="h-4 w-4" strokeWidth={2.6} />
@@ -916,9 +923,9 @@ export default function HomeScreen() {
                       onClick={() => setShowArchive((v) => !v)}
                       aria-expanded={showArchive}
                       whileTap={{ scale: 0.96, transition: pressSnappy }}
-                      className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-border bg-surface-primary px-3.5 py-2.5 text-left shadow-soft transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
-                      <span className="flex items-center gap-2 text-meta font-bold text-content-secondary">
+                      <span className="flex items-center gap-2 text-meta font-bold tabular-nums text-content-secondary">
                         <Archive className="h-3.5 w-3.5" />
                         Arsip · {archivedHabits.length} kebiasaan
                       </span>
@@ -941,7 +948,7 @@ export default function HomeScreen() {
                         {archivedHabits.map((h) => (
                           <div
                             key={h.id}
-                            className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
+                            className="flex items-center gap-3 rounded-lg border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
                           >
                             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted">
                               <Archive className="h-4 w-4" />
@@ -992,16 +999,22 @@ export default function HomeScreen() {
             span="feature"
             className="mt-6 @[52rem]:mt-0 [&>section+section]:mt-6"
           >
+            {/* Sorotan Hari Ini (v2.27): dipindah ke kolom samping agenda —
+               panel sekunder SETELAH hero progres & daftar misi, sesuai
+               komposisi Daybook (daily insight = panel kecil, bukan hero
+               kedua yang bersaing di posisi teratas). */}
+            <DailyHighlightCard />
+
             {/* Nudge "Jangan Bolong Dua Kali" — kartu hangat (bukan merah):
                kebiasaan terlewat kemarin, selesaikan hari ini. */}
             {missedList.length > 0 && (
               <m.section
-                initial={{ opacity: 0, y: 16 }}
+                initial={playEntrance ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
                 aria-label="Pengingat jangan bolong dua kali"
               >
-                <div className="rounded-xl border border-gold/45 bg-gold/15 p-4">
+                <div className="rounded-lg border border-gold/45 bg-gold/15 p-4">
                   <div className="flex items-start gap-3">
                     <span
                       aria-hidden="true"
@@ -1023,7 +1036,7 @@ export default function HomeScreen() {
                     {missedList.map((h) => (
                       <div
                         key={h.id}
-                        className="flex items-center gap-3 rounded-xl border border-gold/30 bg-surface-primary/70 px-3 py-1.5"
+                        className="flex items-center gap-3 rounded-lg border border-gold/30 bg-surface-primary/70 px-3 py-1.5"
                       >
                         <span className="min-w-0 flex-1 truncate text-note font-semibold text-content-primary">
                           {h.title}
@@ -1048,7 +1061,7 @@ export default function HomeScreen() {
             {/* Saran Coach — Goldilocks: naikkan atau perkecil, dari hasil pekan */}
             {coachTips.length > 0 && (
               <m.section
-                initial={{ opacity: 0, y: 16 }}
+                initial={playEntrance ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
                   duration: 0.5,
@@ -1104,7 +1117,7 @@ export default function HomeScreen() {
           langsung setelah agenda agar terlihat tanpa menggulir jauh,
           namun tetap satu baris ringkas (review Beranda v2.13). */}
       <m.section
-        initial={{ opacity: 0, y: 16 }}
+        initial={playEntrance ? { opacity: 0, y: 16 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: motionTokens.easing.standard }}
         aria-label="Bonus harian"
@@ -1117,7 +1130,7 @@ export default function HomeScreen() {
             toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
           }}
           className={
-            'flex w-full cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+            'flex w-full cursor-pointer items-center gap-3.5 rounded-lg border p-3.5 text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
             (bonusClaimed
               ? 'border-primary/15 bg-secondary/60'
               : 'border-dashed border-primary/45 bg-surface-primary hover:-translate-y-0.5 hover:shadow-leaf')
@@ -1161,7 +1174,7 @@ export default function HomeScreen() {
             </span>
           </span>
           {!bonusClaimed && (
-            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-eyebrow font-semibold text-success">
+            <span className="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-eyebrow font-semibold tabular-nums text-success">
               +{XP_BONUS} XP
             </span>
           )}
@@ -1192,15 +1205,18 @@ export default function HomeScreen() {
           cocok menjadi pintu masuk Jurnal"); kisi folder lengkap ada
           di layar Jurnal. */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playEntrance ? { opacity: 0, y: 14 } : false}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-20px' }}
         transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
         aria-label="Jurnal dan catatan"
-        className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
+        /* v2.27 Daybook: pintu Jurnal bertint domain (dusty mauve) —
+           band bawah halaman kini punya hierarki permukaan: flat insight,
+           dashed bonus, tint jurnal, garden rekap, tint finance. */
+        className="rounded-lg border border-module-journal/30 bg-module-journal-soft/55 p-4"
       >
         <div className="flex items-center gap-3.5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-primary/90 text-module-journal-strong">
             <BookOpen className="h-5 w-5" strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1">
@@ -1272,7 +1288,7 @@ export default function HomeScreen() {
           (v2.14): tombol "Ganti" menjalankan cycleQuote; kutipan berputar
           dengan transisi lembut; simpan menyimpan kutipan yang tampil. */}
       <m.section
-        initial={{ opacity: 0, y: 18 }}
+        initial={playEntrance ? { opacity: 0, y: 18 } : false}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.55, ease: motionTokens.easing.standard }}

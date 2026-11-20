@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 
 import { playfair } from './serif'
 import { formatIDR } from './finance/utils'
+import { firstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { todayISO, useRutina, XP_BONUS } from './store'
@@ -83,6 +84,9 @@ export function DailyHighlightCard() {
   const workouts = useRutina((s) => s.workouts)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
 
+  /* v2.27 Daybook: kunjungan ulang tidak mengulang entrance Sorotan. */
+  const playEntrance = firstVisit('home-sorotan')
+
   const today = todayISO()
   const input: HighlightInput = {
     today,
@@ -146,7 +150,7 @@ export function DailyHighlightCard() {
 
   return (
     <m.section
-      initial={{ opacity: 0, y: 14 }}
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: motionTokens.duration.enter,
@@ -154,9 +158,13 @@ export function DailyHighlightCard() {
       }}
       aria-label="Sorotan hari ini"
       /* Dua tingkat (audit Tahap 2): normal = kartu tenang hairline;
-         mendesak = tepi ikut bernuansa modul (35%) + suar bernapas —
-         pengguna langsung tahu mana yang benar-benar menunggu. */
-      className="rounded-[20px] border bg-surface-primary p-4 shadow-soft sm:p-5"
+         mendesak = tepi ikut bernuansa modul (35%).
+         v2.27 Daybook: kartu didudukkan — radius standar 16, tanpa
+         bayangan, judul lebih kecil, CTA pil ringkas (bukan lebar penuh)
+         agar TIDAK bersaing dengan hero progres; suar mendesak kini
+         halo STATIS (animate-glow dihapus — direktif melarang animasi
+         berulang dekoratif). */
+      className="rounded-lg border border-border bg-surface-primary p-4"
       style={
         urgent
           ? { borderColor: `color-mix(in oklab, ${accent.icon} 35%, transparent)` }
@@ -165,13 +173,14 @@ export function DailyHighlightCard() {
     >
       <div className="flex items-start gap-3.5">
         {/* Suar ikon — lingkaran lembut bernuansa modul; versi mendesak
-            bernapas pelan (halo) sebagai penanda "butuh perhatian". */}
+            memakai halo lembut STATIS sebagai penanda "butuh perhatian"
+            (tanpa denyut berulang). */}
         <span className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center">
           {urgent && (
             <span
               aria-hidden="true"
-              className="absolute -inset-1.5 rounded-full blur-md motion-safe:animate-glow"
-              style={{ backgroundColor: accent.icon, opacity: 0.35 }}
+              className="absolute -inset-1.5 rounded-full blur-md"
+              style={{ backgroundColor: accent.icon, opacity: 0.3 }}
             />
           )}
           <span
@@ -188,7 +197,7 @@ export function DailyHighlightCard() {
             Sorotan Hari Ini
           </p>
           <h2
-            className={`${playfair.className} mt-1 text-balance text-lg font-semibold leading-snug tracking-tight text-content-primary sm:text-xl`}
+            className={`${playfair.className} mt-1 text-balance text-base font-semibold leading-snug tracking-tight text-content-primary`}
           >
             {hl.title}
           </h2>
@@ -289,15 +298,20 @@ export function DailyHighlightCard() {
         </div>
       </div>
 
-      <m.button
-        type="button"
-        onClick={runCta}
-        whileTap={{ scale: 0.98 }}
-        transition={motionTokens.spring.snappy}
-        className="mt-4 flex h-11 w-full cursor-pointer items-center justify-center rounded-[14px] bg-primary text-note font-bold text-primary-foreground shadow-soft transition-colors duration-200 hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        {ctaLabel[hl.cta]}
-      </m.button>
+      {/* CTA pil ringkas — menunggu di akhir kartu tanpa memenuhi lebar
+          layar (v2.27 Daybook: Sorotan adalah panel sekunder, bukan
+          hero kedua; CTA besar penuh diserahkan ke ruang kerjanya). */}
+      <div className="mt-3.5 flex">
+        <m.button
+          type="button"
+          onClick={runCta}
+          whileTap={{ scale: 0.96 }}
+          transition={motionTokens.spring.snappy}
+          className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-colors duration-200 hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          {ctaLabel[hl.cta]}
+        </m.button>
+      </div>
     </m.section>
   )
 }

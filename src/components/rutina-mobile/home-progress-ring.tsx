@@ -4,6 +4,7 @@ import * as m from 'motion/react-m'
 
 import { Counter } from './counter'
 import { useAnimePop } from './anime-kit'
+import { firstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 /* Geometri cincin: viewBox 110, radius 47, tebal goresan 9. */
@@ -18,14 +19,24 @@ const RING_CIRC = 2 * Math.PI * RING_R
  * dari state completions di pemanggil) membuat busur "tumbuh" secara
  * reaktif — tanpa state lokal yang bisa basi.
  *
- * v2.6 "Gerak & Permukaan":
- * • cincin dekoratif bergaris putus berputar sangat lambat di balik
- *   busur utama (animate-spin-slow) — hero terasa hidup tanpa ramai;
- * • mencapai 100% memicu ledakan elastis anime.js pada seluruh cincin.
+ * v2.27 (audit motion): cincin dekoratif garis putus kini DIAM (spin-slow
+ * dihapus — dekoratif tanpa alasan, direktif melarang infinite tanpa
+ * makna); menggambar ulang busur saat kunjungan pertama digerbang
+ * firstVisit sehingga pindah-pindah tab tidak mengulang entrance.
+ * Mencapai 100% tetap memicu ledakan elastis anime.js pada seluruh cincin.
  */
-export function HomeProgressRing({ pct }: { pct: number }) {
+export function HomeProgressRing({
+  pct,
+  entrance,
+}: {
+  pct: number
+  /** false = tampil instan tanpa menggambar busur (kunjungan ulang).
+   *  Default: gerbang firstVisit internal. */
+  entrance?: boolean
+}) {
   const clamped = Math.min(Math.max(pct, 0), 100)
   const complete = clamped >= 100
+  const playEntrance = entrance ?? firstVisit('home-ring')
 
   /* Pop perayaan saat cincin BARU saja penuh (bukan saat tetap 100). */
   const ringRef = useAnimePop<SVGSVGElement>(null, complete, {
@@ -40,11 +51,12 @@ export function HomeProgressRing({ pct }: { pct: number }) {
       role="img"
       aria-label={`Progres misi hari ini ${clamped} persen`}
     >
-      {/* Cincin dekoratif — garis putus tipis berputar sunyi di balik busur */}
+      {/* Cincin dekoratif — garis putus tipis statis di balik busur
+          (v2.27: berputar dihapus; diam tenang, hidup lewat busur reaktif) */}
       <svg
         aria-hidden="true"
         viewBox="0 0 110 110"
-        className="absolute inset-0 h-full w-full motion-safe:animate-spin-slow"
+        className="absolute inset-0 h-full w-full"
       >
         <circle
           cx="55"
@@ -83,7 +95,7 @@ export function HomeProgressRing({ pct }: { pct: number }) {
           strokeWidth="9"
           strokeLinecap="round"
           strokeDasharray={RING_CIRC}
-          initial={{ strokeDashoffset: RING_CIRC }}
+          initial={playEntrance ? { strokeDashoffset: RING_CIRC } : false}
           animate={{ strokeDashoffset: RING_CIRC * (1 - clamped / 100) }}
           transition={motionTokens.spring.smooth}
         />
@@ -92,7 +104,7 @@ export function HomeProgressRing({ pct }: { pct: number }) {
       <div className="absolute inset-0 flex items-center justify-center">
         <p className="flex items-baseline text-content-primary">
           <span className="text-kpi font-bold leading-none tracking-tight">
-            <Counter to={clamped} />
+            <Counter to={clamped} immediate={!playEntrance} />
           </span>
           <span className="ml-0.5 text-note font-bold text-content-muted">
             %
