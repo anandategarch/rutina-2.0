@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
-import { Feather, PenLine, Pin, Search } from 'lucide-react'
+import { ChevronDown, Feather, PenLine, Pin, Search } from 'lucide-react'
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { pressSnappy } from '@/lib/motion/transitions'
 import { journalCard, journalList } from '@/lib/motion/variants'
@@ -15,6 +16,7 @@ import { MOOD_DOT, isDraftNote, noteFirstLine, useJournalUi } from '../journal-u
 import {
   FOLDERS,
   FOLDER_SHORT,
+  addDaysISO,
   folderCount,
   longDateLabel,
   noteDateISO,
@@ -68,6 +70,10 @@ function WritingActivityCard({
 }) {
   const today = todayISO()
   const [viewYm, setViewYm] = useState(today.slice(0, 7))
+  /* v2.37 P1 (audit UX density): kartu dilipat secara default — pemicu
+     selalu menampilkan ringkasan satu baris. Dipaksa tetap terbuka selama
+     filter tanggal aktif agar chip penghapusnya tidak tersembunyi. */
+  const [activityOpen, setActivityOpen] = useState(false)
 
   /* Jumlah catatan per tanggal ISO — hanya tanggal yang dapat dipastikan. */
   const byDate = useMemo(() => {
@@ -129,163 +135,219 @@ function WritingActivityCard({
     return [...m.entries()].sort((a, b) => b[1] - a[1])
   }, [notes, noteMoods])
 
+  /* Streak menulis — hari berturut-turut yang punya catatan, berakhir
+     hari ini atau kemarin (hari berjalan belum memutus streak). Bahan
+     ringkasan satu baris di pemicu lipat (v2.37 P1). */
+  const streak = useMemo(() => {
+    let cursor = byDate.has(today) ? today : addDaysISO(today, -1)
+    if (!byDate.has(cursor)) return 0
+    let n = 0
+    while (byDate.has(cursor)) {
+      n += 1
+      cursor = addDaysISO(cursor, -1)
+    }
+    return n
+  }, [byDate, today])
+
+  /* Tanggal terakhir menulis — pengganti streak bila masih pendek. */
+  const lastWrite = useMemo(() => {
+    let last: string | null = null
+    for (const iso of byDate.keys()) if (last === null || iso > last) last = iso
+    return last
+  }, [byDate])
+
+  const summaryLine = [
+    `${totalNotes} catatan`,
+    streak >= 2
+      ? `streak menulis ${streak} hari`
+      : lastWrite !== null
+        ? `terakhir menulis ${noteDateLabel({ id: 'x', date: lastWrite } as Note, today)}`
+        : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <section
       aria-label="Aktivitas menulis"
       className="rounded-lg border border-border bg-surface-primary p-4"
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-          Aktivitas Menulis
-        </p>
-        <div className="flex items-center gap-1">
+      {/* Dilipat secara default (audit UX density v2.37, P1): pemicu
+          selalu menampilkan judul + ringkasan satu baris; kalender,
+          distribusi folder, dan mood dibuka hanya bila dibutuhkan.
+          Dipaksa tetap terbuka selama filter tanggal aktif supaya chip
+          penghapus filter tidak tersembunyi. */}
+      <Collapsible open={activityOpen || dayFilter !== null} onOpenChange={setActivityOpen}>
+        <CollapsibleTrigger asChild>
           <button
             type="button"
-            aria-label="Bulan sebelumnya"
-            onClick={() => {
-              const [y, mo] = viewYm.split('-').map(Number)
-              const prev = mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`
-              setViewYm(prev)
-            }}
-            className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="interactive group flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-              <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <span className="min-w-[110px] text-center text-chart-label font-semibold tabular-nums text-content-secondary">
-            {monthLabel}
-          </span>
-          <button
-            type="button"
-            aria-label="Bulan berikutnya"
-            disabled={!canNext}
-            onClick={() => {
-              const [y, mo] = viewYm.split('-').map(Number)
-              const next = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`
-              setViewYm(next)
-            }}
-            className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
-              <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Kalender mini — intensitas = jumlah catatan; ketuk untuk filter. */}
-      <div
-        className="mt-3 grid grid-cols-7 gap-1.5"
-        role="group"
-        aria-label={`Kalender aktivitas menulis ${monthLabel}: ${monthNotes} catatan pada ${monthCount} hari`}
-      >
-        {cells.map((iso, i) => {
-          if (iso == null) return <span key={`pad-${i}`} aria-hidden="true" />
-          const count = byDate.get(iso) ?? 0
-          const level = writeLevelOf(count)
-          const isFuture = iso > today
-          const isSel = dayFilter === iso
-          const d = Number(iso.slice(8))
-          return (
-            <button
-              key={iso}
-              type="button"
-              aria-pressed={isSel}
-              aria-label={
-                isFuture
-                  ? `${d} — belum terjadi`
-                  : `${d} ${MONTHS_ID_FULL[Number(iso.slice(5, 7)) - 1]} — ${
-                      count === 0 ? 'tidak ada catatan' : `${count} catatan`
-                    }`
-              }
-              onClick={() => onPickDay(isSel ? null : iso)}
-              className={
-                'interactive h-8 w-full cursor-pointer rounded-md text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
-                (isSel
-                  ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
-                  : '') +
-                (isFuture
-                  ? 'text-content-muted/50'
-                  : count > 0
-                    ? 'text-content-primary'
-                    : 'text-content-muted') +
-                (count === 1 ? ' ' : ' tabular-nums')
-              }
-              style={{
-                backgroundColor: isFuture ? undefined : WRITE_LEVELS[level],
-              }}
-            >
-              {d}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Distribusi folder — segmented bar kecil + label jumlah. */}
-      {totalNotes > 0 && (
-        <div className="mt-3.5">
-          <div
-            className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
-            role="img"
-            aria-label={`Distribusi folder: ${folderSegs
-              .map((f) => `${f.label} ${f.count}`)
-              .join(', ')}`}
-          >
-            {folderSegs.map(
-              (f) =>
-                f.count > 0 && (
-                  <span
-                    key={f.key}
-                    className={f.seg}
-                    style={{ width: `${(f.count / totalNotes) * 100}%` }}
-                  />
-                ),
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
-            {folderSegs.map(
-              (f) =>
-                f.count > 0 && (
-                  <span
-                    key={f.key}
-                    className="flex items-center gap-1 text-chart-label font-medium text-content-muted"
-                  >
-                    <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${f.seg}`} />
-                    {f.label.split(' ')[0]} {f.count}
-                  </span>
-                ),
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Ringkasan mood — ringan, netral, hanya yang tercatat. */}
-      {moodCounts.length > 0 && (
-        <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
-          {moodCounts.map(([mood, n]) => (
-            <span key={mood} className="flex items-center gap-1">
-              <span
-                aria-hidden="true"
-                className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
-              />
-              {mood} {n}×
+            <span className="min-w-0">
+              <span className="block text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                Aktivitas Menulis
+              </span>
+              <span className="mt-0.5 block truncate text-meta font-medium text-content-muted">
+                {summaryLine}
+              </span>
             </span>
-          ))}
-        </p>
-      )}
+            <ChevronDown
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-3">
+          {/* Navigasi bulan — ikut terlipat bersama kalendernya. */}
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              aria-label="Bulan sebelumnya"
+              onClick={() => {
+                const [y, mo] = viewYm.split('-').map(Number)
+                const prev = mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`
+                setViewYm(prev)
+              }}
+              className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <span className="min-w-[110px] text-center text-chart-label font-semibold tabular-nums text-content-secondary">
+              {monthLabel}
+            </span>
+            <button
+              type="button"
+              aria-label="Bulan berikutnya"
+              disabled={!canNext}
+              onClick={() => {
+                const [y, mo] = viewYm.split('-').map(Number)
+                const next = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`
+                setViewYm(next)
+              }}
+              className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
 
-      {dayFilter && (
-        <button
-          type="button"
-          onClick={() => onPickDay(null)}
-          className="interactive mt-3 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          Filter aktif: {noteDateLabel({ id: 'x', date: dayFilter } as Note, today)}
-          <span aria-hidden="true">✕</span>
-          <span className="sr-only">Hapus filter tanggal</span>
-        </button>
-      )}
+          {/* Kalender mini — intensitas = jumlah catatan; ketuk untuk filter. */}
+          <div
+            className="mt-3 grid grid-cols-7 gap-1.5"
+            role="group"
+            aria-label={`Kalender aktivitas menulis ${monthLabel}: ${monthNotes} catatan pada ${monthCount} hari`}
+          >
+            {cells.map((iso, i) => {
+              if (iso == null) return <span key={`pad-${i}`} aria-hidden="true" />
+              const count = byDate.get(iso) ?? 0
+              const level = writeLevelOf(count)
+              const isFuture = iso > today
+              const isSel = dayFilter === iso
+              const d = Number(iso.slice(8))
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  aria-pressed={isSel}
+                  aria-label={
+                    isFuture
+                      ? `${d} — belum terjadi`
+                      : `${d} ${MONTHS_ID_FULL[Number(iso.slice(5, 7)) - 1]} — ${
+                          count === 0 ? 'tidak ada catatan' : `${count} catatan`
+                        }`
+                  }
+                  onClick={() => onPickDay(isSel ? null : iso)}
+                  className={
+                    'interactive h-8 w-full cursor-pointer rounded-md text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                    (isSel
+                      ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
+                      : '') +
+                    (isFuture
+                      ? 'text-content-muted/50'
+                      : count > 0
+                        ? 'text-content-primary'
+                        : 'text-content-muted') +
+                    (count === 1 ? ' ' : ' tabular-nums')
+                  }
+                  style={{
+                    backgroundColor: isFuture ? undefined : WRITE_LEVELS[level],
+                  }}
+                >
+                  {d}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Distribusi folder — segmented bar kecil + label jumlah. */}
+          {totalNotes > 0 && (
+            <div className="mt-3.5">
+              <div
+                className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+                role="img"
+                aria-label={`Distribusi folder: ${folderSegs
+                  .map((f) => `${f.label} ${f.count}`)
+                  .join(', ')}`}
+              >
+                {folderSegs.map(
+                  (f) =>
+                    f.count > 0 && (
+                      <span
+                        key={f.key}
+                        className={f.seg}
+                        style={{ width: `${(f.count / totalNotes) * 100}%` }}
+                      />
+                    ),
+                )}
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                {folderSegs.map(
+                  (f) =>
+                    f.count > 0 && (
+                      <span
+                        key={f.key}
+                        className="flex items-center gap-1 text-chart-label font-medium text-content-muted"
+                      >
+                        <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${f.seg}`} />
+                        {f.label.split(' ')[0]} {f.count}
+                      </span>
+                    ),
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Ringkasan mood — ringan, netral, hanya yang tercatat. */}
+          {moodCounts.length > 0 && (
+            <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
+              {moodCounts.map(([mood, n]) => (
+                <span key={mood} className="flex items-center gap-1">
+                  <span
+                    aria-hidden="true"
+                    className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
+                  />
+                  {mood} {n}×
+                </span>
+              ))}
+            </p>
+          )}
+
+          {dayFilter && (
+            <button
+              type="button"
+              onClick={() => onPickDay(null)}
+              className="interactive mt-3 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Filter aktif: {noteDateLabel({ id: 'x', date: dayFilter } as Note, today)}
+              <span aria-hidden="true">✕</span>
+              <span className="sr-only">Hapus filter tanggal</span>
+            </button>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </section>
   )
 }
@@ -294,6 +356,18 @@ const FILTERS: { key: FolderKey | 'semua'; label: string }[] = [
   { key: 'semua', label: 'Semua' },
   ...FOLDERS.map((f) => ({ key: f.key, label: FOLDER_SHORT[f.key] })),
 ]
+
+/* ===== Pagar densitas daftar catatan (audit UX density v2.37, P1) =====
+   Gulir awal layar Jurnal dibuat ringkas: maksimum 3 sematan + 3 draf,
+   lalu "Catatan lain" mengisi sisa hingga total 10 kartu. Setiap seksi
+   yang terpangkas memuat bertahap: +5 (sematan/draf), +10 (lainnya).
+   Pagar hanya hidup di kondisi awal — pencarian atau filter aktif adalah
+   permintaan eksplisit pengguna, semua hasil langsung tampil penuh. */
+const PINNED_CAP = 3
+const DRAFT_CAP = 3
+const LIST_TOTAL_CAP = 10
+const SECTION_STEP = 5
+const REST_STEP = 10
 
 export default function JournalScreen() {
   const [query, setQuery] = useState('')
@@ -344,6 +418,22 @@ export default function JournalScreen() {
       rest: filtered.filter((n) => !n.pinned && !isDraftNote(n)),
     }
   }, [notes, journalFilter, query, dayFilter])
+
+  /* v2.37 P1: pagar densitas hanya hidup di kondisi awal (tanpa pencarian,
+     tanpa filter folder/tanggal) — total kartu awal maksimal 10. Pencarian
+     atau filter aktif melonggarkan pagar: seluruh hasil tampil. */
+  const fenceRelaxed =
+    query.trim() !== '' || journalFilter !== 'semua' || dayFilter !== null
+  const pinnedLimit = fenceRelaxed ? undefined : Math.min(pinned.length, PINNED_CAP)
+  const draftsLimit = fenceRelaxed ? undefined : Math.min(drafts.length, DRAFT_CAP)
+  const restLimit = fenceRelaxed
+    ? undefined
+    : Math.max(
+        0,
+        LIST_TOTAL_CAP -
+          Math.min(pinned.length, PINNED_CAP) -
+          Math.min(drafts.length, DRAFT_CAP),
+      )
 
   /* v2.35 anti-replay: pembuka Writing Room hanya kunjungan pertama —
      remount antar-tab tampil instan, transisi layar ringan mengambil alih. */
@@ -465,8 +555,10 @@ export default function JournalScreen() {
       </div>
 
       {/* Aktivitas menulis — jejak bulanan + distribusi (audit v2.36
-          Tahap 4); hanya muncul bila sudah ada catatan. Kanvas menulis
-          tetap bebas gangguan — visual hanya hidup di daftar. */}
+          Tahap 4); hanya muncul bila sudah ada catatan. Dilipat secara
+          default dengan ringkasan di pemicu (audit densitas v2.37 P1).
+          Kanvas menulis tetap bebas gangguan — visual hanya hidup di
+          daftar. */}
       {total > 0 && (
         <WritingActivityCard
           notes={notes}
@@ -477,17 +569,23 @@ export default function JournalScreen() {
       )}
 
       {/* Daftar catatan — hierarki tenang: sematan, lalu draf yang belum
-          diberi nama, lalu catatan tersimpan. */}
+          diberi nama, lalu catatan tersimpan. Pagar densitas v2.37:
+          kondisi awal ringkas (total ≤ 10 kartu), muat bertahap per
+          seksi; key NoteList mengikuti mode pagar agar batas internal
+          ter-reset saat kembali dari pencarian/filter. */}
       <section className="mt-6" aria-label="Daftar catatan jurnal">
         {pinned.length > 0 && (
           <div className="mt-2 first:mt-0">
             <SectionLabel>Disematkan · {pinned.length}</SectionLabel>
             <NoteList
+              key={fenceRelaxed ? 'bebas' : 'pagar'}
               items={pinned}
               noteMoods={noteMoods}
               onOpen={openReading}
               onEdit={openCanvas}
               onTogglePin={togglePin}
+              initialLimit={pinnedLimit}
+              step={SECTION_STEP}
             />
           </div>
         )}
@@ -495,11 +593,14 @@ export default function JournalScreen() {
           <div className="mt-6 first:mt-0">
             <SectionLabel>Draf · {drafts.length}</SectionLabel>
             <NoteList
+              key={fenceRelaxed ? 'bebas' : 'pagar'}
               items={drafts}
               noteMoods={noteMoods}
               onOpen={openReading}
               onEdit={openCanvas}
               onTogglePin={togglePin}
+              initialLimit={draftsLimit}
+              step={SECTION_STEP}
             />
           </div>
         )}
@@ -509,15 +610,17 @@ export default function JournalScreen() {
               {pinned.length > 0 || drafts.length > 0 ? 'Catatan lain' : 'Catatan'} ·{' '}
               {rest.length}
             </SectionLabel>
-            {/* Batas awal 30 kartu — jurnal panjang (ratusan catatan)
-                dimuat bertahap agar render pertama tetap ringan. */}
+            {/* Pagar densitas v2.37: mengisi sisa kuota total 10 kartu
+                awal; muat bertahap +10 per ketukan. */}
             <NoteList
+              key={fenceRelaxed ? 'bebas' : 'pagar'}
               items={rest}
               noteMoods={noteMoods}
               onOpen={openReading}
               onEdit={openCanvas}
               onTogglePin={togglePin}
-              initialLimit={30}
+              initialLimit={restLimit}
+              step={REST_STEP}
             />
           </div>
         )}
@@ -587,8 +690,11 @@ interface NoteListProps {
   onEdit: (note: Note) => void
   onTogglePin: (id: string) => void
   /** Batas awal render — sisanya dimuat bertahap (audit performa v2.13);
-   *  default tanpa batas untuk daftar kecil (mis. sematan). */
+   *  tanpa batas = semua item tampil (hasil pencarian/filter, v2.37). */
   initialLimit?: number
+  /** Loncatan muat bertahap per ketukan tombol (audit densitas v2.37) —
+   *  default mengikuti initialLimit; tanpa keduanya semua sisa dimuat. */
+  step?: number
 }
 
 function NoteList({
@@ -598,13 +704,20 @@ function NoteList({
   onEdit,
   onTogglePin,
   initialLimit,
+  step,
 }: NoteListProps) {
-  const [limit, setLimit] = useState(initialLimit ?? items.length)
+  /* v2.37: batas diturunkan (bukan state awal mentah) — daftar tanpa
+     pagar (hasil pencarian/filter) selalu tampil penuh walau items
+     berubah; extra hanya bertambah lewat tombol muat bertahap. */
+  const [extra, setExtra] = useState(0)
+  const limit = initialLimit === undefined ? items.length : initialLimit + extra
   const visible = items.slice(0, limit)
   const hidden = items.length - visible.length
+  const inc = step ?? initialLimit ?? hidden
   /* v2.35 anti-replay: deretan kartu naik beruntun hanya pada kunjungan
      pertama; remount/filter tampil instan. "Muat lagi" menambah kartu TANPA
-     mengulang entrance karena wadah tidak berganti (limit state, bukan key). */
+     mengulang entrance karena wadah tidak berganti (state extra, bukan key
+     — key hanya berganti saat mode pagar/pencarian beralih, v2.37). */
   const playEntrance = useFirstVisit('journal-notes')
   return (
     <m.div
@@ -632,11 +745,11 @@ function NoteList({
         <div role="presentation">
           <button
             type="button"
-            onClick={() => setLimit((n) => n + (initialLimit ?? hidden))}
+            onClick={() => setExtra((e) => e + inc)}
             className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
           >
-            Tampilkan {Math.min(initialLimit ?? hidden, hidden)} catatan lagi
-            {hidden > (initialLimit ?? hidden) ? ` (${hidden} tersisa)` : ''}
+            Tampilkan {Math.min(inc, hidden)} catatan lagi
+            {hidden > inc ? ` (${hidden} tersisa)` : ''}
           </button>
         </div>
       )}
