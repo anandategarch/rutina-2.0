@@ -827,7 +827,7 @@ function SessionView({
             <p className="mt-1 flex items-center gap-1.5 text-eyebrow font-medium text-hero-content-muted">
               <span
                 aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-pistachio animate-pulse-soft"
+                className="h-1.5 w-1.5 rounded-full bg-pistachio motion-safe:animate-pulse-soft"
               />
               Sedang berlangsung
             </p>
@@ -837,7 +837,7 @@ function SessionView({
             onClick={() => setConfirmOpen(true)}
             className={`flex h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-note font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               allDone
-                ? 'bg-gold text-espresso shadow-gold animate-pulse-soft'
+                ? 'bg-gold text-espresso shadow-gold motion-safe:animate-pulse-soft'
                 : 'border border-hero-content/25 text-hero-content hover:bg-hero-content/10'
             }`}
           >
@@ -1612,7 +1612,7 @@ export function SessionPickerSheet({
                   type="button"
                   onClick={start}
                   disabled={plan.length === 0}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={{ scale: 0.97 }}
                   className="h-12 w-full cursor-pointer rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <span className="flex items-center justify-center gap-2">

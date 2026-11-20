@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   ArrowLeft,
@@ -59,7 +60,6 @@ import { Switch } from '@/components/ui/switch'
 import { MOOD_DOT, MOOD_TONE } from '../journal-ui'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
-import { CONTENT_W } from '../layout-widths'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -212,6 +212,9 @@ function SettingRow({
 export default function ProfileScreen() {
   /* v2.35 anti-replay: pembuka Control Room hanya kunjungan pertama. */
   const playEntrance = useFirstVisit('profil-control')
+  /* Gulir kategori dihormati: pengguna reduce-motion melompat langsung
+     (behavior "auto"), bukan animasi smooth. */
+  const reducedMotion = useReducedMotion()
   const notes = useRutina((s) => s.notes)
   const habits = useRutina((s) => s.habits)
   const txs = useRutina((s) => s.txs)
@@ -482,35 +485,55 @@ export default function ProfileScreen() {
      kisi dihapus; angka lengkap hidup di Statistik (konsolidasi, bukan
      kehilangan fitur). */
 
-  /* "Aktif sejak" — bulan aktivitas terawal dari completions. */
-  const activeSince = activeSinceISO(completions)
-  const memberBadge = activeSince
-    ? `Aktif sejak ${new Intl.DateTimeFormat('id-ID', {
-        month: 'long',
-        year: 'numeric',
-      }).format(fromISO(activeSince))}`
-    : 'Belum ada aktivitas'
+  /* "Aktif sejak" — bulan aktivitas terawal dari completions. Dibungkus
+     useMemo: activeSinceISO mengurutkan seluruh kunci completions dan
+     scrollspy setActiveCat memicu render saat menggulir — tanpa memo ini
+     dihitung ulang di tiap frame gulir. */
+  const activeSince = useMemo(() => activeSinceISO(completions), [completions])
+  const memberBadge = useMemo(
+    () =>
+      activeSince
+        ? `Aktif sejak ${new Intl.DateTimeFormat('id-ID', {
+            month: 'long',
+            year: 'numeric',
+          }).format(fromISO(activeSince))}`
+        : 'Belum ada aktivitas',
+    [activeSince],
+  )
 
   /* Pengingat aktif — jumlah nyata kebiasaan yang memakai jam pengingat
-     (diatur per kebiasaan di lembar suntingnya, bukan saklar global). */
-  const reminderCount = habits.filter((h) => h.reminder !== null).length
+     (diatur per kebiasaan di lembar suntingnya, bukan saklar global).
+     useMemo dengan alasan yang sama: render scrollspy berulang saat gulir. */
+  const reminderCount = useMemo(
+    () => habits.filter((h) => h.reminder !== null).length,
+    [habits],
+  )
 
   /* Jendela mood 14 hari (terlama → terbaru) untuk kartu Riwayat
-     Mood (audit #25) + rekap jumlah per mood pada periode itu. */
-  const moodDays = Array.from({ length: 14 }, (_, idx) => {
-    const back = 13 - idx
-    const iso = addDaysISO(today, -back)
-    return {
-      iso,
-      label: WEEKDAY_MIN[fromISO(iso).getDay()],
-      mood: moodLogs[iso],
-      isToday: back === 0,
-    }
-  })
-  const moodCounts = MOODS.map((name) => ({
-    name,
-    count: moodDays.filter((d) => d.mood === name).length,
-  }))
+     Mood (audit #25) + rekap jumlah per mood pada periode itu.
+     Memo pada moodLogs/today — tidak dihitung ulang saat menggulir. */
+  const moodDays = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, idx) => {
+        const back = 13 - idx
+        const iso = addDaysISO(today, -back)
+        return {
+          iso,
+          label: WEEKDAY_MIN[fromISO(iso).getDay()],
+          mood: moodLogs[iso],
+          isToday: back === 0,
+        }
+      }),
+    [moodLogs, today],
+  )
+  const moodCounts = useMemo(
+    () =>
+      MOODS.map((name) => ({
+        name,
+        count: moodDays.filter((d) => d.mood === name).length,
+      })),
+    [moodDays],
+  )
   const moodLogged = moodCounts.some((c) => c.count > 0)
   const todayMood = moodDays[13].mood
 
@@ -544,11 +567,14 @@ export default function ProfileScreen() {
     return () => obs.disconnect()
   }, [])
 
+  /* Lebar kolom TIDAK diulang di akar layar — cangkang rutina-app sudah
+     membungkus tiap layar dalam CONTENT_W; penggandaan max-w ganda
+     hanya menumpuk batas yang identik (audit: redundan). */
   return (
     <div
       data-module="profil"
       data-layout="control-room"
-      className={`mx-auto h-full w-full ${CONTENT_W} overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary`}
+      className="h-full w-full overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
       <m.button
@@ -608,7 +634,13 @@ export default function ProfileScreen() {
                       onClick={() =>
                         document
                           .getElementById(id)
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          ?.scrollIntoView({
+                            /* behavior mengikuti preferensi reduce-motion —
+                               tanpa animasi gulir untuk pengguna yang
+                               memintanya. */
+                            behavior: reducedMotion ? 'auto' : 'smooth',
+                            block: 'start',
+                          })
                       }
                       aria-current={isActive ? 'location' : undefined}
                       className={
@@ -1328,7 +1360,7 @@ export default function ProfileScreen() {
                   setResetOpen(false)
                   toast.success('Aplikasi direset — mulailah dari nol.')
                 }}
-                className="interactive h-10 flex-1 cursor-pointer rounded-full border-none bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+                className="interactive h-10 flex-1 cursor-pointer rounded-full border-none bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90"
               >
                 Ya, hapus
               </button>

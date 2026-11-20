@@ -209,7 +209,8 @@ function PlateLoaderTab() {
                   )}
                 >
                   {b.kg}
-                  <span className="text-[8px] font-semibold opacity-70">
+                  {/* Lantai tipografi 10px — label "kg" 8px tak terbaca. */}
+                  <span className="text-[10px] font-semibold opacity-70">
                     kg
                   </span>
                 </button>

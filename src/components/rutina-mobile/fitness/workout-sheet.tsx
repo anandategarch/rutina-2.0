@@ -54,11 +54,20 @@ import { useFocusTrap } from '../use-focus-trap'
    Saat disimpan, blok diekspansi menjadi set individual agar
    histori & PR e1RM konsisten dengan domain Workout. */
 interface SetBlock {
+  /* Identitas stabil untuk React key — kunci indeks membuat animasi
+     exit AnimatePresence bermain di kartu yang SALAH saat hapus
+     (indeks bergeser; kartu terakhir yang dianggap keluar). */
+  id: string
   exercise: string
   weight: string
   reps: string
   count: number
 }
+
+/* ID blok — pola toExercise session-store (sx-<timestamp>-...), awalan
+   "b-" untuk blok lembar catat. Dibuat hanya di interaksi klien
+   (lembar dibuka lewat aksi pengguna) sehingga aman dari hidrasi. */
+const blockId = () => `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
 /* Peta seed → blok: target set/reps dari program dihormati; beban
    diisi dari histori terakhir pengguna (coach pintar) atau default. */
@@ -66,6 +75,7 @@ function seedToBlocks(seed: WorkoutSeed[], lastOf: (name: string) => { weight: n
   return seed.map((s) => {
     const last = lastOf(s.name)
     return {
+      id: blockId(),
       exercise: s.name,
       weight: String(last.weight || 5),
       reps: String(s.reps || last.reps || 5),
@@ -75,6 +85,7 @@ function seedToBlocks(seed: WorkoutSeed[], lastOf: (name: string) => { weight: n
 }
 
 const emptyBlock = (): SetBlock => ({
+  id: blockId(),
   exercise: '',
   weight: '',
   reps: '',
@@ -312,7 +323,7 @@ export function WorkoutSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetSpring}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -556,7 +567,7 @@ export function WorkoutSheet() {
                   <div className="mt-2 space-y-2.5">
                     {blocks.map((b, i) => (
                       <m.div
-                        key={i}
+                        key={b.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.97 }}
@@ -737,7 +748,7 @@ export function WorkoutSheet() {
             <m.button
               type="button"
               onClick={submit}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               className="mt-5 h-12 w-full cursor-pointer rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Simpan Aktivitas

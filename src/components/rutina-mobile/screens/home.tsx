@@ -659,11 +659,21 @@ export default function HomeScreen() {
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                         <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
-                          <Flame
+                          {/* Api streak — denyut ambient identitas yang
+                              diizinkan (preset ambientPulse, amplitudo
+                              6%); MotionConfig reducedMotion="user"
+                              mematikan transform ini otomatis. */}
+                          <m.span
                             aria-hidden="true"
-                            className="h-3.5 w-3.5 text-warning"
-                            strokeWidth={2.2}
-                          />
+                            className="flex"
+                            animate={{ scale: [1, 1.06, 1] }}
+                            transition={motionTokens.preset.ambientPulse}
+                          >
+                            <Flame
+                              className="h-3.5 w-3.5 text-warning"
+                              strokeWidth={2.2}
+                            />
+                          </m.span>
                           <span className="tabular-nums">
                             Streak {streak} hari
                           </span>
@@ -846,28 +856,36 @@ export default function HomeScreen() {
                                 {g.items.length}
                               </span>
                             </div>
-                            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                            {/* role=list di kisi kelompok — baris TaskRow
+                                terbaca sebagai daftar oleh pembaca layar
+                                (pembungkus listitem di sini karena root
+                                TaskRow di luar cakupan layar ini). */}
+                            <div
+                              role="list"
+                              className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+                            >
                               {g.items.map((h) => (
-                                <TaskRow
-                                  key={h.id}
-                                  habit={h}
-                                  done={false}
-                                  streak={habitStreak(h, completions, selectedDate)}
-                                  recent={recentDays(completions, h.id, selectedDate)}
-                                  weekDone={weekDoneCount(completions, h.id, selectedDate)}
-                                  expanded={expandedTaskId === h.id}
-                                  readOnly={selectedDate > today}
-                                  viewDate={selectedDate}
-                                  xp={XP_PER_TASK}
-                                  onToggle={() => {
-                                    /* Misi dari kelompok terbuka selalu berarti "selesai" —
-                                       buka lipatan Selesai agar terlihat misinya terarsip. */
-                                    toggleHabit(h.id, selectedDate)
-                                    setShowDone(true)
-                                  }}
-                                  onExpand={() => toggleExpandedTask(h.id)}
-                                  onEdit={() => openHabitEdit(h.id)}
-                                />
+                                <div key={h.id} role="listitem">
+                                  <TaskRow
+                                    habit={h}
+                                    done={false}
+                                    streak={habitStreak(h, completions, selectedDate)}
+                                    recent={recentDays(completions, h.id, selectedDate)}
+                                    weekDone={weekDoneCount(completions, h.id, selectedDate)}
+                                    expanded={expandedTaskId === h.id}
+                                    readOnly={selectedDate > today}
+                                    viewDate={selectedDate}
+                                    xp={XP_PER_TASK}
+                                    onToggle={() => {
+                                      /* Misi dari kelompok terbuka selalu berarti "selesai" —
+                                         buka lipatan Selesai agar terlihat misinya terarsip. */
+                                      toggleHabit(h.id, selectedDate)
+                                      setShowDone(true)
+                                    }}
+                                    onExpand={() => toggleExpandedTask(h.id)}
+                                    onEdit={() => openHabitEdit(h.id)}
+                                  />
+                                </div>
                               ))}
                             </div>
                           </div>
@@ -913,23 +931,29 @@ export default function HomeScreen() {
                               }}
                               className="overflow-hidden"
                             >
-                              <div className="grid grid-cols-1 gap-2.5 pt-2.5 sm:grid-cols-2">
+                              {/* role=list — pola yang sama dengan kisi
+                                  kelompok terbuka di atas. */}
+                              <div
+                                role="list"
+                                className="grid grid-cols-1 gap-2.5 pt-2.5 sm:grid-cols-2"
+                              >
                                 {doneHabits.map((h) => (
-                                  <TaskRow
-                                    key={h.id}
-                                    habit={h}
-                                    done
-                                    streak={habitStreak(h, completions, selectedDate)}
-                                    recent={recentDays(completions, h.id, selectedDate)}
-                                    weekDone={weekDoneCount(completions, h.id, selectedDate)}
-                                    expanded={expandedTaskId === h.id}
-                                    readOnly={selectedDate > today}
-                                    viewDate={selectedDate}
-                                    xp={XP_PER_TASK}
-                                    onToggle={() => toggleHabit(h.id, selectedDate)}
-                                    onExpand={() => toggleExpandedTask(h.id)}
-                                    onEdit={() => openHabitEdit(h.id)}
-                                  />
+                                  <div key={h.id} role="listitem">
+                                    <TaskRow
+                                      habit={h}
+                                      done
+                                      streak={habitStreak(h, completions, selectedDate)}
+                                      recent={recentDays(completions, h.id, selectedDate)}
+                                      weekDone={weekDoneCount(completions, h.id, selectedDate)}
+                                      expanded={expandedTaskId === h.id}
+                                      readOnly={selectedDate > today}
+                                      viewDate={selectedDate}
+                                      xp={XP_PER_TASK}
+                                      onToggle={() => toggleHabit(h.id, selectedDate)}
+                                      onExpand={() => toggleExpandedTask(h.id)}
+                                      onEdit={() => openHabitEdit(h.id)}
+                                    />
+                                  </div>
                                 ))}
                               </div>
                             </m.div>
@@ -1184,8 +1208,10 @@ export default function HomeScreen() {
                semangat saat kartu muncul (spring.playful), lalu DIAM —
                hadiah tidak berdenyut tanpa henti memperebutkan perhatian.
                Ledakan elastis saat klaim tetap ditangani anime.js di
-               giftRef (useAnimePop) sebagai umpan balik aksi. */
-            initial={{ scale: 0.4, opacity: 0 }}
+               giftRef (useAnimePop) sebagai umpan balik aksi.
+               Gerbang firstVisit mengikuti seksi induk — pop hanya
+               sekali seumur sesi, bukan tiap remount tab. */
+            initial={playEntrance ? { scale: 0.4, opacity: 0 } : false}
             animate={{ scale: 1, opacity: 1 }}
             transition={motionTokens.spring.playful}
           >
@@ -1350,24 +1376,30 @@ export default function HomeScreen() {
               </m.button>
             </div>
           </div>
-          <AnimatePresence mode="wait" initial={false}>
-            <m.div
-              key={`${today}-${quoteDate === today ? quoteOffset : 0}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={motionTokens.preset.cardReveal}
-            >
-              <p
-                className={`${playfair.className} mt-4 text-balance text-lead italic leading-relaxed text-content-inverse`}
+          {/* Pembungkus persisten aria-live — elemen bertahan lintas
+              pergantian kutipan sehingga pembaca layar mengumumkan teks
+              baru (mode="wait" melepas lalu memasang ulang m.div dalam;
+              live region pada elemen yang berganti-kunci tak terbaca). */}
+          <div aria-live="polite">
+            <AnimatePresence mode="wait" initial={false}>
+              <m.div
+                key={`${today}-${quoteDate === today ? quoteOffset : 0}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={motionTokens.preset.cardReveal}
               >
-                &ldquo;{quote.text}&rdquo;
-              </p>
-              <p className="mt-3 text-meta font-medium text-content-inverse/75">
-                — {quote.author}
-              </p>
-            </m.div>
-          </AnimatePresence>
+                <p
+                  className={`${playfair.className} mt-4 text-balance text-lead italic leading-relaxed text-content-inverse`}
+                >
+                  &ldquo;{quote.text}&rdquo;
+                </p>
+                <p className="mt-3 text-meta font-medium text-content-inverse/75">
+                  — {quote.author}
+                </p>
+              </m.div>
+            </AnimatePresence>
+          </div>
           <Button
             type="button"
             variant="ghost"

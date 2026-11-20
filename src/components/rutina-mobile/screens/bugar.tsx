@@ -138,8 +138,10 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
   const workouts = useRutina((s) => s.workouts)
   const [expanded, setExpanded] = useState(false)
   /* v2.35 anti-replay — kartu program hanya diantar pada kunjungan pertama
-     Studio; expand/detail tetap dianimasikan (interaksi, bukan replay). */
-  const playEntrance = useFirstVisit('bugar-studio')
+     Studio; expand/detail tetap dianimasikan (interaksi, bukan replay).
+     v2.38: key per-blok — kunci bersama membuat blok yang dimount
+     belakangan tak pernah dianimasikan. */
+  const playEntrance = useFirstVisit('bugar-studio-program')
 
   return (
     <m.div
@@ -281,8 +283,9 @@ function WorkoutRow({
   const deleteWorkout = useRutina((s) => s.deleteWorkout)
   const [expanded, setExpanded] = useState(false)
   /* v2.35 anti-replay — baris riwayat hanya naik beruntun pada kunjungan
-     pertama; filter/ganti subtab tampil instan. */
-  const playEntrance = useFirstVisit('bugar-studio')
+     pertama; filter/ganti subtab tampil instan. Key per-blok agar
+     riwayat (dimount belakangan) tetap mendapat giliran animasinya. */
+  const playEntrance = useFirstVisit('bugar-studio-history')
   const isStrength = w.kind === 'beban'
   const isCardio = isCardioKind(w.kind)
   const tonase = tonaseOf(w)
@@ -507,7 +510,7 @@ function WorkoutRow({
                       deleteWorkout(w.id)
                       toast('Aktivitas dihapus dari riwayat.')
                     }}
-                    className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+                    className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90"
                   >
                     Ya, Hapus
                   </AlertDialogAction>
@@ -637,7 +640,7 @@ function TonaseStrip() {
   const workouts = useRutina((s) => s.workouts)
   const reducedMotion = useReducedMotion()
   /* v2.35 anti-replay — pengungkapan batang tonase hanya kunjungan pertama. */
-  const playEntrance = useFirstVisit('bugar-studio')
+  const playEntrance = useFirstVisit('bugar-studio-tonase')
   /* Hari terpilih — null = belum memilih (header menampilkan petunjuk). */
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
@@ -840,7 +843,7 @@ const MIX_KIND_ICON = {
 
 function ActivityMixStrip() {
   const workouts = useRutina((s) => s.workouts)
-  const playEntrance = useFirstVisit('bugar-studio')
+  const playEntrance = useFirstVisit('bugar-studio-campuran')
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
   const days = useMemo(() => {
@@ -941,7 +944,7 @@ function ActivityMixStrip() {
                       )
                     })}
                     {extra > 0 && (
-                      <span className="text-[9px] font-bold tabular-nums text-content-muted">
+                      <span className="text-[10px] font-bold tabular-nums text-content-muted">
                         +{extra}
                       </span>
                     )}
@@ -1031,7 +1034,7 @@ function ActivityMixStrip() {
    (jarak & durasi terisi). Garis menurun = makin cepat; tidak ada
    warna baik/buruk otomatis. Ketuk titik untuk membaca sesinya. */
 function PaceStrip({ sessions }: { sessions: Workout[] }) {
-  const playEntrance = useFirstVisit('bugar-studio')
+  const playEntrance = useFirstVisit('bugar-studio-tren')
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
   /* Sesi valid urut kronologis, maksimal 8 terakhir. */
@@ -1192,8 +1195,10 @@ export default function BugarScreen() {
   const fitTargets = useRutina((s) => s.fitTargets)
   const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
   /* v2.35 anti-replay: pembuka Performance Studio hanya kunjungan pertama
-     seumur sesi; subtab keep-alive (v2.30) menjaga state saat berpindah. */
-  const playEntrance = useFirstVisit('bugar-studio')
+     seumur sesi; subtab keep-alive (v2.30) menjaga state saat berpindah.
+     Key kini spesifik blok hero — komponen blok lain punya gilirannya
+     sendiri, tidak saling mencomot kunjungan pertama. */
+  const playEntrance = useFirstVisit('bugar-studio-hero')
   const deloadUntil = useRutina((s) => s.deloadUntil)
   const startDeload = useRutina((s) => s.startDeload)
   const endDeload = useRutina((s) => s.endDeload)
@@ -1411,7 +1416,7 @@ export default function BugarScreen() {
               {reducedMotion ? (
                 Math.round(week.minutes).toLocaleString('id-ID')
               ) : (
-                <Counter to={Math.round(week.minutes)} />
+                <Counter to={Math.round(week.minutes)} immediate={!playEntrance} />
               )}
             </span>
             <span className="ml-1.5 text-lead font-semibold text-module-accent-fg/85">
@@ -1456,9 +1461,11 @@ export default function BugarScreen() {
           )}
 
           {/* Empat metrik pendukung — baris kecil di bawah hairline;
-              angka dari histori nyata, bukan target (v2.17). */}
+              angka dari histori nyata, bukan target (v2.17). Fade
+              digerbangi firstVisit hero agar tidak mengulang tiap
+              remount tab (anti-replay). */}
           <m.div
-            initial={{ opacity: 0 }}
+            initial={playEntrance ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
             transition={{
               ...motionTokens.preset.chipReveal,
@@ -1563,7 +1570,7 @@ export default function BugarScreen() {
       <m.button
         type="button"
         onClick={() => setSessionPickerOpen(true)}
-        whileTap={{ scale: 0.98 }}
+        whileTap={{ scale: 0.97 }}
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
@@ -2036,7 +2043,7 @@ export default function BugarScreen() {
                     <m.button
                       type="button"
                       onClick={() => openWorkoutSheet()}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.96 }}
                       className="interactive flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />
@@ -2073,7 +2080,7 @@ export default function BugarScreen() {
               <m.button
                 type="button"
                 onClick={() => openWorkoutSheet(undefined, { mode: 'beban' })}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.96 }}
                 className="interactive flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Dumbbell className="h-4 w-4" aria-hidden="true" />
