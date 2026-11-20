@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { animate } from 'animejs'
 import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
@@ -1220,6 +1220,7 @@ function SaldoCard({
   txCount,
   delta,
   deltaSuffix,
+  spark,
   saldoRef,
   onAdd,
 }: {
@@ -1229,6 +1230,8 @@ function SaldoCard({
   /** Perubahan net arus kas vs periode sebelumnya — null bila tak berlaku. */
   delta: number | null
   deltaSuffix: string | null
+  /** Deret saldo kumulatif 31 hari (v2.39) — null bila datar. */
+  spark: { pts: number[]; lo: number; hi: number } | null
   saldoRef: React.RefObject<HTMLSpanElement | null>
   onAdd: () => void
 }) {
@@ -1243,6 +1246,9 @@ function SaldoCard({
      (audit motion anti-replay; keep-alive subtab menangani perpindahan
      antar-subtab, gerbang ini menangani perpindahan antar-ruang app). */
   const playCount = useFirstVisit('fin-saldo-count')
+  /* Id gradient isian sparkline — dibersihkan dari “:” useId agar aman
+     sebagai fragmen url(#…) SVG. */
+  const sparkId = `fin-saldo-spark-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
 
   return (
     <m.div
@@ -1329,6 +1335,88 @@ function SaldoCard({
                   deltaSuffix ? ` ${deltaSuffix}` : ''
                 }`}
           </p>
+        )}
+
+        {/* Perkembangan saldo 30 hari (v2.39 audit visual data) — garis
+            emas lembut di permukaan espresso; min/max label menjelaskan
+            skala. Garis bergerak mengikuti arah saldo, bukan vonis baik/
+            buruk (turun bisa jadi tabungan/sesuai rencana). */}
+        {spark && (
+          <div className="mt-3">
+            <div className="flex items-stretch gap-1.5">
+              <div
+                className="flex w-11 shrink-0 flex-col justify-between py-0.5 text-chart-label font-semibold tabular-nums text-hero-content-muted"
+                aria-hidden="true"
+              >
+                <span className="text-right leading-none">
+                  {formatIDRShort(spark.hi)}
+                </span>
+                <span className="text-right leading-none">
+                  {formatIDRShort(spark.lo)}
+                </span>
+              </div>
+              <svg
+                viewBox="0 0 260 40"
+                preserveAspectRatio="none"
+                className="h-10 min-w-0 flex-1"
+                role="img"
+                aria-label={`Perkembangan saldo 30 hari terakhir dari ${formatIDR(
+                  spark.pts[0] ?? 0,
+                )} menjadi ${formatIDR(saldo)}`}
+              >
+                <defs>
+                  <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor="var(--hero-accent)"
+                      stopOpacity="0.22"
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--hero-accent)"
+                      stopOpacity="0"
+                    />
+                  </linearGradient>
+                </defs>
+                {(() => {
+                  const { pts, lo, hi } = spark
+                  const span = Math.max(hi - lo, 1)
+                  const n = pts.length
+                  const xy = pts.map((v, i) => {
+                    const x = (i / (n - 1)) * 260
+                    const y = 3 + (1 - (v - lo) / span) * 34
+                    return `${x.toFixed(1)},${y.toFixed(1)}`
+                  })
+                  const last = xy[n - 1]!.split(',')
+                  return (
+                    <>
+                      <polygon
+                        points={`0,40 ${xy.join(' ')} 260,40`}
+                        fill={`url(#${sparkId})`}
+                      />
+                      <polyline
+                        points={xy.join(' ')}
+                        fill="none"
+                        stroke="var(--hero-accent)"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle
+                        cx={last[0]}
+                        cy={last[1]}
+                        r="2.6"
+                        fill="var(--hero-accent)"
+                      />
+                    </>
+                  )
+                })()}
+              </svg>
+            </div>
+            <p className="mt-1 text-eyebrow font-medium text-hero-content-muted">
+              perkembangan 30 hari terakhir
+            </p>
+          </div>
         )}
       </div>
 
@@ -2005,6 +2093,25 @@ function SubscriptionsCard() {
                     {s.recurrence === 'bulanan' ? 'Bulanan' : 'Mingguan'} · terakhir{' '}
                     {fmtDate(s.lastTs)}
                   </p>
+                  {/* v2.39 (audit visual data): bar proporsi — porsi biaya
+                      langganan ini dari total bulanan; nominal tetap di
+                      kolom kanan. */}
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 block h-1 overflow-hidden rounded-full bg-module-accent/12"
+                  >
+                    <m.span
+                      className="block h-full w-full origin-left rounded-full bg-module-accent-strong"
+                      initial={false}
+                      animate={{
+                        scaleX: Math.min(
+                          1,
+                          s.monthly / Math.max(1, monthlyTotal),
+                        ),
+                      }}
+                      transition={barFill}
+                    />
+                  </span>
                 </div>
                 <p className="shrink-0 text-note font-bold tabular-nums text-content-primary">
                   {formatIDRShort(s.monthly)}
@@ -2176,6 +2283,30 @@ export default function KeuanganScreen() {
      atau arus masuk-keluar bila belum ada dompet. Transfer tidak
      menggelembungkan saldo karena keluar dari satu & masuk ke lainnya. */
   const saldo = useMemo(() => totalSaldo(txs, wallets), [txs, wallets])
+  /* Perkembangan saldo 30 hari (v2.39 audit visual data) — jangkar
+     kepercayaan kartu Vault kini bergambar: saldo kumulatif harian
+     (net non-transfer), berjalan mundur dari saldo hari ini sehingga
+     selalu konsisten dengan angka totalSaldo di atasnya. Null bila
+     datar (tak ada gerak 30 hari — garis lurup tak bermakna). */
+  const saldoSpark = useMemo(() => {
+    const netByDay = new Map<string, number>()
+    for (const t of txs) {
+      if (t.type === 'transfer') continue
+      const v = t.type === 'masuk' ? t.amount : -t.amount
+      netByDay.set(t.ts, (netByDay.get(t.ts) ?? 0) + v)
+    }
+    const today = todayISO()
+    const out: number[] = [saldo]
+    let running = saldo
+    for (let k = 0; k < 30; k++) {
+      running -= netByDay.get(addDaysISO(today, -k)) ?? 0
+      out.push(running)
+    }
+    out.reverse()
+    const lo = Math.min(...out)
+    const hi = Math.max(...out)
+    return hi - lo > 0 ? { pts: out, lo, hi } : null
+  }, [txs, saldo])
   /* Jumlah transaksi bulan BERJALAN — kunci bulan dari hari nyata. */
   const txCount = useMemo(
     () => txs.filter((t) => t.ts.startsWith(currentMonthKey())).length,
@@ -2461,6 +2592,7 @@ export default function KeuanganScreen() {
             txCount={txCount}
             delta={periodDelta}
             deltaSuffix={PREV_SUFFIX[period]}
+            spark={saldoSpark}
             saldoRef={saldoRef}
             onAdd={openTxSheet}
           />
@@ -2801,6 +2933,53 @@ export default function KeuanganScreen() {
                   Terkumpul {formatIDRShort(totalSaved)} dari{' '}
                   {formatIDRShort(totalTarget)}
                 </p>
+                {/* v2.39 (audit visual data): bar agregat seluruh tujuan —
+                    satu segmen per tujuan (lebar = porsi tabungan itu dari
+                    total target, satu keluarga warna makin pudar); cincin
+                    per-tujuan tetap di kartu masing-masing. */}
+                {totalTarget > 0 && goals.some((g) => g.saved > 0) && (
+                  <div
+                    className="mt-1.5 px-0.5"
+                    role="img"
+                    aria-label={`Progres tabungan agregat: ${Math.min(
+                      100,
+                      Math.round((totalSaved / totalTarget) * 100),
+                    )} persen dari total target, terkumpul ${formatIDRShort(
+                      totalSaved,
+                    )} dari ${formatIDRShort(totalTarget)}`}
+                  >
+                    <div className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-surface-sunken">
+                      {goals.map((g, i) => {
+                        if (g.saved <= 0) return null
+                        const share = Math.min(1, g.saved / totalTarget)
+                        const tints = [
+                          'bg-module-accent-strong',
+                          'bg-module-accent/75',
+                          'bg-module-accent/55',
+                          'bg-module-accent/40',
+                          'bg-module-accent/28',
+                        ]
+                        return (
+                          <span
+                            key={g.id}
+                            className={
+                              'h-full rounded-full ' +
+                              tints[i % tints.length]
+                            }
+                            style={{ width: `${share * 100}%` }}
+                          />
+                        )
+                      })}
+                    </div>
+                    <p className="mt-1 text-right text-eyebrow font-medium tabular-nums text-content-muted">
+                      {Math.min(
+                        100,
+                        Math.round((totalSaved / totalTarget) * 100),
+                      )}
+                      % dari total target
+                    </p>
+                  </div>
+                )}
                 <div className="relative mt-2.5">
                   <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible sm:pb-0">
                     {goals.map((g, i) => (

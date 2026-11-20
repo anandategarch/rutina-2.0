@@ -652,7 +652,7 @@ export default function StatsScreen() {
      Bugar; grafik lengkap (tonase, PR, asupan, tidur/energi/hidrasi)
      tidak diduplikasi dari modul Bugar. Semua angka dari data nyata,
      dibungkus useMemo (pola perf yang sama dengan derivasi sebelumnya). ===== */
-  const { fitSessions, fitMinutes, cardio30, lastWeight, weightDelta } =
+  const { fitSessions, fitMinutes, cardio30, lastWeight, weightDelta, weightSpark } =
     useMemo(() => {
       const since30 = addDaysISO(today, -30)
       const recent = workouts.filter((w) => w.date >= since30)
@@ -666,6 +666,9 @@ export default function StatsScreen() {
           wSeries.length >= 2
             ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
             : null,
+        /* v2.39 (audit visual data): deret berat 14 catatan terakhir —
+           bahan sparkline mini di bawah metrik “Berat terakhir”. */
+        weightSpark: wSeries.slice(-14).map((s) => s.kg),
       }
     }, [workouts, bodyLogs, today])
 
@@ -2169,21 +2172,62 @@ export default function StatsScreen() {
                     size="sm"
                     caption={`${cardio30.sessions} sesi jalan/lari`}
                   />
-                  <RutinaMetric
-                    label="Berat terakhir"
-                    value={
-                      lastWeight != null
-                        ? lastWeight.toFixed(1).replace('.', ',')
-                        : '–'
-                    }
-                    unit={lastWeight != null ? 'kg' : undefined}
-                    size="sm"
-                    caption={
-                      weightDelta != null
-                        ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
-                        : 'belum ada riwayat berat'
-                    }
-                  />
+                  <div>
+                    <RutinaMetric
+                      label="Berat terakhir"
+                      value={
+                        lastWeight != null
+                          ? lastWeight.toFixed(1).replace('.', ',')
+                          : '–'
+                      }
+                      unit={lastWeight != null ? 'kg' : undefined}
+                      size="sm"
+                      caption={
+                        weightDelta != null
+                          ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
+                          : 'belum ada riwayat berat'
+                      }
+                    />
+                    {/* Sparkline mini (v2.39 audit visual data) — warna
+                        netral (naik/turun belum tentu baik/buruk); baru
+                        digambar dari 3 catatan (aturan jujur: 2 titik
+                        bukan tren). Skala penuh 14 catatan terakhir. */}
+                    {weightSpark.length >= 3 && (
+                      <svg
+                        viewBox="0 0 120 26"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                        className="mt-1.5 h-6 w-full"
+                      >
+                        {(() => {
+                          const lo = Math.min(...weightSpark)
+                          const hi = Math.max(...weightSpark)
+                          const span = Math.max(hi - lo, 0.5)
+                          const n = weightSpark.length
+                          const pts = weightSpark
+                            .map(
+                              (v, i) =>
+                                `${((i / (n - 1)) * 120).toFixed(1)},${(
+                                  3 +
+                                  (1 - (v - lo) / span) * 20
+                                ).toFixed(1)}`,
+                            )
+                            .join(' ')
+                          return (
+                            <polyline
+                              points={pts}
+                              fill="none"
+                              stroke="var(--chart-stroke-1)"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              vectorEffect="non-scaling-stroke"
+                            />
+                          )
+                        })()}
+                      </svg>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"
