@@ -10,6 +10,7 @@ import {
   ArrowLeftRight,
   ArrowRight,
   ArrowUpRight,
+  ChartPie,
   CheckCircle2,
   ChevronDown,
   Info,
@@ -49,6 +50,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -2220,16 +2226,17 @@ export default function KeuanganScreen() {
     () => txs.filter((t) => t.type === 'transfer'),
     [txs],
   )
-  /* Aktivitas terbaru di Ringkasan — enam transaksi terakhir (v2.29:
-     kolom tengah ruang kerja split; empat dirasa kurang memenuhi
-     tinggi kolom kiri saldo+jatah). */
+  /* Aktivitas terbaru di Ringkasan — tiga transaksi terakhir (audit UX
+     density v2.37 P1: intipan singkat cukup di awal; riwayat lengkap
+     tetap di tab Mutasi. v2.29 dulu enam demi tinggi kolom kiri
+     saldo+jatah). */
   const recent = useMemo(
     () =>
       [...txs]
         .sort((a, b) =>
           a.ts === b.ts ? b.id.localeCompare(a.id) : a.ts < b.ts ? 1 : -1,
         )
-        .slice(0, 6),
+        .slice(0, 3),
     [txs],
   )
 
@@ -2332,6 +2339,21 @@ export default function KeuanganScreen() {
 
     return out.sort((a, b) => a.weight - b.weight).slice(0, 4)
   }, [txs, budgets, catMeta])
+
+  /* Subjudul pemicu "Analisis Pengeluaran" (audit UX density v2.37 P1) —
+     hitungan murah dari data bulan berjalan: jumlah kategori terpakai +
+     jumlah temuan aktif; jatuh ke teks statis bila belum ada data. */
+  const analisisSubtitle = useMemo(() => {
+    const catCount = Object.keys(
+      monthSpendByCat(txs, currentMonthKey()),
+    ).length
+    const parts: string[] = []
+    if (catCount > 0) parts.push(`${catCount} kategori terpakai`)
+    if (findings.length > 0) parts.push(`${findings.length} temuan`)
+    return parts.length > 0
+      ? `${parts.join(' · ')} bulan ini`
+      : 'Komposisi, langganan, peta panas 12 pekan, dan temuan'
+  }, [txs, findings])
 
   /* anime.js — denyut "ka-ching" pada angka saldo saat transaksi baru masuk.
      Kebijakan reduced-motion: angka langsung diperbarui tanpa denyut. */
@@ -2813,9 +2835,42 @@ export default function KeuanganScreen() {
 
         </div>
 
-        {/* ===== KOMPOSISI + LANGGANAN (v2.22) — pasangan bento donut
-              interaktif & agregasi langganan berulang ===== */}
-        <div className="@[52rem]:col-span-12">
+        {/* ===== ANALISIS PENGELUARAN (audit UX density v2.37 P1) —
+              analisis lanjutan kini DILIPAT default: ringkasan cepat
+              (saldo, aktivitas, arus kas, anggaran, tujuan) tampil di
+              awal; komposisi+langganan, peta panas 12 pekan, dan temuan
+              dibuka sesuai kebutuhan. Susunan internal blok TIDAK berubah
+              — hanya dipindahkan ke dalam collapsible. ===== */}
+        <div className="mt-[var(--layout-gap)] @[52rem]:col-span-12">
+        <BlurFade visitKey="keuangan-analisis" delay={motionTokens.delay.relaxed}>
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Analisis pengeluaran — ${analisisSubtitle}. Buka untuk melihat detail.`}
+                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+                  <ChartPie aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Analisis Pengeluaran
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                    {analisisSubtitle}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-3 flex flex-col gap-[var(--layout-grid-gap)]">
+        {/* KOMPOSISI + LANGGANAN (v2.22) — pasangan bento donut
+              interaktif & agregasi langganan berulang */}
         <BlurFade visitKey="keuangan-komposisi" delay={motionTokens.delay.relaxed}>
           <RutinaBentoGrid>
             <RutinaBentoItem span="wide" className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
@@ -2827,14 +2882,12 @@ export default function KeuanganScreen() {
           </RutinaBentoGrid>
         </BlurFade>
 
-        </div>
-
-        {/* ===== PETA PANAS + TEMUAN — pasangan bento desktop (wide 8 +
+        {/* PETA PANAS + TEMUAN — pasangan bento desktop (wide 8 +
               feature 4); urutan DOM dipertahankan, ponsel tetap bertumpuk.
               (audit #9 & #10; v2.29: pembungkus m.div ganda dilepas —
               BlurFade luar sudah mengantar entrance; dua engine pada
-              satu elemen dilarang governance motion). ===== */}
-        <div className="@[52rem]:col-span-12">
+              satu elemen dilarang governance motion). Anak kedua
+              collapsible "Analisis Pengeluaran" sejak v2.37 P1. */}
         <BlurFade visitKey="keuangan-temuan" delay={motionTokens.delay.relaxed}>
           <div>
             <RutinaBentoGrid>
@@ -2901,6 +2954,10 @@ export default function KeuanganScreen() {
               </RutinaBentoItem>
             </RutinaBentoGrid>
           </div>
+        </BlurFade>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </BlurFade>
         </div>
         </div>
