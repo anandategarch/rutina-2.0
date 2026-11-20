@@ -535,6 +535,7 @@ export default function ProfileScreen() {
   return (
     <div
       data-module="profil"
+      data-layout="control-room"
       className="mx-auto h-full w-full max-w-[680px] overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}

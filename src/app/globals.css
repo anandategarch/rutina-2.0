@@ -626,7 +626,8 @@
 
      daybook (planner lapang) · performance (studio rapat) · vault
      (ruang kas presisi) · garden (kebun organik) · observatory
-     (laboratorium data). */
+     (laboratorium data) · writing-room (ruang tulis tenang) ·
+     control-room (ruang kendali presisi). */
   [data-layout] {
     --layout-density: balanced;
     /* Ponsel: micro-bento 2 kolom memakai jarak rapat 12px agar pas
@@ -662,6 +663,22 @@
     --layout-hero-radius: 1.5rem;
     --layout-density: compact;
   }
+  /* Writing Room (Jurnal) — ruang tulis tenang: satu kanvas, tanpa grid
+     dashboard. Radius DITAHAN (restrained) sesuai direktif kepribadian;
+     jarak seksi sedang agar daftar catatan bernapas tanpa terasa dashboard. */
+  [data-layout='writing-room'] {
+    --layout-gap: 1.25rem;
+    --layout-hero-radius: 1rem;
+    --layout-density: intimate;
+  }
+  /* Control Room (Profil) — ruang kendali presisi: baris pengaturan,
+     tanpa hero dekoratif. Radius disiplin mengikuti utilitas, bukan
+     dekorasi; jarak seksi sedang-lega agar grup terbaca sebagai blok. */
+  [data-layout='control-room'] {
+    --layout-gap: 1.5rem;
+    --layout-hero-radius: 1.25rem;
+    --layout-density: precise;
+  }
 
   /* Kepadatan grid relatif LEBAR KONTAINER, bukan viewport. Desktop
      Rutina punya sidebar 240px + ContextRail 288px — pada jendela
@@ -676,7 +693,9 @@
     }
     [data-layout='performance'],
     [data-layout='vault'],
-    [data-layout='observatory'] {
+    [data-layout='observatory'],
+    [data-layout='writing-room'],
+    [data-layout='control-room'] {
       --layout-grid-gap: 0.875rem;
     }
   }

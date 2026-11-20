@@ -78,6 +78,7 @@ export default function JournalScreen() {
   return (
     <div
       data-module="journal"
+      data-layout="writing-room"
       className="mx-auto h-full w-full max-w-[680px] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
