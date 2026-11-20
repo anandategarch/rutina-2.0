@@ -236,7 +236,7 @@ export function DailyHighlightCard() {
                   animate={{
                     width: `${Math.min(hl.visual.pct, 1) * 100}%`,
                   }}
-                  transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+                  transition={motionTokens.spring.bar}
                 />
               </div>
             </div>
@@ -276,7 +276,7 @@ export function DailyHighlightCard() {
                   initial={false}
                   className="h-full rounded-full bg-gold"
                   animate={{ width: `${Math.min(hl.visual.pct, 1) * 100}%` }}
-                  transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+                  transition={motionTokens.spring.bar}
                 />
               </div>
             </div>

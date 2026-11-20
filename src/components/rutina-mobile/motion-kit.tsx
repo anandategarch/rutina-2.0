@@ -19,6 +19,7 @@ import {
 import * as m from 'motion/react-m'
 
 import { cn } from '@/lib/utils'
+import { motionTokens } from '@/lib/motion/tokens'
 
 /* Tipe margin useInView (template literal) — tidak diekspor publik,
    jadi diturunkan dari signature fungsi. */
@@ -154,7 +155,7 @@ const letter: Variants = {
     y: '0em',
     opacity: 1,
     filter: 'blur(0px)',
-    transition: { type: 'spring', stiffness: 380, damping: 30 },
+    transition: motionTokens.spring.letter,
   },
 }
 
@@ -207,7 +208,12 @@ export function SplitText({
 
 const listParent: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.055, delayChildren: 0.04 } },
+  show: {
+    transition: {
+      staggerChildren: motionTokens.stagger.normal,
+      delayChildren: motionTokens.stagger.tight,
+    },
+  },
 }
 
 const listItem: Variants = {
@@ -216,7 +222,10 @@ const listItem: Variants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+    transition: {
+      duration: motionTokens.duration.enter,
+      ease: motionTokens.easing.standard,
+    },
   },
 }
 

@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import { fade, sheetSpring } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 import { CONTENT_W } from '../layout-widths'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import {
@@ -244,7 +245,7 @@ export function FoodSheet() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.22 }}
+                  transition={motionTokens.preset.interaction}
                   className="mt-3 space-y-2"
                 >
                   {results.map((f) => (
@@ -275,7 +276,7 @@ export function FoodSheet() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.22 }}
+                  transition={motionTokens.preset.interaction}
                   className="mt-3"
                 >
                   <section aria-label="Makanan yang sering dimakan">
@@ -305,7 +306,7 @@ export function FoodSheet() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.22 }}
+                  transition={motionTokens.preset.interaction}
                   className="mt-3 rounded-2xl border border-primary/35 bg-surface-primary p-4 shadow-soft"
                 >
                   <div className="flex items-start justify-between gap-3">

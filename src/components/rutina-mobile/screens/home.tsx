@@ -563,7 +563,7 @@ export default function HomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: motionTokens.duration.enter,
-          delay: 0.05,
+          delay: motionTokens.delay.tight,
           ease: motionTokens.easing.standard,
         }}
       >
@@ -572,10 +572,7 @@ export default function HomeScreen() {
             <m.section
               initial={playEntrance ? { opacity: 0, y: 22 } : false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.55,
-                ease: motionTokens.easing.standard,
-              }}
+              transition={motionTokens.preset.pageEntrance}
               aria-label="Progres hari ini"
               className="h-full"
             >
@@ -713,7 +710,7 @@ export default function HomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: motionTokens.duration.enter,
-          delay: 0.13,
+          delay: motionTokens.delay.relaxed,
           ease: motionTokens.easing.standard,
         }}
       >
@@ -790,8 +787,11 @@ export default function HomeScreen() {
                           initial={playEntrance ? { opacity: 0, y: 14 } : false}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{
-                            duration: 0.4,
-                            delay: Math.min(0.1 + gi * 0.06, 0.34),
+                            duration: motionTokens.duration.enter,
+                            delay: Math.min(
+                              motionTokens.delay.normal + gi * motionTokens.stagger.relaxed,
+                              0.34,
+                            ),
                             ease: motionTokens.easing.standard,
                           }}
                         >
@@ -857,7 +857,7 @@ export default function HomeScreen() {
                           <m.span
                             aria-hidden="true"
                             animate={{ rotate: showDone ? 180 : 0 }}
-                            transition={{ duration: 0.25 }}
+                            transition={motionTokens.preset.interaction}
                             className="text-content-muted"
                           >
                             <ChevronDown className="h-4 w-4" />
@@ -932,7 +932,7 @@ export default function HomeScreen() {
                       <m.span
                         aria-hidden="true"
                         animate={{ rotate: showArchive ? 180 : 0 }}
-                        transition={{ duration: 0.25 }}
+                        transition={motionTokens.preset.interaction}
                         className="text-content-muted"
                       >
                         <ChevronDown className="h-4 w-4" />
@@ -942,7 +942,7 @@ export default function HomeScreen() {
                       <m.div
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25 }}
+                        transition={motionTokens.preset.interaction}
                         className="mt-2 space-y-2"
                       >
                         {archivedHabits.map((h) => (
@@ -1011,7 +1011,7 @@ export default function HomeScreen() {
               <m.section
                 initial={playEntrance ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+                transition={motionTokens.preset.data}
                 aria-label="Pengingat jangan bolong dua kali"
               >
                 <div className="rounded-lg border border-gold/45 bg-gold/15 p-4">
@@ -1064,9 +1064,8 @@ export default function HomeScreen() {
                 initial={playEntrance ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: 0.5,
-                  delay: 0.05,
-                  ease: motionTokens.easing.standard,
+                  ...motionTokens.preset.data,
+                  delay: motionTokens.delay.tight,
                 }}
                 aria-label="Saran Coach"
               >
@@ -1119,7 +1118,7 @@ export default function HomeScreen() {
       <m.section
         initial={playEntrance ? { opacity: 0, y: 16 } : false}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.normal }}
         aria-label="Bonus harian"
       >
         <button
@@ -1208,7 +1207,7 @@ export default function HomeScreen() {
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-20px' }}
-        transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.data}
         aria-label="Jurnal dan catatan"
         /* v2.27 Daybook: pintu Jurnal bertint domain (dusty mauve) —
            band bawah halaman kini punya hierarki permukaan: flat insight,
@@ -1291,7 +1290,7 @@ export default function HomeScreen() {
         initial={playEntrance ? { opacity: 0, y: 18 } : false}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
-        transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.pageEntrance}
         aria-label="Refleksi hari ini"
         className="rounded-xl bg-surface-inverse p-6 text-content-inverse shadow-ink"
       >
@@ -1320,7 +1319,7 @@ export default function HomeScreen() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+              transition={motionTokens.preset.cardReveal}
             >
               <p
                 className={`${playfair.className} mt-4 text-balance text-lead italic leading-relaxed text-content-inverse`}

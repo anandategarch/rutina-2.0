@@ -555,7 +555,7 @@ export default function ProfileScreen() {
         whileTap={{ scale: 0.92 }}
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.cardReveal}
         className="interactive -ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-note font-semibold text-content-secondary shadow-soft hover:bg-surface-secondary"
       >
         <ArrowLeft className="h-4.5 w-4.5" />

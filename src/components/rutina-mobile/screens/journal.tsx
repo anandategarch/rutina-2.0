@@ -88,10 +88,7 @@ export default function JournalScreen() {
       <m.header
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.45,
-          ease: motionTokens.easing.standard,
-        }}
+        transition={motionTokens.preset.panelReveal}
       >
         <RutinaSectionHeader
           eyebrow={longDateLabel(todayISO())}
@@ -109,9 +106,8 @@ export default function JournalScreen() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
-          duration: 0.45,
-          delay: 0.06,
-          ease: motionTokens.easing.standard,
+          ...motionTokens.preset.panelReveal,
+          delay: motionTokens.delay.tight,
         }}
         className="interactive mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-soft hover:bg-action-hover"
       >
@@ -127,9 +123,8 @@ export default function JournalScreen() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: 0.5,
-            delay: 0.1,
-            ease: motionTokens.easing.standard,
+            ...motionTokens.preset.data,
+            delay: motionTokens.delay.normal,
           }}
           className="relative"
         >
@@ -148,9 +143,8 @@ export default function JournalScreen() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: 0.5,
-            delay: 0.14,
-            ease: motionTokens.easing.standard,
+            ...motionTokens.preset.data,
+            delay: motionTokens.delay.relaxed,
           }}
           className="relative mt-2.5"
         >

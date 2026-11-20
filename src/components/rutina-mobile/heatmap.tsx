@@ -112,7 +112,7 @@ export default function Heatmap() {
       ref={rootRef}
       initial={{ opacity: 0, y: 16 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-      transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.data}
       className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
     >
       <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">

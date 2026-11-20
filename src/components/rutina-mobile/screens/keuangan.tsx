@@ -336,7 +336,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
       <m.div
         initial={{ opacity: 0, y: 20, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ ...motionTokens.preset.data, delay: Math.min(index * 0.07, 0.28) }}
+        transition={{ ...motionTokens.preset.data, delay: Math.min(index * motionTokens.stagger.relaxed, 0.28) }}
         className="relative flex h-full min-h-[200px] flex-col rounded-xl bg-surface-primary p-4 text-content-primary shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift"
       >
         {/* Kelola tujuan (audit CRUD v2.26) — pintu ke sunting/hapus
@@ -472,7 +472,7 @@ const catMeta = useCatMeta()
       initial={{ opacity: 0, y: 16, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -32, scale: 0.97, transition: { ...motionTokens.preset.interaction } }}
-      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+      transition={motionTokens.spring.rowEnter}
       className={
         flat
           ? /* Varian ledger (v2.29 Vault): baris buku kas — hairline bawah

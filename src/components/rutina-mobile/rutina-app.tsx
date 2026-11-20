@@ -238,13 +238,13 @@ export function RutinaApp() {
                 className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: glow[1] }}
-                transition={{ duration: motionTokens.duration.ambient, delay: 0.06 }}
+                transition={{ duration: motionTokens.duration.ambient, delay: motionTokens.delay.tight }}
               />
               <m.div
                 className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl"
                 initial={false}
                 animate={{ backgroundColor: glow[2] }}
-                transition={{ duration: motionTokens.duration.ambient, delay: 0.1 }}
+                transition={{ duration: motionTokens.duration.ambient, delay: motionTokens.delay.normal }}
               />
             </div>
 
@@ -258,7 +258,7 @@ export function RutinaApp() {
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                  transition={motionTokens.preset.screenSwap}
                   className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}
                 >
                   {screen === 'beranda' && <HomeScreen />}

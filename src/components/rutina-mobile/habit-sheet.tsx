@@ -884,7 +884,7 @@ export function HabitSheet() {
                         <m.span
                           aria-hidden="true"
                           animate={{ rotate: pickTriggerOpen ? 180 : 0 }}
-                          transition={{ duration: 0.25 }}
+                          transition={motionTokens.preset.interaction}
                           className="flex"
                         >
                           <ChevronDown className="h-3.5 w-3.5" />

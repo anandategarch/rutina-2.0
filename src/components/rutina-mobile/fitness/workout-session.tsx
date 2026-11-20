@@ -295,7 +295,7 @@ function RestCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
-      transition={{ duration: 0.26, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.cardReveal}
       role="timer"
       aria-label={`Istirahat ${mmss(remaining)}`}
       className="rounded-xl border border-hero-content/12 bg-hero-content/[0.06] p-4"
@@ -423,7 +423,7 @@ function AddExercisePanel({
       <m.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.chipReveal}
         className="rounded-xl border border-hero-content/12 bg-hero-content/[0.06] p-4"
       >
         <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
@@ -802,7 +802,7 @@ function SessionView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.02 }}
-      transition={{ duration: 0.3, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.cardReveal}
       className="fixed inset-0 z-[70] bg-hero-surface text-hero-content"
     >
       <div
@@ -907,7 +907,7 @@ function SessionView({
               key={ex.id}
               initial={{ opacity: 0, x: dir * 56 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.26, ease: motionTokens.easing.standard }}
+              transition={motionTokens.preset.cardReveal}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.16}
@@ -980,7 +980,7 @@ function SessionView({
                 <m.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                  transition={motionTokens.preset.chipReveal}
                   className="mt-3 rounded-2xl border border-hero-content/12 bg-hero-content/[0.06] p-3.5"
                 >
                   <div className="flex items-start gap-2.5">
@@ -1032,7 +1032,7 @@ function SessionView({
               key="session-empty"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.26, ease: motionTokens.easing.standard }}
+              transition={motionTokens.preset.cardReveal}
               className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center"
             >
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-hero-content/10 text-hero-accent">
@@ -1556,7 +1556,7 @@ export function SessionPickerSheet({
                         key={it.name}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.22, ease: motionTokens.easing.standard }}
+                        transition={motionTokens.preset.interaction}
                         className="rounded-2xl border border-border bg-surface-primary p-3.5 shadow-soft"
                       >
                         <div className="flex items-center gap-2.5">

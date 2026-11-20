@@ -584,7 +584,7 @@ function HabitDetailPanel({
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: motionTokens.duration.enter,
-        delay: 0.1,
+        delay: motionTokens.delay.normal,
         ease: motionTokens.easing.standard,
       }}
     >
@@ -1055,10 +1055,7 @@ export default function KebiasaanScreen() {
       <m.header
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.45,
-          ease: motionTokens.easing.standard,
-        }}
+        transition={motionTokens.preset.panelReveal}
       >
         {/* Judul halaman editorial — Playfair Display sebagai aksen botanical
             (Tipografi System v1: satu-satunya serif di luar sapaan Beranda;
@@ -1091,9 +1088,8 @@ export default function KebiasaanScreen() {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: 0.5,
-            delay: 0.06,
-            ease: motionTokens.easing.standard,
+            ...motionTokens.preset.data,
+            delay: motionTokens.delay.tight,
           }}
           aria-label="Belum ada kebiasaan"
           className="mt-[var(--layout-gap)]"
@@ -1171,7 +1167,7 @@ export default function KebiasaanScreen() {
             className="mt-[var(--layout-gap)] scroll-mt-20"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.chipReveal}
           >
             <RutinaSectionHeader
               title="Agenda hari ini"
@@ -1459,10 +1455,7 @@ export default function KebiasaanScreen() {
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-20px' }}
-              transition={{
-                duration: 0.24,
-                ease: motionTokens.easing.standard,
-              }}
+              transition={motionTokens.preset.chipReveal}
             >
               <RutinaSectionHeader
                 accent
@@ -1595,7 +1588,7 @@ export default function KebiasaanScreen() {
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-20px' }}
-            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.chipReveal}
           >
             <RutinaSectionHeader
               title="Perpustakaan kebiasaan"
@@ -1790,7 +1783,7 @@ export default function KebiasaanScreen() {
         initial={{ opacity: 0, y: 14 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-20px' }}
-        transition={{ duration: 0.45, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.panelReveal}
         className="mt-8"
       >
         <button

@@ -10,6 +10,7 @@ import { Delete, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { fade, sheetSpring } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -250,7 +251,7 @@ export function AddTxSheet() {
                         aria-hidden="true"
                         layoutId="tx-type-pill"
                         className="absolute inset-0 z-[-1] rounded-full bg-surface-primary shadow-soft"
-                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        transition={motionTokens.spring.snappy}
                       />
                     )}
                     {t === 'keluar' ? 'Pengeluaran' : 'Pemasukan'}

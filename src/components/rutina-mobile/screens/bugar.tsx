@@ -142,9 +142,8 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.24,
-        delay: Math.min(0.08 + index * 0.06, 0.3),
-        ease: motionTokens.easing.standard,
+        ...motionTokens.preset.chipReveal,
+        delay: Math.min(motionTokens.delay.step + index * motionTokens.stagger.relaxed, 0.3),
       }}
       className="rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
     >
@@ -182,7 +181,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.navigation}
             className="overflow-hidden"
           >
             <p className="mt-3 text-note leading-relaxed text-content-muted">
@@ -298,9 +297,8 @@ function WorkoutRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{
-        duration: 0.24,
-        delay: Math.min(index * 0.04, 0.2),
-        ease: motionTokens.easing.standard,
+        ...motionTokens.preset.chipReveal,
+        delay: Math.min(index * motionTokens.stagger.normal, 0.2),
       }}
       /* Riwayat ala TIMELINE (v2.30 audit): hairline ledger-row + tulang
          punggung vertikal timeline-node di belakang chip — chip menjadi
@@ -351,7 +349,7 @@ function WorkoutRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.cardReveal}
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-xl bg-surface-sunken p-3">
@@ -560,7 +558,7 @@ function ExerciseCard({ name }: { name: string }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.cardReveal}
             className="overflow-hidden"
           >
             <div className="mt-3 space-y-3">
@@ -684,9 +682,8 @@ function TonaseStrip() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-20px' }}
       transition={{
-        duration: 0.24,
-        delay: 0.06,
-        ease: motionTokens.easing.standard,
+        ...motionTokens.preset.chipReveal,
+        delay: motionTokens.delay.tight,
       }}
       aria-label="Tonase 7 hari pekan ini"
       className="mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
@@ -774,7 +771,7 @@ function TonaseStrip() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.cardReveal}
             className="overflow-hidden"
           >
             <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
@@ -1051,7 +1048,7 @@ export default function BugarScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{
               duration: motionTokens.duration.enter,
-              delay: 0.05,
+              delay: motionTokens.delay.tight,
               ease: motionTokens.easing.standard,
             }}
             className="mt-4"
@@ -1065,7 +1062,7 @@ export default function BugarScreen() {
           <m.section
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.chipReveal}
             aria-label="Ringkasan latihan pekan ini"
             className="relative overflow-hidden rounded-2xl bg-module-accent-strong p-5 text-module-accent-fg shadow-leaf @[24rem]:p-6"
           >
@@ -1132,9 +1129,8 @@ export default function BugarScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
-              duration: 0.24,
-              delay: 0.18,
-              ease: motionTokens.easing.standard,
+              ...motionTokens.preset.chipReveal,
+              delay: motionTokens.delay.sweep,
             }}
             className="mt-4 grid grid-cols-2 gap-3 border-t border-module-accent-fg/25 pt-4 @[24rem]:grid-cols-4"
           >
@@ -1238,7 +1234,7 @@ export default function BugarScreen() {
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.06, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         className="interactive mt-3 flex h-13 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-lift hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Play className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
@@ -1286,7 +1282,7 @@ export default function BugarScreen() {
           <m.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.chipReveal}
             className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
           >
             <div className="flex items-center gap-3">
@@ -1341,7 +1337,7 @@ export default function BugarScreen() {
             <m.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.24, delay: 0.05, ease: motionTokens.easing.standard }}
+              transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
               className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
@@ -1372,7 +1368,7 @@ export default function BugarScreen() {
             <m.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.24, delay: 0.05, ease: motionTokens.easing.standard }}
+              transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
               className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
             >
               <div className="flex items-start gap-3">
@@ -1417,7 +1413,7 @@ export default function BugarScreen() {
             <m.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.24, delay: 0.08, ease: motionTokens.easing.standard }}
+              transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.step }}
               className="rounded-xl border border-destructive/30 bg-surface-sunken p-4"
             >
               <div className="flex items-start gap-3">
@@ -1575,7 +1571,7 @@ export default function BugarScreen() {
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-20px' }}
-            transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.chipReveal}
             className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
           >
             <div className="flex items-baseline justify-between gap-2">
@@ -1673,7 +1669,7 @@ export default function BugarScreen() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                transition={motionTokens.preset.chipReveal}
               >
                 <RutinaEmptyState
                   icon={<Search />}
@@ -1688,7 +1684,7 @@ export default function BugarScreen() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                transition={motionTokens.preset.chipReveal}
               >
                 <RutinaEmptyState
                   icon={<History />}
@@ -1751,9 +1747,8 @@ export default function BugarScreen() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: 0.24,
-                  delay: Math.min(i * 0.05, 0.3),
-                  ease: motionTokens.easing.standard,
+                  ...motionTokens.preset.chipReveal,
+                  delay: Math.min(i * motionTokens.stagger.normal, 0.3),
                 }}
                 className={`flex items-center gap-3 rounded-lg border p-3.5 ${
                   i === 0
@@ -1810,7 +1805,7 @@ export default function BugarScreen() {
         <m.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.05, ease: motionTokens.easing.standard }}
+          transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
           className="mt-3"
         >
           <div className="relative">

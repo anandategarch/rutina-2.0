@@ -679,10 +679,7 @@ export function BarbellToolsSheet({
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{
-                      duration: 0.24,
-                      ease: motionTokens.easing.standard,
-                    }}
+                    transition={motionTokens.preset.chipReveal}
                     className="mt-4"
                   >
                     <PlateLoaderTab />
@@ -693,10 +690,7 @@ export function BarbellToolsSheet({
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{
-                      duration: 0.24,
-                      ease: motionTokens.easing.standard,
-                    }}
+                    transition={motionTokens.preset.chipReveal}
                     className="mt-4"
                   >
                     <OneRmTab />
@@ -707,10 +701,7 @@ export function BarbellToolsSheet({
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{
-                      duration: 0.24,
-                      ease: motionTokens.easing.standard,
-                    }}
+                    transition={motionTokens.preset.chipReveal}
                     className="mt-4"
                   >
                     <WarmupTab />

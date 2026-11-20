@@ -344,7 +344,7 @@ export function TaskRow({
         {/* Chevron detail */}
         <m.span
           animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.25 }}
+          transition={motionTokens.preset.interaction}
           className="shrink-0 text-content-muted"
         >
           <ChevronDown className="h-4 w-4" />
@@ -360,7 +360,7 @@ export function TaskRow({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: [0, 1, 1, 0], y: -30 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.9, times: [0, 0.2, 0.75, 1] }}
+              transition={{ ...motionTokens.preset.gardenMilestone, times: [0, 0.2, 0.75, 1] }}
               className="pointer-events-none absolute right-12 top-1/2 text-eyebrow font-semibold text-success"
             >
               +{xp} XP
@@ -447,7 +447,7 @@ export function TaskRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.32, ease: motionTokens.easing.standard }}
+            transition={motionTokens.preset.navigation}
             className="relative z-10 overflow-hidden bg-surface-primary"
           >
             <div className="border-t border-border px-3 pb-4 pt-3 text-left">

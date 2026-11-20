@@ -551,7 +551,7 @@ export function CssLab({ open, onClose }: { open: boolean; onClose: () => void }
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={motionTokens.preset.interaction}
         />
       )}
       {open && (
@@ -660,9 +660,8 @@ export function CssLab({ open, onClose }: { open: boolean; onClose: () => void }
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{
-                          duration: 0.3,
-                          delay: Math.min(i * 0.035, 0.35),
-                          ease: motionTokens.easing.standard,
+                          ...motionTokens.preset.cardReveal,
+                          delay: Math.min(i * motionTokens.stagger.tight, 0.35),
                         }}
                       >
                         <article className="overflow-hidden rounded-xl border border-border-default bg-surface-primary">

@@ -410,7 +410,7 @@ export function WorkoutSheet() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                  transition={motionTokens.preset.chipReveal}
                   className="mt-4"
                 >
                   {/* Jenis kardio — kombinasi lari+jalan TETAP satu catatan;
@@ -473,7 +473,7 @@ export function WorkoutSheet() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                  transition={motionTokens.preset.chipReveal}
                   className="mt-4"
                 >
                   <p className="text-meta leading-relaxed text-content-muted">
@@ -513,7 +513,7 @@ export function WorkoutSheet() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+                  transition={motionTokens.preset.chipReveal}
                   className="mt-4"
                 >
                   <div className="flex items-center justify-between px-0.5">
@@ -560,7 +560,7 @@ export function WorkoutSheet() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.97 }}
-                        transition={{ duration: 0.22 }}
+                        transition={motionTokens.preset.interaction}
                         className="rounded-2xl border border-border bg-surface-primary p-3.5"
                       >
                         <div className="flex items-center gap-2">

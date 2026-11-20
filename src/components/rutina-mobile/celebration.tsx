@@ -80,7 +80,7 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
           <m.div
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ ...celebrate, delay: 0.1 }}
+            transition={{ ...celebrate, delay: motionTokens.delay.normal }}
             className="flex flex-col items-center gap-3 rounded-[28px] bg-surface-sunken/90 px-7 py-6 shadow-ink-deep backdrop-blur-[2px]"
           >
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-ink">

@@ -113,8 +113,8 @@ export function ReadingSheet() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: 0.4,
-                  delay: 0.08,
+                  duration: motionTokens.duration.enter,
+                  delay: motionTokens.delay.step,
                   ease: motionTokens.easing.standard,
                 }}
                 className="flex flex-wrap items-center gap-1.5"
@@ -145,9 +145,9 @@ export function ReadingSheet() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: 0.45,
-                  delay: 0.14,
+                  ...motionTokens.preset.panelReveal,
                   ease: motionTokens.easing.entrance,
+                  delay: motionTokens.delay.relaxed,
                 }}
                 className={`${playfair.className} mt-2 text-2xl font-semibold leading-snug tracking-tight text-content-primary`}
               >
@@ -165,9 +165,10 @@ export function ReadingSheet() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: 0.45,
-                delay: 0.2,
+                ...motionTokens.preset.panelReveal,
                 ease: motionTokens.easing.entrance,
+                /* Sekuens editorial baca — blok isi menyusul judul. */
+                delay: 0.2,
               }}
               className="mt-5 border-t border-border/60 pt-5"
             >
@@ -180,7 +181,8 @@ export function ReadingSheet() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
-                duration: 0.4,
+                duration: motionTokens.duration.enter,
+                /* Sekuens editorial baca — aksi menutup sekuens. */
                 delay: 0.26,
                 ease: motionTokens.easing.standard,
               }}

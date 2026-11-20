@@ -251,7 +251,7 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.chipReveal}
         aria-label="Check-in harian tubuh"
         className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -348,7 +348,7 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.06, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         aria-label="Kesiapan latihan"
         className={`mt-3 overflow-hidden rounded-2xl p-5 shadow-leaf ${
           readiness
@@ -412,7 +412,7 @@ export function TubuhPanel() {
         <m.section
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.09, ease: motionTokens.easing.standard }}
+          transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.step }}
           aria-label="Rincian kesiapan latihan"
           className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
         >
@@ -486,7 +486,7 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.1, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.normal }}
         aria-label="Hidrasi hari ini"
         className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -565,7 +565,7 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.14, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.relaxed }}
         aria-label="Berat badan"
         className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
@@ -640,7 +640,7 @@ export function TubuhPanel() {
       <m.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.16, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.sweep }}
         aria-label="Sasaran bugar musim ini"
         className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >

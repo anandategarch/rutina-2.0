@@ -75,7 +75,7 @@ export function HomeFinanceCard() {
       initial={playEntrance ? { opacity: 0, y: 18 } : false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.55, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.pageEntrance}
       aria-label="Arus kas hari ini"
       className="mt-8"
     >

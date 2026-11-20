@@ -594,11 +594,7 @@ function SaveIndicator({ status, savedAt, online }: SaveIndicatorProps) {
             aria-hidden="true"
             className="h-1.5 w-1.5 shrink-0 rounded-full bg-gold"
             animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{
-              duration: 1.1,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+            transition={motionTokens.preset.activityPulse}
           />
         )}
         Menyimpan…

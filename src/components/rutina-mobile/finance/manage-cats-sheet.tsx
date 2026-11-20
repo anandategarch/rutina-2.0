@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { fade, sheetSpring } from '@/lib/motion/transitions'
+import { motionTokens } from '@/lib/motion/tokens'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type TxType } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
@@ -230,7 +231,7 @@ export function ManageCatsSheet() {
                         aria-hidden="true"
                         layoutId="cat-manage-pill"
                         className="absolute inset-0 z-[-1] rounded-full bg-surface-primary shadow-soft"
-                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        transition={motionTokens.spring.snappy}
                       />
                     )}
                     {t === 'keluar' ? 'Pengeluaran' : 'Pemasukan'}

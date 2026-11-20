@@ -59,7 +59,7 @@ export function DesktopSidebar() {
       aria-label="Navigasi utama"
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.pageEntrance}
       className="hidden h-full w-60 shrink-0 flex-col border-r border-border bg-surface-primary lg:flex"
     >
       {/* Wordmark + tagline */}

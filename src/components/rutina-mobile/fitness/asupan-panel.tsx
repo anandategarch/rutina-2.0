@@ -110,7 +110,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+      transition={motionTokens.preset.chipReveal}
       className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary p-3 shadow-soft"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
@@ -252,7 +252,7 @@ export function AsupanPanel() {
       <m.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+        transition={motionTokens.preset.chipReveal}
         aria-label="Neraca kalori hari ini"
         className="overflow-hidden rounded-2xl bg-module-accent-strong p-6 text-module-accent-fg shadow-leaf"
       >
@@ -295,7 +295,7 @@ export function AsupanPanel() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.28, ease: motionTokens.easing.standard }}
+              transition={motionTokens.preset.cardReveal}
               className="overflow-hidden"
             >
               <div className="mt-3 flex items-center gap-2 rounded-2xl bg-espresso/35 p-2.5 backdrop-blur-sm">
@@ -514,7 +514,7 @@ export function AsupanPanel() {
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.06, ease: motionTokens.easing.standard }}
+        transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         className="interactive mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
@@ -575,7 +575,7 @@ export function AsupanPanel() {
             <m.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
+              transition={motionTokens.preset.chipReveal}
               className="rounded-xl border-2 border-dashed border-primary/30 px-6 py-9 text-center"
             >
               <Apple className="mx-auto h-6 w-6 text-content-muted" />
@@ -651,9 +651,8 @@ export function AsupanPanel() {
                       initial={{ scaleY: 0 }}
                       animate={{ scaleY: 1 }}
                       transition={{
-                        duration: 0.5,
+                        ...motionTokens.preset.data,
                         delay: i * motionTokens.stagger.normal,
-                        ease: motionTokens.easing.standard,
                       }}
                       style={{
                         height: kcal > 0 ? `${h}%` : '3px',

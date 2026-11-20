@@ -951,7 +951,7 @@ export default function StatsScreen() {
                 strokeDasharray={CIRC}
                 initial={{ strokeDashoffset: CIRC }}
                 animate={{ strokeDashoffset: CIRC * (1 - progress) }}
-                transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+                transition={motionTokens.spring.progressArc}
               />
               <defs>
                 <linearGradient
@@ -1118,7 +1118,7 @@ export default function StatsScreen() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ ...motionTokens.preset.data, delay: 0.06 }}
+              transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
               className="flex h-full flex-col rounded-lg border border-border bg-surface-primary p-5 shadow-card"
               aria-label="Grafik misi selesai"
             >
@@ -1768,7 +1768,7 @@ export default function StatsScreen() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
-              transition={{ ...motionTokens.preset.data, delay: 0.06 }}
+              transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
               className="h-full rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
             >
               <p className="text-body font-semibold tracking-tight text-content-secondary">
@@ -1887,7 +1887,7 @@ export default function StatsScreen() {
                                 initial={{ scaleX: 0 }}
                                 whileInView={{ scaleX: curW / 100 }}
                                 viewport={{ once: true, margin: '-16px' }}
-                                transition={{ ...barFill, delay: 0.06 }}
+                                transition={{ ...barFill, delay: motionTokens.delay.tight }}
                                 style={{ width: '100%' }}
                                 className="h-full origin-left rounded-full bg-module-accent-strong"
                               />
@@ -1991,7 +1991,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: 0.06 }}
+                  transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
                   className="rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
@@ -2027,7 +2027,7 @@ export default function StatsScreen() {
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: 0.12 }}
+                  transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.relaxed }}
                   className="rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">

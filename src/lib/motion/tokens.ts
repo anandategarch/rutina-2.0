@@ -10,6 +10,13 @@
  *   Transisi halaman    → easing standard
  *   Progres             → spring.smooth / easing smooth
  *
+ * LAPISAN PRESET LAYAR (v2.35, audit final polish): entrance blok layar
+ * memakai preset semantik — pageEntrance (hero/blok besar), panelReveal
+ * (panel sedang), cardReveal (kartu/baris), chipReveal (elemen kecil) —
+ * dipadu skala `delay` absolut (tight→sweep) dan spring bernama
+ * (progressArc, rowEnter, letter). Karakter tiap ruang tetap berbeda;
+ * yang disamakan adalah SUMBER angkanya, bukan rasanya.
+ *
  * LAPISAN CSS PRESS (di luar Motion, disengaja): umpan balik tekan murah
  * di komponen dasar memakai kelas CSS `active:scale-*` + `duration-150`
  * (rutina-button 0.97 · bottom-nav 0.94 · rutina-tabs 0.96). Ini BUKAN
@@ -98,13 +105,54 @@ export const motionTokens = {
       stiffness: 500,
       damping: 26,
     },
+    /** Busur progres bernilai (cincin XP Observatory) — lambat dan
+     *  meyakinkan, berbeda dari spring.smooth cincin Beranda yang ikut
+     *  centang kebiasaan secara reaktif. */
+    progressArc: {
+      type: 'spring' as const,
+      stiffness: 80,
+      damping: 18,
+    },
+    /** Baris daftar masuk (ledger Vault, transaksi baru muncul) —
+     *  mantap dan terkontrol, lebih kencang dari smooth. */
+    rowEnter: {
+      type: 'spring' as const,
+      stiffness: 320,
+      damping: 28,
+    },
+    /** Huruf teks terbelah (SplitText) — pantulan tipografi khas. */
+    letter: {
+      type: 'spring' as const,
+      stiffness: 380,
+      damping: 30,
+    },
   },
 
-  /** Jeda berantai antar anak (detik) untuk stagger. */
+  /** Jeda berantai antar anak (detik) untuk stagger — dipakai pada
+   *  `staggerChildren`/`delayChildren` wadah, ATAU dikalikan index
+   *  untuk delay berurutan daftar (lihat pola `index * stagger`). */
   stagger: {
     tight: 0.035,
     normal: 0.05,
     relaxed: 0.07,
+  },
+
+  /** Offset masuk ABSOLUT (detik) — jeda sebelum sebuah blok muncul,
+   *  untuk mengurutkan beberapa blok dalam satu pandangan. Berbeda
+   *  dari `stagger` (jeda ANTAR anak): nilai ini dipasang langsung
+   *  di `delay` transisi. (Governance v2.35: sebelumnya 0.05–0.18
+   *  ditulis bebas di 30+ titik.) */
+  delay: {
+    /** Offset terkecil — blok tepat setelah blok sebelumnya. */
+    tight: 0.05,
+    /** Satu langkah kecil ke bawah (setengah beat). */
+    step: 0.08,
+    /** Offset baku — panel kedua dalam satu layar. */
+    normal: 0.1,
+    /** Offset lega — panel ketiga/keempat. */
+    relaxed: 0.14,
+    /** Rentetan penuh — blok penutup setelah beberapa blok masuk. */
+    sweep: 0.18,
   },
 
   /** Preset gerak berdasarkan FUNGSI — katalog tunggal lintas layar
@@ -134,6 +182,31 @@ export const motionTokens = {
      *  diizinkan (api streak, amplitudo ≤8%). Direndam menjadi preset
      *  agar daftar animasi infinite bisa dihitung & diaudit. */
     ambientPulse: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+    /** Denyut AKTIVITAS (indikator autosave Jurnal) — satu-satunya
+     *  animasi infinite kedua yang diizinkan; lebih cepat dari
+     *  ambientPulse karena menandakan pekerjaan sedang berjalan. */
+    activityPulse: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' },
+    /** Masuk blok BESAR layar (hero, panel utama, cincin sorotan) —
+     *  tenang dan editorial. (v2.35: menggantikan literal 0.55 di
+     *  hero Beranda, kebun, kartu keuangan Beranda, sidebar desktop.) */
+    pageEntrance: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+    /** Panel sedang — kepala seksi, tombol utama, metadata Jurnal,
+     *  detail Kebiasaan. (menggantikan literal 0.45.) */
+    panelReveal: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    /** Kartu & baris editorial — ritme baku antar bagian konten.
+     *  (menggantikan literal 0.26–0.30.) */
+    cardReveal: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+    /** Elemen kecil masuk — chip, stat mini, baris tombol Studio &
+     *  panel Bugar. (menggantikan literal 0.24 yang paling tersebar.) */
+    chipReveal: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
+    /** Momen milestone kebun (pop XP, pengisian berjenjang) — durasi
+     *  saja TANPA ease bawaan agar keyframe `times` milik pemanggil
+     *  tetap linear seperti koreografi aslinya. */
+    gardenMilestone: { duration: 0.9 },
+    /** Transisi antar-RUANG (ganti layar utama) — ringan dan cepat,
+     *  nilai hasil kalibrasi v2.34; entrance TIDAK ikut transisi ini
+     *  (gerbang anti-replay firstVisit mengurusnya per layar). */
+    screenSwap: { duration: 0.24, ease: [0.22, 1, 0.36, 1] },
     /** anime.js v4 (MILIDETIK) — stagger batang grafik terungkap. */
     chartRevealMs: { duration: 850 },
     /** anime.js v4 (MILIDETIK) — pop umpan balik nilai (saldo, angka). */
