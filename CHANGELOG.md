@@ -5,6 +5,22 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.36] — Full Data Visualization Expansion
+
+Ekspansi visualisasi data menyeluruh di atas baseline v2.35: setiap data
+penting terbaca sebagai cara baca yang lebih cepat. Angka tetap untuk
+presisi; visual untuk pola, perbandingan, komposisi, progres, anomali.
+Tujuh karakter halaman dipertahankan — tidak ada redesain, tidak ada
+dependensi chart baru.
+
+| Tahap | Rincian |
+|---|---|
+| **1 · Integritas data** | Tanggal jurnal ISO yyyy-mm-dd (addNote/saveQuote/kanvas) selaras skema JournalNote; migrasi aman catatan lama "Hari ini" via tanggal-dibuat dari id epoch (noteDateISO); tak-dikenal = "Tanpa tanggal". notesOnDate kini eksak. Metrik sadar-jadwal di store.ts: daySchedules (kepatuhan selesai/terjadwal; hari jeda diampuni; hormati createdAt & arsip), habitStatusOn (5 status), habitWeeklyRates (4 pekan). 23 unit test baru. |
+| **2 · Bugar & Kebiasaan** | TubuhPanel: Riwayat Tubuh 14 hari — small multiples tidur (bar + zona 7-8 jam), energi (dot 1-5), hidrasi (bar vs target); hari tanpa catatan = soket hollow (bukan nol); ketuk-untuk-baca + rerata/cakupan N/14. AsupanPanel: bullet bar Protein/Karb/Lemak vs target Sasaran Musim + baris cakupan makro %. Bugar Latihan: Campuran Aktivitas 7 hari (ikon per jenis) + Tren Pace menit/km (≥3 sesi valid, terpisah dari grafik jarak). Heatmap: dua mode Jumlah/Kepatuhan (tanpa jadwal = sel outline, legenda persen) — Garden default kepatuhan + toggle. HabitDetailPanel: 30 hari lima status + legenda + tren 4 pekan P1-P4. bodySeries/bodyCoverage di fit-utils. |
+| **3 · Statistik & Beranda** | Stats Bugar & Tubuh: Sesi/pekan + Tonase/pekan (P1-P4), kalori 7 hari kalender + garis target + X/7 tercatat, small multiples Tidur/Energi/Hidrasi; crossInsights.woCompare → visual pembar bar hari berlatih vs tanpa latihan (+ sampel, disclaimer). DateStrip: bar intensitas selesai/terjadwal + caption sadar-jadwal. WeeklyRecapCard: bar proporsi vs target per hari, detail X/Y jadwal (Z%). DayDetailSheet: persentase kepatuhan. |
+| **4 · Penyempurnaan** | Keuangan tab Anggaran: sortir persentase penggunaan tertinggi. Jurnal: kartu Aktivitas Menulis (kalender mini bulanan intensitas catatan + navigasi bulan; ketuk tanggal = filter daftar; chip Filter aktif), distribusi folder segmented, ringkasan mood tercatat. Profil: bar distribusi mood 14 hari (netral, penyebut "dari N hari tercatat"). |
+| **Pembuktian mutu** | bun run verify hijau: typecheck + lint + 156 test (0 gagal). Browser E2E dengan data uji disemai ke server: 36 kombinasi lebar (320/390/768/1024/1280/1440) × 6 layar + Jurnal — tanpa overflow horizontal; nol error konsol & halaman; CRUD (centang on/off, buat+hapus catatan, dialog hapus kebiasaan) + PUT /api/state menyala; dark mode terbaca. |
+
 ## [2.35] — Final Design Engineering Polish: Motion Governance, Anti-Replay & Premium CSS
 
 Gelombang penyelesaian (finishing) setelah redesain v2.27–v2.34 disetujui

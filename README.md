@@ -6,8 +6,24 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.35.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.36.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.36 — Full Data Visualization Expansion
+
+Ekspansi visualisasi data menyeluruh di atas baseline v2.35: **setiap data
+penting terbaca sebagai cara baca yang lebih cepat** — angka tetap untuk
+presisi, visual untuk pola, perbandingan, komposisi, progres, dan anomali.
+Tujuh karakter halaman dipertahankan; tidak ada redesain; tidak ada
+dependensi chart baru (Recharts/SVG/Motion/anime.js yang ada).
+
+| Tahap | Rincian |
+|---|---|
+| **1 · Integritas data** | Tanggal catatan jurnal distandarisasi ISO yyyy-mm-dd (`addNote`/`saveQuote`/kanvas) — selaras skema `JournalNote`; catatan lama "Hari ini" dimigrasi aman lewat tanggal-dibuat dari id epoch (`noteDateISO`), tak-dikenal = "Tanpa tanggal" (tidak dikarang jadi hari ini). Metrik kebiasaan sadar-jadwal: `daySchedules` (kepatuhan selesai/terjadwal, hari jeda diampuni, hormati createdAt & arsip), `habitStatusOn` (done/missed/rest/unscheduled/future), `habitWeeklyRates` (4 pekan). 23 unit test baru (tests/data-integrity.test.ts). |
+| **2 · Bugar & Kebiasaan** | Bugar: kartu Riwayat Tubuh 14 hari (small multiples tidur+zona 7-8 jam / energi dot 1-5 / hidrasi vs target; hari tanpa catatan = soket hollow, bukan nol), bullet bar makro vs target + cakupan makro %, Campuran Aktivitas 7 hari (ikon per jenis — satuan tidak dicampur), Tren Pace menit/km terpisah dari grafik jarak. Kebiasaan: heatmap dua mode Jumlah/Kepatuhan (hari tanpa jadwal = sel outline; Garden default kepatuhan — membedakannya dari heatmap Statistik), riwayat 30 hari lima status + legenda, tren 4 pekan per kebiasaan. |
+| **3 · Statistik & Beranda** | Statistik Bugar & Tubuh: Sesi/Tonase per pekan (P1-P4), kalori 7 hari kalender + garis target + X/7 hari tercatat, small multiples Tidur/Energi/Hidrasi; Wawasan lintas domain kini punya visual pembanding bar hari berlatih vs tanpa latihan (+ jumlah sampel, disclaimer observasional). Beranda: DateStrip bar intensitas selesai/terjadwal (caption sadar-jadwal), WeeklyRecap bar proporsi capaian vs target per hari + detail X/Y jadwal (Z%), DayDetailSheet + persentase kepatuhan. |
+| **4 · Penyempurnaan** | Keuangan: baris anggaran diurut persentase penggunaan tertinggi. Jurnal: kartu Aktivitas Menulis (kalender mini intensitas catatan/bulan + navigasi bulan, ketuk tanggal = filter daftar + chip hapus), distribusi folder segmented bar, ringkasan mood yang tercatat. Profil: bar distribusi mood 14 hari netral dengan penyebut jujur "dari N hari tercatat". |
+| **Pembuktian mutu** | `bun run verify` hijau (typecheck + lint + 156 test). Browser E2E dengan data uji nyata (seed server): 36 kombinasi lebar (320–1440px) × 6 layar + Jurnal tanpa overflow; nol error konsol & halaman; CRUD terverifikasi (centang kebiasaan on/off, buat+hapus catatan lewat kanvas, dialog hapus kebiasaan); sinkronisasi PUT /api/state tetap menyala di tiap aksi; dark mode mini-chart terbaca. |
 
 ## v2.35 — Final Design Engineering Polish
 
