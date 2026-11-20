@@ -17,6 +17,7 @@ import {
   FOLDER_SHORT,
   folderCount,
   longDateLabel,
+  noteDateISO,
   noteDateLabel,
   todayISO,
   useRutina,
@@ -26,6 +27,269 @@ import {
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
 
+/* ===== Aktivitas Menulis — kalender mini + distribusi (audit
+   visualisasi v2.36, Tahap 4) =====
+
+   Jejak menulis bulanan di halaman DAFTAR (kanvas menulis tetap bebas
+   gangguan): sel kalender berintensitas jumlah catatan per tanggal —
+   tanggal dipilih untuk memfilter daftar. Distribusi folder jadi satu
+   segmented bar kecil; mood hanya diringkas bila benar-benar tercatat.
+   Catatan tanpa tanggal pasti (impor lama) TIDAK diperkirakan — tidak
+   menambah sel apa pun. */
+const WRITE_LEVELS = [
+  'var(--surface-secondary)',
+  'color-mix(in oklab, var(--module-accent) 30%, var(--surface-primary))',
+  'color-mix(in oklab, var(--module-accent) 55%, var(--surface-primary))',
+  'var(--module-accent-strong)',
+] as const
+
+function writeLevelOf(count: number): number {
+  if (count <= 0) return 0
+  if (count === 1) return 1
+  if (count === 2) return 2
+  return 3
+}
+
+const MONTHS_ID_FULL = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+]
+
+function WritingActivityCard({
+  notes,
+  noteMoods,
+  dayFilter,
+  onPickDay,
+}: {
+  notes: Note[]
+  noteMoods: Record<string, string>
+  dayFilter: string | null
+  onPickDay: (iso: string | null) => void
+}) {
+  const today = todayISO()
+  const [viewYm, setViewYm] = useState(today.slice(0, 7))
+
+  /* Jumlah catatan per tanggal ISO — hanya tanggal yang dapat dipastikan. */
+  const byDate = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const n of notes) {
+      const iso = noteDateISO(n)
+      if (iso != null) m.set(iso, (m.get(iso) ?? 0) + 1)
+    }
+    return m
+  }, [notes])
+
+  /* Sel kalender (Senin-kolom pertama), null = pengisi awal pekan. */
+  const cells = useMemo(() => {
+    const [y, mo] = viewYm.split('-').map(Number)
+    const lead = (new Date(y, mo - 1, 1).getDay() + 6) % 7
+    const daysInMonth = new Date(y, mo, 0).getDate()
+    const out: (string | null)[] = Array.from({ length: lead }, () => null)
+    for (let d = 1; d <= daysInMonth; d++)
+      out.push(`${viewYm}-${String(d).padStart(2, '0')}`)
+    return out
+  }, [viewYm])
+
+  const monthLabel = (() => {
+    const [y, mo] = viewYm.split('-').map(Number)
+    return `${MONTHS_ID_FULL[mo - 1]} ${y}`
+  })()
+  const curYm = today.slice(0, 7)
+  const canNext = viewYm < curYm
+  const monthCount = cells.filter((c) => c != null && byDate.has(c)).length
+  const monthNotes = cells.reduce(
+    (a, c) => a + (c != null ? (byDate.get(c) ?? 0) : 0),
+    0,
+  )
+
+  /* Distribusi folder — segmented bar kecil, satu rumpun warna aksen
+     modul dengan tingkat intensitas berbeda (tenang, bukan pelangi). */
+  const folderSegs = FOLDERS.map((f, i) => ({
+    ...f,
+    count: folderCount(notes, f.key),
+    seg:
+      i === 0
+        ? 'bg-module-accent-strong'
+        : i === 1
+          ? 'bg-module-accent/70'
+          : i === 2
+            ? 'bg-module-accent/45'
+            : 'bg-module-accent/25',
+  }))
+  const totalNotes = notes.length
+
+  /* Ringkasan mood — hanya mood yang benar-benar tercatat. */
+  const moodCounts = useMemo(() => {
+    const live = new Set(notes.map((n) => n.id))
+    const m = new Map<string, number>()
+    for (const [id, mood] of Object.entries(noteMoods)) {
+      if (!live.has(id)) continue
+      m.set(mood, (m.get(mood) ?? 0) + 1)
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }, [notes, noteMoods])
+
+  return (
+    <section
+      aria-label="Aktivitas menulis"
+      className="rounded-lg border border-border bg-surface-primary p-4"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+          Aktivitas Menulis
+        </p>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Bulan sebelumnya"
+            onClick={() => {
+              const [y, mo] = viewYm.split('-').map(Number)
+              const prev = mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`
+              setViewYm(prev)
+            }}
+            className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <span className="min-w-[110px] text-center text-chart-label font-semibold tabular-nums text-content-secondary">
+            {monthLabel}
+          </span>
+          <button
+            type="button"
+            aria-label="Bulan berikutnya"
+            disabled={!canNext}
+            onClick={() => {
+              const [y, mo] = viewYm.split('-').map(Number)
+              const next = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`
+              setViewYm(next)
+            }}
+            className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Kalender mini — intensitas = jumlah catatan; ketuk untuk filter. */}
+      <div
+        className="mt-3 grid grid-cols-7 gap-1.5"
+        role="group"
+        aria-label={`Kalender aktivitas menulis ${monthLabel}: ${monthNotes} catatan pada ${monthCount} hari`}
+      >
+        {cells.map((iso, i) => {
+          if (iso == null) return <span key={`pad-${i}`} aria-hidden="true" />
+          const count = byDate.get(iso) ?? 0
+          const level = writeLevelOf(count)
+          const isFuture = iso > today
+          const isSel = dayFilter === iso
+          const d = Number(iso.slice(8))
+          return (
+            <button
+              key={iso}
+              type="button"
+              aria-pressed={isSel}
+              aria-label={
+                isFuture
+                  ? `${d} — belum terjadi`
+                  : `${d} ${MONTHS_ID_FULL[Number(iso.slice(5, 7)) - 1]} — ${
+                      count === 0 ? 'tidak ada catatan' : `${count} catatan`
+                    }`
+              }
+              onClick={() => onPickDay(isSel ? null : iso)}
+              className={
+                'interactive h-8 w-full cursor-pointer rounded-md text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                (isSel
+                  ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
+                  : '') +
+                (isFuture
+                  ? 'text-content-muted/50'
+                  : count > 0
+                    ? 'text-content-primary'
+                    : 'text-content-muted') +
+                (count === 1 ? ' ' : ' tabular-nums')
+              }
+              style={{
+                backgroundColor: isFuture ? undefined : WRITE_LEVELS[level],
+              }}
+            >
+              {d}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Distribusi folder — segmented bar kecil + label jumlah. */}
+      {totalNotes > 0 && (
+        <div className="mt-3.5">
+          <div
+            className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+            role="img"
+            aria-label={`Distribusi folder: ${folderSegs
+              .map((f) => `${f.label} ${f.count}`)
+              .join(', ')}`}
+          >
+            {folderSegs.map(
+              (f) =>
+                f.count > 0 && (
+                  <span
+                    key={f.key}
+                    className={f.seg}
+                    style={{ width: `${(f.count / totalNotes) * 100}%` }}
+                  />
+                ),
+            )}
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+            {folderSegs.map(
+              (f) =>
+                f.count > 0 && (
+                  <span
+                    key={f.key}
+                    className="flex items-center gap-1 text-chart-label font-medium text-content-muted"
+                  >
+                    <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${f.seg}`} />
+                    {f.label.split(' ')[0]} {f.count}
+                  </span>
+                ),
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Ringkasan mood — ringan, netral, hanya yang tercatat. */}
+      {moodCounts.length > 0 && (
+        <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
+          {moodCounts.map(([mood, n]) => (
+            <span key={mood} className="flex items-center gap-1">
+              <span
+                aria-hidden="true"
+                className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
+              />
+              {mood} {n}×
+            </span>
+          ))}
+        </p>
+      )}
+
+      {dayFilter && (
+        <button
+          type="button"
+          onClick={() => onPickDay(null)}
+          className="interactive mt-3 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          Filter aktif: {noteDateLabel({ id: 'x', date: dayFilter } as Note, today)}
+          <span aria-hidden="true">✕</span>
+          <span className="sr-only">Hapus filter tanggal</span>
+        </button>
+      )}
+    </section>
+  )
+}
+
 const FILTERS: { key: FolderKey | 'semua'; label: string }[] = [
   { key: 'semua', label: 'Semua' },
   ...FOLDERS.map((f) => ({ key: f.key, label: FOLDER_SHORT[f.key] })),
@@ -33,6 +297,8 @@ const FILTERS: { key: FolderKey | 'semua'; label: string }[] = [
 
 export default function JournalScreen() {
   const [query, setQuery] = useState('')
+  /* v2.36: filter tanggal dari kalender aktivitas menulis — null = semua. */
+  const [dayFilter, setDayFilter] = useState<string | null>(null)
   const notes = useRutina((s) => s.notes)
   const journalFilter = useRutina((s) => s.journalFilter)
   const setJournalFilter = useRutina((s) => s.setJournalFilter)
@@ -68,6 +334,7 @@ export default function JournalScreen() {
     const filtered = notes.filter(
       (n) =>
         (journalFilter === 'semua' || n.folder === journalFilter) &&
+        (dayFilter === null || noteDateISO(n) === dayFilter) &&
         (q === '' ||
           (n.title + ' ' + n.body).toLowerCase().includes(q)),
     )
@@ -76,7 +343,7 @@ export default function JournalScreen() {
       drafts: filtered.filter((n) => !n.pinned && isDraftNote(n)),
       rest: filtered.filter((n) => !n.pinned && !isDraftNote(n)),
     }
-  }, [notes, journalFilter, query])
+  }, [notes, journalFilter, query, dayFilter])
 
   /* v2.35 anti-replay: pembuka Writing Room hanya kunjungan pertama —
      remount antar-tab tampil instan, transisi layar ringan mengambil alih. */
@@ -193,6 +460,18 @@ export default function JournalScreen() {
           />
         </m.div>
       </div>
+
+      {/* Aktivitas menulis — jejak bulanan + distribusi (audit v2.36
+          Tahap 4); hanya muncul bila sudah ada catatan. Kanvas menulis
+          tetap bebas gangguan — visual hanya hidup di daftar. */}
+      {total > 0 && (
+        <WritingActivityCard
+          notes={notes}
+          noteMoods={noteMoods}
+          dayFilter={dayFilter}
+          onPickDay={setDayFilter}
+        />
+      )}
 
       {/* Daftar catatan — hierarki tenang: sematan, lalu draf yang belum
           diberi nama, lalu catatan tersimpan. */}

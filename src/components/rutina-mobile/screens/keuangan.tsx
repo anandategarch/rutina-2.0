@@ -3012,11 +3012,21 @@ export default function KeuanganScreen() {
                     </div>
                   </div>
 
-                  {/* Baris per kategori — batas dapat disunting */}
+                  {/* Baris per kategori — batas dapat disunting.
+                      v2.36 (audit visualisasi): diurutkan berdasarkan
+                      persentase penggunaan TERTINGGI — kategori yang paling
+                      dekat/melewati batas dibaca lebih dulu, bukan urutan
+                      penambahan. */}
                   <div className="mt-4 space-y-4">
-                    {budgetRows.map((b) => (
-                      <BudgetRow key={b.cat} {...budgetRowProps(b, spent)} />
-                    ))}
+                    {[...budgetRows]
+                      .sort(
+                        (a, b) =>
+                          (spent[b.cat] ?? 0) / Math.max(1, b.limit) -
+                          (spent[a.cat] ?? 0) / Math.max(1, a.limit),
+                      )
+                      .map((b) => (
+                        <BudgetRow key={b.cat} {...budgetRowProps(b, spent)} />
+                      ))}
                   </div>
                 </>
               )}

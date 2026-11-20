@@ -56,7 +56,7 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 
-import { MOOD_TONE } from '../journal-ui'
+import { MOOD_DOT, MOOD_TONE } from '../journal-ui'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
 import { CONTENT_W } from '../layout-widths'
@@ -898,7 +898,38 @@ export default function ProfileScreen() {
                   )
                 })}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
+              {/* v2.36 (audit visualisasi): distribusi mood — satu bar
+                  segmented netral dari MOOD_DOT (bukan pelangi); hari
+                  tanpa check-in TIDAK masuk penyebut. */}
+              {(() => {
+                const logged = moodCounts.reduce((a, c) => a + c.count, 0)
+                const segs = moodCounts.filter((c) => c.count > 0)
+                return (
+                  segs.length > 0 && (
+                    <div className="mt-3">
+                      <div
+                        className="flex h-2 overflow-hidden rounded-full bg-surface-sunken"
+                        role="img"
+                        aria-label={`Distribusi mood 14 hari dari ${logged} hari tercatat: ${segs
+                          .map((c) => `${c.name} ${c.count}`)
+                          .join(', ')}`}
+                      >
+                        {segs.map((c) => (
+                          <span
+                            key={c.name}
+                            className={MOOD_DOT[c.name] ?? 'bg-cocoa/40'}
+                            style={{ width: `${(c.count / logged) * 100}%` }}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-1 px-0.5 text-right text-eyebrow font-medium text-content-muted">
+                        dari {logged} hari tercatat
+                      </p>
+                    </div>
+                  )
+                )
+              })()}
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
                 <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
                   Rekap 14 hari
                 </span>
