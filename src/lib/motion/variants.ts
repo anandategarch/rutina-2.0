@@ -45,7 +45,7 @@ export const journalCard: Variants = {
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: duration.data, ease: easing.entrance },
+    transition: { duration: motionTokens.preset.data.duration, ease: easing.entrance },
   },
 }
 
