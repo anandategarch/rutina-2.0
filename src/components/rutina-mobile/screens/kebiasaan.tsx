@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AnimatePresence,
   LayoutGroup,
   useReducedMotion,
 } from 'motion/react'
@@ -18,6 +17,7 @@ import {
   Link2,
   Pencil,
   Plus,
+  Search,
   Snowflake,
   Sparkles,
   Sprout,
@@ -44,10 +44,13 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
+import { useMinWidth } from '../use-min-width'
+import { RutinaSheet } from '../rutina-sheet'
 
 import {
   PLANT_STAGES,
@@ -114,6 +117,11 @@ const MISSED_NUDGES = [
   'Satu hari kosong bukan gagal — tuntaskan kemarin, lanjutkan hari ini.',
   'Runtun masih bisa diselamatkan — satu centang kemarian cukup.',
 ] as const
+
+/** Pagar Agenda Kebiasaan (audit v2.37) — kondisi awal maks 5 baris. */
+const AGENDA_LIMIT = 5
+/** Perpustakaan: baris awal per grup sebelum "Tampilkan semua". */
+const LIBRARY_GROUP_PREVIEW = 3
 
 /** Jumlah selesai satu kebiasaan sepanjang pekan (sampai tanggal iso). */
 function weekDoneCount(c: Completions, habitId: string, iso: string): number {
@@ -303,6 +311,7 @@ function AgendaRow({
   done,
   completions,
   today,
+  missedYesterday = false,
   onToggle,
   onEdit,
 }: {
@@ -310,6 +319,9 @@ function AgendaRow({
   done: boolean
   completions: Completions
   today: string
+  /** Badge "Terlewat kemarin" — dihitung sekali oleh induk (audit
+   *  v2.37: kartu pemulihan terpisah dilarang untuk kasus ini). */
+  missedYesterday?: boolean
   onToggle: () => void
   onEdit: () => void
 }) {
@@ -372,6 +384,11 @@ function AgendaRow({
           </span>
           <span className="mt-0.5 flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
             <span className="truncate tabular-nums">{meta}</span>
+            {missedYesterday && (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-1.5 py-0.5 font-semibold text-warning">
+                Terlewat kemarin
+              </span>
+            )}
             {streak > 0 && (
               <span
                 className="flex shrink-0 items-center gap-0.5 text-module-accent-strong"
@@ -454,10 +471,12 @@ function AgendaRow({
 /* ===== Baris perpustakaan — baris ledger ringkas (inventaris) ===== */
 
 /**
- * Satu baris inventaris: centang cepat, titik warna kategori, nama,
- * jadwal ringkas + runtun mini, dan mini-history 7 hari. Ketuk badan
- * baris membuka Panel Detail (inline di bawah baris pada layar sempit,
- * kolom kanan split-screen pada ruang kerja lebar).
+ * Satu baris inventaris: status hari ini (NON-INTERAKTIF — audit
+ * v2.37: Perpustakaan bukan Agenda kedua, tidak ada jalur centang
+ * kedua), titik warna kategori, nama, jadwal ringkas + runtun mini,
+ * dan mini-history 7 hari. Ketuk badan baris membuka Panel Detail
+ * (bottom sheet pada layar sempit, kolom kanan split-screen pada
+ * ruang kerja lebar).
  */
 function LibraryRow({
   habit,
@@ -466,7 +485,6 @@ function LibraryRow({
   completions,
   today,
   selected,
-  onToggle,
   onSelect,
 }: {
   habit: Habit
@@ -475,7 +493,6 @@ function LibraryRow({
   completions: Completions
   today: string
   selected: boolean
-  onToggle: () => void
   onSelect: () => void
 }) {
   return (
@@ -487,12 +504,19 @@ function LibraryRow({
           : '[box-shadow:inset_2px_0_0_transparent] hover:bg-surface-sunken/60')
       }
     >
-      <HabitCheck
-        size="sm"
-        done={done}
-        label={`Tandai selesai: ${habit.title}`}
-        onToggle={onToggle}
-      />
+      {/* Status hari ini — NON-INTERAKTIF (audit v2.37): Perpustakaan
+          adalah inventaris; satu-satunya jalur centang hidup di Agenda. */}
+      <span
+        aria-hidden="true"
+        className={
+          'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300 ' +
+          (done
+            ? 'border-module-accent bg-module-accent/15 text-module-accent-strong'
+            : 'border-border text-transparent')
+        }
+      >
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      </span>
       <button
         type="button"
         onClick={onSelect}
@@ -531,7 +555,10 @@ function LibraryRow({
               <span className="shrink-0 tabular-nums">{streak} hari</span>
             </>
           )}
-          <span className="sr-only">. Ketuk untuk membuka detail.</span>
+          <span className="sr-only">
+            {done ? 'Sudah selesai hari ini.' : 'Belum selesai hari ini.'}
+            {' '}Ketuk untuk membuka detail.
+          </span>
         </span>
       </button>
       <WeekDots completions={completions} habitId={habit.id} today={today} />
@@ -948,9 +975,20 @@ export default function KebiasaanScreen() {
   const openHabitEdit = useRutina((s) => s.openHabitEdit)
 
   const [showArchive, setShowArchive] = useState(false)
-  /* Kebiasaan terpilih untuk Panel Detail — panel inline di bawah baris
-     perpustakaan (layar sempit) & kolom kanan split-screen (≥52rem). */
+  /* Kebiasaan terpilih untuk Panel Detail — bottom sheet (layar sempit)
+     & kolom kanan split-screen (≥52rem). */
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  /* Pagar agenda (audit v2.37): kondisi awal maks 5 baris — sisa via
+     "Lihat semua agenda (N)"; tugas tersembunyi tidak dianggap selesai. */
+  const [showAllAgenda, setShowAllAgenda] = useState(false)
+  /* Perpustakaan (audit v2.37): pencarian inventaris + grup collapsible. */
+  const [libraryQuery, setLibraryQuery] = useState('')
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+
+  /* Lebar konten nyata (ResizeObserver) — menentukan Panel Detail sebagai
+     bottom sheet (sempit) atau kolom sticky (≥52rem). */
+  const rootRef = useRef<HTMLDivElement>(null)
+  const libraryWide = useMinWidth(rootRef, 832)
 
   const today = todayISO()
 
@@ -984,22 +1022,33 @@ export default function KebiasaanScreen() {
     [scheduledToday, completions, today],
   )
 
+  /* Badge "terlewat kemarin" untuk baris Agenda — dihitung SEKALI di
+     tingkat layar (audit v2.37: tidak ada lagi tiap kartu menghitung
+     kandidat sendiri; kartu Coach tidak boleh mengulang habit Agenda). */
+  const missedSet = useMemo(
+    () => new Set(missedYesterday(habits, completions, today).map((h) => h.id)),
+    [habits, completions, today],
+  )
+
   /* Susunan agenda: yang menunggu dikelompokkan per waktu ke rel timeline
      (Pagi/Siang/Malam/Kapan saja — agenda-rail), tiap rel terurut jam;
      yang selesai turun ke ekor "Selesai" yang diredupkan setelah rel. */
   const agendaGroups = useMemo(() => {
+    const source = showAllAgenda
+      ? pendingToday
+      : pendingToday.slice(0, AGENDA_LIMIT)
     const buckets: Record<AgendaSlot, Habit[]> = {
       pagi: [],
       siang: [],
       malam: [],
       bebas: [],
     }
-    for (const h of pendingToday) buckets[slotOf(h)].push(h)
+    for (const h of source) buckets[slotOf(h)].push(h)
     return SLOT_META.map((meta) => ({
       ...meta,
       items: buckets[meta.key].sort(byTime),
     })).filter((g) => g.items.length > 0)
-  }, [pendingToday])
+  }, [pendingToday, showAllAgenda])
 
   const agendaPct =
     scheduledToday.length > 0
@@ -1053,9 +1102,10 @@ export default function KebiasaanScreen() {
     [activeHabits, completions, today],
   )
 
-  /* Saran Coach — maksimal DUA saran paling relevan (audit Tahap 2):
-     nudge "jangan bolong dua kali" diprioritaskan (aksi backfill
-     kemarin), sisa kuota diisi Goldilocks. */
+  /* Saran Coach — maksimal DUA saran paling relevan (audit Tahap 2).
+     v2.37 dedup: nudge "terlewat kemarin" HANYA untuk kebiasaan yang
+     TIDAK terjadwal hari ini — yang terjadwal hari ini sudah tampil di
+     Agenda berbadge "Terlewat kemarin" dan tidak boleh muncul dobel. */
   const coachCards = useMemo<
     (
       | { kind: 'missed'; habit: Habit }
@@ -1063,6 +1113,9 @@ export default function KebiasaanScreen() {
     )[]
   >(() => {
     const missed = missedYesterday(habits, completions, today)
+      .filter(
+        (h) => !scheduledOn(h, today) && !isDoneOn(completions, today, h.id),
+      )
       .slice(0, 2)
       .map((habit) => ({ kind: 'missed' as const, habit }))
     const room = Math.max(0, 2 - missed.length)
@@ -1132,12 +1185,45 @@ export default function KebiasaanScreen() {
       : undefined) ??
     catGroups[0]?.items[0] ??
     null
+  /* Kebiasaan untuk bottom sheet ponsel — HANYA saat ada pilihan eksplisit
+     (inspector desktop punya default; sheet dibuka atas permintaan). */
+  const sheetHabit =
+    selectedId !== null
+      ? (activeHabits.find((h) => h.id === selectedId) ?? null)
+      : null
+
+  /* Perpustakaan: pencarian inventaris (audit v2.37) — filter judul &
+     kategori; saat mencari, semua grup dipaksa terbuka agar hasil
+     langsung terlihat. */
+  const normalizedQuery = libraryQuery.trim().toLowerCase()
+  const libraryGroups = useMemo(() => {
+    if (!normalizedQuery) return catGroups
+    return catGroups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter(
+          (h) =>
+            h.title.toLowerCase().includes(normalizedQuery) ||
+            h.cat.toLowerCase().includes(normalizedQuery),
+        ),
+      }))
+      .filter((g) => g.items.length > 0)
+  }, [catGroups, normalizedQuery])
 
   const hasNoHabits = habits.length === 0
 
   /* Buka/tutup detail baris perpustakaan (ketuk ulang untuk menutup). */
   const toggleSelect = (id: string) =>
     setSelectedId((prev) => (prev === id ? null : id))
+
+  /* Buka/tutup grup perpustakaan (audit v2.37 — collapsible). */
+  const toggleGroup = (key: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   /* Aksi “cukup versi 2 menit” — panel memanggil dengan kebiasaan sebagai
      ARGUMEN sehingga penutupan di layar hanya menangkap nilai primitif
@@ -1180,6 +1266,7 @@ export default function KebiasaanScreen() {
 
   return (
     <div
+      ref={rootRef}
       data-module="kebiasaan"
       data-layout="garden"
       className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
@@ -1411,6 +1498,7 @@ export default function KebiasaanScreen() {
                                 done={false}
                                 completions={completions}
                                 today={today}
+                                missedYesterday={missedSet.has(h.id)}
                                 onToggle={() => toggleHabit(h.id, today)}
                                 onEdit={() => openHabitEdit(h.id)}
                               />
@@ -1420,6 +1508,29 @@ export default function KebiasaanScreen() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Pagar agenda (audit v2.37): kondisi awal maks 5 baris;
+                      sisa dijatuhkan lewat "Lihat semua agenda (N)" —
+                      tugas tersembunyi tidak dianggap selesai/dihapus. */}
+                  {pendingToday.length > AGENDA_LIMIT && (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 ps-5">
+                      <p className="text-meta font-semibold tabular-nums text-content-muted">
+                        {showAllAgenda
+                          ? `${pendingToday.length} tugas menunggu`
+                          : `${Math.min(AGENDA_LIMIT, pendingToday.length)} dari ${pendingToday.length} tugas · ${pendingToday.length - AGENDA_LIMIT} menunggu`}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAllAgenda((v) => !v)}
+                        aria-expanded={showAllAgenda}
+                        className="h-9 cursor-pointer rounded-full border border-border-strong px-3.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        {showAllAgenda
+                          ? 'Tampilkan ringkas'
+                          : `Lihat semua agenda (${pendingToday.length})`}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Ekor "Selesai" — baris selesai diredupkan turun dari
                       rel; ps-5 menyelaraskan dengan isi rel (agenda-rail
@@ -1461,6 +1572,7 @@ export default function KebiasaanScreen() {
                               done
                               completions={completions}
                               today={today}
+                              missedYesterday={missedSet.has(h.id)}
                               onToggle={() => toggleHabit(h.id, today)}
                               onEdit={() => openHabitEdit(h.id)}
                             />
@@ -1740,8 +1852,27 @@ export default function KebiasaanScreen() {
           >
             <RutinaSectionHeader
               title="Perpustakaan kebiasaan"
-              description="Inventaris semua kebiasaan, dikelompokkan per kategori"
+              description="Inventaris lengkap — cari, kelola, dan sunting"
             />
+
+            {/* Pencarian inventaris (audit v2.37) — 30–50 kebiasaan tidak
+                lagi dirender penuh tanpa alat temukan. */}
+            {activeHabits.length > 0 && (
+              <div className="relative mt-3">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted"
+                />
+                <Input
+                  type="search"
+                  value={libraryQuery}
+                  onChange={(e) => setLibraryQuery(e.target.value)}
+                  placeholder="Cari kebiasaan atau kategori…"
+                  aria-label="Cari kebiasaan di perpustakaan"
+                  className="h-11 rounded-full border-border bg-surface-primary pl-10 pr-4 text-note shadow-soft placeholder:text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                />
+              </div>
+            )}
 
             {activeHabits.length === 0 ? (
               <div className="mt-4">
@@ -1766,7 +1897,16 @@ export default function KebiasaanScreen() {
                     animate="show"
                     className="mt-2 space-y-5"
                   >
-                    {catGroups.map((g) => (
+                    {libraryGroups.map((g) => {
+                      /* Grup collapsible (audit v2.37): tertutup default
+                         memperlihatkan LIBRARY_GROUP_PREVIEW baris pertama;
+                         saat mencari, semua dipaksa terbuka. */
+                      const expanded =
+                        openGroups.has(g.key) || normalizedQuery.length > 0
+                      const items = expanded
+                        ? g.items
+                        : g.items.slice(0, LIBRARY_GROUP_PREVIEW)
+                      return (
                       <m.div key={g.key} variants={journalCard}>
                         <div className="mb-1 flex items-center gap-2 border-l-2 border-module-accent pl-2.5">
                           <span
@@ -1782,10 +1922,11 @@ export default function KebiasaanScreen() {
                           </span>
                         </div>
                         <div>
-                          {g.items.map((h) => (
+                          {items.map((h) => (
                             /* Pembungkus ledger-row: pemisah hairline antar
-                               item (termasuk panel inline yang membuka di
-                               dalam item yang sama). */
+                               item — detail hidup di bottom sheet (ponsel)
+                               / kolom kanan (desktop), bukan panel inline
+                               yang menyisip di tengah daftar (audit v2.37). */
                             <div key={h.id} className="ledger-row">
                               <LibraryRow
                                 habit={h}
@@ -1794,53 +1935,46 @@ export default function KebiasaanScreen() {
                                 completions={completions}
                                 today={today}
                                 selected={selectedId === h.id}
-                                onToggle={() => toggleHabit(h.id, today)}
                                 onSelect={() => toggleSelect(h.id)}
                               />
-                              {/* Panel detail inline — hanya pada layar
-                                  sempit; di ruang kerja lebar digantikan
-                                  kolom kanan split-screen. */}
-                              <AnimatePresence initial={false}>
-                                {selectedId === h.id && (
-                                  <m.div
-                                    className="@[52rem]:hidden overflow-hidden"
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{
-                                      duration: motionTokens.duration.normal,
-                                      ease: motionTokens.easing.standard,
-                                    }}
-                                  >
-                                    <div className="px-1 pb-3 pt-1.5">
-                                      <HabitDetailPanel
-                                        habit={h}
-                                        habits={habits}
-                                        completions={completions}
-                                        today={today}
-                                        onEdit={openHabitEdit}
-                                        onCompleteMini={completeMini}
-                                      />
-                                    </div>
-                                  </m.div>
-                                )}
-                              </AnimatePresence>
                             </div>
                           ))}
+                          {g.items.length > LIBRARY_GROUP_PREVIEW && (
+                            <button
+                              type="button"
+                              onClick={() => toggleGroup(g.key)}
+                              aria-expanded={expanded}
+                              className="mt-1 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong px-3 py-2 text-eyebrow font-semibold text-content-secondary transition-colors hover:border-module-accent/50 hover:text-module-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            >
+                              <ChevronDown
+                                aria-hidden="true"
+                                className={
+                                  'h-3.5 w-3.5 transition-transform duration-300 ' +
+                                  (expanded ? 'rotate-180' : '')
+                                }
+                              />
+                              {expanded
+                                ? 'Tampilkan lebih sedikit'
+                                : `Tampilkan semua (${g.items.length})`}
+                            </button>
+                          )}
                         </div>
                       </m.div>
-                    ))}
+                      )
+                    })}
                   </m.div>
                 </div>
 
                 {/* Kolom kanan — Panel Detail Kebiasaan (hanya ruang kerja
-                   lebar ≥52rem). self-start + max-h agar penempatan
-                   menempel tidak meluber: panel menggulir sendiri bila
-                   kontennya lebih tinggi. */}
-                {selectedHabit && (
+                   lebar, gerbang JS libraryWide — selaras dengan sheet
+                   ponsel; tidak ada kondisi "tidak terjangkau" di zona
+                   transisi). self-start + max-h agar penempatan menempel
+                   tidak meluber: panel menggulir sendiri bila kontennya
+                   lebih tinggi. */}
+                {selectedHabit && libraryWide && (
                   <aside
                     aria-label="Detail kebiasaan terpilih"
-                    className="hidden self-start @[52rem]:sticky @[52rem]:top-0 @[52rem]:col-span-5 @[52rem]:mt-4 @[52rem]:block @[52rem]:max-h-[calc(100dvh-12rem)] @[52rem]:overflow-y-auto no-scrollbar"
+                    className="self-start @[52rem]:sticky @[52rem]:top-0 @[52rem]:col-span-5 @[52rem]:mt-4 @[52rem]:max-h-[calc(100dvh-12rem)] @[52rem]:overflow-y-auto no-scrollbar"
                   >
                     <HabitDetailPanel
                       key={selectedHabit.id}
@@ -1945,6 +2079,32 @@ export default function KebiasaanScreen() {
           Kebiasaan baru
         </button>
       </m.div>
+
+      {/* Panel detail ponsel — bottom sheet (audit v2.37): tidak lagi
+          menyisipkan panel tinggi di tengah daftar panjang; pola sheet
+          yang sama dengan DayDetailSheet (Escape/backdrop/seret-tutup). */}
+      {!libraryWide && (
+        <RutinaSheet
+          open={sheetHabit != null}
+          onClose={() => setSelectedId(null)}
+          label={sheetHabit ? `Detail kebiasaan ${sheetHabit.title}` : 'Detail kebiasaan'}
+          className="max-h-[calc(100%-2rem)] flex flex-col overflow-hidden"
+        >
+          {sheetHabit && (
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
+              <HabitDetailPanel
+                key={sheetHabit.id}
+                habit={sheetHabit}
+                habits={habits}
+                completions={completions}
+                today={today}
+                onEdit={openHabitEdit}
+                onCompleteMini={completeMini}
+              />
+            </div>
+          )}
+        </RutinaSheet>
+      )}
     </div>
   )
 }
