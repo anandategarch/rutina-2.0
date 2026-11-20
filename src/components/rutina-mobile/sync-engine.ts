@@ -307,6 +307,31 @@ function schedulePush(delay = DEBOUNCE_MS): void {
   }, delay)
 }
 
+/** Apakah ada suntingan lokal yang belum berhasil terkirim? Kedua
+ *  stempel dicatat jam perangkat ini (bukan jam server) sehingga
+ *  perbandingannya jujur lintas perangkat. */
+function hasUnsyncedEdits(): boolean {
+  const meta = readMeta()
+  return (meta?.lastEditAt ?? 0) > (meta?.lastSyncedAt ?? 0)
+}
+
+/** Bilas suntingan tertunda TANPA debounce — dipakai saat tab akan
+ *  disembunyikan/ditutup (visibilitychange/pagehide): jendela debounce
+ *  900 ms bisa terpotong oleh itu dan suntingan tercecer sampai tab
+ *  dibuka lagi. Penjaga in-flight ada di push() sendiri (dijadwalkan
+ *  ulang otomatis bila push lain sedang berjalan — tidak dobel). */
+function flushPendingEdits(): void {
+  /* Negosiasi boot belum tuntas / snapshot server sedang diterapkan —
+     boot() sendiri yang menuntaskan nasib suntingan lokal. */
+  if (!ready || suppress) return
+  if (!hasUnsyncedEdits()) return
+  if (pushTimer) {
+    clearTimeout(pushTimer)
+    pushTimer = null
+  }
+  void push()
+}
+
 function notifyError(): void {
   if (Date.now() - lastErrorToast < ERROR_TOAST_COOLDOWN_MS) return
   lastErrorToast = Date.now()
@@ -397,7 +422,18 @@ async function boot(): Promise<void> {
   if (remote?.initialized && remote.state) {
     const meta = readMeta()
     const serverPushAt = remote.syncedAt ? Date.parse(remote.syncedAt) : 0
-    const localNewer = (meta?.lastEditAt ?? 0) > (serverPushAt || 0)
+    /* Bandingkan dalam SATU ranah waktu: lastEditAt & lastSyncedAt
+       keduanya tercatat dengan jam perangkat ini. Memakai remote.syncedAt
+       (jam server) rapuh terhadap selisih jam — bila jam server maju Δ,
+       suntingan lokal yang dibuat < Δ sejak push terakhir terlihat "tidak
+       lebih baru" lalu tertimpa snapshot server (hilang senyap).
+       Fallback ke jam server hanya bila perangkat belum pernah sinkron
+       sama sekali (lastSyncedAt kosong — belum ada patokan jam lokal). */
+    const lastSynced = meta?.lastSyncedAt ?? 0
+    const localNewer =
+      lastSynced > 0
+        ? (meta?.lastEditAt ?? 0) > lastSynced
+        : (meta?.lastEditAt ?? 0) > (serverPushAt || 0)
     /* v2.16 (audit T5-e #1/#3) — dua vektor kehilangan data ditutup:
        (a) data contoh warisan (seed demo v≤2.18 yang masih tersisa di
        localStorage perangkat lama) TIDAK boleh menimpa server yang sudah
@@ -472,21 +508,40 @@ export function useSyncEngine(): void {
        online, dorong perubahan tertunda (bila ada) atau cukup pulihkan
        keadaan "tersinkron". */
     const onOnline = () => {
-      const meta = readMeta()
-      if ((meta?.lastEditAt ?? 0) > (meta?.lastSyncedAt ?? 0)) {
+      if (hasUnsyncedEdits()) {
         schedulePush(0)
       } else if (syncStatusStore.getState().kind === 'offline') {
         setSyncKind('synced')
       }
     }
     const onOffline = () => setSyncKind('offline')
+
+    /* Tab disembunyikan/ditutup — bilas sekarang sebelum jendela debounce
+       terpotong; fokus kembali — bila push terakhir gagal dan masih ada
+       suntingan tertunda, jadwalkan satu retry (sekali per event, tanpa
+       loop). */
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushPendingEdits()
+    }
+    const onPageHide = () => flushPendingEdits()
+    const onFocus = () => {
+      if (!hasUnsyncedEdits()) return
+      const kind = syncStatusStore.getState().kind
+      if (kind === 'error' || kind === 'offline') schedulePush(0)
+    }
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('focus', onFocus)
 
     return () => {
       unsub()
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('focus', onFocus)
     }
   }, [])
 }

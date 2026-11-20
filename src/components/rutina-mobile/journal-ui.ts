@@ -23,7 +23,10 @@ export const MOOD_TONE: Record<
   string,
   { text: string; dot: string }
 > = {
-  Ceria: { text: 'text-matcha', dot: 'bg-gold' },
+  /* Label Ceria memakai text-success (matcha tua #4f7440 ≈ 4.6:1 di atas
+     parchment) — text-matcha (#749b58) hanya 3.2:1, di bawah ambang WCAG
+     AA untuk teks kecil; titik warna non-teks tetap matcha/gold. */
+  Ceria: { text: 'text-success', dot: 'bg-gold' },
   Baik: { text: 'text-pistachio', dot: 'bg-primary' },
   Biasa: { text: 'text-content-secondary', dot: 'bg-cocoa/40' },
   Lelah: { text: 'text-content-muted', dot: 'bg-espresso/40' },

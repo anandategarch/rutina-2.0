@@ -48,7 +48,7 @@ function clockID(ts: number): string {
   })
 }
 
-type SaveResult = 'saved' | 'unchanged' | 'skipped' | 'discarded' | 'deleted'
+type SaveResult = 'saved' | 'unchanged' | 'skipped' | 'discarded' | 'deleted' | 'conflict'
 
 interface Draft {
   title: string
@@ -146,6 +146,10 @@ function CanvasPanel() {
     session.editing ? session.initial : null,
   )
   const closedRef = useRef(false)
+  /* Catatan yang sedang disunting ternyata sudah terhapus (mis. lewat
+     tarikan server dari perangkat lain) — sesi berhenti menulis ke id
+     hantu itu; draf tetap di layar agar tidak ada kata yang hilang. */
+  const conflictRef = useRef(false)
 
   /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
   useFocusTrap(true, panelRef)
@@ -165,6 +169,9 @@ function CanvasPanel() {
    */
   const performSave = useCallback(
     (mode: 'auto' | 'flush'): SaveResult => {
+      /* Konflik sudah diketahui — jangan tulis ulang ke catatan hantu
+         (toast pernah diberikan saat pertama terdeteksi). */
+      if (conflictRef.current) return 'conflict'
       const draft = draftRef.current
       const t = draft.title.trim()
       const b = draft.body
@@ -207,11 +214,23 @@ function CanvasPanel() {
         savedIdRef.current = id
         if (next.mood) setNoteMood(id, next.mood)
       } else {
-        patchNote(savedId, {
+        const ok = patchNote(savedId, {
           title: next.title,
           body: next.body,
           folder: next.folder,
         })
+        if (!ok) {
+          /* Catatan lenyap di tengah sesi — autosave tidak boleh gagal
+             diam-diam: beri tahu pengguna, jangan tulis mood ke id hantu,
+             dan hentikan penulisan berikutnya di sesi ini. */
+          conflictRef.current = true
+          toast.error('Catatan dihapus dari perangkat lain', {
+            description:
+              'Perubahan tidak tersimpan — draf tetap terbuka di layar ini, salin bila perlu.',
+            duration: 6000,
+          })
+          return 'conflict'
+        }
         setNoteMood(savedId, next.mood)
       }
       lastSavedRef.current = next
@@ -230,7 +249,9 @@ function CanvasPanel() {
       try {
         const result = performSave('auto')
         if (result === 'saved') setSavedAt(Date.now())
-        setStatus(result === 'discarded' ? 'idle' : 'saved')
+        setStatus(
+          result === 'discarded' || result === 'conflict' ? 'idle' : 'saved',
+        )
       } catch {
         toast.error('Gagal menyimpan — draf tetap aman di layar ini')
         setStatus('idle')
@@ -401,8 +422,11 @@ function CanvasPanel() {
             placeholder="Judul refleksi…"
             aria-label="Judul catatan"
             /* v2.33: tanpa entrance berantai untuk permukaan teks — panel
-               cukup satu fade tenang (direktif: jangan animasikan teks). */
-            className={`w-full bg-transparent text-kpi font-semibold tracking-tight text-content-primary outline-none placeholder:text-content-muted/60 sm:text-3xl ${playfair.className}`}
+               cukup satu fade tenang (direktif: jangan animasikan teks).
+               Fokus keyboard tetap terlihat: cincin tipis warna border
+               kuat (bukan sekadar kursor) — aksesibilitas tanpa merusak
+               estetika kertas menulis. */
+            className={`w-full rounded-md bg-transparent text-kpi font-semibold tracking-tight text-content-primary outline-none placeholder:text-content-muted/60 focus-visible:ring-1 focus-visible:ring-border-strong sm:text-3xl ${playfair.className}`}
           />
 
           {/* Metadata — suasana hati + kategori; MERUNDUK saat mode menulis
@@ -488,8 +512,10 @@ function CanvasPanel() {
             placeholder="Tulis apa yang ada di pikiranmu…"
             aria-label="Isi catatan"
             rows={8}
-            /* v2.33: tanpa entrance; leading 1.75 (spesifikasi ruang tulis) */
-            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-section-lg leading-[1.75] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
+            /* v2.33: tanpa entrance; leading 1.75 (spesifikasi ruang tulis).
+               Cincin fokus tipis selaras input judul — indikasi fokus
+               keyboard yang jujur tanpa mengganggu permukaan menulis. */
+            className="mt-5 min-h-[38vh] w-full resize-none rounded-md bg-transparent text-section-lg leading-[1.75] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70 focus-visible:ring-1 focus-visible:ring-border-strong"
           />
         </div>
       </div>
@@ -513,7 +539,7 @@ function CanvasPanel() {
           aria-label="Miringkan teks terpilih"
           title="Miring"
           onClick={() => wrapSelection('_')}
-          className="interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-full font-serif text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className={`interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${playfair.className}`}
         >
           <Italic className="h-4 w-4" strokeWidth={2.4} />
         </button>

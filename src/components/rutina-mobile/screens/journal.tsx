@@ -358,6 +358,9 @@ export default function JournalScreen() {
          token layout-gap (bukan mt-4 ad-hoc). */
       className="mx-auto h-full w-full max-w-[var(--layout-content-max)] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary [&>*+*]:mt-[var(--layout-gap)]"
     >
+      {/* Judul layar untuk pembaca layar — satu-satunya layar tanpa h1;
+         kepala editorial visual tetap dipimpin RutinaSectionHeader. */}
+      <h1 className="sr-only">Jurnal</h1>
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
       <m.header
         initial={playEntrance ? { opacity: 0, y: 12 } : false}
@@ -376,7 +379,7 @@ export default function JournalScreen() {
       <m.button
         type="button"
         onClick={() => openCanvas()}
-        whileTap={{ scale: 0.98 }}
+        whileTap={{ scale: 0.97 }}
         initial={playEntrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{
@@ -530,7 +533,7 @@ export default function JournalScreen() {
                   <m.button
                     type="button"
                     onClick={() => openCanvas()}
-                    whileTap={{ scale: 0.95 }}
+                    whileTap={{ scale: 0.96 }}
                     className="interactive flex h-10 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover"
                   >
                     <PenLine className="h-4 w-4" strokeWidth={2.4} />
@@ -550,7 +553,7 @@ export default function JournalScreen() {
                     <m.button
                       type="button"
                       onClick={() => setQuery('')}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.96 }}
                       className="interactive flex h-10 cursor-pointer items-center rounded-full border border-border bg-surface-primary px-5 text-note font-semibold text-content-secondary hover:bg-secondary"
                     >
                       Hapus pencarian
@@ -608,6 +611,9 @@ function NoteList({
       variants={journalList}
       initial={playEntrance ? 'hidden' : 'show'}
       animate="show"
+      /* Semantik daftar — pembaca layar mengumumkan jumlah item & memungkinkan
+         navigasi penuh daftar; tiap kartu jadi listitem (lihat NoteCard). */
+      role="list"
       className="space-y-3"
     >
       {visible.map((n) => (
@@ -621,14 +627,18 @@ function NoteList({
         />
       ))}
       {hidden > 0 && (
-        <button
-          type="button"
-          onClick={() => setLimit((n) => n + (initialLimit ?? hidden))}
-          className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
-        >
-          Tampilkan {Math.min(initialLimit ?? hidden, hidden)} catatan lagi
-          {hidden > (initialLimit ?? hidden) ? ` (${hidden} tersisa)` : ''}
-        </button>
+        /* Pembungkus presentasional — tombol tetap dapat diakses namun
+           tidak dihitung sebagai butir daftar catatan. */
+        <div role="presentation">
+          <button
+            type="button"
+            onClick={() => setLimit((n) => n + (initialLimit ?? hidden))}
+            className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
+          >
+            Tampilkan {Math.min(initialLimit ?? hidden, hidden)} catatan lagi
+            {hidden > (initialLimit ?? hidden) ? ` (${hidden} tersisa)` : ''}
+          </button>
+        </div>
       )}
     </m.div>
   )
@@ -670,6 +680,9 @@ function NoteCard({
   return (
     <m.article
       variants={journalCard}
+      /* Butir daftar catatan (padanan role=list di NoteList) — semantik
+         listitem memberi pembaca layar posisi & jumlah di daftar. */
+      role="listitem"
       /* Tanpa whileTap pada article: Motion menyuntikkan tabindex pada
          elemen non-interaktif — umpan balik ketuk hidup di tombol buka. */
       className="relative rounded-lg border border-border bg-surface-primary p-4 transition-shadow duration-300 hover:shadow-soft [content-visibility:auto] [contain-intrinsic-size:auto_120px]"

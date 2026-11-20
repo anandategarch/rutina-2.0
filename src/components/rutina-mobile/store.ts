@@ -6,6 +6,10 @@ import { createJSONStorage, persist } from 'zustand/middleware'
    mengimpor tipe dari berkas ini (type-only) sehingga tidak ada
    ketergantungan runtime melingkar. */
 import { CATS_UNIFIED_LABELS } from './finance/cats'
+/* Impor melingkar aman: useJournalUi hanya disentuh saat aksi berjalan
+   (runtime), tidak saat evaluasi modul — dipakai deleteNote/startFresh
+   memangkas metadata mood catatan yang terhapus. */
+import { useJournalUi } from './journal-ui'
 
 /* ===== Tipe domain ===== */
 
@@ -1334,6 +1338,74 @@ interface RutinaState {
   startFresh: () => void
 }
 
+/* ===== Nilai pabrik slice domain ===== */
+
+/** Slice domain yang di-reset "Mulai dari awal" — persis seluruh kunci
+ *  DOMAIN_KEYS (sync-engine.ts) yang dipush ke cloud; tipe Pick menjaga
+ *  daftar reset selalu sejalan dengan deklarasi state. */
+type DomainSlice = Pick<
+  RutinaState,
+  | 'habits'
+  | 'completions'
+  | 'habitGroups'
+  | 'notes'
+  | 'txs'
+  | 'goals'
+  | 'wallets'
+  | 'budgets'
+  | 'customCats'
+  | 'catRenames'
+  | 'hiddenCats'
+  | 'workouts'
+  | 'foodEntries'
+  | 'calorieTarget'
+  | 'bodyLogs'
+  | 'fitTargets'
+  | 'dailyGoal'
+  | 'mood'
+  | 'moodLogs'
+  | 'identityText'
+  | 'deloadUntil'
+  | 'bonusClaimed'
+  | 'quoteSaved'
+  | 'quoteSavedDate'
+>
+
+/** Nilai pabrik SELURUH slice domain — satu sumber kebenaran bagi seed
+ *  create() dan reset startFresh, sehingga janji "hapus semua data
+ *  permanen" benar-benar kembali ke keadaan awal (data sensitif — berat
+ *  badan, mood, latihan, dompet — tidak boleh lolos dari reset).
+ *  Fungsi, bukan konstanta, agar array/objek tiap pemanggil segar dan
+ *  tidak berbagi referensi dengan state hidup. */
+function initialDomainState(): DomainSlice {
+  return {
+    habits: [],
+    completions: {},
+    habitGroups: [],
+    notes: [],
+    txs: [],
+    goals: [],
+    wallets: [],
+    budgets: { ...DEFAULT_BUDGETS },
+    customCats: [],
+    catRenames: {},
+    hiddenCats: [],
+    workouts: [],
+    foodEntries: [],
+    calorieTarget: 2000,
+    bodyLogs: {},
+    fitTargets: { ...FIT_TARGETS_DEFAULT },
+    dailyGoal: 4,
+    mood: null,
+    moodLogs: {},
+    identityText: '',
+    deloadUntil: null,
+    bonusClaimed: false,
+    quoteSaved: false,
+    quoteSavedDate: null,
+  }
+}
+
 export const useRutina = create<RutinaState>()(
   persist(
     (set, get) => ({
@@ -1342,35 +1414,20 @@ export const useRutina = create<RutinaState>()(
   journalFilter: 'semua',
   composeOpen: false,
   composeFolder: 'pribadi',
-  habits: [],
-  completions: {},
-  habitGroups: [],
+  /* Seluruh slice domain lahir dari SATU sumber kebenaran
+     (initialDomainState) — seed awal & reset startFresh tak mungkin
+     berbeda satu sama lain. */
+  ...initialDomainState(),
   selectedDate: todayISO(),
   habitSheetMode: 'closed',
   habitSheetId: null,
-  notes: [],
-  quoteSaved: false,
-  quoteSavedDate: null,
   quoteOffset: 0,
   quoteDate: null,
-  mood: null,
-  moodLogs: {},
-  identityText: '',
-  deloadUntil: null,
   expandedTaskId: null,
   readingNoteId: null,
   celebrating: false,
-  bonusClaimed: false,
-  dailyGoal: 4,
 
-  /* Keuangan */
-  txs: [],
-  goals: [],
-  wallets: [],
-  budgets: { ...DEFAULT_BUDGETS },
-  customCats: [],
-  catRenames: {},
-  hiddenCats: [],
+  /* Keuangan — state UI sesaat */
   finPeriod: 'bulan',
   txSheetOpen: false,
   txEditId: null,
@@ -1383,16 +1440,11 @@ export const useRutina = create<RutinaState>()(
   goalDialogOpen: false,
   goalEditId: null,
   expandedTxId: null,
-  /* Bugar */
-  workouts: [],
+  /* Bugar — state UI sesaat */
   workoutSheetOpen: false,
   workoutSheetSeed: null,
   workoutSheetHint: null,
-  foodEntries: [],
   foodSheetOpen: false,
-  calorieTarget: 2000,
-  bodyLogs: {},
-  fitTargets: { ...FIT_TARGETS_DEFAULT },
   boardOpen: false,
 
   openBoard: () => set({ boardOpen: true }),
@@ -1983,7 +2035,12 @@ export const useRutina = create<RutinaState>()(
         if (Object.keys(rest).length > 0) completions[date] = rest
       }
       return {
-        habits: s.habits.filter((h) => h.id !== id),
+        habits: s.habits
+          .filter((h) => h.id !== id)
+          /* Susun kebiasaan (habit stacking) yang memicu kebiasaan ini
+             dibebaskan — afterId menggantung menunjuk id yang sudah
+             tidak ada (pemicu tak pernah ketemu di kebiasaan.tsx). */
+          .map((h) => (h.afterId === id ? { ...h, afterId: null } : h)),
         completions,
         expandedTaskId: s.expandedTaskId === id ? null : s.expandedTaskId,
         habitSheetId: s.habitSheetId === id ? null : s.habitSheetId,
@@ -2104,11 +2161,20 @@ export const useRutina = create<RutinaState>()(
       ),
     })),
 
-  deleteNote: (id) =>
+  deleteNote: (id) => {
     set((s) => ({
       notes: s.notes.filter((n) => n.id !== id),
       readingNoteId: s.readingNoteId === id ? null : s.readingNoteId,
-    })),
+    }))
+    /* Pangkas metadata mood catatan itu juga — tanpa ini entri menetap
+       di localStorage sampai kanvas menulis ditutup berikutnya. */
+    const moods = useJournalUi.getState().noteMoods
+    if (id in moods) {
+      const next = { ...moods }
+      delete next[id]
+      useJournalUi.setState({ noteMoods: next })
+    }
+  },
 
   saveQuote: () => {
     const today = todayISO()
@@ -2178,21 +2244,29 @@ export const useRutina = create<RutinaState>()(
 
   /* --- Reset penuh (Zona Bahaya Profil) --- */
 
-  /** Hapus seluruh data domain — kebiasaan, histori, catatan, transaksi,
-   *  dompet & tujuan tabungan. Preferensi (dailyGoal) dipertahankan
-   *  karena bukan data domain. */
-  startFresh: () =>
+  /** Reset penuh (Zona Bahaya Profil) — SELURUH slice domain kembali ke
+   *  nilai pabrik: kebiasaan + histori + kelompok, catatan, transaksi,
+   *  dompet, anggaran, kategori (buatan/rename/sembunyi), tujuan,
+   *  latihan, asupan, log tubuh (termasuk berat badan), mood + riwayat,
+   *  suara identitas, deload, kutipan tersimpan, sasaran bugar, target
+   *  kalori, target harian — persis daftar DOMAIN_KEYS yang dipush ke
+   *  cloud, sehingga snapshot berikutnya mengosongkan data di server
+   *  (janji UI: "permanen — dari perangkat ini dan penyimpanan cloud").
+   *  Preferensi non-domain (uiPrefs, posisi kutipan harian) dipertahankan
+   *  karena bukan data pengguna. */
+  startFresh: () => {
     set({
-      habits: [],
-      completions: {},
-      notes: [],
-      txs: [],
-      goals: [],
-      mood: null,
-      bonusClaimed: false,
-      quoteSaved: false,
+      ...initialDomainState(),
+      /* Kalender beranda kembali ke hari ini — titik pandang, bukan data. */
       selectedDate: todayISO(),
-    }),
+    })
+    /* Metadata mood jurnal ikut kosong — seluruh catatan yang menjadi
+       kuncinya baru saja dihapus (pemangkasan lazimnya menunggu kanvas
+       ditutup; reset penuh tidak boleh menunggu itu). */
+    if (Object.keys(useJournalUi.getState().noteMoods).length > 0) {
+      useJournalUi.setState({ noteMoods: {} })
+    }
+  },
     }),
     {
       /* Persistensi lokal — histori pengguna nyata & permanen di perangkat,
