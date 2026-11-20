@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import * as m from 'motion/react-m'
 import { Leaf } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { Progress } from '@/components/ui/progress'
 import { motionTokens } from '@/lib/motion/tokens'
@@ -43,6 +45,22 @@ export function PlantGarden({
 
   const today = todayISO()
   const active = habits.filter((h) => !h.archived)
+
+  /* v2.31 Garden: milestone yang terdengar — saat tanaman naik tahap,
+     toast singkat menyapa (perayaan visual tetap dipegang usePlantGrowth
+     per kartu; sebelumnya hanya di Beranda via GardenTree). Ref menandai
+     tahap sebelumnya; mount pertama tidak bersuara. */
+  const prevStages = useRef<Map<string, string>>(new Map())
+  useEffect(() => {
+    for (const h of active) {
+      const stage = plantStageOf(h, completions, today)
+      const prev = prevStages.current.get(h.id)
+      if (prev && prev !== stage.stage.key) {
+        toast.success(`${h.title} tumbuh — kini tahap "${stage.stage.label}"`)
+      }
+      prevStages.current.set(h.id, stage.stage.key)
+    }
+  }, [active, completions, today])
 
   /* Tanpa kebiasaan aktif — taman belum perlu ditanam. */
   if (active.length === 0) return null

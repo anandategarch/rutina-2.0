@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, LayoutGroup } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   Archive,
@@ -52,6 +52,7 @@ import {
   type GoldilocksAdvice,
 } from '../habit-coach'
 import { PlantGarden } from '../plant-garden'
+import Heatmap from '../heatmap'
 import { PlantGlyph } from '../plant-glyph'
 import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
@@ -239,12 +240,16 @@ function HabitCheck({
   onToggle: () => void
 }) {
   return (
-    <button
+    <m.button
       type="button"
       role="checkbox"
       aria-checked={done}
       aria-label={label}
       onClick={onToggle}
+      /* v2.31 Garden: umpan balik tekan taktil (audit: pop hanya terjadi
+         SETELAH state berubah — kini tekan terasa DULU). Ikon kecil: 0.88. */
+      whileTap={{ scale: 0.88 }}
+      transition={pressSnappy}
       className={
         'interactive flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ' +
         (size === 'md' ? 'h-9 w-9' : 'h-8 w-8') +
@@ -264,7 +269,7 @@ function HabitCheck({
       >
         <Check className="h-4 w-4" strokeWidth={3} />
       </m.span>
-    </button>
+    </m.button>
   )
 }
 
@@ -1008,6 +1013,37 @@ export default function KebiasaanScreen() {
     toast.success(`Cukup ${h.mini} — dihitung!`)
   }
 
+  /* v2.31 Garden: ruang aktif untuk petunjuk arah — scrollspy sederhana
+     (IntersectionObserver, zona pita tengah layar); semua ruang kini
+     selalu dirender pada state non-kosong (konsistensi tidak lagi
+     lenyap saat semua kebiasaan diarsip). */
+  const [activeRoom, setActiveRoom] = useState<
+    'agenda' | 'konsistensi' | 'perpustakaan'
+  >('agenda')
+  useEffect(() => {
+    if (hasNoHabits) return
+    const rooms: [string, 'agenda' | 'konsistensi' | 'perpustakaan'][] = [
+      ['garden-agenda', 'agenda'],
+      ['garden-konsistensi', 'konsistensi'],
+      ['garden-perpustakaan', 'perpustakaan'],
+    ]
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue
+          const hit = rooms.find(([id]) => id === e.target.id)
+          if (hit) setActiveRoom(hit[1])
+        }
+      },
+      { rootMargin: '-30% 0px -55% 0px' },
+    )
+    for (const [id] of rooms) {
+      const el = document.getElementById(id)
+      if (el) obs.observe(el)
+    }
+    return () => obs.disconnect()
+  }, [hasNoHabits])
+
   return (
     <div
       data-module="kebiasaan"
@@ -1081,6 +1117,47 @@ export default function KebiasaanScreen() {
         </m.section>
       ) : (
         <>
+          {/* Petunjuk arah antar-ruang (v2.31 Garden, audit wayfinding):
+              tiga ruangan dalam satu gulir panjang — bilah pil menempel
+              di tepi atas; ruang aktif mengikuti scrollspy, ketukan
+              menggulir halus ke ruang tujuan. */}
+          <nav
+            aria-label="Petunjuk arah ruang kebiasaan"
+            className="sticky top-2 z-30 mt-[var(--layout-gap)] flex justify-center"
+          >
+            <div className="flex items-center gap-1 rounded-full border border-border bg-surface-primary/92 p-1 shadow-soft backdrop-blur-md">
+              {(
+                [
+                  ['garden-agenda', 'Agenda'],
+                  ['garden-konsistensi', 'Konsistensi'],
+                  ['garden-perpustakaan', 'Perpustakaan'],
+                ] as const
+              ).map(([id, label]) => {
+                const isActive = activeRoom === id.replace('garden-', '')
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() =>
+                      document
+                        .getElementById(id)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                    aria-current={isActive ? 'location' : undefined}
+                    className={
+                      'interactive h-8 cursor-pointer rounded-full px-3.5 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                      (isActive
+                        ? 'bg-module-accent/15 text-module-accent-strong'
+                        : 'text-content-muted hover:text-content-primary')
+                    }
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
+
           {/* ============ 1 — AGENDA HARI INI (paling operasional) ============
               Halaman planner kertas: paper-surface memberi garis margin kiri
               Rose Clay; yang menunggu naik ke rel timeline Pagi/Siang/Malam
@@ -1089,8 +1166,9 @@ export default function KebiasaanScreen() {
               pekan) mudah dipindai; selesai diredupkan di ekor "Selesai"
               bawah rel. */}
           <m.section
+            id="garden-agenda"
             aria-label="Agenda hari ini"
-            className="mt-[var(--layout-gap)]"
+            className="mt-[var(--layout-gap)] scroll-mt-20"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
@@ -1156,6 +1234,7 @@ export default function KebiasaanScreen() {
                     titik aksen + hairline vertikal ala linimasa kertas; baris
                     menunggu terurut jam di dalam tiap rel. */}
                 <div className="paper-surface mt-3 rounded-2xl border-y border-e p-3 shadow-soft sm:p-4">
+                  <LayoutGroup>
                   <div className="space-y-5">
                     {agendaGroups.map((g) => (
                       <div key={g.key} className="agenda-rail">
@@ -1183,6 +1262,7 @@ export default function KebiasaanScreen() {
                               key={h.id}
                               variants={journalCard}
                               layout
+                              layoutId={`agenda-${h.id}`}
                               transition={{
                                 layout: {
                                   duration: motionTokens.duration.normal,
@@ -1231,6 +1311,7 @@ export default function KebiasaanScreen() {
                             key={h.id}
                             variants={journalCard}
                             layout
+                            layoutId={`agenda-${h.id}`}
                             transition={{
                               layout: {
                                 duration: motionTokens.duration.normal,
@@ -1252,6 +1333,7 @@ export default function KebiasaanScreen() {
                       </m.div>
                     </div>
                   )}
+                  </LayoutGroup>
                 </div>
               </>
             )}
@@ -1370,10 +1452,10 @@ export default function KebiasaanScreen() {
               bedeng metrik (runtun · capaian pekan · tanaman) dan Taman
               Pertumbuhan — identitas kebun yang terpisah jelas dari
               halaman planner agenda. */}
-          {activeHabits.length > 0 && (
             <m.section
+              id="garden-konsistensi"
               aria-label="Konsistensi"
-              className="garden-surface mt-[var(--layout-gap)] rounded-[var(--layout-hero-radius)] p-3.5 sm:p-4 xl:p-5"
+              className="garden-surface mt-[var(--layout-gap)] scroll-mt-20 rounded-[var(--layout-hero-radius)] p-3.5 sm:p-4 xl:p-5"
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-20px' }}
@@ -1387,6 +1469,20 @@ export default function KebiasaanScreen() {
                 title="Konsistensi"
                 description="Runtun, capaian pekan, dan taman pertumbuhan"
               />
+
+              {/* v2.31 Garden: kebun tidak lagi LENYAP saat semua kebiasaan
+                  diarsip — bedeng kosong menyapa (konsistensi empty-state,
+                  senada dengan disiplin empty-state layar lain). */}
+              {activeHabits.length === 0 ? (
+                <div className="mt-4">
+                  <RutinaEmptyState
+                    icon={<Sprout className="h-6 w-6" />}
+                    title="Kebun menunggu ditanam kembali"
+                    description="Semua kebiasaan sedang diarsip — pulihkan satu dari Perpustakaan di bawah untuk mulai berkebun lagi."
+                  />
+                </div>
+              ) : (
+                <>
 
               {/* Bedeng metrik kebun — runtun terbaik, capaian pekan,
                   tanaman dewasa; glif kecil (Flame · Check · PlantGlyph)
@@ -1407,6 +1503,7 @@ export default function KebiasaanScreen() {
                         <Flame className="h-4 w-4" strokeWidth={2.2} />
                       </span>
                       <RutinaMetric
+                        popOn={maxStreak}
                         className="mt-2"
                         label="Runtun terbaik"
                         value={maxStreak}
@@ -1423,6 +1520,7 @@ export default function KebiasaanScreen() {
                         <Check className="h-4 w-4" strokeWidth={2.2} />
                       </span>
                       <RutinaMetric
+                        popOn={weekTarget.doneElapsed}
                         className="mt-2"
                         label="Target pekan ini"
                         value={
@@ -1460,6 +1558,7 @@ export default function KebiasaanScreen() {
                         />
                       </span>
                       <RutinaMetric
+                        popOn={maturePlants}
                         className="mt-2"
                         label="Tanaman"
                         value={maturePlants}
@@ -1474,11 +1573,15 @@ export default function KebiasaanScreen() {
               {/* Taman Pertumbuhan — bedeng tanaman di dalam zona kebun
                   yang sama; mode 'beds' menanam kisi melipat di ruang
                   kerja lebar. */}
-              <div className="mt-5">
-                <PlantGarden variant="beds" />
-              </div>
+                <div className="mt-5">
+                  <Heatmap />
+                </div>
+                <div className="mt-5">
+                  <PlantGarden variant="beds" />
+                </div>
+              </>
+              )}
             </m.section>
-          )}
 
           {/* ============ 3 — PERPUSTAKAAN KEBIASAAN (inventaris) ============
               Daftar ledger hairline ringkas per kategori/grup — referensi
@@ -1486,8 +1589,9 @@ export default function KebiasaanScreen() {
               Detail (inline pada layar sempit; kolom kanan split-screen
               pada ruang kerja ≥52rem). */}
           <m.section
+            id="garden-perpustakaan"
             aria-label="Perpustakaan kebiasaan"
-            className="mt-[var(--layout-gap)]"
+            className="mt-[var(--layout-gap)] scroll-mt-20"
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-20px' }}
