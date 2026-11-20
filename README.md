@@ -5,6 +5,35 @@ Dibangun dengan Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand,
 Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
+> **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
+> sejak v2.35 mengikuti `version` di package.json (2.35.0) — tidak ada lagi
+> tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.35 — Final Design Engineering Polish
+
+Gelombang penyelesaian setelah redesain tujuh ruang (v2.27–v2.34) disetujui
+arahnya: **satu produk, tujuh ruang berbeda, satu identitas Rutina**. Tidak
+ada layar yang didesain ulang dan tidak ada dependensi baru — yang dipoles
+adalah kematangan motion, konsistensi design system, presisi interaksi,
+dan pembuktian mutu.
+
+| Prioritas | Rincian |
+|---|---|
+| **Motion governance penuh** | Seluruh literal duration/easing/spring/delay di tujuh layar + modul bersama masuk token semantik (`pageEntrance`, `panelReveal`, `cardReveal`, `chipReveal`, `gardenMilestone`, `screenSwap`, spring `progressArc`/`rowEnter`/`letter`, skala delay `tight→sweep`). Audit pasca-migrasi: nol literal tersisa. Karakter gerak tiap ruang tetap berbeda — yang disatukan sumber angkanya, bukan rasanya. |
+| **first-visit lifecycle-safe** | `useFirstVisit(key)` menggantikan fungsi yang memutasi state global saat render — penandaan kini terjadi pasca-commit lewat useEffect. |
+| **Anti-replay seragam 7 ruang** | Animasi pembuka hanya pada kunjungan pertama seumur sesi; perpindahan halaman berikutnya fokus pada transisi ringan (screenSwap 0.24 dtk) dan micro-interaction. Perubahan data/periode tetap bermorf lewat animate — tidak memicu entrance ulang. |
+| **Audit dua-engine (nol pelanggaran)** | Motion.dev = state UI; anime.js = orkestrasi momen. Keduanya tidak pernah menganimasi properti transform yang sama pada elemen yang sama; seluruh listener & instansi anime bersih di unmount. Kontrak didokumentasikan di `anime-kit.ts`. |
+| **Premium CSS** | Token komposisi `--layout-content-max` (measure kanvas menulis 720px) dengan konsumen nyata; radius & type floor literal → token; layout grammar tujuh ruang dipertahankan (Jurnal tetap datar, ledger tetap ledger, garden tetap organik). |
+| **Interaksi & a11y** | Skala tekan centang kebiasaan 0.92 (aksi tersering); audit a11y: dialog semantics, focus trap, focus-visible, disabled states, reduced-motion tiga lapis — fondasi sudah benar. |
+| **Pembuktian mutu** | `bun run verify` hijau (typecheck + lint + 133 test). Browser E2E: 42/42 kombinasi lebar (320–1440px) × 7 layar tanpa overflow horizontal; CRUD kebiasaan & autosave Jurnal terverifikasi utuh; nol error halaman. |
+
+## v2.27–v2.34 — Tujuh Ruang Kerja (disetujui, tidak diubah lagi)
+
+Redesain per-halaman yang menjadi dasar v2.35 — lihat CHANGELOG.md untuk
+ringkasan per gelombang: Daybook (Beranda), Performance Studio (Bugar),
+The Vault (Keuangan), The Garden (Kebiasaan), The Observatory (Statistik),
+Writing Room (Jurnal), Control Room (Profil).
+
 ## v2.18 — Pemulihan Histori Rutina 1.0, Tanpa Subkategori & Pintasan Template
 
 Histori keuangan & kebiasaan Rutina 1.0 "tidak pernah terbaca" padahal sudah

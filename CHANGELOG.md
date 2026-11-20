@@ -2,6 +2,60 @@
 
 Semua perubahan penting per versi. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.1.0/);
 versi mengikuti gelombang pengembangan internal (bukan semver).
+Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
+(2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
+
+## [2.35] — Final Design Engineering Polish: Motion Governance, Anti-Replay & Premium CSS
+
+Gelombang penyelesaian (finishing) setelah redesain v2.27–v2.34 disetujui
+arahnya. TIDAK ada layar yang didesain ulang, TIDAK ada dependensi baru —
+tujuh ruang kerja dipertahankan, yang dipoles adalah kematangan motion,
+konsistensi CSS, presisi interaksi, dan pembuktian mutu.
+
+| Prioritas | Rincian |
+|---|---|
+| **Motion governance penuh** | Semua literal duration/easing/spring/delay di 7 layar + modul bersama masuk token semantik: preset `pageEntrance`/`panelReveal`/`cardReveal`/`chipReveal`/`gardenMilestone`/`screenSwap`/`activityPulse`, spring `progressArc`/`rowEnter`/`letter`, skala delay absolut `tight→sweep`. Audit grep pasca-migrasi: **nol** literal tersisa di rentang 0.2–0.5 dtk. Karakter tiap ruang TETAP berbeda — yang disatukan sumber angkanya, bukan rasanya. |
+| **first-visit jadi hook** | `firstVisit()` lama memutasi Set module-scope SAAT render — kini `useFirstVisit(key)`: pembacaan di initializer useState, penandaan lewat useEffect pasca-commit (render murni, StrictMode aman, terdokumentasi). |
+| **Anti-replay 7 ruang** | Kebijakan seragam: animasi pembuka hanya kunjungan pertama seumur sesi. Gerbang baru di Jurnal (header/CTA/daftar catatan), Kebiasaan, Bugar, Statistik (cincin XP `initial=target` — batang tidak "penuh-lalu-mengecil"), Profil, Keuangan (GoalCard/BudgetRow). Baris ledger & inspector tetap dianimasikan (item dinamis/interaksi data). Terverifikasi browser: opacity elemen = 1 tepat setelah remount. |
+| **Audit dua-engine: nol pelanggaran** | Motion.dev (state UI) vs anime.js (orkestrasi momen) — seluruh 12 titik `useAnimePop`, heatmap, batang grafik, piring barbel, saldo ka-ching, splash, perayaan sesi diverifikasi tidak pernah menganimasi properti transform yang sama pada elemen yang sama; 33 addEventListener = 33 removeEventListener; kontrak dua-engine didokumentasikan permanen di `anime-kit.ts`. |
+| **Premium CSS** | Token komposisi `--layout-content-max` 45rem (720px) — diukur dari konsumen nyata (layar Jurnal + kanvas menulis; kanvas dipasang di level cangkang sehingga dideklarasikan di `:root`). Token inspector/rasio/hero-height sengaja TIDAK dibuat (split 12-kolom bento sudah mengungkapkannya). Radius literal → token (`rounded-xl`/`rounded-2xl`/`rounded-sheet`); type floor `text-[9px]` → `text-chart-label`. |
+| **Interaksi presisi** | Skala tekan centang kebiasaan 0.85/0.88 → **0.92** (aksi tersering di produk; saran audit 0.92–0.96, selaras konvensi token 0.90–0.92 kontrol kecil). Audit a11y: fondasi sudah benar (dialog semantics, focus trap, focus-visible, aria lengkap, disabled states, reduced-motion tiga lapis). |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | `bun run verify` hijau: typecheck + lint + **133 test lulus, 0 gagal**. Browser E2E: **42/42 kombinasi** lebar (320/390/768/1024/1280/1440) × 7 layar tanpa overflow horizontal; CRUD kebiasaan utuh (buat → detail → sunting/arsip/**hapus permanen** → hilang); autosave Jurnal ("Tersimpan" muncul, catatan masuk daftar, hapus bersih); **nol error halaman & konsol bersih**. |
+
+## [2.34] — Motion & Responsif Final (STEP 06)
+Governance shell & responsif: transisi antar-layar diringankan, 42 kombinasi
+lebar×layar diuji tanpa overflow. Detail: git log `f90212f`.
+
+## [2.33] — Writing Room & Control Room (STEP 05)
+Jurnal: kanvas 720px fokus, metadata merunduk saat menulis, tipografi
+editorial. Profil: split settings desktop (navigasi kategori kiri,
+pengaturan kanan), hero identitas ringkas. Detail: git log `30966ff`.
+
+## [2.32] — Statistik: The Observatory (STEP 04b)
+Hierarki KPI (satu angka dominan + baris sekunder), struktur grafik,
+insight lintas domain; data entry dipisahkan dari analisis.
+Detail: git log `415547b`.
+
+## [2.31] — Kebiasaan: The Garden (STEP 04a)
+Tiga ruang jelas — Agenda / Konsistensi / Perpustakaan — dengan navigasi
+sticky dan bahasa permukaan organik (garden-surface/bed). Detail: git log `cbdfd73`.
+
+## [2.30] — Bugar: Performance Studio (STEP 03b)
+Hero performa, coach, timeline riwayat, grafik interaktif; subtab
+keep-alive agar entrance tidak diulang. Detail: git log `2d6de7d`.
+
+## [2.29] — Keuangan: The Vault (STEP 03a)
+Split workspace 4:8 (saldo kiri, ledger tengah), baris buku kas hairline,
+panel saldo & inspector — workspace finansial otentik. Detail: git log `00d14ae`.
+
+## [2.28] — Beranda: The Daybook (STEP 02)
+Sorotan diturunkan jadi info sekunder, insight flat editorial, hero
+diringkas, band bawah berpermukaan beda sesuai isi. Detail: git log `b01ccf5`.
+
+## [2.27] — Fondasi Layout Grammar Tujuh Ruang (STEP 01)
+`data-layout` tujuh ruang kerja: token gap/hero-radius/density/grid-gap
+per ruang + permukaan khas (paper/garden/ledger/timeline).
+Detail: git log `2e680d3`.
 
 ## [2.26] — Audit CRUD Menyeluruh · Opsi Hapus Kini Terjangkau di Mana-mana
 
