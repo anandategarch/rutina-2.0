@@ -5,6 +5,25 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.40] — Serah Terima Pembuka yang Sempurna: Pra-Pasang di Balik Splash
+
+Laporan "waktu buka aplikasi transisi ikonnya gak smooth" — diagnosis akar:
+selama ini SELURUH cangkang aplikasi (Beranda + navigasi + FAB + belasan
+sheet) terpasang dalam SATU commit React tepat pada frame yang sama dengan
+mulai-memudarnya splash — main thread tersita ratusan milidetik pada momen
+paling terlihat, animasi exit patah-patah, lalu ikon nav muncul seketika
+tanpa koreografi. Perbaikan menyeluruh jalur pembuka + pemeriksaan halus
+pengalaman lain (prefetch, transisi tab).
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Pra-pasang cangkang di balik splash** | `underlay` state baru: pohon aplikasi dipasang pada 1,8 dtk (semua aksi splash — goresan 1,09 · judul 1,47 · tagline 1,7 dtk — telah selesai; masih 0,8 dtk sebelum exit 2,6 dtk) di balik splash yang opak z-70. Render, layout, dan entrance Beranda bermain tersembunyi; saat splash memudar aplikasi SUDAH duduk tenang — nol lonjakan thread pada frame transisi. Reduced-motion: pra-pasang 0,12 dtk (splash mereka 0,5 dtk). Jalur tap-skip dan skip keyboard tetap benar (mount penuh saat itu juga, sama seperti perilaku lama). |
+| **P0 — Underlay inert (aman aksesibilitas)** | Selama masih di balik splash, seluruh subtree aplikasi dibungkus `inert` (React 19 boolean): tak bisa difokus, tak terbaca pembaca layar, tak bisa diketuk — splash tetap satu-satunya elemen interaktif; dibuktikan snapshot a11y 2,2 dtk hanya berisi tombol "Lewati layar pembuka". Pembungkus tanpa transform (sheet `position:fixed` di dalamnya tetap relatif viewport) dan flex kolom meniru anatomi lama (nav/flex-1 tak bergeser). |
+| **P0 — Koreografi reveal ikon cangkang** | `BottomNav` kini `m.nav` yang menunggu tersembunyi lalu NAIK satu blok (spring.sheet — karakter gerak bottom sheet, chrome bawah menyapa dari arah yang sama) digerbang `revealed`; FAB desktop pop spring.snappy pada momen yang sama; remount pascalayar Profil ikut diantar naik (satu koreografi chrome konsisten — blok konten layar tetap diurus gerbang anti-replay firstVisit, tak ada replay liar). |
+| **P1 — Prefetch re-sequenced** | Pemanasan enam layar malas dipindah dari timer tetap 1,5 dtk (parse/kompilasi chunk bertabrakan dengan ekor-ekor splash) ke SETELAH reveal: `requestIdleCallback` timeout 2,5 dtk — navigasi pertama tetap instan tanpa pernah mencuri frame dari momen pembuka. |
+| **P1 — Transisi tab dua kali lebih responsif** | `AnimatePresence` pergantian layar: `mode="wait"` (exit 0,24 dtk menunggu selesai dulu, baru enter 0,24 dtk = 0,48 dtk terasa lambat untuk aktivitas SERING) → mode sinkron: exit + enter berjalan bersamaan (crossfade berarah; kedua layar absolut inset-0 sehingga tumpang-tindih bersih) — waktu tanggapan separuhnya. Uji stres pindah tab berturut-turut 100 ms: mulus, tanpa error. |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | `bun run lint` hijau. E2E browser (agent-browser): 1,2 dtk — pohon a11y hanya splash (benar); 2,2 dtk — wrapper `[inert]` hadir + pohon a11y tetap hanya splash (benar); 2,6 dtk+ — aplikasi penuh interaktif, nav duduk di posisi final (transform none), inert lepas; jalur skip (tap) bekerja; hub aksi cepat buka/tutup; bolak-balik Profil → nav naik kembali; 390px & 1280px (sidebar tampak, nav bawah tersembunyi, FAB tampak); pindah tab beruntun Bugar→Keuangan→Kebiasaan tanpa error; nol error konsol & halaman; verifikasi visual model (VLM) tangkapan mobile + desktop bersih. |
+
 ## [2.39] — Data Everywhere: Audit Visual Angka & Model Progres Baru
 
 Audit visual tiga agen paralel atas tujuh ruang untuk menemukan "data angka

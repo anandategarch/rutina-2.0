@@ -689,7 +689,7 @@ export function QuickActionHub() {
  * menjadi tanda tutup saat hub terbuka. Disembunyikan di layar Profil
  * — konsisten dengan BottomNav.
  */
-export function QuickActionFab() {
+export function QuickActionFab({ revealed }: { revealed: boolean }) {
   const open = useQuickHub((s) => s.open)
   const toggleHub = useQuickHub((s) => s.toggleHub)
   const screen = useRutina((s) => s.screen)
@@ -701,7 +701,12 @@ export function QuickActionFab() {
           key="quick-fab"
           className="absolute bottom-6 right-6 z-30 hidden lg:block"
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          /* v2.40: pop FAB digerbang `revealed` — dengan pra-pasang
+             cangkang di balik splash, mount tidak lagi sekaligus
+             berarti "tampil"; tombol menunggu splash pergi dulu lalu
+             muncul dengan spring.snappy (remount pascalayar Profil
+             tetap diantar pop, perilaku lama dipertahankan). */
+          animate={{ scale: revealed ? 1 : 0, opacity: revealed ? 1 : 0 }}
           exit={{ scale: 0, opacity: 0 }}
           transition={motionTokens.spring.snappy}
         >

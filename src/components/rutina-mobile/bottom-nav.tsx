@@ -92,7 +92,7 @@ const TABS: { id: Screen; label: string; icon: typeof Home }[] = [
   { id: 'kebiasaan', label: 'Kebiasaan', icon: Sprout },
 ]
 
-export function BottomNav() {
+export function BottomNav({ revealed }: { revealed: boolean }) {
   const screen = useRutina((s) => s.screen)
   const setScreen = useRutina((s) => s.setScreen)
   const hubOpen = useQuickHub((s) => s.open)
@@ -106,8 +106,19 @@ export function BottomNav() {
   const accent = NAV_ACCENT[screen]
 
   return (
-    <nav
+    /* v2.40 koreografi reveal: sebelumnya nav (bersama seluruh ikonnya)
+     muncul seketika begitu splash pergi. Kini cangkang bawah menunggu
+     di balik splash dalam keadaan tersembunyi, lalu NAIK sebagai satu
+     blok (spring.sheet — karakter gerak yang sama dengan bottom sheet:
+     chrome bawah "menyapa" dari arah yang sama). `initial` selalu
+     tersembunyi: remount pascalayar Profil ikut diantar naik — satu
+     koreografi konsisten, bukan replay liar (gerbang anti-replay
+     firstVisit tetap mengurus blok konten layar). */
+    <m.nav
       aria-label="Navigasi utama"
+      initial={{ y: 96, opacity: 0 }}
+      animate={{ y: revealed ? 0 : 96, opacity: revealed ? 1 : 0 }}
+      transition={motionTokens.spring.sheet}
       className="z-20 shrink-0 border-t border-border bg-surface-primary/95 pb-[max(env(safe-area-inset-bottom),10px)] pt-1 shadow-soft backdrop-blur-md lg:hidden"
     >
       <div className={`mx-auto grid w-full grid-cols-5 ${CONTENT_W}`}>
@@ -185,7 +196,7 @@ export function BottomNav() {
           onSelect={setScreen}
         />
       </div>
-    </nav>
+    </m.nav>
   )
 }
 

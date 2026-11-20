@@ -131,6 +131,25 @@ export function RutinaApp() {
   const boardOpen = useRutina((s) => s.boardOpen)
   const closeBoard = useRutina((s) => s.closeBoard)
   const [phase, setPhase] = useState<'splash' | 'app'>('splash')
+  /* Pra-pasang (v2.40): dulu SELURUH cangkang aplikasi (Beranda + nav +
+     FAB + belasan sheet) terpasang dalam SATU commit React tepat saat
+     splash mulai memudar — main thread tersita ratusan ms pada frame
+     paling terlihat, transisi ikon tersendat. Kini cangkang dipasang
+     LEBIH DAHULU di balik splash yang opak (z-70): pada 1,8 dtk semua
+     aksi splash (goresan 1,09 dtk · judul 1,47 dtk · tagline 1,7 dtk)
+     telah selesai, masih tersisa 0,8 dtk sebelum exit 2,6 dtk — pohon
+     dirender, layout dihitung, entrance Beranda bermain tersembunyi.
+     Saat splash memudar, aplikasi SUDAH duduk tenang: tanpa lonjakan
+     thread, tanpa pop mendadak. Reduced-motion: splash hanya 0,5 dtk,
+     pra-pasang nyaris instan (0,12 dtk) supaya pola cepatnya tetap
+     bebas hambatan. */
+  const [underlay, setUnderlay] = useState(false)
+
+  useEffect(() => {
+    const rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const t = window.setTimeout(() => setUnderlay(true), rm ? 120 : 1800)
+    return () => window.clearTimeout(t)
+  }, [])
 
   /* Callback stabil untuk Splash — tanpa ini identitas arrow berubah tiap
      re-render (rehidrasi persist / update store terjadi tepat saat splash
@@ -160,20 +179,29 @@ export function RutinaApp() {
     }
   }, [])
 
-  /* Prefetch idle — enam layar malas dihangatkan di latar belakang
-     begitu app tenang, sehingga navigasi pertama ke modul mana pun
-     terasa instan tanpa membayar biaya ini di bundel awal. */
+  /* Prefetch idle (v2.40 re-sequenced) — dulu dijadwalkan 1,5 dtk,
+     tepat sebelum splash exit: parse/kompilasi enam chunk bertabrakan
+     dengan transisi pembuka. Kini pemanasan baru berjalan SETELAH
+     reveal tenang, saat browser benar-benar idle (requestIdleCallback,
+     timeout 2,5 dtk) — navigasi pertama tetap instan tanpa pernah
+     mencuri frame dari momen pembuka. */
   useEffect(() => {
-    const t = window.setTimeout(() => {
+    if (phase !== 'app') return
+    const warm = () => {
       void loadBugar()
       void loadJournal()
       void loadKebiasaan()
       void loadKeuangan()
       void loadStats()
       void loadProfile()
-    }, 1500)
+    }
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(warm, { timeout: 2500 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const t = window.setTimeout(warm, 1200)
     return () => window.clearTimeout(t)
-  }, [])
+  }, [phase])
 
   /* Arah transisi (derivasi murni dari state): maju (1) bila pindah ke
      kanan, mundur (-1) bila ke kiri. */
@@ -205,6 +233,11 @@ export function RutinaApp() {
     }
   }, [level])
 
+  /* `revealed` — gerbang koreografi ikon cangkang: nav & FAB menunggu
+     momen splash benar-benar pergi sebelum menari (lihat bottom-nav &
+     quick-action-hub). */
+  const revealed = phase === 'app'
+
   return (
     /* MotionConfig reducedMotion="user" kini disediakan AppMotionProvider
        (LazyMotion domMax) di app-frame — tidak perlu duplikat di sini. */
@@ -215,8 +248,17 @@ export function RutinaApp() {
           )}
         </AnimatePresence>
 
-        {phase === 'app' && (
-          <>
+        {(underlay || revealed) && (
+          /* Pembungkus pra-pasang: selama masih di balik splash, seluruh
+             pohon aplikasi inert (tak bisa difokus, tak terbaca layar
+             pembaca, tak bisa diketuk) — splash tetap satu-satunya hal
+             interaktif. Tanpa transform (position:fixed sheet di dalamnya
+             tetap relatif viewport). `display` biasa — flex kolom meniru
+             anatomi lama agar nav/flex-1 tidak bergeser. */
+          <div
+            className="absolute inset-0 flex flex-col"
+            inert={!revealed}
+          >
             {/* Kanvas utama — warnanya ber-crossfade mengikuti tab aktif */}
             <m.div
               aria-hidden="true"
@@ -248,9 +290,15 @@ export function RutinaApp() {
               />
             </div>
 
-            {/* Area konten — kolom terpusat, layar penuh di perangkat kecil */}
+            {/* Area konten — kolom terpusat, layar penuh di perangkat kecil.
+                v2.40: mode="wait" diganti SYNC — dulu exit (0,24 dtk)
+                menunggu SELESAI dulu baru enter (0,24 dtk) = 0,48 dtk
+                yang terasa lambat untuk aktivitas SERING; kini keduanya
+                berjalan bersamaan (crossfade berarah, keduanya absolut
+                inset-0 sehingga tumpang-tindihnya bersih) — pindah tab
+                terasa dua kali lebih responsif. */}
             <div className="relative min-h-0 flex-1">
-              <AnimatePresence mode="wait" initial={false} custom={dir}>
+              <AnimatePresence initial={false} custom={dir}>
                 <m.div
                   key={screen}
                   custom={dir}
@@ -277,10 +325,10 @@ export function RutinaApp() {
                 Di desktop (lg+) tab bawah disembunyikan total oleh
                 bottom-nav (lg:hidden); navigasi berpindah ke bilah sisi
                 yang dirender app-frame di luar komponen ini. */}
-            {screen !== 'profil' && <BottomNav />}
+            {screen !== 'profil' && <BottomNav revealed={revealed} />}
             {/* Pusat aksi cepat global — FAB mengambang (disembunyikan di
                 Profil, konsisten dengan navigasi bawah) + hub + check-in. */}
-            <QuickActionFab />
+            <QuickActionFab revealed={revealed} />
             <ComposeSheet />
             <ReadingSheet />
             <AddTxSheet />
@@ -295,7 +343,7 @@ export function RutinaApp() {
             <QuickActionHub />
             <DesignBoard open={boardOpen} onClose={closeBoard} />
             <CelebrationOverlay active={celebrating} />
-          </>
+          </div>
         )}
       </div>
   )

@@ -6,8 +6,23 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.39.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.40.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.40 — Serah Terima Pembuka yang Sempurna: Pra-Pasang di Balik Splash
+
+Transisi pembuka yang tersendat kini permanen diperbaiki: cangkang aplikasi
+dipasang LEBIH DAHULU di balik splash yang opak (1,8 dtk — semua aksi splash
+sudah selesai), subtree `inert` sampai splash pergi (aman aksesibilitas),
+lalu navigasi bawah naik satu blok + FAB pop pada momen reveal. Prefetch enam
+layar pindah ke pascalayar `requestIdleCallback`; transisi tab `mode="wait"`
+→ sinkron — dua kali lebih responsif.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Pra-pasang + inert + koreografi reveal** | Nol lonjakan main thread pada frame transisi (pohon sudah dirender di balik splash); pohon a11y selama splash hanya berisi tombol lewati; nav naik spring.sheet, FAB pop spring.snappy, digerbang `revealed`. |
+| **P1 — Prefetch & transisi tab** | Pemanasan chunk pascalayar idle (dulu 1,5 dtk, bertabrakan dengan ekor splash); pindah tab crossfade berarah 0,24 dtk (dulu 0,48 dtk berurutan). |
+| **Pembuktian mutu** | lint hijau; E2E browser: splash→reveal, skip, hub, bolak-balik Profil, 390px & 1280px, pindah tab beruntun 100 ms — nol error konsol; VLM verifikasi visual mobile + desktop. |
 
 ## v2.39 — Data Everywhere: Audit Visual Angka & Model Progres Baru
 
