@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from './layout-widths'
 import { MOOD_DOT, useJournalUi } from './journal-ui'
-import { FOLDER_SHORT, useRutina } from './store'
+import { FOLDER_SHORT, noteDateLabel, useRutina } from './store'
 import { playfair } from './serif'
 import { useFocusTrap } from './use-focus-trap'
 import { motionTokens } from '@/lib/motion/tokens'
@@ -132,7 +132,8 @@ export function ReadingSheet() {
                   </span>
                 ) : null}
                 <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
-                  {note.date}
+                  {/* v2.36: label diturunkan dari tanggal ISO catatan. */}
+                  {noteDateLabel(note)}
                 </span>
                 {note.pinned ? (
                   <Pin

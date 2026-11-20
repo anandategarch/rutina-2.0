@@ -1924,8 +1924,8 @@ export default function StatsScreen() {
                 <p className="mt-3 text-eyebrow leading-relaxed text-content-muted">
                   Skala batang berlaku per metrik — satuan berbeda tidak
                   dibandingkan langsung. Pengeluaran dihitung tanpa transfer;
-                  nilai lebih kecil dinilai lebih baik. Jumlah catatan bersifat
-                  perkiraan (pencocokan label tanggal).
+                  nilai lebih kecil dinilai lebih baik. Jumlah catatan
+                  dihitung eksak dari tanggal-dibuat (v2.36).
                 </p>
               </RutinaCard>
             </m.section>

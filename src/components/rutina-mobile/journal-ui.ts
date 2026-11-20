@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { useRutina, type FolderKey, type Note } from './store'
+import { useRutina, todayISO, type FolderKey, type Note } from './store'
 
 /**
  * UI kanvas jurnal + metadata suasana hati per catatan.
@@ -128,7 +128,11 @@ export function createNote(input: {
         id,
         title: input.title,
         body: input.body,
-        date: 'Hari ini',
+        /* v2.36 (audit visualisasi Tahap 1): ISO yyyy-mm-dd — selaras
+           skema JournalNote & addNote di store. Label "Hari ini"
+           diturunkan noteDateLabel saat tampil, bukan disimpan, agar
+           tanggal historis tidak ikut "tergeser" besok. */
+        date: todayISO(),
         pinned: false,
         tone: (s.notes.length * 2) % 3,
         folder: input.folder,

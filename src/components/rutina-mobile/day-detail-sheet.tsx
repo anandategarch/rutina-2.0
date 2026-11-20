@@ -35,6 +35,7 @@ import {
   habitsOn,
   isDoneOn,
   longDateLabel,
+  noteDateISO,
   todayISO,
   useRutina,
   type Note,
@@ -76,20 +77,25 @@ export function noteDayLabel(iso: string): string {
 }
 
 /**
- * Catatan yang label tampilannya cocok dengan tanggal ISO.
- * Upaya terbaik: note.date adalah label tampilan ("15 Jun", "Hari ini"),
- * bukan ISO — dibandingkan lowercased; "Hari ini" hanya cocok bila iso
- * memang hari ini. Bisa meleset untuk label non-baku; anggap perkiraan.
+ * Catatan yang dibuat pada tanggal ISO — v2.36 (audit visualisasi
+ * Tahap 1): pencocokan EKSAK lewat noteDateISO (field ISO, atau
+ * tanggal-dibuat dari id note-/quote-<epoch>). Label-lawas hanya
+ * dipakai sebagai jaring pengaman untuk catatan yang tanggalnya
+ * benar-benar tak dapat dipastikan — hasilnya tidak lagi “perkiraan”
+ * untuk catatan v2.0 manapun.
  */
 export function notesOnDate(notes: Note[], iso: string, today: string): Note[] {
   const expected = noteDayLabel(iso).toLowerCase().trim()
   return notes.filter((n) => {
+    const exact = noteDateISO(n)
+    if (exact != null) return exact === iso
     const label = (n.date ?? '').toLowerCase().trim()
     return label === expected || (label === 'hari ini' && iso === today)
   })
 }
 
-/** Jumlah catatan dalam jendela tanggal (perkiraan) — pembanding pekan. */
+/** Jumlah catatan dalam jendela tanggal — pembanding pekan (v2.36:
+ *  eksak via noteDateISO, bukan lagi perkiraan label). */
 export function notesInWindow(
   notes: Note[],
   start: string,

@@ -45,6 +45,46 @@ export function folderCount(notes: Note[], key: FolderKey): number {
   return notes.filter((n) => n.folder === key).length
 }
 
+/* --- Integritas tanggal catatan (audit visualisasi v2.36, Tahap 1) ---
+   Skema database mengharapkan ISO yyyy-mm-dd, tetapi catatan lama lahir
+   dengan label "Hari ini". Sebelum membangun visual historis (heatmap
+   menulis, filter tanggal), tanggal harus punya satu makna: */
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Tanggal ISO catatan — sumber tunggal pengelompokan visual. Tangga
+ * kejujuran:
+ * 1. field `date` yang sudah ISO (catatan baru v2.36+) → apa adanya;
+ * 2. id `note-<epoch>` / `quote-<epoch>` (catatan lama berlabel
+ *    "Hari ini") → tanggal DIBUAT yang sesungguhnya;
+ * 3. selain itu → null: tanggal tak dapat dipastikan dan TIDAK boleh
+ *    dianggap hari ini (heatmap memasukkannya ke kelompok tanpa
+ *    tanggal, bukan mengarang).
+ */
+export function noteDateISO(note: Note): string | null {
+  if (ISO_DATE_RE.test(note.date)) return note.date
+  const m = /^(?:note|quote)-(\d{12,})$/.exec(note.id)
+  if (m) {
+    const d = new Date(Number(m[1]))
+    if (!Number.isNaN(d.getTime())) return isoOf(d)
+  }
+  return null
+}
+
+/** Label tanggal catatan untuk kartu: "Hari ini" / "Kemarin" / "5 Jan".
+ *  Tanggal tak terpaste → "Tanpa tanggal" — jujur, bukan mengarang. */
+export function noteDateLabel(note: Note, today: string = todayISO()): string {
+  const iso = noteDateISO(note)
+  if (iso == null) return 'Tanpa tanggal'
+  if (iso === today) return 'Hari ini'
+  if (iso === addDaysISO(today, -1)) return 'Kemarin'
+  return fromISO(iso).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 /** Label pendek folder untuk chip filter jurnal. */
 export const FOLDER_SHORT: Record<FolderKey, string> = {
   kerja: 'Kerja',
@@ -516,6 +556,120 @@ export function rateSeries(
     out.push({
       d: days - i,
       v: total === 0 ? 0 : Math.round((done / total) * 100),
+    })
+  }
+  return out
+}
+
+/* --- Metrik sadar-jadwal (audit visualisasi v2.36, Tahap 1) ---
+   Jumlah kebiasaan selesai ≠ tingkat konsistensi: hari dengan 2/2
+   kebiasaan selesai tidak boleh tampak lebih redup dari hari 4/6.
+   Semua fungsi murni (aman SSR & unit test); hari jeda (rest day)
+   diampuni — keluar dari penyebut, bukan dihitung sebagai kegagalan. */
+
+export interface DaySchedule {
+  date: string
+  label: string
+  /** Kebiasaan aktif terjadwal hari itu (hormati createdAt & arsip). */
+  scheduled: number
+  /** Selesai dari yang terjadwal. */
+  done: number
+  /** Hari jeda yang dipakai pada hari itu (terjadwal tapi diampuni). */
+  rest: number
+  /** done/scheduled × 100 — NULL bila tak ada jadwal (bukan 0%!). */
+  pct: number | null
+}
+
+/** Statistik jadwal per hari, N hari terakhir diakhiri hari ini. */
+export function daySchedules(
+  habits: Habit[],
+  c: Completions,
+  today: string,
+  days: number,
+): DaySchedule[] {
+  const out: DaySchedule[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const iso = addDaysISO(today, -i)
+    const pool = habits.filter(
+      (h) => scheduledOn(h, iso) && h.createdAt <= iso,
+    )
+    const forgiven = new Set(
+      pool.filter((h) => (h.restDays ?? []).includes(iso)).map((h) => h.id),
+    )
+    const due = pool.filter((h) => !forgiven.has(h.id))
+    const done = due.filter((h) => isDoneOn(c, iso, h.id)).length
+    out.push({
+      date: iso,
+      label: WEEKDAY_MIN[fromISO(iso).getDay()],
+      scheduled: due.length,
+      done,
+      rest: forgiven.size,
+      pct: due.length === 0 ? null : Math.round((done / due.length) * 100),
+    })
+  }
+  return out
+}
+
+/** Status satu kebiasaan pada satu tanggal — dasar riwayat 30 hari yang
+ *  jujur: hari tanpa jadwal, hari jeda, dan hari masa depan tampil BERBEDA
+ *  dari kegagalan, sehingga pengguna tidak merasa gagal pada hari yang
+ *  memang tidak dijadwalkan. */
+export type HabitDayStatus =
+  | 'done'
+  | 'missed'
+  | 'rest'
+  | 'unscheduled'
+  | 'future'
+
+export function habitStatusOn(
+  h: Habit,
+  c: Completions,
+  iso: string,
+  today: string = todayISO(),
+): HabitDayStatus {
+  if (iso > today) return 'future'
+  if (!scheduledOn(h, iso) || iso < h.createdAt) return 'unscheduled'
+  if ((h.restDays ?? []).includes(iso)) return 'rest'
+  if (isDoneOn(c, iso, h.id)) return 'done'
+  return 'missed'
+}
+
+export interface HabitWeekRate {
+  /** Senin pekan itu. */
+  start: string
+  scheduled: number
+  done: number
+  /** done/scheduled × 100 — null bila pekan itu tak ada jadwal. */
+  pct: number | null
+}
+
+/** Persentase penyelesaian per pekan untuk SATU kebiasaan — N pekan
+ *  terakhir, terlama dulu. Pekan berjalan dihitung sampai hari ini saja
+ *  (hari masa depan tidak dihitung). Sadar jadwal + hari jeda. */
+export function habitWeeklyRates(
+  h: Habit,
+  c: Completions,
+  today: string,
+  weeks = 4,
+): HabitWeekRate[] {
+  const out: HabitWeekRate[] = []
+  for (let w = weeks - 1; w >= 0; w--) {
+    const start = weekStartISO(addDaysISO(today, -w * 7))
+    let scheduled = 0
+    let done = 0
+    for (let d = 0; d < 7; d++) {
+      const iso = addDaysISO(start, d)
+      if (iso > today) break
+      if (!scheduledOn(h, iso) || iso < h.createdAt) continue
+      if ((h.restDays ?? []).includes(iso)) continue
+      scheduled++
+      if (isDoneOn(c, iso, h.id)) done++
+    }
+    out.push({
+      start,
+      scheduled,
+      done,
+      pct: scheduled === 0 ? null : Math.round((done / scheduled) * 100),
     })
   }
   return out
@@ -1932,7 +2086,9 @@ export const useRutina = create<RutinaState>()(
           id: `note-${Date.now()}`,
           title,
           body: body || 'Catatan kosong — lanjutkan menulis nanti.',
-          date: 'Hari ini',
+          /* v2.36: ISO yyyy-mm-dd — selaras skema JournalNote; label
+             tampilan ("Hari ini") diturunkan, bukan disimpan. */
+          date: todayISO(),
           pinned: false,
           tone: (s.notes.length * 2) % 3,
           folder,
@@ -1966,7 +2122,8 @@ export const useRutina = create<RutinaState>()(
           id: `quote-${Date.now()}`,
           title: 'Kutipan Hari Ini',
           body: `"${q.text}" — ${q.author}`,
-          date: 'Hari ini',
+          /* v2.36: ISO — selaras addNote & skema JournalNote. */
+          date: today,
           pinned: true,
           tone: 1,
           folder: 'bacaan',

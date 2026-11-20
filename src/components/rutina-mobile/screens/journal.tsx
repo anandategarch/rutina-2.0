@@ -17,6 +17,7 @@ import {
   FOLDER_SHORT,
   folderCount,
   longDateLabel,
+  noteDateLabel,
   todayISO,
   useRutina,
   type FolderKey,
@@ -477,7 +478,10 @@ function NoteCard({
             </span>
           ) : null}
           <span className="ml-auto text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-            {note.date}
+            {/* v2.36: label diturunkan dari tanggal ISO — "Hari ini"/
+                "Kemarin"/"5 Jan"; catatan lawas tanpa tanggal pasti
+                jujur ditandai "Tanpa tanggal". */}
+            {noteDateLabel(note)}
           </span>
         </div>
       </div>
