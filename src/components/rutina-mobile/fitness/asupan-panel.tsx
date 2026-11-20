@@ -456,48 +456,80 @@ export function AsupanPanel() {
             }
             return null
           })()}
-          <div className="grid grid-cols-3 gap-2">
-          <div className="text-center">
-            <p className="text-lead font-bold leading-none tabular-nums">
-              {fmt(sum.protein)}<span className="text-eyebrow font-semibold"> g</span>
+          {/* Bullet bar makro vs target (audit visualisasi v2.36, Tahap 2):
+              tiga bar berdiri sendiri dengan penanda target — presisi angka
+              tetap (X / Y g), visual membuat jarak ke target langsung
+              terbaca. Target 0 = Sasaran Musim belum diatur → angka saja. */}
+          {(() => {
+            const rows: {
+              key: 'protein' | 'carb' | 'fat'
+              label: string
+              value: number
+              target: number
+            }[] = [
+              { key: 'protein', label: 'Protein', value: sum.protein, target: fitTargets.protein },
+              { key: 'carb', label: 'Karbohidrat', value: sum.carb, target: fitTargets.carb },
+              { key: 'fat', label: 'Lemak', value: sum.fat, target: fitTargets.fat },
+            ]
+            const anyTarget = rows.some((r) => r.target > 0)
+            return (
+              <div className={anyTarget ? 'space-y-2.5' : 'grid grid-cols-3 gap-2'}>
+                {rows.map((r) => {
+                  if (!anyTarget || r.target <= 0) {
+                    return (
+                      <div key={r.key} className="text-center">
+                        <p className="text-lead font-bold leading-none tabular-nums">
+                          {fmt(r.value)}<span className="text-eyebrow font-semibold"> g</span>
+                        </p>
+                        <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
+                          {r.label.toLowerCase()}
+                        </p>
+                      </div>
+                    )
+                  }
+                  const pct = Math.min((r.value / r.target) * 100, 100)
+                  const over = r.value > r.target
+                  return (
+                    <div key={r.key}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-chart-label font-bold uppercase tracking-wide text-module-accent-fg/80">
+                          {r.label}
+                        </p>
+                        <p className="text-note font-bold tabular-nums text-module-accent-fg">
+                          {fmt(r.value)}
+                          <span className="text-chart-label font-semibold text-module-accent-fg/60">
+                            {' '}/ {fmt(r.target)} g
+                          </span>
+                        </p>
+                      </div>
+                      <div
+                        className="mt-1.5 h-2 overflow-hidden rounded-full bg-module-accent-fg/15"
+                        role="img"
+                        aria-label={`${r.label}: ${fmt(r.value)} dari ${fmt(r.target)} gram (${Math.round(pct)} persen${over ? ', melewati target' : ''})`}
+                      >
+                        <m.div
+                          initial={false}
+                          className={`h-full rounded-full ${over ? 'bg-gold' : 'bg-module-accent-fg'}`}
+                          animate={{ width: `${pct}%` }}
+                          transition={barFill}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+          {/* Cakupan makro yang benar-benar tercatat (audit v2.36): makro
+              tidak disimpulkan lengkap bila sebagian makanan tanpa data —
+              persentase kkal ber-makro ditampilkan eksplisit. */}
+          {todayEntries.length > 0 && sum.kcal > 0 && (
+            <p className="mt-2.5 text-chart-label leading-relaxed text-module-accent-fg/65">
+              {sum.knownKcal >= sum.kcal
+                ? 'Seluruh makanan hari ini punya rincian makro.'
+                : `Cakupan makro ${Math.round((sum.knownKcal / sum.kcal) * 100)}% — ${fmt(sum.kcal - sum.knownKcal)} kkal dari makanan tanpa rincian makro.`}
             </p>
-            <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
-              protein
-              {/* Target makro dari Sasaran Musim (v2.22) */}
-              {fitTargets.protein > 0 && (
-                <span className="ml-1 normal-case text-module-accent-fg/55">
-                  / {fitTargets.protein} g
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-lead font-bold leading-none tabular-nums">
-              {fmt(sum.carb)}<span className="text-eyebrow font-semibold"> g</span>
-            </p>
-            <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
-              karbohidrat
-              {fitTargets.carb > 0 && (
-                <span className="ml-1 normal-case text-module-accent-fg/55">
-                  / {fitTargets.carb} g
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-lead font-bold leading-none tabular-nums">
-              {fmt(sum.fat)}<span className="text-eyebrow font-semibold"> g</span>
-            </p>
-            <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
-              lemak
-              {fitTargets.fat > 0 && (
-                <span className="ml-1 normal-case text-module-accent-fg/55">
-                  / {fitTargets.fat} g
-                </span>
-              )}
-            </p>
-          </div>
-          </div>
+          )}
         </div>
         {!sum.macroKnown && todayEntries.length > 0 && (
           <p className="mt-2 text-eyebrow leading-relaxed text-module-accent-fg/70">

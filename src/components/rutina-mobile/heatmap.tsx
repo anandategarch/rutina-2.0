@@ -5,7 +5,13 @@ import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
-import { dayCounts, fromISO, todayISO, useRutina } from './store'
+import {
+  dayCounts,
+  daySchedules,
+  fromISO,
+  todayISO,
+  useRutina,
+} from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
 /* ===== Konsistensi 12 pekan — dari histori penyelesaian nyata ===== */
@@ -24,8 +30,17 @@ const LEVEL_COLORS = [
   'var(--chart-stroke-1)',
 ]
 
-/* Label legenda per level — jumlah kebiasaan selesai per hari. */
+/* Label legenda per level — mode "jumlah": kebiasaan selesai per hari. */
 const LEVEL_LEGEND = ['0', '1', '2', '3–4', '5+'] as const
+/* Label legenda mode "kepatuhan" — persen jadwal yang diselesaikan. */
+const LEVEL_LEGEND_PCT = ['0%', '1–39%', '40–69%', '70–99%', '100%'] as const
+
+/** Mode pembacaan heatmap (audit visualisasi v2.36, Tahap 2):
+ *  - jumlah: berapa kebiasaan selesai (intensitas klasik);
+ *  - kepatuhan: selesai/terjadwal × 100 — jumlah centang tidak selalu
+ *    berarti konsisten; hari 2/2 tidak boleh tampak di bawah hari 4/6.
+ *    Hari tanpa jadwal tampil sebagai soket kosong, bukan 0%. */
+export type HeatmapMode = 'jumlah' | 'kepatuhan'
 
 /** Tanggal singkat Indonesia ("5 Jan") dari ISO — untuk label aksesibel sel. */
 const fmtDate = (iso: string) =>
@@ -40,14 +55,33 @@ function levelOf(count: number): number {
   return 4
 }
 
-export default function Heatmap() {
+/** Level 0-4 dari persentase kepatuhan: 0 / 1-39 / 40-69 / 70-99 / 100. */
+function levelOfPct(pct: number): number {
+  if (pct <= 0) return 0
+  if (pct < 40) return 1
+  if (pct < 70) return 2
+  if (pct < 100) return 3
+  return 4
+}
+
+export default function Heatmap({
+  mode: modeProp = 'jumlah',
+  allowModeToggle = false,
+}: {
+  mode?: HeatmapMode
+  allowModeToggle?: boolean
+}) {
   const completions = useRutina((s) => s.completions)
+  const habits = useRutina((s) => s.habits)
   const today = todayISO()
   const reducedMotion = useReducedMotion()
+  const [mode, setMode] = useState<HeatmapMode>(modeProp)
 
   /** 84 hari terakhir diakhiri hari ini — kolom terakhir grid adalah
       pekan berjalan dan sel terakhir adalah hari ini. */
-  const days = dayCounts(completions, today, WEEKS * 7)
+  const countDays = dayCounts(completions, today, WEEKS * 7)
+  /* Kepatuhan sadar-jadwal — hari tanpa jadwal ber-pct null. */
+  const schedDays = daySchedules(habits, completions, today, WEEKS * 7)
 
   /* SATU observer untuk seluruh kartu: entrance Motion dan gelombang
       sel anime.js dipicu `inView` yang sama — sebelumnya whileInView
@@ -96,16 +130,25 @@ export default function Heatmap() {
     }
   }, [inView, reducedMotion])
 
-  const selEntry = sel ? days[sel.d * WEEKS + sel.w] : null
+  const selEntry = sel ? schedDays[sel.d * WEEKS + sel.w] : null
 
-  /** Teks aksesibel sel: tanggal + jumlah — intensitas tidak disampaikan
+  /** Teks aksesibel sel: tanggal + nilai — intensitas tidak disampaikan
       lewat warna saja. */
-  const cellText = (entry: { label: string; date: string; count: number }) =>
-    `${entry.label}, ${fmtDate(entry.date)} — ${
-      entry.count === 0
-        ? 'tidak ada aktivitas'
-        : `${entry.count} kebiasaan selesai`
-    }`
+  const cellText = (idx: number) => {
+    const cd = countDays[idx]
+    if (mode === 'jumlah') {
+      return `${cd.label}, ${fmtDate(cd.date)} — ${
+        cd.count === 0
+          ? 'tidak ada aktivitas'
+          : `${cd.count} kebiasaan selesai`
+      }`
+    }
+    const sd = schedDays[idx]
+    if (sd.pct == null) {
+      return `${sd.label}, ${fmtDate(sd.date)} — tanpa kebiasaan terjadwal`
+    }
+    return `${sd.label}, ${fmtDate(sd.date)} — kepatuhan ${sd.pct}% (${sd.done} dari ${sd.scheduled} terjadwal)${sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''}`
+  }
 
   return (
     <m.div
@@ -115,12 +158,52 @@ export default function Heatmap() {
       transition={motionTokens.preset.data}
       className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
     >
-      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">
-        Konsistensi
-      </p>
-      <p className="mt-1 text-eyebrow font-medium text-content-muted">
-        12 pekan terakhir
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">
+          Konsistensi
+        </p>
+        {/* Toggle mode pembacaan — jumlah selesai vs kepatuhan jadwal
+            (audit v2.36). Radix-free: dua tombol radio sederhana. */}
+        {allowModeToggle ? (
+          <div
+            role="group"
+            aria-label="Mode pembacaan konsistensi"
+            className="flex gap-1 rounded-full border border-border bg-surface-sunken p-0.5"
+          >
+            {(
+              [
+                ['jumlah', 'Jumlah'],
+                ['kepatuhan', 'Kepatuhan'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={mode === id}
+                onClick={() => setMode(id)}
+                className={`interactive h-7 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  mode === id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-content-secondary hover:text-content-primary'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-eyebrow font-medium text-content-muted">
+            12 pekan terakhir
+          </p>
+        )}
+      </div>
+      {allowModeToggle && (
+        <p className="mt-1 text-eyebrow font-medium text-content-muted">
+          {mode === 'jumlah'
+            ? '12 pekan · kebiasaan selesai per hari'
+            : '12 pekan · selesai dibanding terjadwal; hari tanpa jadwal kosong'}
+        </p>
+      )}
 
       {/* Baris = hari (d), kolom = pekan (w); auto-placement row-major.
           Data dipetakan berurutan: kolom terakhir = pekan berjalan,
@@ -130,24 +213,34 @@ export default function Heatmap() {
       >
         {Array.from({ length: 7 }, (_, d) =>
           Array.from({ length: WEEKS }, (_, w) => {
-            const cell = days[d * WEEKS + w]
-            const level = levelOf(cell.count)
+            const idx = d * WEEKS + w
+            const sd = schedDays[idx]
+            /* Mode kepatuhan: hari tanpa jadwal = soket kosong (outline),
+               bukan warna level-0 — beda dari 0% sungguhan. */
+            const unscheduled = mode === 'kepatuhan' && sd.pct == null
+            const level =
+              mode === 'jumlah'
+                ? levelOf(countDays[idx].count)
+                : levelOfPct(sd.pct ?? 0)
             const isToday = w === WEEKS - 1 && d === 6
             return (
               <button
                 key={`${d}-${w}`}
                 type="button"
                 data-cell
-                aria-label={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
-                title={`Pekan ${WEEKS - w}, ${cellText(cell)}`}
+                aria-label={`Pekan ${WEEKS - w}, ${cellText(idx)}`}
+                title={`Pekan ${WEEKS - w}, ${cellText(idx)}`}
                 onClick={() => setSel({ w, d })}
                 className={
                   'h-5 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
-                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary'
+                    ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
+                    : '') +
+                  (unscheduled
+                    ? 'bg-surface-primary shadow-[inset_0_0_0_1px_var(--border)]'
                     : '')
                 }
-                style={{ backgroundColor: LEVEL_COLORS[level] }}
+                style={unscheduled ? undefined : { backgroundColor: LEVEL_COLORS[level] }}
               />
             )
           }),
@@ -158,21 +251,31 @@ export default function Heatmap() {
           selaras dengan spend-heatmap & month-calendar. */}
       <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-content-muted">
         {sel && selEntry
-          ? `Pekan ${WEEKS - sel.w}, ${cellText(selEntry)}`
+          ? `Pekan ${WEEKS - sel.w}, ${cellText(sel.d * WEEKS + sel.w)}`
           : 'Ketuk sel untuk melihat detail hari.'}
       </p>
 
-      {/* Legenda intensitas — jumlah kebiasaan selesai per hari (audit
-          visualisasi v2.12: "Sedikit/Banyak" terlalu abstrak; level kini
-          berlabel angka konkret agar warna mudah dimengerti). */}
+      {/* Legenda intensitas — berlabel sesuai mode (audit v2.36). */}
       <div
         className="mt-3 flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5"
-        aria-label="Legenda intensitas: jumlah kebiasaan selesai per hari"
+        aria-label={
+          mode === 'jumlah'
+            ? 'Legenda intensitas: jumlah kebiasaan selesai per hari'
+            : 'Legenda intensitas: persentase kepatuhan terhadap jadwal'
+        }
       >
         <span className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-          Selesai/hari
+          {mode === 'jumlah' ? 'Selesai/hari' : 'Kepatuhan'}
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex flex-wrap items-center gap-1.5">
+          {mode === 'kepatuhan' && (
+            <span className="flex items-center gap-1">
+              <span className="h-3 w-3 rounded-[3px] bg-surface-primary shadow-[inset_0_0_0_1px_var(--border)]" />
+              <span className="text-eyebrow font-semibold text-content-muted">
+                tanpa jadwal
+              </span>
+            </span>
+          )}
           {LEVEL_COLORS.map((c, i) => (
             <span key={c} className="flex items-center gap-1">
               <span
@@ -180,7 +283,7 @@ export default function Heatmap() {
                 style={{ backgroundColor: c }}
               />
               <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
-                {LEVEL_LEGEND[i]}
+                {mode === 'jumlah' ? LEVEL_LEGEND[i] : LEVEL_LEGEND_PCT[i]}
               </span>
             </span>
           ))}

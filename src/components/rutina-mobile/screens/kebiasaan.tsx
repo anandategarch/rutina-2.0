@@ -66,7 +66,9 @@ import {
   WEEKDAY_MIN,
   addDaysISO,
   habitProgressOn,
+  habitStatusOn,
   habitStreak,
+  habitWeeklyRates,
   habitsOn,
   isDoneOn,
   longDateLabel,
@@ -76,6 +78,7 @@ import {
   weekStartISO,
   type Completions,
   type Habit,
+  type HabitDayStatus,
 } from '../store'
 
 /* ===== Layar Kebiasaan — tiga konsep, tiga komposisi (Rutina 2.0 Tahap 2) =====
@@ -571,11 +574,26 @@ function HabitDetailPanel({
     : null
   const doneToday = isDoneOn(completions, today, habit.id)
 
-  /* Riwayat 30 hari terakhir, tua ke baru. */
-  const history: boolean[] = []
+  /* Riwayat 30 hari terakhir, tua ke baru — v2.36 (audit visualisasi
+     Tahap 2): status LIMA arah, bukan biner done/kosong. Hari tanpa
+     jadwal, hari jeda, dan hari masa depan tampil berbeda dari
+     kegagalan sehingga pengguna tidak merasa gagal pada hari yang
+     memang tidak dijadwalkan. */
+  const history: { iso: string; status: HabitDayStatus }[] = []
   for (let i = 29; i >= 0; i--) {
-    history.push(isDoneOn(completions, addDaysISO(today, -i), habit.id))
+    const iso = addDaysISO(today, -i)
+    history.push({ iso, status: habitStatusOn(habit, completions, iso, today) })
   }
+  const statusCount = (s: HabitDayStatus) =>
+    history.filter((h) => h.status === s).length
+  const nDone = statusCount('done')
+  const nMissed = statusCount('missed')
+  const nRest = statusCount('rest')
+  const nUnscheduled = statusCount('unscheduled')
+
+  /* Tren empat pekan — persentase penyelesaian sadar-jadwal per pekan
+     (audit v2.36): konsistensi kebiasaan individual dari pekan ke pekan. */
+  const weekly = habitWeeklyRates(habit, completions, today, 4)
 
   /* Susun kebiasaan — kebiasaan pemicu (bila dipasang). */
   const afterHabit = habit.afterId
@@ -704,27 +722,125 @@ function HabitDetailPanel({
           )}
         </div>
 
-        {/* Riwayat 30 hari terakhir — satu titik per hari */}
+        {/* Riwayat 30 hari terakhir — lima status (v2.36): selesai,
+            terjadwal-terlewat, hari jeda, tanpa jadwal, masa depan. */}
         <div className="mt-5">
-          <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-            30 hari terakhir
-          </p>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+              30 hari terakhir
+            </p>
+            <p className="text-eyebrow font-medium tabular-nums text-content-muted">
+              {nDone} selesai · {nMissed} terlewat
+            </p>
+          </div>
           <div
-            aria-label="Riwayat 30 hari terakhir"
+            role="img"
+            aria-label={`Riwayat 30 hari: ${nDone} hari selesai sesuai jadwal, ${nMissed} terjadwal tapi terlewat, ${nRest} hari jeda diampuni, ${nUnscheduled} tanpa jadwal`}
             className="mt-2 flex flex-wrap gap-1"
           >
-            {history.map((done, i) => (
+            {history.map((h) => (
               <span
-                key={i}
+                key={h.iso}
                 aria-hidden="true"
+                title={
+                  h.status === 'done'
+                    ? 'Selesai'
+                    : h.status === 'missed'
+                      ? 'Terjadwal, belum selesai'
+                      : h.status === 'rest'
+                        ? 'Hari jeda'
+                        : h.status === 'future'
+                          ? 'Akan datang'
+                          : 'Tanpa jadwal'
+                }
                 className={
                   'h-2.5 w-2.5 rounded-full ' +
-                  (done ? 'bg-module-accent' : 'bg-surface-sunken')
+                  (h.status === 'done'
+                    ? 'bg-module-accent'
+                    : h.status === 'missed'
+                      ? 'bg-clay'
+                      : h.status === 'rest'
+                        ? 'bg-module-accent/35'
+                        : h.status === 'future'
+                          ? 'bg-surface-sunken opacity-50'
+                          : 'bg-surface-sunken')
                 }
               />
             ))}
           </div>
+          {/* Legenda lima status — hanya yang benar-benar ada. */}
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
+            {(
+              [
+                ['done', 'bg-module-accent', 'selesai'],
+                ['missed', 'bg-clay', 'terlewat'],
+                ['rest', 'bg-module-accent/35', 'jeda'],
+                ['unscheduled', 'bg-surface-sunken', 'tanpa jadwal'],
+              ] as const
+            ).map(([s, dot, label]) =>
+              statusCount(s) > 0 ? (
+                <span key={s} className="flex items-center gap-1">
+                  <span aria-hidden="true" className={`h-2 w-2 rounded-full ${dot}`} />
+                  {label}
+                </span>
+              ) : null,
+            )}
+          </div>
         </div>
+
+        {/* Tren empat pekan — persentase penyelesaian sadar-jadwal
+            (audit v2.36 Tahap 2); pekan tanpa jadwal = soket kosong. */}
+        {weekly.some((w) => w.pct != null) && (
+          <div className="mt-5">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+              Tren 4 pekan
+            </p>
+            <div
+              className="mt-2 flex items-end gap-1.5"
+              role="img"
+              aria-label={`Persentase penyelesaian per pekan: ${weekly
+                .map(
+                  (w, i) =>
+                    `pekan ${i + 1} ${w.pct != null ? `${w.pct}% (${w.done}/${w.scheduled})` : 'tanpa jadwal'}`,
+                )
+                .join(', ')}`}
+            >
+              {weekly.map((w, i) => {
+                const isCurrent = i === weekly.length - 1
+                return (
+                  <div
+                    key={w.start}
+                    className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                  >
+                    <div className="flex h-16 w-full items-end">
+                      {w.pct != null ? (
+                        <m.div
+                          initial={false}
+                          className={`w-full rounded-t-md ${
+                            isCurrent ? 'bg-module-accent' : 'bg-module-accent/60'
+                          }`}
+                          style={{ height: `${Math.max(w.pct, 4)}%` }}
+                        />
+                      ) : (
+                        <div className="h-[3px] w-full rounded-full bg-surface-sunken" />
+                      )}
+                    </div>
+                    <span
+                      className={`text-chart-label font-semibold tabular-nums ${
+                        isCurrent ? 'text-module-accent-strong' : 'text-content-muted'
+                      }`}
+                    >
+                      P{i + 1}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="mt-1.5 text-eyebrow font-medium text-content-muted">
+              Selesai dibanding jadwal per pekan · P4 = pekan berjalan
+            </p>
+          </div>
+        )}
 
         {/* Aksi “cukup versi 2 menit” — jalur cepat yang dihitung penuh */}
         {habit.mini && onCompleteMini && !doneToday && (
@@ -1574,7 +1690,11 @@ export default function KebiasaanScreen() {
                   yang sama; mode 'beds' menanam kisi melipat di ruang
                   kerja lebar. */}
                 <div className="mt-5">
-                  <Heatmap />
+                  {/* v2.36 (audit visualisasi): Garden memakai mode KEPATUHAN
+                      sadar-jadwal + toggle — membedakan heatmap ini dari
+                      heatmap "jumlah" di Statistik (tiap halaman punya
+                      pertanyaan berbeda; bukan duplikasi visual). */}
+                  <Heatmap mode="kepatuhan" allowModeToggle />
                 </div>
                 <div className="mt-5">
                   <PlantGarden variant="beds" />

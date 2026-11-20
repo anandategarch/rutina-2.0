@@ -27,6 +27,8 @@ import {
   type BodyLogs,
 } from '../store'
 import {
+  bodyCoverage,
+  bodySeries,
   latestWeight,
   readinessOf,
   weightSeries,
@@ -188,6 +190,270 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
         </svg>
       </div>
     </div>
+  )
+}
+
+/* ===== Riwayat Tubuh 14 hari — small multiples (audit visualisasi
+ *  v2.36, Tahap 2) =====
+ *
+ * Tiga metrik pemulihan yang selama ini hanya dibaca sebagai angka
+ * harian/rata-rata, kini terbaca sebagai PERKEMBANGAN: tidur (batang
+ * + zona target 7–8 jam), energi (titik skala 1–5), hidrasi (batang
+ * vs target gelas). Skala masing-masing berdiri sendiri — jam, skor,
+ * dan gelas tidak pernah disatukan. Hari tanpa catatan digambar
+ * netral (bukan nol): "tidak mencatat" ≠ "0 jam tidur". */
+function BodyHistory({
+  logs,
+  waterTarget,
+}: {
+  logs: BodyLogs
+  waterTarget: number
+}) {
+  const today = todayISO()
+  const DAYS = 14
+
+  const sleep = useMemo(
+    () => bodySeries(logs, today, DAYS, (l) => l.sleepH),
+    [logs, today],
+  )
+  const energy = useMemo(
+    () => bodySeries(logs, today, DAYS, (l) => l.energy),
+    [logs, today],
+  )
+  /* Gelas 0 = belum ditrack (tak ada jalur mencatat "0 gelas"
+     secara eksplisit) — jujur dibaca sebagai hari tanpa catatan. */
+  const water = useMemo(
+    () => bodySeries(logs, today, DAYS, (l) => (l.water > 0 ? l.water : undefined)),
+    [logs, today],
+  )
+
+  const [sel, setSel] = useState<string | null>(null)
+  const selSleep = sleep.find((p) => p.date === sel)
+  const selEnergy = energy.find((p) => p.date === sel)
+  const selWater = water.find((p) => p.date === sel)
+
+  const fmtJam = (n: number) => n.toFixed(1).replace('.', ',')
+  const avgOf = (xs: { value: number | null }[]) => {
+    const vals = xs.map((x) => x.value).filter((v): v is number => v != null)
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+  }
+  const avgSleep = avgOf(sleep)
+  const avgEnergy = avgOf(energy)
+  const avgWater = avgOf(water)
+
+  /* Skala tidur: minimal 8 jam agar zona target 7–8 selalu terlihat
+     dan 8 jam tidak terlihat seperti "penuh". */
+  const maxSleep = Math.max(8, ...sleep.map((p) => p.value ?? 0))
+  const dateShort = (iso: string) =>
+    new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(
+      new Date(iso + 'T00:00:00'),
+    )
+
+  const nothingLogged =
+    bodyCoverage(sleep) === 0 &&
+    bodyCoverage(energy) === 0 &&
+    bodyCoverage(water) === 0
+
+  return (
+    <m.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
+      aria-label="Riwayat tubuh 14 hari"
+      className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
+          <Moon className="h-4.5 w-4.5" />
+        </span>
+        <div>
+          <p className="text-body font-semibold text-content-primary">Riwayat Tubuh</p>
+          <p className="text-meta font-medium text-content-muted">
+            14 hari · ketuk hari untuk membaca detail
+          </p>
+        </div>
+      </div>
+
+      {nothingLogged ? (
+        <p className="mt-3 text-meta font-medium leading-relaxed text-content-muted">
+          Belum ada catatan — isi check-in harian (tidur, energi) dan
+          gelas air, riwayatnya tergambar di sini.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-4">
+          {/* --- Tidur: batang + zona target 7–8 jam --- */}
+          {bodyCoverage(sleep) > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between px-0.5">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Tidur · zona 7–8 jam
+                </p>
+                <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  rerata {avgSleep != null ? `${fmtJam(avgSleep)} jam` : '–'} ·{' '}
+                  {bodyCoverage(sleep)}/{DAYS} hari
+                </p>
+              </div>
+              <div className="relative mt-2 flex h-14 gap-[3px]">
+                {/* Zona target 7–8 jam — latar lembut di belakang batang */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 rounded-md bg-primary/8"
+                  style={{
+                    bottom: `${(7 / maxSleep) * 100}%`,
+                    height: `${(1 / maxSleep) * 100}%`,
+                  }}
+                />
+                {sleep.map((p) => (
+                  <button
+                    key={p.date}
+                    type="button"
+                    aria-pressed={sel === p.date}
+                    aria-label={`${p.label} ${dateShort(p.date)} — ${
+                      p.value != null ? `${fmtJam(p.value)} jam tidur` : 'tidak tercatat'
+                    }`}
+                    onClick={() => setSel(sel === p.date ? null : p.date)}
+                    className="interactive group relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span className="flex h-full items-end justify-center">
+                      {p.value != null ? (
+                        <span
+                          className="w-full rounded-[3px] bg-module-accent"
+                          style={{ height: `${Math.max((p.value / maxSleep) * 100, 4)}%` }}
+                        />
+                      ) : (
+                        <span className="h-1.5 w-full rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                      )}
+                    </span>
+                    {sel === p.date && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* --- Energi: titik skala 1–5 --- */}
+          {bodyCoverage(energy) > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between px-0.5">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Energi · skala 1–5
+                </p>
+                <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  rerata {avgEnergy != null ? `${avgEnergy.toFixed(1).replace('.', ',')}/5` : '–'} ·{' '}
+                  {bodyCoverage(energy)}/{DAYS} hari
+                </p>
+              </div>
+              <div className="mt-2 flex h-14 gap-[3px]">
+                {energy.map((p) => (
+                  <button
+                    key={p.date}
+                    type="button"
+                    aria-pressed={sel === p.date}
+                    aria-label={`${p.label} ${dateShort(p.date)} — ${
+                      p.value != null ? `energi ${p.value} dari 5` : 'tidak tercatat'
+                    }`}
+                    onClick={() => setSel(sel === p.date ? null : p.date)}
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    {p.value != null ? (
+                      <span
+                        className="absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-module-accent"
+                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 4px)` }}
+                      />
+                    ) : (
+                      <span className="absolute bottom-0 left-1/2 h-1.5 w-2 -translate-x-1/2 rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                    )}
+                    {sel === p.date && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* --- Hidrasi: batang terhadap target gelas --- */}
+          {bodyCoverage(water) > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between px-0.5">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Hidrasi · target {waterTarget} gelas
+                </p>
+                <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  rerata {avgWater != null ? `${avgWater.toFixed(1).replace('.', ',')} gelas` : '–'} ·{' '}
+                  {bodyCoverage(water)}/{DAYS} hari
+                </p>
+              </div>
+              <div className="relative mt-2 flex h-14 gap-[3px]">
+                {/* Garis target — tepi atas = sasaran gelas harian */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 border-t border-dashed border-module-accent/50"
+                  style={{ top: 0 }}
+                />
+                {water.map((p) => (
+                  <button
+                    key={p.date}
+                    type="button"
+                    aria-pressed={sel === p.date}
+                    aria-label={`${p.label} ${dateShort(p.date)} — ${
+                      p.value != null
+                        ? `${p.value} dari ${waterTarget} gelas`
+                        : 'tidak tercatat'
+                    }`}
+                    onClick={() => setSel(sel === p.date ? null : p.date)}
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span className="flex h-full items-end justify-center">
+                      {p.value != null ? (
+                        <span
+                          className="w-full rounded-[3px] bg-module-accent"
+                          style={{
+                            height: `${Math.max((Math.min(p.value, waterTarget) / waterTarget) * 100, 6)}%`,
+                          }}
+                        />
+                      ) : (
+                        <span className="h-1.5 w-full rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                      )}
+                    </span>
+                    {sel === p.date && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bacaan hari terpilih — selaras pola TonaseStrip (ketuk-untuk-baca). */}
+          <p
+            aria-live="polite"
+            className="text-eyebrow font-medium leading-relaxed text-content-muted"
+          >
+            {sel
+              ? `${selSleep?.label ?? ''} ${dateShort(sel)} — tidur ${
+                  selSleep?.value != null ? `${fmtJam(selSleep.value)} jam` : 'tidak tercatat'
+                } · energi ${
+                  selEnergy?.value != null ? `${selEnergy.value}/5` : '–'
+                } · hidrasi ${
+                  selWater?.value != null ? `${selWater.value}/${waterTarget} gelas` : '–'
+                }`
+              : 'Ketuk batang untuk membaca hari tertentu.'}
+          </p>
+        </div>
+      )}
+    </m.section>
   )
 }
 
@@ -560,6 +826,9 @@ export function TubuhPanel() {
           />
         </div>
       </m.section>
+
+      {/* Riwayat tubuh 14 hari — v2.36 Tahap 2 */}
+      <BodyHistory logs={bodyLogs} waterTarget={waterTarget} />
 
       {/* Berat badan */}
       <m.section

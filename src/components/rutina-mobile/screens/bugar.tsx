@@ -823,6 +823,326 @@ function TonaseStrip() {
   )
 }
 
+/* ===== Campuran aktivitas mingguan (audit visualisasi v2.36, Tahap 2)
+   =====
+   Satu baris tujuh hari; setiap hari menampilkan JENIS aktivitas lewat
+   ikon + warna kategori, bukan menjumlahkan km/menit/kg ke satu batang
+   (satuan tidak sebanding). Ketuk hari → durasi, jumlah sesi, jarak/
+   tonase sesuai jenis aktivitas. Hari kosong netral, hari masa depan
+   diredamkan. */
+const MIX_KIND_ICON = {
+  beban: Dumbbell,
+  jalan: Footprints,
+  lari: Zap,
+  'lari-jalan': Zap,
+  badminton: Volleyball,
+} as const
+
+function ActivityMixStrip() {
+  const workouts = useRutina((s) => s.workouts)
+  const playEntrance = useFirstVisit('bugar-studio')
+  const [selIdx, setSelIdx] = useState<number | null>(null)
+
+  const days = useMemo(() => {
+    const start = weekRange().start
+    return Array.from({ length: 7 }, (_, i) => {
+      const iso = addDaysISO(start, i)
+      return { iso, sessions: workouts.filter((w) => w.date === iso) }
+    })
+  }, [workouts])
+
+  const today = todayISO()
+  const hasAny = days.some((d) => d.sessions.length > 0)
+  const sel = selIdx != null ? days[selIdx] : null
+
+  return (
+    <m.section
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-20px' }}
+      transition={motionTokens.preset.chipReveal}
+      aria-label="Jenis aktivitas tujuh hari pekan ini"
+      className="mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
+    >
+      <div className="flex items-baseline justify-between gap-2 px-0.5">
+        <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
+          Campuran Aktivitas
+        </h2>
+        <p className="text-eyebrow font-medium text-content-muted">
+          {hasAny ? 'ketuk hari untuk detail' : 'pekan ini belum ada sesi'}
+        </p>
+      </div>
+
+      <div
+        className="mt-3 flex gap-1.5"
+        role="group"
+        aria-label="Jenis aktivitas per hari, Senin sampai Minggu"
+      >
+        {days.map((d, i) => {
+          const isFuture = d.iso > today
+          const isToday = d.iso === today
+          const isSel = selIdx === i
+          const shown = d.sessions.slice(0, 3)
+          const extra = d.sessions.length - shown.length
+          return (
+            <button
+              key={d.iso}
+              type="button"
+              aria-pressed={isSel}
+              aria-label={`${TONASE_DAY_NAMES[i]} ${shortDateLabel(d.iso)}: ${
+                isFuture
+                  ? 'belum terjadi'
+                  : d.sessions.length === 0
+                    ? 'tidak ada aktivitas'
+                    : d.sessions
+                        .map(
+                          (w) =>
+                            `${KIND_LABEL[w.kind]} ${durationLabel(w.duration)}`,
+                        )
+                        .join(', ')
+              }`}
+              onClick={() => setSelIdx(isSel ? null : i)}
+              className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+            >
+              <div
+                className={`flex h-16 w-full flex-col items-center justify-center gap-1 rounded-lg px-0.5 ${
+                  isFuture
+                    ? 'bg-surface-sunken/50'
+                    : d.sessions.length > 0
+                      ? isSel
+                        ? 'bg-module-accent/20'
+                        : 'bg-surface-sunken group-hover:bg-secondary/60'
+                      : 'bg-surface-sunken/50'
+                }`}
+              >
+                {shown.length === 0 ? (
+                  <span
+                    aria-hidden="true"
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isFuture ? 'bg-border' : 'bg-border-strong'
+                    }`}
+                  />
+                ) : (
+                  <>
+                    {shown.map((w, j) => {
+                      const Icon = MIX_KIND_ICON[w.kind]
+                      return (
+                        <Icon
+                          key={`${w.id}-${j}`}
+                          aria-hidden="true"
+                          className={`h-3.5 w-3.5 ${
+                            w.kind === 'beban'
+                              ? 'text-chart-stroke-4'
+                              : w.kind === 'badminton'
+                                ? 'text-cocoa'
+                                : 'text-module-accent-strong'
+                          }`}
+                        />
+                      )
+                    })}
+                    {extra > 0 && (
+                      <span className="text-[9px] font-bold tabular-nums text-content-muted">
+                        +{extra}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+              <span
+                className={`text-chart-label font-semibold ${
+                  isSel || isToday
+                    ? 'text-module-accent-strong'
+                    : 'text-content-muted'
+                }`}
+              >
+                {TONASE_DAY_LABELS[i]}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <AnimatePresence initial={false}>
+        {sel && (
+          <m.div
+            key="detail"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={motionTokens.preset.cardReveal}
+            className="overflow-hidden"
+          >
+            <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
+              <p className="text-body font-semibold leading-snug text-content-primary">
+                {TONASE_DAY_NAMES[selIdx ?? 0]} · {shortDateLabel(sel.iso)}
+                {sel.sessions.length === 0 && ' · tidak ada aktivitas'}
+              </p>
+              {sel.sessions.length > 0 && (
+                <ul className="mt-1.5 space-y-1">
+                  {sel.sessions.map((w) => (
+                    <li
+                      key={w.id}
+                      className="flex items-center gap-2 text-meta tabular-nums text-content-muted"
+                    >
+                      {(() => {
+                        const Icon = MIX_KIND_ICON[w.kind]
+                        return (
+                          <Icon
+                            aria-hidden="true"
+                            className={`h-3.5 w-3.5 shrink-0 ${
+                              w.kind === 'beban'
+                                ? 'text-chart-stroke-4'
+                                : w.kind === 'badminton'
+                                  ? 'text-cocoa'
+                                  : 'text-module-accent-strong'
+                            }`}
+                          />
+                        )
+                      })()}
+                      <span className="font-semibold text-content-secondary">
+                        {KIND_LABEL[w.kind]}
+                      </span>
+                      <span>{durationLabel(w.duration)}</span>
+                      {(w.distance ?? 0) > 0 && (
+                        <span>
+                          {w.distance!.toFixed(1).replace('.', ',')} km
+                        </span>
+                      )}
+                      {w.kind === 'beban' && tonaseOf(w) > 0 && (
+                        <span>
+                          {Math.round(tonaseOf(w)).toLocaleString('id-ID')} kg
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </m.section>
+  )
+}
+
+/* ===== Tren pace kardio (audit visualisasi v2.36, Tahap 2) =====
+   Grafik MENIT PER KILOMETER terpisah dari grafik jarak — dua sumbu
+   yang berbeda tidak dicampur. Hanya digambar bila ada ≥3 sesi valid
+   (jarak & durasi terisi). Garis menurun = makin cepat; tidak ada
+   warna baik/buruk otomatis. Ketuk titik untuk membaca sesinya. */
+function PaceStrip({ sessions }: { sessions: Workout[] }) {
+  const playEntrance = useFirstVisit('bugar-studio')
+  const [selIdx, setSelIdx] = useState<number | null>(null)
+
+  /* Sesi valid urut kronologis, maksimal 8 terakhir. */
+  const series = useMemo(
+    () =>
+      sessions
+        .filter((w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0 && w.duration > 0)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-8),
+    [sessions],
+  )
+
+  if (series.length < 3) return null
+
+  const paces = series.map((w) => w.duration / (w.distance ?? 1))
+  const minP = Math.min(...paces)
+  const maxP = Math.max(...paces)
+  const span = Math.max(maxP - minP, 0.5)
+  const W = 280
+  const H = 64
+  const pts = series.map((_, i) => {
+    const x = (i / (series.length - 1)) * (W - 12) + 6
+    /* Pace rendah (cepat) digambar TINGGI — arah pembacaan "naik = cepat". */
+    const y = H - 8 - ((paces[i]! - minP) / span) * (H - 20)
+    return { x, y }
+  })
+  const path = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  const fmtPace = (p: number) => {
+    const mm = Math.floor(p)
+    const ss = Math.round((p - mm) * 60)
+    return ss === 60
+      ? `${mm + 1}:00`
+      : `${mm}:${String(ss).padStart(2, '0')}`
+  }
+  const sel = selIdx != null ? series[selIdx] : null
+
+  return (
+    <m.div
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-20px' }}
+      transition={motionTokens.preset.chipReveal}
+      className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
+          Tren Pace
+        </h3>
+        <span className="text-eyebrow font-medium text-content-muted">
+          menit/km · {series.length} sesi
+        </span>
+      </div>
+      <div className="relative mt-3">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="h-16 w-full"
+          role="img"
+          aria-label={`Tren pace ${series.length} sesi kardio terakhir, dalam menit per kilometer: ${series
+            .map(
+              (w, i) =>
+                `${shortDateLabel(w.date)} ${fmtPace(paces[i]!)}`,
+            )
+            .join(', ')}. Garis menurun berarti pace makin cepat`}
+        >
+          <polyline
+            points={path}
+            fill="none"
+            stroke="var(--chart-stroke-2)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {pts.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={selIdx === i ? 4.5 : 3}
+              fill={selIdx === i ? 'var(--chart-stroke-2)' : 'var(--surface-primary)'}
+              stroke="var(--chart-stroke-2)"
+              strokeWidth="2"
+            />
+          ))}
+        </svg>
+        {/* Titik dapat dipilih — lapisan tombol di atas SVG (pola a11y
+            heatmap: nilai tidak bergantung pada hover). */}
+        <div className="absolute inset-0 flex">
+          {series.map((w, i) => (
+            <button
+              key={`${w.id}-pace`}
+              type="button"
+              aria-pressed={selIdx === i}
+              aria-label={`${shortDateLabel(w.date)}: pace ${fmtPace(paces[i]!)} menit per kilometer`}
+              onClick={() => setSelIdx(selIdx === i ? null : i)}
+              className="interactive min-w-0 flex-1 cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-module-accent-strong"
+            />
+          ))}
+        </div>
+      </div>
+      <p
+        className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
+        aria-live="polite"
+      >
+        {sel
+          ? `${longDateLabel(sel.date)} · ${fmtPace(paces[selIdx!]!)} menit/km — ${KIND_LABEL[sel.kind]}, ${sel.distance!.toFixed(2).replace('.', ',')} km dalam ${durationLabel(sel.duration)}`
+          : 'Ketuk titik untuk membaca sesi. Garis menurun = makin cepat.'}
+      </p>
+    </m.div>
+  )
+}
+
 /* ===== Sparkline e1RM per gerakan — mini garis perkembangan kekuatan.
    Hanya digambar bila sebuah gerakan punya ≥3 catatan sesi (audit
    visualisasi v2.12: dua titik belum meyakinkan sebagai tren). Warna
@@ -1475,6 +1795,10 @@ export default function BugarScreen() {
           {/* Strip performa — tonase beban per hari pekan berjalan */}
           <TonaseStrip />
 
+          {/* Campuran aktivitas — jenis olahraga per hari (v2.36 Tahap 2):
+              melengkapi tonase (beban murni) dengan semua jenis aktivitas. */}
+          <ActivityMixStrip />
+
           {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
               (ritme --layout-gap performance); begitu kontainer ≥52rem,
               seksi berpasangan 7:5 lalu 5:7 sehingga studio performa
@@ -1655,6 +1979,12 @@ export default function BugarScreen() {
               <span>{shortDateLabel(distSeries[distSeries.length - 1]!.date)}</span>
             </div>
           </m.div>
+        )}
+
+        {/* Tren pace — menit/km, sumbu terpisah dari jarak (v2.36 Tahap 2).
+            Hanya muncul bila ≥3 sesi kardio punya jarak & durasi valid. */}
+        {(woFilter === 'semua' || woFilter === 'kardio') && (
+          <PaceStrip sessions={filteredWorkouts} />
         )}
 
         {/* Daftar riwayat — hairline ledger-row per item (audit Tahap 2),

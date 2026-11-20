@@ -318,6 +318,46 @@ export function weightSeries(logs: BodyLogs): { date: string; kg: number }[] {
     .map((d) => ({ date: d, kg: logs[d]!.weight! }))
 }
 
+/* --- Riwayat tubuh lintas hari (audit visualisasi v2.36, Tahap 2) ---
+   Satu titik per TANGGAL KALENDER (bukan per catatan) — hari tanpa
+   log tampil null, TIDAK dibiarkan nol: "tidak mencatat" ≠ "0 jam
+   tidur". Skala tiap metrik berdiri sendiri (small multiples). */
+export interface BodyDayPoint {
+  date: string
+  label: string
+  value: number | null
+}
+
+/** Deret harian satu metrik tubuh, N hari terakhir diakhiri hari ini.
+ *  `pick` mengembalikan undefined untuk "tidak diisi hari itu". */
+export function bodySeries(
+  logs: BodyLogs,
+  today: string,
+  days: number,
+  pick: (log: BodyLogs[string]) => number | undefined,
+): BodyDayPoint[] {
+  const out: BodyDayPoint[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const iso = addDaysISO(today, -i)
+    const log = logs[iso]
+    const v = log ? pick(log) : undefined
+    out.push({
+      date: iso,
+      label: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][
+        new Date(iso + 'T00:00:00').getDay()
+      ],
+      value: v != null && Number.isFinite(v) ? v : null,
+    })
+  }
+  return out
+}
+
+/** Jumlah hari bertenaga (value ≠ null) dari deret bodySeries —
+ *  dipakai label cakupan "N dari M hari tercatat". */
+export function bodyCoverage(series: BodyDayPoint[]): number {
+  return series.filter((p) => p.value != null).length
+}
+
 /** Faktor MET per jenis latihan — estimasi pembakaran energi.
     kcal ≈ MET × berat (kg) × durasi (jam). Kombinasi lari+jalan di
     tengah dua kecepatan; badminton santai-aktif ±5,5 MET. */
