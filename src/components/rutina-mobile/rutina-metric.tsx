@@ -2,8 +2,10 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import * as m from 'motion/react-m'
 
 import { cn } from '@/lib/utils'
+import { barFill } from '@/lib/motion/transitions'
 import { useAnimePop } from './anime-kit'
 
 /**
@@ -36,6 +38,10 @@ export interface RutinaMetricProps {
   size?: 'sm' | 'md' | 'lg'
   /** Perataan angka dalam kartu. */
   align?: 'left' | 'center'
+  /** Progres 0–1 menuju target (v2.39 audit visual data) — menggambar
+   *  bar tipis di bawah caption; label+caption tetap membawa angka
+   *  persis sehingga bar aman decorative (aria-hidden). */
+  progress?: number
   className?: string
 }
 
@@ -50,9 +56,11 @@ export function RutinaMetric({
   iconClassName,
   size = 'md',
   align = 'left',
+  progress,
   className,
 }: RutinaMetricProps) {
   const popRef = useAnimePop<HTMLSpanElement>(null, popOn ?? null)
+  const clampedProgress = Math.min(Math.max(progress ?? 0, 0), 1)
 
   const body = (
     <>
@@ -77,6 +85,22 @@ export function RutinaMetric({
       </p>
       {caption && (
         <p className="mt-0.5 text-meta leading-snug text-content-muted">{caption}</p>
+      )}
+      {progress != null && (
+        <span
+          aria-hidden="true"
+          className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+        >
+          <m.span
+            className={
+              'block h-full w-full origin-left rounded-full ' +
+              (clampedProgress >= 1 ? 'bg-success' : 'bg-primary')
+            }
+            initial={false}
+            animate={{ scaleX: clampedProgress }}
+            transition={barFill}
+          />
+        </span>
       )}
     </>
   )

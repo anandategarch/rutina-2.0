@@ -58,6 +58,7 @@ import { RutinaButton } from '../rutina-button'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
+import { barFill } from '@/lib/motion/transitions'
 import { playfair } from '../serif'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
@@ -114,7 +115,9 @@ const FOCUS_WORDS = [
 interface SettingRowProps {
   icon: LucideIcon
   label: string
-  description?: string
+  /** Keterangan kecil — string biasa, atau fragmen dengan bar mini
+   *  (v2.39 audit visual data: rasio berdenominator digambar). */
+  description?: ReactNode
   /** Kontrol sisi kanan: nilai, chevron, Switch, dsb. */
   control?: ReactNode
   onClick?: () => void
@@ -917,7 +920,28 @@ export default function ProfileScreen() {
             <SettingRow
               icon={Bell}
               label="Pengingat kebiasaan"
-              description={`${reminderCount} dari ${habits.length} kebiasaan memakai jam pengingat`}
+              description={
+                <>
+                  {`${reminderCount} dari ${habits.length} kebiasaan memakai jam pengingat`}
+                  {/* v2.39 (audit visual data): bar rasio pengingat —
+                      teks tetap membawa angka persis. */}
+                  {habits.length > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="mt-1.5 block h-1 overflow-hidden rounded-full bg-surface-sunken"
+                    >
+                      <m.span
+                        className="block h-full w-full origin-left rounded-full bg-primary"
+                        initial={false}
+                        animate={{
+                          scaleX: Math.min(reminderCount / habits.length, 1),
+                        }}
+                        transition={barFill}
+                      />
+                    </span>
+                  )}
+                </>
+              }
               onClick={() => setScreen('kebiasaan')}
               control={<ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />}
             />

@@ -320,19 +320,45 @@ function WritingActivityCard({
             </div>
           )}
 
-          {/* Ringkasan mood — ringan, netral, hanya yang tercatat. */}
+          {/* Ringkasan mood — ringan, netral, hanya yang tercatat.
+              v2.39 (audit visual data): bar segmen proporsi mood memakai
+              warna titik yang sama — angka N× tetap membawa nilai persis. */}
           {moodCounts.length > 0 && (
-            <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
-              {moodCounts.map(([mood, n]) => (
-                <span key={mood} className="flex items-center gap-1">
-                  <span
-                    aria-hidden="true"
-                    className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
-                  />
-                  {mood} {n}×
-                </span>
-              ))}
-            </p>
+            <div className="mt-2.5">
+              {(() => {
+                const logged = moodCounts.reduce((a, [, n]) => a + n, 0)
+                return (
+                  <>
+                    <div
+                      className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+                      role="img"
+                      aria-label={`Distribusi mood: ${moodCounts
+                        .map(([mood, n]) => `${mood} ${n}`)
+                        .join(', ')}`}
+                    >
+                      {moodCounts.map(([mood, n]) => (
+                        <span
+                          key={mood}
+                          className={MOOD_DOT[mood] ?? 'bg-cocoa/40'}
+                          style={{ width: `${(n / logged) * 100}%` }}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
+                      {moodCounts.map(([mood, n]) => (
+                        <span key={mood} className="flex items-center gap-1">
+                          <span
+                            aria-hidden="true"
+                            className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
+                          />
+                          {mood} {n}×
+                        </span>
+                      ))}
+                    </p>
+                  </>
+                )
+              })()}
+            </div>
           )}
 
           {dayFilter && (

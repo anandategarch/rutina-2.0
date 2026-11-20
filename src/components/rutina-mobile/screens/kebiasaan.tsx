@@ -698,6 +698,11 @@ function HabitDetailPanel({
             icon={Check}
             iconClassName="bg-secondary text-content-secondary"
             size="sm"
+            progress={
+              habit.weeklyTarget > 0
+                ? weekDone / habit.weeklyTarget
+                : undefined
+            }
           />
           {/* Tahap tanaman — glif botani + progres menuju tahap berikutnya */}
           <div className="flex items-center gap-3">
@@ -722,6 +727,23 @@ function HabitDetailPanel({
                   ? `${plant.total} dari ${plant.nextAt} menuju ${nextStageLabel ?? 'tahap berikutnya'}`
                   : 'tahap akhir — terus dirawat'}
               </p>
+              {/* v2.39 (audit visual data): bar tumbuh menuju tahap
+                  berikutnya — rasio sama dengan teks (total/nextAt). */}
+              {plant.nextAt != null && plant.nextAt > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 block h-1.5 max-w-[220px] overflow-hidden rounded-full bg-surface-sunken"
+                >
+                  <m.span
+                    className="block h-full w-full origin-left rounded-full bg-primary"
+                    initial={false}
+                    animate={{
+                      scaleX: Math.min(plant.total / plant.nextAt, 1),
+                    }}
+                    transition={barFill}
+                  />
+                </span>
+              )}
             </div>
           </div>
           {habit.mini && (
@@ -1798,6 +1820,11 @@ export default function KebiasaanScreen() {
                             : `${
                                 weekTargetPct ?? 0
                               }% tercapai · ${weekTarget.schedRemaining} target tersisa`
+                        }
+                        progress={
+                          weekTargetPct != null
+                            ? weekTargetPct / 100
+                            : undefined
                         }
                       />
                     </m.div>
