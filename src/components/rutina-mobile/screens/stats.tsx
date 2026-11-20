@@ -522,20 +522,26 @@ export default function StatsScreen() {
 
   /* Misi hari ini — dari jadwal & histori penyelesaian nyata (dipakai
      menghitung XP ring profil; ring misi harian sendiri sudah dibaca di
-     Beranda — audit visualisasi v2.12). */
-  const todayHabits = habitsOn(habits, today)
-  const doneCount = todayHabits.filter((h) =>
-    isDoneOn(completions, today, h.id),
-  ).length
+     Beranda — audit visualisasi v2.12).
+     Perf: satu useMemo untuk grup ini — bestStreak menyapu O(kebiasaan ×
+     histori) dan tadinya berjalan ulang di tiap render (ketuk batang
+     grafik, navigasi bulan, pilih hari) padahal input tak berubah. */
+  const { xp, level, progress, remaining, best, activeHabits } = useMemo(() => {
+    const todayHabits = habitsOn(habits, today)
+    const doneCount = todayHabits.filter((h) =>
+      isDoneOn(completions, today, h.id),
+    ).length
 
-  const xp = computeXp(doneCount, bonusClaimed)
-  const level = computeLevel(xp)
-  const progress = Math.min(xp / XP_TARGET, 1)
-  const remaining = Math.max(XP_TARGET - xp, 0)
+    const xp = computeXp(doneCount, bonusClaimed)
+    const level = computeLevel(xp)
+    const progress = Math.min(xp / XP_TARGET, 1)
+    const remaining = Math.max(XP_TARGET - xp, 0)
 
-  /* Streak terbaik & rekor dari seluruh kebiasaan aktif. */
-  const best = bestStreak(habits, completions, today)
-  const activeHabits = habits.filter((h) => !h.archived)
+    /* Streak terbaik & rekor dari seluruh kebiasaan aktif. */
+    const best = bestStreak(habits, completions, today)
+    const activeHabits = habits.filter((h) => !h.archived)
+    return { xp, level, progress, remaining, best, activeHabits }
+  }, [habits, completions, today, bonusClaimed])
 
   /* ===== KPI strip — lensa 30 hari =====
      Konsistensi & misi memakai sumber kebenaran yang sama dengan grafik
@@ -627,82 +633,132 @@ export default function StatsScreen() {
     return { list: out, woCompare }
   }, [completions, today, workouts, moodLogs])
 
-  /* ===== Statistik lintas modul Bugar — semua dari data nyata ===== */
+  /* ===== Statistik lintas modul Bugar — semua dari data nyata =====
+     Perf: seluruh derivasi berat di bawah (prBoard, cardioSummary,
+     weightSeries, bodySeries, dayCounts, weekCounts — masing-masing
+     menyapu histori penuh) dibungkus useMemo; tadinya berjalan ulang di
+     tiap render (ketuk batang grafik, navigasi bulan, pilih hari, ganti
+     periode) padahal input tak berubah. Nama variabel dipertahankan lewat
+     destrukturisasi — murni refaktor, JSX di bawah tak berubah. */
 
-  /* Latihan: sesi & tonase 30 hari, PR terbaik, kardio. */
-  const since30 = addDaysISO(today, -30)
-  const recent = workouts.filter((w) => w.date >= since30)
-  const fitSessions = recent.length
-  const fitTonase = recent.reduce((a, w) => a + tonaseOf(w), 0)
-  const topPr = prBoard(workouts)[0]
-  const cardio = cardioSummary(workouts)
-  /* Asupan: rata-rata kkal/hari dari 7 hari tercatat terakhir. */
-  const kcalByDay = new Map<string, number>()
-  for (const f of foodEntries) {
-    kcalByDay.set(f.date, (kcalByDay.get(f.date) ?? 0) + f.kcal)
-  }
-  const last7Kcal = [...kcalByDay.entries()]
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .slice(0, 7)
-  const avgKcal =
-    last7Kcal.length > 0
-      ? Math.round(
-          last7Kcal.reduce((a, [, k]) => a + k, 0) / last7Kcal.length,
+  /* Latihan: sesi & tonase 30 hari, PR terbaik, kardio, plus (v2.36)
+     deret per pekan — 4 pekan terakhir (P4 = pekan berjalan sampai hari
+     ini saja; sesi & tonase per pekan, dua satuan TIDAK dicampur). */
+  const { recent, fitSessions, fitTonase, topPr, cardio, weeklyFit } =
+    useMemo(() => {
+      const since30 = addDaysISO(today, -30)
+      const recent = workouts.filter((w) => w.date >= since30)
+      const weeklyFit: { start: string; sessions: number; tonase: number }[] =
+        []
+      for (let w = 3; w >= 0; w--) {
+        const start = weekStartISO(addDaysISO(today, -w * 7))
+        const end = addDaysISO(start, 6)
+        const inWeek = workouts.filter(
+          (x) => x.date >= start && x.date <= end && x.date <= today,
         )
-      : 0
-  /* Tubuh: rata-rata tidur/energi/hidrasi 7 hari + delta berat. */
-  const last7Logs = Object.entries(bodyLogs)
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .slice(0, 7)
-  const avgOf = (pick: (v: { sleepH?: number; energy?: number; water: number }) => number | undefined) => {
-    const vals = last7Logs.map(([, v]) => pick(v)).filter((x): x is number => x != null)
-    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-  }
-  const avgSleep = avgOf((v) => v.sleepH)
-  const avgEnergy = avgOf((v) => v.energy)
-  const avgWater = avgOf((v) => v.water)
-  const wSeries = weightSeries(bodyLogs)
-  const weightDelta =
-    wSeries.length >= 2
-      ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
-      : null
+        weeklyFit.push({
+          start,
+          sessions: inWeek.length,
+          tonase: inWeek.reduce((a, x) => a + tonaseOf(x), 0),
+        })
+      }
+      return {
+        recent,
+        fitSessions: recent.length,
+        fitTonase: recent.reduce((a, w) => a + tonaseOf(w), 0),
+        topPr: prBoard(workouts)[0],
+        cardio: cardioSummary(workouts),
+        weeklyFit,
+      }
+    }, [workouts, today])
 
-  /* ===== v2.36 (audit visualisasi Tahap 3): deret mini-chart Bugar/Tubuh ===== */
-
-  /* Latihan per pekan — 4 pekan terakhir (P4 = pekan berjalan sampai
-     hari ini saja; sesi & tonase per pekan, dua satuan TIDAK dicampur). */
-  const weeklyFit: { start: string; sessions: number; tonase: number }[] = []
-  for (let w = 3; w >= 0; w--) {
-    const start = weekStartISO(addDaysISO(today, -w * 7))
-    const end = addDaysISO(start, 6)
-    const inWeek = workouts.filter(
-      (x) => x.date >= start && x.date <= end && x.date <= today,
-    )
-    weeklyFit.push({
-      start,
-      sessions: inWeek.length,
-      tonase: inWeek.reduce((a, x) => a + tonaseOf(x), 0),
-    })
-  }
-
-  /* Asupan: deret 7 hari KALENDER (bukan 7 hari tercatat) — hari tanpa
+  /* Asupan: rata-rata kkal/hari dari 7 hari tercatat terakhir, plus
+     (v2.36) deret 7 hari KALENDER (bukan 7 hari tercatat) — hari tanpa
      catatan null, tidak digambar seolah nol kkal. */
-  const kcalWeek: { date: string; kcal: number | null }[] =
-    Array.from({ length: 7 }, (_, i) => {
-      const d = addDaysISO(today, i - 6)
-      return { date: d, kcal: kcalByDay.get(d) ?? null }
-    })
-  const kcalWeekLogged = kcalWeek.filter((k) => (k.kcal ?? 0) > 0).length
+  const { last7Kcal, avgKcal, kcalWeek, kcalWeekLogged } = useMemo(() => {
+    const kcalByDay = new Map<string, number>()
+    for (const f of foodEntries) {
+      kcalByDay.set(f.date, (kcalByDay.get(f.date) ?? 0) + f.kcal)
+    }
+    const last7Kcal = [...kcalByDay.entries()]
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .slice(0, 7)
+    const kcalWeek: { date: string; kcal: number | null }[] = Array.from(
+      { length: 7 },
+      (_, i) => {
+        const d = addDaysISO(today, i - 6)
+        return { date: d, kcal: kcalByDay.get(d) ?? null }
+      },
+    )
+    return {
+      last7Kcal,
+      avgKcal:
+        last7Kcal.length > 0
+          ? Math.round(
+              last7Kcal.reduce((a, [, k]) => a + k, 0) / last7Kcal.length,
+            )
+          : 0,
+      kcalWeek,
+      kcalWeekLogged: kcalWeek.filter((k) => (k.kcal ?? 0) > 0).length,
+    }
+  }, [foodEntries, today])
 
-  /* Tubuh: tiga deret 7 hari untuk small multiples — tidur (jam), energi
+  /* Tubuh: rata-rata tidur/energi/hidrasi 7 hari + delta berat, plus
+     (v2.36) tiga deret 7 hari untuk small multiples — tidur (jam), energi
      (1-5), hidrasi (gelas) — skala masing-masing. */
-  const sleepWeek = bodySeries(bodyLogs, today, 7, (l) => l.sleepH)
-  const energyWeek = bodySeries(bodyLogs, today, 7, (l) => l.energy)
-  const waterWeek = bodySeries(bodyLogs, today, 7, (l) => (l.water > 0 ? l.water : undefined))
+  const {
+    last7Logs,
+    avgSleep,
+    avgEnergy,
+    avgWater,
+    weightDelta,
+    sleepWeek,
+    energyWeek,
+    waterWeek,
+  } = useMemo(() => {
+    const last7Logs = Object.entries(bodyLogs)
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .slice(0, 7)
+    const avgOf = (
+      pick: (v: {
+        sleepH?: number
+        energy?: number
+        water: number
+      }) => number | undefined,
+    ) => {
+      const vals = last7Logs
+        .map(([, v]) => pick(v))
+        .filter((x): x is number => x != null)
+      return vals.length > 0
+        ? vals.reduce((a, b) => a + b, 0) / vals.length
+        : null
+    }
+    const wSeries = weightSeries(bodyLogs)
+    return {
+      last7Logs,
+      avgSleep: avgOf((v) => v.sleepH),
+      avgEnergy: avgOf((v) => v.energy),
+      avgWater: avgOf((v) => v.water),
+      weightDelta:
+        wSeries.length >= 2
+          ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
+          : null,
+      sleepWeek: bodySeries(bodyLogs, today, 7, (l) => l.sleepH),
+      energyWeek: bodySeries(bodyLogs, today, 7, (l) => l.energy),
+      waterWeek: bodySeries(bodyLogs, today, 7, (l) =>
+        l.water > 0 ? l.water : undefined,
+      ),
+    }
+  }, [bodyLogs, today])
 
   /* Grafik misi selesai: 7 hari terakhir atau 4 pekan (P4 = berjalan). */
-  const weekData = dayCounts(completions, today, 7)
-  const monthData = weekCounts(completions, today)
+  const { weekData, monthData } = useMemo(
+    () => ({
+      weekData: dayCounts(completions, today, 7),
+      monthData: weekCounts(completions, today),
+    }),
+    [completions, today],
+  )
   const chartData =
     period === 'pekan'
       ? weekData.map((d) => ({ label: d.label, value: d.count }))
@@ -858,9 +914,13 @@ export default function StatsScreen() {
       })
       return
     }
-    /* Gerbang pandangan-pertama: stagger sekali sepanjang hidup layar;
-       pergantian periode tidak lagi memicu koreografi ulang. */
-    if (barsPlayedRef.current) return
+    /* Gerbang pandangan-pertama: stagger sekali seumur sesi tab. Ref saja
+       tidak cukup — layar di-remount antar-tab sehingga ref ter-reset dan
+       gelombang berulang di tiap kunjungan; playEntrance (useFirstVisit,
+       stabil seumur hidup mount) memastikan kunjungan ulang langsung
+       tampil final. Pergantian periode tetap tidak memicu koreografi
+       ulang. */
+    if (!playEntrance || barsPlayedRef.current) return
     barsPlayedRef.current = true
     /* Sembunyikan batang SEBELUM memicu stagger — tanpa ini batang akhir
        (delay ±0,3 dtk) sempat tampil penuh lalu melompat ke 0 (kilatan). */
@@ -909,13 +969,14 @@ export default function StatsScreen() {
           </p>
         </header>
 
-        {/* Profil pemain */}
+        {/* Profil pemain — avatar memakai resep standar bg-cocoa/text-parchment
+            (selaras Beranda & Profil), bukan varian matcha yang menyendiri. */}
         <section
           aria-label="Profil pemain"
           className="mt-[var(--layout-gap)] flex items-center gap-3"
         >
-          <Avatar className="h-10 w-10 border-2 border-matcha/40">
-            <AvatarFallback className="bg-matcha-action text-eyebrow font-semibold tracking-widest text-parchment">
+          <Avatar className="h-10 w-10 border-2 border-cocoa/40">
+            <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
               AN
             </AvatarFallback>
           </Avatar>
@@ -958,7 +1019,11 @@ export default function StatsScreen() {
               onClick={() =>
                 document
                   .getElementById(s.id)
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  ?.scrollIntoView({
+                    /* Reduced-motion: lompat instan, tanpa animasi gulir. */
+                    behavior: reducedMotion ? 'auto' : 'smooth',
+                    block: 'start',
+                  })
               }
               className="interactive flex h-8 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-2 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
             >
@@ -1036,7 +1101,7 @@ export default function StatsScreen() {
                 {level}
               </p>
               <span className="mt-2.5 rounded-full bg-hero-surface-raised px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
-                <Counter to={xp} /> XP
+                <Counter to={xp} immediate={!playEntrance} /> XP
               </span>
             </div>
           </m.div>
@@ -1058,14 +1123,14 @@ export default function StatsScreen() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-24px' }}
             transition={motionTokens.preset.data}
-            className="rounded-lg border border-border bg-hero-surface p-4 shadow-soft sm:p-5"
+            className="rounded-2xl border border-border bg-hero-surface p-4 shadow-soft sm:p-5"
           >
             <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
               Konsistensi · 30 hari
             </p>
             <p className="mt-1.5 flex items-baseline gap-1.5">
               <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums text-hero-content">
-                <Counter to={kpi.consistency} />
+                <Counter to={kpi.consistency} immediate={!playEntrance} />
               </span>
               <span className="text-note font-semibold text-hero-content-muted">%</span>
             </p>
@@ -1118,7 +1183,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
-              className="flex h-full flex-col rounded-lg border border-border bg-hero-surface p-5 shadow-card"
+              className="flex h-full flex-col rounded-2xl border border-border bg-hero-surface p-5 shadow-card"
               aria-label="Fokus periode grafik misi selesai"
             >
               <p className="text-body font-semibold tracking-tight text-hero-content-muted">
@@ -1150,7 +1215,7 @@ export default function StatsScreen() {
               </RutinaTabs>
               <p className="mt-4 flex items-baseline gap-1.5">
                 <span className="text-kpi-hero font-semibold leading-none tracking-tight text-hero-content">
-                  <Counter to={chartTotal} />
+                  <Counter to={chartTotal} immediate={!playEntrance} />
                 </span>
                 <span className="text-note font-medium text-hero-content-muted">
                   misi{period === 'pekan' ? ' / pekan' : ' / bulan'}
@@ -1180,7 +1245,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
-              className="flex h-full flex-col rounded-lg border border-border bg-surface-primary p-5 shadow-card"
+              className="flex h-full flex-col rounded-2xl border border-border bg-surface-primary p-5 shadow-card"
               aria-label="Grafik misi selesai"
             >
               <div className="flex items-baseline justify-between gap-3">
@@ -1308,7 +1373,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
-              className="rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
+              className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
             >
               <div className="flex items-end justify-between gap-3">
                 <div>
@@ -1320,7 +1385,7 @@ export default function StatsScreen() {
                   </p>
                   <p className="mt-1.5 flex items-baseline gap-1.5">
                     <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
-                      <Counter to={trendAvg} decimals={1} />
+                      <Counter to={trendAvg} decimals={1} immediate={!playEntrance} />
                     </span>
                     <span className="text-note font-medium text-content-muted">
                       % rata-rata / hari
@@ -1443,8 +1508,10 @@ export default function StatsScreen() {
               </p>
             </m.div>
 
-            {/* Heatmap — pola penyelesaian 12 pekan */}
-            <Heatmap />
+            {/* Heatmap — pola penyelesaian 12 pekan; visitKey diteruskan
+                agar gerbang anti-replay internal Heatmap (tab pertama
+                saja) seragam dengan seluruh layar Statistik. */}
+            <Heatmap visitKey="stats-heatmap" />
           </div>
         </section>
 
@@ -1746,7 +1813,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
-              className="h-full rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
+              className="h-full rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
             >
               <p className="text-body font-semibold tracking-tight text-content-secondary">
                 Komposisi Kebiasaan Aktif
@@ -1840,7 +1907,7 @@ export default function StatsScreen() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
-              className="h-full rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
+              className="h-full rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
             >
               <p className="text-body font-semibold tracking-tight text-content-secondary">
                 Wawasan Lintas Domain
@@ -2054,7 +2121,7 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={motionTokens.preset.data}
-                  className="rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
+                  className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
                     <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
@@ -2203,7 +2270,7 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
-                  className="rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
+                  className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
                     <UtensilsCrossed className="h-3.5 w-3.5 text-chart-stroke-3" />
@@ -2303,7 +2370,7 @@ export default function StatsScreen() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.relaxed }}
-                  className="rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
+                  className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
                 >
                   <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
                     <Activity className="h-3.5 w-3.5 text-chart-stroke-2" />
@@ -2504,7 +2571,7 @@ export default function StatsScreen() {
             diletakkan di ujung halaman sebagai pintu catat-cepat. */}
         <section
           aria-label="Check-in suasana hati"
-          className="mt-[var(--layout-gap)] rounded-lg border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+          className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
         >
           <p className="text-body font-semibold tracking-tight text-content-secondary">
             Check-in Suasana
