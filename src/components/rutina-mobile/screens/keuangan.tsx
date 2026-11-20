@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { animate } from 'animejs'
-import { AnimatePresence, useReducedMotion, useSpring } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   AlertTriangle,
@@ -57,7 +57,7 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { Counter } from '../counter'
-import { BlurFade, ShineBorder, Spotlight } from '../motion-kit'
+import { BlurFade, Spotlight } from '../motion-kit'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
@@ -104,6 +104,7 @@ import {
   type PeriodPoint,
 } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
+import { firstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
@@ -448,7 +449,7 @@ function DetailCell({
 
 /* ===== Baris transaksi (kexpand + hapus dengan konfirmasi) ===== */
 
-function TxRow({ tx }: { tx: Tx }) {
+function TxRow({ tx, flat = false }: { tx: Tx; flat?: boolean }) {
 const catMeta = useCatMeta()
 
   const expanded = useRutina((s) => s.expandedTxId === tx.id)
@@ -472,7 +473,13 @@ const catMeta = useCatMeta()
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: -32, scale: 0.97, transition: { ...motionTokens.preset.interaction } }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-      className="overflow-hidden rounded-lg border border-border-default bg-surface-primary text-content-primary shadow-soft"
+      className={
+        flat
+          ? /* Varian ledger (v2.29 Vault): baris buku kas — hairline bawah
+               via utility ledger-row, tanpa bingkai/bayangan per baris. */
+            'ledger-row overflow-hidden bg-transparent text-content-primary'
+          : 'overflow-hidden rounded-lg border border-border-default bg-surface-primary text-content-primary shadow-soft'
+      }
     >
       <m.button
         type="button"
@@ -480,10 +487,15 @@ const catMeta = useCatMeta()
         onClick={() => toggleExpandedTx(tx.id)}
         aria-expanded={expanded}
         aria-label={`${tx.note || catMeta(tx.cat).label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
-        className="relative z-10 flex w-full cursor-pointer items-center gap-3 p-3 text-left transition-colors duration-200 hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        className={
+          'relative z-10 flex w-full cursor-pointer items-center gap-3 text-left transition-colors duration-200 hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ' +
+          (flat ? 'px-2.5 py-2.5' : 'p-3')
+        }
       >
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          className={`flex shrink-0 items-center justify-center ${
+            flat ? 'h-9 w-9 rounded-lg' : 'h-10 w-10 rounded-xl'
+          } ${
             isTransfer
               ? 'bg-gold/30 text-warning'
               : income
@@ -1186,9 +1198,9 @@ const catMeta = useCatMeta()
 
 /* ===== Kartu saldo — dompet espresso, bukan kartu bank =====
    Tanpa ikon NFC, chip, atau nomor kartu: tidak ada integrasi
-   finansial nyata di baliknya. Tilt 3D halus + sapuan kilau ShineBorder.
-   Baris perubahan periode (delta net vs periode sebelumnya) berada
-   tepat di bawah angka saldo. */
+   finansial nyata di baliknya. Tenang & analitis (v2.29): tanpa tilt,
+   tanpa kilau berulang. Baris perubahan periode (delta net vs periode
+   sebelumnya) berada tepat di bawah angka saldo. */
 
 function SaldoCard({
   saldo,
@@ -1207,26 +1219,17 @@ function SaldoCard({
   saldoRef: React.RefObject<HTMLSpanElement | null>
   onAdd: () => void
 }) {
-  /* Tilt 3D — hanya untuk pointer presisi (mouse); sentuhan tetap datar
-     agar tidak mengganggu gulir. */
-  const rx = useSpring(0, { stiffness: 260, damping: 22 })
-  const ry = useSpring(0, { stiffness: 260, damping: 22 })
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse') return
-    const r = e.currentTarget.getBoundingClientRect()
-    const px = (e.clientX - r.left) / r.width - 0.5
-    const py = (e.clientY - r.top) / r.height - 0.5
-    ry.set(px * 7)
-    rx.set(-py * 7)
-  }
-  const onLeave = () => {
-    rx.set(0)
-    ry.set(0)
-  }
-
+  /* v2.29 Vault: “quiet, analytical” — tilt 3D, pan gradien, dan
+     ShineBorder dilepas. Jangkar kepercayaan tidak berpesta; umpan
+     balik cukup whileTap + ka-ching anime.js saat transaksi baru
+     (ditangani pemanggil lewat saldoRef). */
   const up = delta !== null && delta > 0
   const down = delta !== null && delta < 0
+
+  /* Kunjungan ulang layar tidak menghitung ulang saldo dari nol
+     (audit motion anti-replay; keep-alive subtab menangani perpindahan
+     antar-subtab, gerbang ini menangani perpindahan antar-ruang app). */
+  const playCount = firstVisit('fin-saldo-count')
 
   return (
     <m.div
@@ -1244,15 +1247,11 @@ function SaldoCard({
           onAdd()
         }
       }}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
       whileTap={{ scale: 0.985 }}
-      style={{ rotateX: rx, rotateY: ry, transformPerspective: 900 }}
-      className="relative cursor-pointer overflow-hidden rounded-2xl bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] motion-safe:animate-pan p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      className="relative cursor-pointer overflow-hidden rounded-2xl bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
-      <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
-
-      {/* Cahaya emas lembut dari sudut kiri atas */}
+      {/* Cahaya emas lembut STATIS dari sudut kiri atas — sapuan radial
+          halus (premium detail), bukan glow berulang. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-gold/12 blur-3xl"
@@ -1289,16 +1288,16 @@ function SaldoCard({
             ref={saldoRef}
             className="text-kpi-lg font-bold leading-none tabular-nums text-hero-content"
           >
-            <Counter to={saldo} />
+            <Counter to={saldo} immediate={!playCount} />
           </span>
         </div>
         {delta !== null && (
           <p
             className={`mt-1.5 flex items-center gap-1 text-meta font-semibold tabular-nums ${
               up
-                ? 'text-pistachio'
+                ? 'text-success'
                 : down
-                  ? 'text-clay'
+                  ? 'text-content-danger'
                   : 'text-hero-content-muted'
             }`}
           >
@@ -2200,14 +2199,16 @@ export default function KeuanganScreen() {
     () => txs.filter((t) => t.type === 'transfer'),
     [txs],
   )
-  /* Aktivitas terbaru di Ringkasan — empat transaksi terakhir. */
+  /* Aktivitas terbaru di Ringkasan — enam transaksi terakhir (v2.29:
+     kolom tengah ruang kerja split; empat dirasa kurang memenuhi
+     tinggi kolom kiri saldo+jatah). */
   const recent = useMemo(
     () =>
       [...txs]
         .sort((a, b) =>
           a.ts === b.ts ? b.id.localeCompare(a.id) : a.ts < b.ts ? 1 : -1,
         )
-        .slice(0, 4),
+        .slice(0, 6),
     [txs],
   )
 
@@ -2382,8 +2383,19 @@ export default function KeuanganScreen() {
       {/* Section reveal memakai BlurFade (magicui): blur-ke-fokus saat
           masuk viewport — pengganti staggervariants statis. */}
       <div className="mt-4 flex flex-col gap-[var(--layout-gap)]">
-        {finTab === 'ringkasan' && (
-          <>
+        {/* v2.29 Vault (audit direktif): panel subtab kini TETAP
+            TERPASANG (keep-alive) — pergantian subtab tidak me-remount
+            isi, sehingga saldo tidak menghitung ulang, batang grafik
+            tidak menumbuhkan ulang, dan BlurFade tidak diulang. */}
+        <div
+          className={
+            finTab === 'ringkasan'
+              ? 'grid grid-cols-1 gap-[var(--layout-gap)] @[52rem]:grid-cols-12'
+              : 'hidden'
+          }
+        >
+        {/* KIRI col-4 — ringkasan vault (saldo + jatah) */}
+        <div className="@[52rem]:col-span-4 flex flex-col gap-[var(--layout-gap)]">
         {/* ===== LAPISAN 1 — SALDO: dompet espresso + aksi transaksi ===== */}
         <BlurFade>
           <SaldoCard
@@ -2401,10 +2413,50 @@ export default function KeuanganScreen() {
         <BlurFade delay={0.03}>
           <AllowanceCard />
         </BlurFade>
+        </div>
 
-        {/* ===== LAPISAN 2 — ARUS KAS: periode + grafik interaktif ===== */}
+        {/* ===== TENGAH col-8 — LEDGER AKTIVITAS (v2.29 Vault): baris
+              buku kas (ledger-row + TxRow flat), bukan kartu berbayang
+              satu per satu; dipindah ke atas — direktif: “ledger harus
+              tetap menjadi ledger” dan transaksi adalah konten utama. */}
+        <div className="@[52rem]:col-span-8">
+        <BlurFade delay={0.06}>
+          <SectionTitle
+            title="Aktivitas Terbaru"
+            action={
+              <PillAction onClick={() => setUiPref({ finTab: 'mutasi' })} label="Lihat semua mutasi">
+                Lihat Semua
+              </PillAction>
+            }
+          />
+          {recent.length === 0 ? (
+            <RutinaEmptyState
+              className="mt-3"
+              icon={<Wallet />}
+              title="Belum ada transaksi"
+              description="Catat pemasukan atau pengeluaran pertamamu — gerak saldo langsung tergambar di sini."
+              action={
+                <PillAction onClick={openTxSheet} label="Catat transaksi">
+                  Catat Transaksi
+                </PillAction>
+              }
+            />
+          ) : (
+            <div className="mt-3">
+              <AnimatePresence initial={false} mode="popLayout">
+                {recent.map((tx) => (
+                  <TxRow key={tx.id} tx={tx} flat />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </BlurFade>
+        </div>
+
+        {/* ===== LAPISAN 2 (baris penuh) — ARUS KAS: periode + grafik ===== */}
+        <div className="@[52rem]:col-span-12">
         <BlurFade
-          delay={0.06}
+          delay={0.08}
           className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
         >
           <div className="flex items-baseline justify-between gap-3">
@@ -2448,7 +2500,7 @@ export default function KeuanganScreen() {
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
                   <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-                    <ArrowUpRight className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
+                    <ArrowUpRight className="h-3 w-3 text-success" strokeWidth={2.6} />
                     Masuk
                   </p>
                   <p className="mt-1 truncate text-section font-bold tabular-nums text-success">
@@ -2457,7 +2509,7 @@ export default function KeuanganScreen() {
                 </div>
                 <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
                   <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-                    <ArrowDownRight className="h-3 w-3 text-clay" strokeWidth={2.6} />
+                    <ArrowDownRight className="h-3 w-3 text-content-danger" strokeWidth={2.6} />
                     Keluar
                   </p>
                   <p className="mt-1 truncate text-section font-bold tabular-nums text-content-danger">
@@ -2467,9 +2519,9 @@ export default function KeuanganScreen() {
                 <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
                   <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
                     {net > 0 ? (
-                      <TrendingUp className="h-3 w-3 text-pistachio" strokeWidth={2.6} />
+                      <TrendingUp className="h-3 w-3 text-success" strokeWidth={2.6} />
                     ) : net < 0 ? (
-                      <TrendingDown className="h-3 w-3 text-clay" strokeWidth={2.6} />
+                      <TrendingDown className="h-3 w-3 text-content-danger" strokeWidth={2.6} />
                     ) : (
                       <Minus className="h-3 w-3 text-content-muted" strokeWidth={2.6} />
                     )}
@@ -2598,9 +2650,12 @@ export default function KeuanganScreen() {
           </div>
         </BlurFade>
 
-        {/* ===== LAPISAN 3 & 4 — ANGGARAN + TUJUAN (berdampingan di md) =====
+        </div>
+
+        {/* ===== LAPISAN 3 & 4 (baris penuh) — ANGGARAN + TUJUAN =====
             grid-cols-1 eksplisit (minmax(0,1fr)) agar kolom tunggal di
             ponsel tidak melebar mengikuti max-content isi kartu. */}
+        <div className="@[52rem]:col-span-12">
         <BlurFade delay={0.1} className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
           {/* Anggaran — potret pemakaian paling kritis bulan ini */}
           <div>
@@ -2627,7 +2682,19 @@ export default function KeuanganScreen() {
             ) : (
               <div className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft">
                 <div className="flex items-center justify-between gap-2">
-                  <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
+                  {/* v2.29: lencana & batang total kini bersemantik tiga-warna
+                       (over → destructive, waspada → warning, aman → primary)
+                       — selaras baris per-kategori; bukan selalu hijau. */}
+                  <Badge
+                    className={
+                      'border-transparent hover:bg-secondary ' +
+                      (totalPct >= 100
+                        ? 'bg-clay/20 text-content-danger'
+                        : totalPct >= 85
+                          ? 'bg-gold/25 text-warning'
+                          : 'bg-secondary text-success')
+                    }
+                  >
                     Terpakai {totalPct}%
                   </Badge>
                   <p className="text-eyebrow font-medium tabular-nums text-content-muted">
@@ -2637,9 +2704,16 @@ export default function KeuanganScreen() {
                 <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-border">
                   <m.div
                     initial={{ scaleX: 0 }}
-                    animate={{ scaleX: totalPct / 100 }}
+                    animate={{ scaleX: Math.min(totalPct, 100) / 100 }}
                     transition={barFill}
-                    className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
+                    className={
+                      'h-full origin-left rounded-full ' +
+                      (totalPct >= 100
+                        ? 'bg-destructive'
+                        : totalPct >= 85
+                          ? 'bg-warning'
+                          : 'bg-primary')
+                    }
                     style={{ width: '100%' }}
                   />
                 </div>
@@ -2721,41 +2795,11 @@ export default function KeuanganScreen() {
           </div>
         </BlurFade>
 
-        {/* ===== AKTIVITAS TERBARU — 4 mutasi terakhir, bisa dibuka ===== */}
-        <BlurFade delay={0.12}>
-          <SectionTitle
-            title="Aktivitas Terbaru"
-            action={
-              <PillAction onClick={() => setUiPref({ finTab: 'mutasi' })} label="Lihat semua mutasi">
-                Lihat Semua
-              </PillAction>
-            }
-          />
-          {recent.length === 0 ? (
-            <RutinaEmptyState
-              className="mt-3"
-              icon={<Wallet />}
-              title="Belum ada transaksi"
-              description="Catat pemasukan atau pengeluaran pertamamu — gerak saldo langsung tergambar di sini."
-              action={
-                <PillAction onClick={openTxSheet} label="Catat transaksi">
-                  Catat Transaksi
-                </PillAction>
-              }
-            />
-          ) : (
-            <div className="mt-3 space-y-2.5">
-              <AnimatePresence initial={false} mode="popLayout">
-                {recent.map((tx) => (
-                  <TxRow key={tx.id} tx={tx} />
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
-        </BlurFade>
+        </div>
 
         {/* ===== KOMPOSISI + LANGGANAN (v2.22) — pasangan bento donut
               interaktif & agregasi langganan berulang ===== */}
+        <div className="@[52rem]:col-span-12">
         <BlurFade delay={0.13}>
           <RutinaBentoGrid>
             <RutinaBentoItem span="wide" className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
@@ -2767,18 +2811,16 @@ export default function KeuanganScreen() {
           </RutinaBentoGrid>
         </BlurFade>
 
+        </div>
+
         {/* ===== PETA PANAS + TEMUAN — pasangan bento desktop (wide 8 +
               feature 4); urutan DOM dipertahankan, ponsel tetap bertumpuk.
-              (audit #9 & #10) ===== */}
+              (audit #9 & #10; v2.29: pembungkus m.div ganda dilepas —
+              BlurFade luar sudah mengantar entrance; dua engine pada
+              satu elemen dilarang governance motion). ===== */}
+        <div className="@[52rem]:col-span-12">
         <BlurFade delay={0.14}>
-          <m.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              ...motionTokens.preset.layout,
-              delay: 0.13,
-            }}
-          >
+          <div>
             <RutinaBentoGrid>
               <RutinaBentoItem span="wide">
           <RutinaSectionHeader
@@ -2842,13 +2884,13 @@ export default function KeuanganScreen() {
           )}
               </RutinaBentoItem>
             </RutinaBentoGrid>
-          </m.div>
+          </div>
         </BlurFade>
-          </>
-        )}
+        </div>
+        </div>
 
         {/* ===== MUTASI: arus kas harian + seluruh transaksi ===== */}
-        {finTab === 'mutasi' && (
+        <div className={finTab === 'mutasi' ? 'block' : 'hidden'}>
           <BlurFade delay={0.04}>
             <SectionTitle
               title="Mutasi"
@@ -2889,19 +2931,29 @@ export default function KeuanganScreen() {
               </>
             )}
           </BlurFade>
-        )}
+        </div>
 
         {/* ===== ANGGARAN: batas per kategori, dapat diubah ===== */}
-        {finTab === 'anggaran' && (
+        <div className={finTab === 'anggaran' ? 'block' : 'hidden'}>
           <BlurFade delay={0.04}>
-            <div className="relative rounded-2xl bg-surface-primary p-4 text-content-primary shadow-ink-deep">
-              <ShineBorder borderWidth={1.5} duration={12} shineColor={['var(--palette-gold)', 'var(--palette-pistachio)']} />
+            <div className="rounded-2xl border border-border bg-surface-primary p-4 text-content-primary shadow-soft">
+              {/* v2.29: ShineBorder dihapus — kilau berulang dilarang pada
+                  komponen finansial (direktif Vault: quiet, analytical). */}
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-section font-semibold tracking-tight text-content-secondary">
                   Anggaran {currentMonthLabel()}
                 </h2>
                 <span className="flex items-center gap-2">
-                  <Badge className="border-transparent bg-secondary text-success hover:bg-secondary">
+                  <Badge
+                    className={
+                      'border-transparent hover:bg-secondary ' +
+                      (totalPct >= 100
+                        ? 'bg-clay/20 text-content-danger'
+                        : totalPct >= 85
+                          ? 'bg-gold/25 text-warning'
+                          : 'bg-secondary text-success')
+                    }
+                  >
                     Terpakai {totalPct}%
                   </Badge>
                   <button
@@ -2924,14 +2976,21 @@ export default function KeuanganScreen() {
                 />
               ) : (
                 <>
-                  {/* Batang total */}
+                  {/* Batang total — semantik tiga-warna (v2.29) */}
                   <div className="mt-3">
                     <div className="h-2.5 overflow-hidden rounded-full bg-border">
                       <m.div
                         initial={{ scaleX: 0 }}
-                        animate={{ scaleX: totalPct / 100 }}
+                        animate={{ scaleX: Math.min(totalPct, 100) / 100 }}
                         transition={barFill}
-                        className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
+                        className={
+                          'h-full origin-left rounded-full ' +
+                          (totalPct >= 100
+                            ? 'bg-destructive'
+                            : totalPct >= 85
+                              ? 'bg-warning'
+                              : 'bg-primary')
+                        }
                         style={{ width: '100%' }}
                       />
                     </div>
@@ -2974,11 +3033,16 @@ export default function KeuanganScreen() {
               )}
             </div>
           </BlurFade>
-        )}
+        </div>
 
         {/* ===== DOMPET: saldo per sumber dana + transfer ===== */}
-        {finTab === 'dompet' && (
-          <>
+        <div
+          className={
+            finTab === 'dompet'
+              ? 'flex flex-col gap-[var(--layout-gap)]'
+              : 'hidden'
+          }
+        >
             <BlurFade delay={0.04}>
               <SectionTitle
                 title="Dompet & Rekening"
@@ -3064,8 +3128,7 @@ export default function KeuanganScreen() {
                 </div>
               </BlurFade>
             )}
-          </>
-        )}
+        </div>
       </div>
       </RutinaTabs>
 
@@ -3113,10 +3176,10 @@ function MutasiPhoneList({
               )}
             </p>
           </div>
-          <div className="space-y-2.5">
+          <div>
             <AnimatePresence initial={false} mode="popLayout">
               {g.txs.map((tx) => (
-                <TxRow key={tx.id} tx={tx} />
+                <TxRow key={tx.id} tx={tx} flat />
               ))}
             </AnimatePresence>
           </div>

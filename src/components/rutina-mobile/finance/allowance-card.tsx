@@ -6,6 +6,7 @@ import { CalendarClock, Gauge, Target, TrendingUp } from 'lucide-react'
 
 import { Counter } from '../counter'
 import { useRutina } from '../store'
+import { firstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { allowanceInfo } from './utils'
@@ -50,9 +51,13 @@ export function AllowanceCard() {
 
   const v = VERDICT_META[info.verdict]
   const paceWidth = Math.min(100, info.pacePct)
+  /* v2.29 Vault: angka jatah didudukkan ke kpi-sm — TIDAK lagi bersaing
+     dengan saldo (kpi-lg) sebagai hero kedua; hitung-ulang dibuka
+     gerbang firstVisit. */
+  const playCount = firstVisit('fin-allowance-count')
 
   return (
-    <div className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
+    <div className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-module-accent-strong">
@@ -71,11 +76,11 @@ export function AllowanceCard() {
         </span>
       </div>
 
-      {/* Angka besar jatah harian — count-up Motion */}
+      {/* Angka jatah harian — kpi-sm (v2.29: didudukkan, bukan hero kedua) */}
       <p className="mt-3 flex items-baseline gap-1.5">
         <span className="text-note font-semibold text-content-muted">Rp</span>
-        <span className="text-kpi font-bold tabular-nums leading-none text-content-primary">
-          <Counter to={info.daily} />
+        <span className="text-kpi-sm font-bold tabular-nums leading-none text-content-primary">
+          <Counter to={info.daily} immediate={!playCount} />
         </span>
         <span className="text-note font-semibold text-content-muted">
           / hari aman
@@ -117,40 +122,36 @@ export function AllowanceCard() {
         </p>
       </div>
 
-      {/* Tiga statistik pendamping */}
-      <div className="mt-4 grid grid-cols-3 gap-2.5">
-        <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-          <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-            <Target className="h-3 w-3" strokeWidth={2.6} aria-hidden="true" />
-            Sisa
-          </p>
-          <p
-            className={`mt-1 truncate text-section font-bold tabular-nums ${
+      {/* Tiga statistik pendamping — SATU baris meta inline di bawah
+          hairline (v2.29: bukan lagi kisi 3 kotak — pola sub-metri studio,
+          informasi tetap utuh tanpa menyaingi angka utama). */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border-default pt-3 text-meta text-content-muted">
+        <span className="flex items-center gap-1.5">
+          <Target className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+          Sisa
+          <span
+            className={`font-bold tabular-nums ${
               info.remaining >= 0 ? 'text-success' : 'text-content-danger'
             }`}
           >
             {info.remaining >= 0 ? '' : '−'}
             {formatIDRShort(Math.abs(info.remaining))}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-          <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-            <CalendarClock className="h-3 w-3" strokeWidth={2.6} aria-hidden="true" />
-            Rata²/hari
-          </p>
-          <p className="mt-1 truncate text-section font-bold tabular-nums text-content-primary">
+          </span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <CalendarClock className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+          Rata²/hari
+          <span className="font-bold tabular-nums text-content-primary">
             {formatIDRShort(info.avgDaily)}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-          <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-            <TrendingUp className="h-3 w-3" strokeWidth={2.6} aria-hidden="true" />
-            Proyeksi
-          </p>
-          <p className="mt-1 truncate text-section font-bold tabular-nums text-content-primary">
+          </span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <TrendingUp className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} aria-hidden="true" />
+          Proyeksi
+          <span className="font-bold tabular-nums text-content-primary">
             {formatIDRShort(info.projection)}
-          </p>
-        </div>
+          </span>
+        </span>
       </div>
 
       <button
