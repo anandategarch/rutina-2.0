@@ -211,7 +211,10 @@ export function TaskRow({
             e.stopPropagation()
             onToggle()
           }}
-          whileTap={{ scale: 0.85 }}
+          /* v2.35: 0.85 → 0.92 — centang kebiasaan adalah aksi tersering
+             di Rutina; satukan dengan konvensi HabitCheck (tokens.ts:
+             0.90–0.92 kontrol ikon kecil). */
+          whileTap={{ scale: 0.92 }}
           role="checkbox"
           aria-checked={done}
           aria-disabled={readOnly}

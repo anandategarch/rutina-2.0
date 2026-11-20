@@ -248,8 +248,11 @@ function HabitCheck({
       aria-label={label}
       onClick={onToggle}
       /* v2.31 Garden: umpan balik tekan taktil (audit: pop hanya terjadi
-         SETELAH state berubah — kini tekan terasa DULU). Ikon kecil: 0.88. */
-      whileTap={{ scale: 0.88 }}
+         SETELAH state berubah — kini tekan terasa DULU). v2.35: 0.88 → 0.92
+         — aksi paling sering dipakai di produk; rentang 0.92–0.96 terasa
+         responsif tanpa "mengecil jauh" (audit polish, selaras konvensi
+         skala tekan 0.90–0.92 untuk kontrol ikon kecil di tokens.ts). */
+      whileTap={{ scale: 0.92 }}
       transition={pressSnappy}
       className={
         'interactive flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ' +
