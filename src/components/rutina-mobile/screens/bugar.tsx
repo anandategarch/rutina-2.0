@@ -120,6 +120,11 @@ const WO_RANGES: { id: WoRange; label: string }[] = [
   { id: 'semua', label: 'Semua' },
 ]
 
+/** Pagar riwayat (audit v2.37) — sesi terbaru yang tampil di awal. */
+const HISTORY_LIMIT = 5
+/** Pustaka gerakan: pratinjau per grup otot sebelum "Tampilkan semua". */
+const LIB_GROUP_PREVIEW = 3
+
 /* Pintasan mode catat cepat (v2.18) — chip ringkas SEKUNDER di bawah
    CTA utama "Mulai Sesi" (audit Tahap 2: satu tombol dominan, pintasan
    tidak bersaing ukuran); tiap chip membuka lembar Catat Aktivitas
@@ -636,57 +641,67 @@ const TONASE_DAY_NAMES = [
   'Minggu',
 ]
 
-function TonaseStrip() {
+/* Ikon jenis aktivitas — dipakai kartu Aktivitas Pekan Ini. */
+const MIX_KIND_ICON = {
+  beban: Dumbbell,
+  jalan: Footprints,
+  lari: Zap,
+  'lari-jalan': Zap,
+  badminton: Volleyball,
+} as const
+
+/* ===== Aktivitas pekan ini — SATU kartu, satu sumbu hari =====
+   (audit UX density v2.37: TonaseStrip + ActivityMixStrip digabung —
+   dua kartu dengan sumbu hari yang sama adalah duplikasi visual.)
+   Tiap kolom hari memuat ikon jenis aktivitas + batang tonase mini;
+   ketuk hari untuk detail yang tetap MEMBEDAKAN jenis aktivitas dan
+   satuannya (kg tonase / km / menit / jumlah sesi). */
+function WeekActivityCard() {
   const workouts = useRutina((s) => s.workouts)
   const reducedMotion = useReducedMotion()
-  /* v2.35 anti-replay — pengungkapan batang tonase hanya kunjungan pertama. */
+  /* v2.35 anti-replay — pengungkapan hanya kunjungan pertama. */
   const playEntrance = useFirstVisit('bugar-studio-tonase')
-  /* Hari terpilih — null = belum memilih (header menampilkan petunjuk). */
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
-  /* Tonase per hari = Σ (beban × repetisi) dari sesi beban hari itu —
-     pecahan per tanggal dari logika weekSummary + tonaseOf yang sama.
-     Deret pekan lalu (hari sama) + jumlah sesi dipakai blok detail
-     hari terpilih: volume, sesi, dan ±% vs pekan lalu (audit Tahap 2). */
-  const { days, values, lastValues, sessCounts, max } = useMemo(() => {
-    const tonaseOn = (d: string) =>
-      workouts
-        .filter((w) => w.date === d)
-        .reduce((a, w) => a + tonaseOf(w), 0)
+  const { days, sessions, values, lastValues, max } = useMemo(() => {
     const start = weekRange().start
     const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
-    const values = days.map(tonaseOn)
-    const lastValues = days.map((d) => tonaseOn(addDaysISO(d, -7)))
-    const sessCounts = days.map(
-      (d) => workouts.filter((w) => w.date === d && w.kind === 'beban').length,
+    const sessions = days.map((d) => workouts.filter((w) => w.date === d))
+    const tonaseOn = (list: Workout[]) =>
+      list.reduce((a, w) => a + tonaseOf(w), 0)
+    const values = sessions.map(tonaseOn)
+    const lastValues = days.map((d) =>
+      tonaseOn(workouts.filter((w) => w.date === addDaysISO(d, -7))),
     )
     return {
       days,
+      sessions,
       values,
       lastValues,
-      sessCounts,
       max: Math.max(...values, 0),
     }
   }, [workouts])
 
-  const todayIdx = (new Date(todayISO() + 'T00:00:00').getDay() + 6) % 7
-
-  /* Rekap pekan di header — perbandingan ringkas “vs pekan lalu”
-     (audit Tahap 2); bacaan hari terpilih pindah ke blok detail di
-     bawah batang, bukan menumpuk di header. */
+  const today = todayISO()
+  const todayIdx = (new Date(today + 'T00:00:00').getDay() + 6) % 7
   const fmtKg = (n: number) => `${Math.round(n).toLocaleString('id-ID')} kg`
   const total = values.reduce((a, b) => a + b, 0)
   const lastTotal = lastValues.reduce((a, b) => a + b, 0)
+  const sessionCount = sessions.reduce((a, s) => a + s.length, 0)
   const weekDelta =
     lastTotal > 0 ? Math.round(((total - lastTotal) / lastTotal) * 100) : null
   const headerRight =
-    total === 0 && lastTotal === 0
-      ? 'ketuk hari untuk detail'
-      : lastTotal === 0
-        ? `${fmtKg(total)} pekan ini`
-        : `${fmtKg(total)} · ${
-            weekDelta! >= 0 ? '+' : '−'
-          }${Math.abs(weekDelta!)}% vs lalu`
+    sessionCount === 0
+      ? 'pekan ini belum ada sesi'
+      : total > 0
+        ? `${fmtKg(total)} · ${sessionCount} sesi${
+            weekDelta != null
+              ? ` (${weekDelta >= 0 ? '+' : '−'}${Math.abs(weekDelta)}%)`
+              : ''
+          }`
+        : `${sessionCount} sesi pekan ini`
+
+  const sel = selIdx != null ? { iso: days[selIdx]!, list: sessions[selIdx]! } : null
 
   return (
     <m.section
@@ -697,221 +712,66 @@ function TonaseStrip() {
         ...motionTokens.preset.chipReveal,
         delay: motionTokens.delay.tight,
       }}
-      aria-label="Tonase 7 hari pekan ini"
+      aria-label="Aktivitas pekan ini — jenis aktivitas dan tonase per hari"
       className="mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
     >
       <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-          Tonase per Hari
+          Aktivitas Pekan Ini
         </h2>
         <p
           className={`text-eyebrow font-medium tabular-nums ${
-            total > 0 || lastTotal > 0
-              ? 'text-module-accent-strong'
-              : 'text-content-muted'
+            sessionCount > 0 ? 'text-module-accent-strong' : 'text-content-muted'
           }`}
         >
           {headerRight}
         </p>
       </div>
-      {/* Tujuh batang — tinggi proporsional tonase hari; ketuk kolom untuk
-          membaca nilai di header. Tumbuh lewat scaleY (transform-only). */}
+
+      {/* Tujuh kolom hari — ikon jenis aktivitas di atas, batang tonase
+          mini di bawah; satu ketukan membuka detail hari lengkap. */}
       <div
         className="mt-3 flex gap-1.5"
         role="group"
-        aria-label="Tonase latihan tujuh hari terakhir, dalam kilogram"
+        aria-label="Jenis aktivitas dan tonase per hari, Senin sampai Minggu"
       >
-        {days.map((d, i) => {
-          const v = values[i]
-          const has = v > 0
-          /* Hari terisi minimal 12% agar terlihat; hari kosong stub 6%. */
-          const h = has ? Math.max((v / max) * 100, 12) : 6
+        {days.map((iso, i) => {
+          const isFuture = iso > today
+          const isToday = iso === today
           const isSel = selIdx === i
+          const list = sessions[i]!
+          const shown = list.slice(0, 3)
+          const extra = list.length - shown.length
+          const v = values[i]!
+          const hasTonase = v > 0
+          /* Batang tonase — proporsional; hari tanpa beban stub tipis. */
+          const barH = hasTonase ? Math.max((v / max) * 100, 25) : 8
           return (
             <button
-              key={d}
+              key={iso}
               type="button"
               aria-pressed={isSel}
-              aria-label={`${TONASE_DAY_NAMES[i]}: ${
-                has ? `${Math.round(v).toLocaleString('id-ID')} kg tonase` : 'tidak ada latihan'
-              }`}
-              onClick={() => setSelIdx(isSel ? null : i)}
-              className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
-            >
-              <div className="flex h-16 w-full items-end">
-                <m.div
-                  initial={playEntrance ? { scaleY: 0 } : { scaleY: 1 }}
-                  whileInView={{ scaleY: 1 }}
-                  viewport={{ once: true, margin: '-30px' }}
-                  transition={{
-                    duration: reducedMotion ? 0 : motionTokens.preset.data.duration,
-                    delay: reducedMotion
-                      ? 0
-                      : i * motionTokens.stagger.normal,
-                    ease: motionTokens.easing.standard,
-                  }}
-                  style={{ height: `${h}%`, transformOrigin: 'bottom' }}
-                  className={`w-full rounded-full transition-colors ${
-                    isSel
-                      ? 'bg-module-accent-strong'
-                      : has
-                        ? 'bg-module-accent/80 group-hover:bg-module-accent'
-                        : 'bg-module-accent/20'
-                  }`}
-                />
-              </div>
-              <span
-                className={`text-chart-label font-semibold ${
-                  isSel || i === todayIdx
-                    ? 'text-module-accent-strong'
-                    : 'text-content-muted'
-                }`}
-              >
-                {TONASE_DAY_LABELS[i]}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Detail hari terpilih — volume, jumlah sesi, dan ±% vs hari
-          yang sama pekan lalu (audit grafik tonase Tahap 2). */}
-      <AnimatePresence initial={false}>
-        {selIdx != null && (
-          <m.div
-            key="detail"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={motionTokens.preset.cardReveal}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
-              <p className="text-body font-semibold leading-snug text-content-primary">
-                {TONASE_DAY_NAMES[selIdx]} ·{' '}
-                {values[selIdx] > 0 ? fmtKg(values[selIdx]) : 'tidak ada latihan'}
-                {values[selIdx] > 0 && max > 0 && values[selIdx] === max
-                  ? ' · terberat pekan ini'
-                  : ''}
-              </p>
-              <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-meta tabular-nums text-content-muted">
-                <span>{sessCounts[selIdx]} sesi beban</span>
-                {(() => {
-                  const v = values[selIdx]
-                  const lv = lastValues[selIdx]
-                  if (v === 0 && lv === 0)
-                    return <span>pekan lalu juga kosong</span>
-                  if (lv === 0)
-                    return (
-                      <span className="text-success">
-                        pekan lalu 0 kg — baru tercatat
-                      </span>
-                    )
-                  const d = Math.round(((v - lv) / lv) * 100)
-                  return (
-                    <span
-                      className={d >= 0 ? 'text-success' : 'text-content-danger'}
-                    >
-                      vs hari sama lalu ({fmtKg(lv)}): {d >= 0 ? '+' : '−'}
-                      {Math.abs(d)}%
-                    </span>
-                  )
-                })()}
-              </p>
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
-    </m.section>
-  )
-}
-
-/* ===== Campuran aktivitas mingguan (audit visualisasi v2.36, Tahap 2)
-   =====
-   Satu baris tujuh hari; setiap hari menampilkan JENIS aktivitas lewat
-   ikon + warna kategori, bukan menjumlahkan km/menit/kg ke satu batang
-   (satuan tidak sebanding). Ketuk hari → durasi, jumlah sesi, jarak/
-   tonase sesuai jenis aktivitas. Hari kosong netral, hari masa depan
-   diredamkan. */
-const MIX_KIND_ICON = {
-  beban: Dumbbell,
-  jalan: Footprints,
-  lari: Zap,
-  'lari-jalan': Zap,
-  badminton: Volleyball,
-} as const
-
-function ActivityMixStrip() {
-  const workouts = useRutina((s) => s.workouts)
-  const playEntrance = useFirstVisit('bugar-studio-campuran')
-  const [selIdx, setSelIdx] = useState<number | null>(null)
-
-  const days = useMemo(() => {
-    const start = weekRange().start
-    return Array.from({ length: 7 }, (_, i) => {
-      const iso = addDaysISO(start, i)
-      return { iso, sessions: workouts.filter((w) => w.date === iso) }
-    })
-  }, [workouts])
-
-  const today = todayISO()
-  const hasAny = days.some((d) => d.sessions.length > 0)
-  const sel = selIdx != null ? days[selIdx] : null
-
-  return (
-    <m.section
-      initial={playEntrance ? { opacity: 0, y: 14 } : false}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-20px' }}
-      transition={motionTokens.preset.chipReveal}
-      aria-label="Jenis aktivitas tujuh hari pekan ini"
-      className="mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
-    >
-      <div className="flex items-baseline justify-between gap-2 px-0.5">
-        <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-          Campuran Aktivitas
-        </h2>
-        <p className="text-eyebrow font-medium text-content-muted">
-          {hasAny ? 'ketuk hari untuk detail' : 'pekan ini belum ada sesi'}
-        </p>
-      </div>
-
-      <div
-        className="mt-3 flex gap-1.5"
-        role="group"
-        aria-label="Jenis aktivitas per hari, Senin sampai Minggu"
-      >
-        {days.map((d, i) => {
-          const isFuture = d.iso > today
-          const isToday = d.iso === today
-          const isSel = selIdx === i
-          const shown = d.sessions.slice(0, 3)
-          const extra = d.sessions.length - shown.length
-          return (
-            <button
-              key={d.iso}
-              type="button"
-              aria-pressed={isSel}
-              aria-label={`${TONASE_DAY_NAMES[i]} ${shortDateLabel(d.iso)}: ${
+              aria-label={`${TONASE_DAY_NAMES[i]} ${shortDateLabel(iso)}: ${
                 isFuture
                   ? 'belum terjadi'
-                  : d.sessions.length === 0
+                  : list.length === 0
                     ? 'tidak ada aktivitas'
-                    : d.sessions
+                    : list
                         .map(
                           (w) =>
                             `${KIND_LABEL[w.kind]} ${durationLabel(w.duration)}`,
                         )
-                        .join(', ')
+                        .join(', ') + (hasTonase ? `, tonase ${fmtKg(v)}` : '')
               }`}
               onClick={() => setSelIdx(isSel ? null : i)}
               className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
             >
+              {/* Sel jenis aktivitas — ikon per sesi (maks 3 + sisa). */}
               <div
-                className={`flex h-16 w-full flex-col items-center justify-center gap-1 rounded-lg px-0.5 ${
+                className={`flex h-10 w-full flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 ${
                   isFuture
                     ? 'bg-surface-sunken/50'
-                    : d.sessions.length > 0
+                    : list.length > 0
                       ? isSel
                         ? 'bg-module-accent/20'
                         : 'bg-surface-sunken group-hover:bg-secondary/60'
@@ -933,7 +793,7 @@ function ActivityMixStrip() {
                         <Icon
                           key={`${w.id}-${j}`}
                           aria-hidden="true"
-                          className={`h-3.5 w-3.5 ${
+                          className={`h-3 w-3 ${
                             w.kind === 'beban'
                               ? 'text-chart-stroke-4'
                               : w.kind === 'badminton'
@@ -951,6 +811,29 @@ function ActivityMixStrip() {
                   </>
                 )}
               </div>
+              {/* Batang tonase mini — tinggi proporsional Σ(beban×reps). */}
+              <div className="flex h-10 w-full items-end">
+                <m.div
+                  initial={playEntrance ? { scaleY: 0 } : { scaleY: 1 }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true, margin: '-30px' }}
+                  transition={{
+                    duration: reducedMotion ? 0 : motionTokens.preset.data.duration,
+                    delay: reducedMotion
+                      ? 0
+                      : i * motionTokens.stagger.normal,
+                    ease: motionTokens.easing.standard,
+                  }}
+                  style={{ height: `${barH}%`, transformOrigin: 'bottom' }}
+                  className={`w-full rounded-full transition-colors ${
+                    isSel
+                      ? 'bg-module-accent-strong'
+                      : hasTonase
+                        ? 'bg-module-accent/70 group-hover:bg-module-accent'
+                        : 'bg-module-accent/15'
+                  }`}
+                />
+              </div>
               <span
                 className={`text-chart-label font-semibold ${
                   isSel || isToday
@@ -965,6 +848,9 @@ function ActivityMixStrip() {
         })}
       </div>
 
+      {/* Detail hari terpilih — membedakan jenis aktivitas & satuannya:
+          daftar sesi (jenis · durasi · km · kg) + perbandingan tonase
+          vs hari sama pekan lalu. */}
       <AnimatePresence initial={false}>
         {sel && (
           <m.div
@@ -978,48 +864,68 @@ function ActivityMixStrip() {
             <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
               <p className="text-body font-semibold leading-snug text-content-primary">
                 {TONASE_DAY_NAMES[selIdx ?? 0]} · {shortDateLabel(sel.iso)}
-                {sel.sessions.length === 0 && ' · tidak ada aktivitas'}
+                {sel.list.length === 0 && ' · tidak ada aktivitas'}
               </p>
-              {sel.sessions.length > 0 && (
+              {sel.list.length > 0 && (
                 <ul className="mt-1.5 space-y-1">
-                  {sel.sessions.map((w) => (
-                    <li
-                      key={w.id}
-                      className="flex items-center gap-2 text-meta tabular-nums text-content-muted"
-                    >
-                      {(() => {
-                        const Icon = MIX_KIND_ICON[w.kind]
-                        return (
-                          <Icon
-                            aria-hidden="true"
-                            className={`h-3.5 w-3.5 shrink-0 ${
-                              w.kind === 'beban'
-                                ? 'text-chart-stroke-4'
-                                : w.kind === 'badminton'
-                                  ? 'text-cocoa'
-                                  : 'text-module-accent-strong'
-                            }`}
-                          />
-                        )
-                      })()}
-                      <span className="font-semibold text-content-secondary">
-                        {KIND_LABEL[w.kind]}
-                      </span>
-                      <span>{durationLabel(w.duration)}</span>
-                      {(w.distance ?? 0) > 0 && (
-                        <span>
-                          {w.distance!.toFixed(1).replace('.', ',')} km
+                  {sel.list.map((w) => {
+                    const Icon = MIX_KIND_ICON[w.kind]
+                    return (
+                      <li
+                        key={w.id}
+                        className="flex items-center gap-2 text-meta tabular-nums text-content-muted"
+                      >
+                        <Icon
+                          aria-hidden="true"
+                          className={`h-3.5 w-3.5 shrink-0 ${
+                            w.kind === 'beban'
+                              ? 'text-chart-stroke-4'
+                              : w.kind === 'badminton'
+                                ? 'text-cocoa'
+                                : 'text-module-accent-strong'
+                          }`}
+                        />
+                        <span className="font-semibold text-content-secondary">
+                          {KIND_LABEL[w.kind]}
                         </span>
-                      )}
-                      {w.kind === 'beban' && tonaseOf(w) > 0 && (
-                        <span>
-                          {Math.round(tonaseOf(w)).toLocaleString('id-ID')} kg
-                        </span>
-                      )}
-                    </li>
-                  ))}
+                        <span>{durationLabel(w.duration)}</span>
+                        {(w.distance ?? 0) > 0 && (
+                          <span>
+                            {w.distance!.toFixed(1).replace('.', ',')} km
+                          </span>
+                        )}
+                        {w.kind === 'beban' && tonaseOf(w) > 0 && (
+                          <span>
+                            {Math.round(tonaseOf(w)).toLocaleString('id-ID')} kg
+                          </span>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
+              {(() => {
+                /* Baris tonase hari — hanya bila ada sesi beban. */
+                const v = values[selIdx ?? 0] ?? 0
+                const lv = lastValues[selIdx ?? 0] ?? 0
+                if (v === 0) return null
+                const d = lv > 0 ? Math.round(((v - lv) / lv) * 100) : null
+                return (
+                  <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-meta tabular-nums text-content-muted">
+                    <span>Tonase {fmtKg(v)}</span>
+                    {d == null ? (
+                      <span className="text-success">
+                        pekan lalu 0 kg — baru tercatat
+                      </span>
+                    ) : (
+                      <span className={d >= 0 ? 'text-success' : 'text-content-danger'}>
+                        vs hari sama lalu ({fmtKg(lv)}): {d >= 0 ? '+' : '−'}
+                        {Math.abs(d)}%
+                      </span>
+                    )}
+                  </p>
+                )
+              })()}
             </div>
           </m.div>
         )}
@@ -1028,35 +934,54 @@ function ActivityMixStrip() {
   )
 }
 
-/* ===== Tren pace kardio (audit visualisasi v2.36, Tahap 2) =====
-   Grafik MENIT PER KILOMETER terpisah dari grafik jarak — dua sumbu
-   yang berbeda tidak dicampur. Hanya digambar bila ada ≥3 sesi valid
-   (jarak & durasi terisi). Garis menurun = makin cepat; tidak ada
-   warna baik/buruk otomatis. Ketuk titik untuk membaca sesinya. */
-function PaceStrip({ sessions }: { sessions: Workout[] }) {
+/* ===== Tren kardio — SATU ruang, dua metrik (audit UX density v2.37:
+   Perkembangan Jarak + PaceStrip digabung; dua unit tidak pernah
+   berbagi satu sumbu — pengguna memilih metriknya).
+   Jarak: batang km per sesi (mengikuti rentang riwayat aktif).
+   Pace: garis menit/km, hanya sesi dengan jarak & durasi valid,
+   garis menurun = makin cepat; tanpa warna baik/buruk otomatis. */
+function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
   const playEntrance = useFirstVisit('bugar-studio-tren')
+  const [metric, setMetric] = useState<'jarak' | 'pace'>('jarak')
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
-  /* Sesi valid urut kronologis, maksimal 8 terakhir. */
-  const series = useMemo(
+  /* Deret jarak — sesi kardio terakhir (mengikuti rentang riwayat). */
+  const distSeries = useMemo(
+    () => [...cardioSeries(sessions, 8)].reverse(),
+    [sessions],
+  )
+  /* Deret pace — sesi kardio dengan jarak & durasi valid, urut waktu. */
+  const paceSeries = useMemo(
     () =>
       sessions
-        .filter((w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0 && w.duration > 0)
+        .filter(
+          (w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0 && w.duration > 0,
+        )
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-8),
     [sessions],
   )
 
-  if (series.length < 3) return null
+  /* Kartu hanya hidup bila ada cukup sesi jarak; opsi Pace tampil
+     hanya bila deret pace valid ≥ 3 (tidak pernah sumbu campuran). */
+  if (distSeries.length < 3) return null
+  const paceReady = paceSeries.length >= 3
+  const activeMetric = metric === 'pace' && !paceReady ? 'jarak' : metric
 
-  const paces = series.map((w) => w.duration / (w.distance ?? 1))
+  const max = Math.max(...distSeries.map((d) => d.km), 0.1)
+  const distSel =
+    activeMetric === 'jarak' && selIdx !== null
+      ? (distSeries[selIdx] ?? null)
+      : null
+
+  const paces = paceSeries.map((w) => w.duration / (w.distance ?? 1))
   const minP = Math.min(...paces)
   const maxP = Math.max(...paces)
   const span = Math.max(maxP - minP, 0.5)
   const W = 280
   const H = 64
-  const pts = series.map((_, i) => {
-    const x = (i / (series.length - 1)) * (W - 12) + 6
+  const pts = paceSeries.map((_, i) => {
+    const x = (i / (paceSeries.length - 1)) * (W - 12) + 6
     /* Pace rendah (cepat) digambar TINGGI — arah pembacaan "naik = cepat". */
     const y = H - 8 - ((paces[i]! - minP) / span) * (H - 20)
     return { x, y }
@@ -1065,11 +990,10 @@ function PaceStrip({ sessions }: { sessions: Workout[] }) {
   const fmtPace = (p: number) => {
     const mm = Math.floor(p)
     const ss = Math.round((p - mm) * 60)
-    return ss === 60
-      ? `${mm + 1}:00`
-      : `${mm}:${String(ss).padStart(2, '0')}`
+    return ss === 60 ? `${mm + 1}:00` : `${mm}:${String(ss).padStart(2, '0')}`
   }
-  const sel = selIdx != null ? series[selIdx] : null
+  const paceSel =
+    activeMetric === 'pace' && selIdx !== null ? (paceSeries[selIdx] ?? null) : null
 
   return (
     <m.div
@@ -1081,67 +1005,179 @@ function PaceStrip({ sessions }: { sessions: Workout[] }) {
     >
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-          Tren Pace
+          Tren Kardio
         </h3>
-        <span className="text-eyebrow font-medium text-content-muted">
-          menit/km · {series.length} sesi
-        </span>
-      </div>
-      <div className="relative mt-3">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="h-16 w-full"
-          role="img"
-          aria-label={`Tren pace ${series.length} sesi kardio terakhir, dalam menit per kilometer: ${series
-            .map(
-              (w, i) =>
-                `${shortDateLabel(w.date)} ${fmtPace(paces[i]!)}`,
-            )
-            .join(', ')}. Garis menurun berarti pace makin cepat`}
+        {/* Pilihan metrik — Jarak | Pace; dua unit tidak pernah dicampur
+            pada satu sumbu (audit v2.37). */}
+        <div
+          role="group"
+          aria-label="Metrik tren kardio"
+          className="flex gap-1 rounded-full bg-surface-sunken p-0.5"
         >
-          <polyline
-            points={path}
-            fill="none"
-            stroke="var(--chart-stroke-2)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {pts.map((p, i) => (
-            <circle
-              key={i}
-              cx={p.x}
-              cy={p.y}
-              r={selIdx === i ? 4.5 : 3}
-              fill={selIdx === i ? 'var(--chart-stroke-2)' : 'var(--surface-primary)'}
-              stroke="var(--chart-stroke-2)"
-              strokeWidth="2"
-            />
-          ))}
-        </svg>
-        {/* Titik dapat dipilih — lapisan tombol di atas SVG (pola a11y
-            heatmap: nilai tidak bergantung pada hover). */}
-        <div className="absolute inset-0 flex">
-          {series.map((w, i) => (
-            <button
-              key={`${w.id}-pace`}
-              type="button"
-              aria-pressed={selIdx === i}
-              aria-label={`${shortDateLabel(w.date)}: pace ${fmtPace(paces[i]!)} menit per kilometer`}
-              onClick={() => setSelIdx(selIdx === i ? null : i)}
-              className="interactive min-w-0 flex-1 cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-module-accent-strong"
-            />
-          ))}
+          {(['jarak', 'pace'] as const).map((mk) => {
+            const on = activeMetric === mk
+            const disabled = mk === 'pace' && !paceReady
+            return (
+              <button
+                key={mk}
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  setMetric(mk)
+                  setSelIdx(null)
+                }}
+                aria-pressed={on}
+                title={
+                  disabled
+                    ? 'Pace butuh ≥3 sesi kardio dengan jarak & durasi'
+                    : undefined
+                }
+                className={
+                  'interactive h-7 cursor-pointer rounded-full px-3 text-eyebrow font-bold capitalize transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong disabled:cursor-not-allowed disabled:opacity-40 ' +
+                  (on
+                    ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                    : 'text-content-secondary hover:text-content-primary')
+                }
+              >
+                {mk === 'jarak' ? 'Jarak' : 'Pace'}
+              </button>
+            )
+          })}
         </div>
       </div>
-      <p
-        className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
-        aria-live="polite"
-      >
-        {sel
-          ? `${longDateLabel(sel.date)} · ${fmtPace(paces[selIdx!]!)} menit/km — ${KIND_LABEL[sel.kind]}, ${sel.distance!.toFixed(2).replace('.', ',')} km dalam ${durationLabel(sel.duration)}`
-          : 'Ketuk titik untuk membaca sesi. Garis menurun = makin cepat.'}
-      </p>
+
+      {activeMetric === 'jarak' ? (
+        <>
+          <div
+            className="mt-3 flex h-20 items-end gap-1.5"
+            role="group"
+            aria-label={`Grafik perkembangan jarak: ${distSeries
+              .map((d) => `${shortDateLabel(d.date)} ${d.km.toFixed(1).replace('.', ',')} km`)
+              .join(', ')}`}
+          >
+            {distSeries.map((d, i) => {
+              const isSel = selIdx === i
+              return (
+                <button
+                  key={`${d.date}-${i}`}
+                  type="button"
+                  aria-pressed={isSel}
+                  aria-label={`${shortDateLabel(d.date)}: ${d.km.toFixed(2).replace('.', ',')} km`}
+                  onClick={() => setSelIdx(isSel ? null : i)}
+                  className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-stretch rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+                >
+                  <div className="flex h-16 w-full items-end">
+                    <m.div
+                      initial={false}
+                      animate={{
+                        height: `${Math.max(8, (d.km / max) * 100)}%`,
+                      }}
+                      transition={{
+                        ...motionTokens.spring.chart,
+                        delay: i * motionTokens.stagger.normal,
+                      }}
+                      className={`w-full rounded-t-md transition-colors ${
+                        isSel
+                          ? 'bg-module-accent-strong'
+                          : 'bg-module-accent/70 group-hover:bg-module-accent'
+                      }`}
+                    />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          <p
+            className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
+            aria-live="polite"
+          >
+            {distSel
+              ? `${longDateLabel(distSel.date)} · ${distSel.km
+                  .toFixed(2)
+                  .replace('.', ',')} km`
+              : 'Ketuk batang untuk membaca nilai.'}
+          </p>
+          <div className="mt-1.5 flex justify-between text-chart-label font-medium text-content-muted">
+            <span>{shortDateLabel(distSeries[0]!.date)}</span>
+            <span>
+              terjauh{' '}
+              {Math.max(...distSeries.map((d) => d.km))
+                .toFixed(2)
+                .replace('.', ',')}{' '}
+              km
+            </span>
+            <span>{shortDateLabel(distSeries[distSeries.length - 1]!.date)}</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="relative mt-3">
+            <svg
+              viewBox={`0 0 ${W} ${H}`}
+              className="h-16 w-full"
+              role="img"
+              aria-label={`Tren pace ${paceSeries.length} sesi kardio terakhir, dalam menit per kilometer: ${paceSeries
+                .map(
+                  (w, i) => `${shortDateLabel(w.date)} ${fmtPace(paces[i]!)}`,
+                )
+                .join(', ')}. Garis menurun berarti pace makin cepat`}
+            >
+              <polyline
+                points={path}
+                fill="none"
+                stroke="var(--chart-stroke-2)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {pts.map((p, i) => (
+                <circle
+                  key={i}
+                  cx={p.x}
+                  cy={p.y}
+                  r={selIdx === i ? 4.5 : 3}
+                  fill={
+                    selIdx === i
+                      ? 'var(--chart-stroke-2)'
+                      : 'var(--surface-primary)'
+                  }
+                  stroke="var(--chart-stroke-2)"
+                  strokeWidth="2"
+                />
+              ))}
+            </svg>
+            {/* Titik dapat dipilih — lapisan tombol di atas SVG (pola a11y
+                heatmap: nilai tidak bergantung pada hover). */}
+            <div className="absolute inset-0 flex">
+              {paceSeries.map((w, i) => (
+                <button
+                  key={`${w.id}-pace`}
+                  type="button"
+                  aria-pressed={selIdx === i}
+                  aria-label={`${shortDateLabel(w.date)}: pace ${fmtPace(
+                    paces[i]!,
+                  )} menit per kilometer`}
+                  onClick={() => setSelIdx(selIdx === i ? null : i)}
+                  className="interactive min-w-0 flex-1 cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-module-accent-strong"
+                />
+              ))}
+            </div>
+          </div>
+          <p
+            className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
+            aria-live="polite"
+          >
+            {paceSel
+              ? `${longDateLabel(paceSel.date)} · ${fmtPace(
+                  paces[selIdx!]!,
+                )} menit/km — ${KIND_LABEL[paceSel.kind]}, ${paceSel
+                  .distance!
+                  .toFixed(2)
+                  .replace('.', ',')} km dalam ${durationLabel(paceSel.duration)}`
+              : 'Ketuk titik untuk membaca sesi. Garis menurun = makin cepat.'}
+          </p>
+        </>
+      )}
     </m.div>
   )
 }
@@ -1210,10 +1246,10 @@ export default function BugarScreen() {
   const setTab = useRutina((s) => s.setUiPref)
   const [libQuery, setLibQuery] = useState('')
   const [libMuscle, setLibMuscle] = useState<string>('Semua')
+  /* Grup otot pustaka yang dibuka (audit v2.37 — collapsible;
+     default: semua tertutup, pratinjau 3 gerakan per grup). */
+  const [openLibGroups, setOpenLibGroups] = useState<Set<string>>(new Set())
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
-  /* Batang jarak terpilih pada grafik perkembangan (v2.30: ketuk-untuk-
-     baca, pola TonaseStrip). */
-  const [distIdx, setDistIdx] = useState<number | null>(null)
   const [barbellOpen, setBarbellOpen] = useState(false)
   const reducedMotion = useReducedMotion()
 
@@ -1296,22 +1332,15 @@ export default function BugarScreen() {
       ),
     [workouts, woFilter, woRange],
   )
-  /* Deret jarak sesi kardio terakhir — grafik perkembangan (v2.17).
-     v2.30: kini mengikuti rentang riwayat (30/90/semua) — grafik tidak
-     lagi diam saat pengguna mengganti rentang; batang MORPH (bukan
-     entrance ulang) saat data berganti. */
-  const distSeries = useMemo(
-    () => [...cardioSeries(filteredWorkouts, 8)].reverse(),
-    [filteredWorkouts],
-  )
-  const distSel = distIdx !== null ? (distSeries[distIdx] ?? null) : null
-
-  /* Batas render riwayat (audit performa v2.13): histori bertambah tanpa
-     batas — 15 sesi terbaru dirender dulu, sisanya dimuat bertahap agar
-     daftar panjang (ratusan sesi) tidak menghentikan gulir. */
-  const [historyLimit, setHistoryLimit] = useState(15)
+  /* Pagar riwayat (audit UX density v2.37): kondisi awal hanya 5 sesi
+     terbaru + 'Lihat semua riwayat (N)' — ratusan sesi tidak lagi
+     menghentikan gulir awal; ponsel TANPA nested scroll (daftar tumbuh
+     mengikuti halaman), ruang kerja ≥52rem tetap bergulir sendiri. */
+  const [historyLimit, setHistoryLimit] = useState(HISTORY_LIMIT)
   const historySlice = filteredWorkouts.slice(0, historyLimit)
   const historyHidden = filteredWorkouts.length - historySlice.length
+  const historyAll =
+    historyHidden === 0 && filteredWorkouts.length > HISTORY_LIMIT
 
   const filteredLib = useMemo(() => {
     const q = libQuery.trim().toLowerCase()
@@ -1326,6 +1355,26 @@ export default function BugarScreen() {
       .slice()
       .sort((a, b) => a.idName.localeCompare(b.idName))
   }, [libQuery, libMuscle])
+
+  /* Pustaka berkelompok otot (audit v2.37): search-first — saat mencari
+     atau memfilter otot, daftar hasil FLAT tampil penuh; kondisi awal
+     (Semua + tanpa kueri) mengelompokkan per otot dengan pratinjau 3
+     gerakan + 'Tampilkan semua (N)' per grup. */
+  const libFlatMode = libQuery.trim() !== '' || libMuscle !== 'Semua'
+  const libGroups = useMemo(() => {
+    if (libFlatMode) return []
+    return MUSCLE_GROUPS.map((g) => ({
+      key: g,
+      items: filteredLib.filter((e) => e.muscle === g),
+    })).filter((g) => g.items.length > 0)
+  }, [filteredLib, libFlatMode])
+  const toggleLibGroup = (key: string) =>
+    setOpenLibGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   return (
     <div
@@ -1799,12 +1848,9 @@ export default function BugarScreen() {
             </RutinaBentoGrid>
           </m.div>
 
-          {/* Strip performa — tonase beban per hari pekan berjalan */}
-          <TonaseStrip />
-
-          {/* Campuran aktivitas — jenis olahraga per hari (v2.36 Tahap 2):
-              melengkapi tonase (beban murni) dengan semua jenis aktivitas. */}
-          <ActivityMixStrip />
+          {/* Aktivitas pekan ini — SATU kartu gabungan (audit v2.37):
+              jenis aktivitas + tonase pada sumbu hari yang sama. */}
+          <WeekActivityCard />
 
           {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
               (ritme --layout-gap performance); begitu kontainer ≥52rem,
@@ -1862,7 +1908,7 @@ export default function BugarScreen() {
                 type="button"
                 onClick={() => {
                   setTab({ woFilter: f.id })
-                  setHistoryLimit(15)
+                  setHistoryLimit(HISTORY_LIMIT)
                 }}
                 aria-pressed={on}
                 className={
@@ -1884,7 +1930,7 @@ export default function BugarScreen() {
           value={woRange}
           onValueChange={(v) => {
             setTab({ woRange: v as WoRange })
-            setHistoryLimit(15)
+            setHistoryLimit(HISTORY_LIMIT)
           }}
         >
           <RutinaTabsList
@@ -1904,99 +1950,18 @@ export default function BugarScreen() {
           </RutinaTabsList>
         </RutinaTabs>
 
-        {/* Grafik perkembangan jarak — khusus sesi kardio ≥ 3 (v2.17).
-            v2.30: reveal saat masuk viewport (sekali); batang dapat
-            DITEKAN untuk membaca (pola TonaseStrip); tinggi batang
-            dimorph spring.chart saat rentang berganti — bukan entrance
-            ulang (direktif motion: perubahan data ≠ pengulangan entrance). */}
-        {distSeries.length >= 3 && (woFilter === 'semua' || woFilter === 'kardio') && (
-          <m.div
-            initial={playEntrance ? { opacity: 0, y: 14 } : false}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-20px' }}
-            transition={motionTokens.preset.chipReveal}
-            className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-                Perkembangan Jarak
-              </h3>
-              <span className="text-eyebrow font-medium text-content-muted">
-                {distSeries.length} sesi terakhir
-              </span>
-            </div>
-            <div
-              className="mt-3 flex h-20 items-end gap-1.5"
-              role="group"
-              aria-label={`Grafik perkembangan jarak: ${distSeries
-                .map((d) => `${shortDateLabel(d.date)} ${d.km.toFixed(1).replace('.', ',')} km`)
-                .join(', ')}`}
-            >
-              {(() => {
-                const max = Math.max(...distSeries.map((d) => d.km), 0.1)
-                return distSeries.map((d, i) => {
-                  const isSel = distIdx === i
-                  return (
-                    <button
-                      key={`${d.date}-${i}`}
-                      type="button"
-                      aria-pressed={isSel}
-                      aria-label={`${shortDateLabel(d.date)}: ${d.km.toFixed(2).replace('.', ',')} km`}
-                      onClick={() => setDistIdx(isSel ? null : i)}
-                      className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-stretch rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
-                    >
-                      <div className="flex h-16 w-full items-end">
-                        <m.div
-                          initial={false}
-                          animate={{
-                            height: `${Math.max(8, (d.km / max) * 100)}%`,
-                          }}
-                          transition={{
-                            ...motionTokens.spring.chart,
-                            delay: i * motionTokens.stagger.normal,
-                          }}
-                          className={`w-full rounded-t-md transition-colors ${
-                            isSel
-                              ? 'bg-module-accent-strong'
-                              : 'bg-module-accent/70 group-hover:bg-module-accent'
-                          }`}
-                        />
-                      </div>
-                    </button>
-                  )
-                })
-              })()}
-            </div>
-            {/* Ringkasan batang terpilih — misal aksesibilitas grafik */}
-            <p
-              className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
-              aria-live="polite"
-            >
-              {distSel
-                ? `${longDateLabel(distSel.date)} · ${distSel.km
-                    .toFixed(2)
-                    .replace('.', ',')} km`
-                : 'Ketuk batang untuk membaca nilai.'}
-            </p>
-            <div className="mt-1.5 flex justify-between text-chart-label font-medium text-content-muted">
-              <span>{shortDateLabel(distSeries[0]!.date)}</span>
-              <span>
-                terjauh {Math.max(...distSeries.map((d) => d.km)).toFixed(2).replace('.', ',')} km
-              </span>
-              <span>{shortDateLabel(distSeries[distSeries.length - 1]!.date)}</span>
-            </div>
-          </m.div>
-        )}
-
-        {/* Tren pace — menit/km, sumbu terpisah dari jarak (v2.36 Tahap 2).
-            Hanya muncul bila ≥3 sesi kardio punya jarak & durasi valid. */}
+        {/* Tren kardio — SATU ruang dua metrik (audit v2.37): batang
+            jarak / garis pace per pilihan; mengikuti rentang riwayat
+            aktif; batang MORPH spring.chart saat rentang berganti — bukan
+            entrance ulang (perubahan data ≠ pengulangan entrance). */}
         {(woFilter === 'semua' || woFilter === 'kardio') && (
-          <PaceStrip sessions={filteredWorkouts} />
+          <CardioTrendCard sessions={filteredWorkouts} />
         )}
 
         {/* Daftar riwayat — hairline ledger-row per item (audit Tahap 2),
-            bukan tumpukan kartu berbayang; tetap digulir bertahap. */}
-        <div className="mt-3 max-h-[430px] overflow-y-auto no-scrollbar pr-1">
+            bukan tumpukan kartu berbayang; ponsel tanpa nested scroll
+            (audit v2.37), ruang kerja ≥52rem bergulir sendiri. */}
+        <div className="mt-3 pr-1 @[52rem]:max-h-[430px] @[52rem]:overflow-y-auto no-scrollbar">
           <AnimatePresence initial={false} mode="popLayout">
             {historySlice.map((w, i) => (
               <WorkoutRow key={w.id} w={w} index={i} bodyWeight={weight} />
@@ -2005,11 +1970,20 @@ export default function BugarScreen() {
               <button
                 key="wo-more"
                 type="button"
-                onClick={() => setHistoryLimit((n) => n + 15)}
+                onClick={() => setHistoryLimit(Number.MAX_SAFE_INTEGER)}
                 className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                Tampilkan {Math.min(15, historyHidden)} aktivitas lagi
-                {historyHidden > 15 ? ` (${historyHidden} tersisa)` : ''}
+                Lihat semua riwayat ({historyHidden} tersisa)
+              </button>
+            )}
+            {historyAll && (
+              <button
+                key="wo-less"
+                type="button"
+                onClick={() => setHistoryLimit(HISTORY_LIMIT)}
+                className="interactive mt-2 w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Tampilkan ringkas ({HISTORY_LIMIT} terbaru)
               </button>
             )}
             {filteredWorkouts.length === 0 && workouts.length > 0 && (
@@ -2193,15 +2167,66 @@ export default function BugarScreen() {
         </div>
 
         <div className="mt-3 space-y-2.5">
-          {filteredLib.map((e) => (
-            <ExerciseCard key={e.name} name={e.name} />
-          ))}
-          {filteredLib.length === 0 && (
-            <RutinaEmptyState
-              icon={<Dumbbell />}
-              title="Tidak ada gerakan cocok"
-              description={`Coba kata kunci lain atau ganti filter otot — ${EX_LIB.length} gerakan barbel siap dipilih.`}
-            />
+          {/* Search-first (audit v2.37): hasil pencarian/filter tampil FLAT
+              penuh; kondisi awal mengelompokkan per otot dengan pratinjau. */}
+          {libFlatMode ? (
+            <>
+              {filteredLib.map((e) => (
+                <ExerciseCard key={e.name} name={e.name} />
+              ))}
+              {filteredLib.length === 0 && (
+                <RutinaEmptyState
+                  icon={<Dumbbell />}
+                  title="Tidak ada gerakan cocok"
+                  description={`Coba kata kunci lain atau ganti filter otot — ${EX_LIB.length} gerakan barbel siap dipilih.`}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {libGroups.map((g) => {
+                const expanded = openLibGroups.has(g.key)
+                const items = expanded
+                  ? g.items
+                  : g.items.slice(0, LIB_GROUP_PREVIEW)
+                return (
+                  <div key={g.key}>
+                    <div className="mb-1.5 flex items-center gap-2 px-0.5">
+                      <h3 className="text-note font-semibold tracking-tight text-content-secondary">
+                        {g.key}
+                      </h3>
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold tabular-nums text-content-secondary">
+                        {g.items.length}
+                      </span>
+                    </div>
+                    <div className="space-y-2.5">
+                      {items.map((e) => (
+                        <ExerciseCard key={e.name} name={e.name} />
+                      ))}
+                    </div>
+                    {g.items.length > LIB_GROUP_PREVIEW && (
+                      <button
+                        type="button"
+                        onClick={() => toggleLibGroup(g.key)}
+                        aria-expanded={expanded}
+                        className="interactive mt-2 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong px-3 py-2 text-eyebrow font-semibold text-content-secondary transition-colors hover:border-module-accent/50 hover:text-module-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        <ChevronDown
+                          aria-hidden="true"
+                          className={
+                            'h-3.5 w-3.5 transition-transform duration-300 ' +
+                            (expanded ? 'rotate-180' : '')
+                          }
+                        />
+                        {expanded
+                          ? 'Tampilkan lebih sedikit'
+                          : `Tampilkan semua (${g.items.length})`}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </>
           )}
         </div>
       </section>

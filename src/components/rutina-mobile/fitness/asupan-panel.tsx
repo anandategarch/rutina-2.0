@@ -195,6 +195,16 @@ export function AsupanPanel() {
   const [targetDraft, setTargetDraft] = useState('2000')
   /* Hari terpilih pada grafik 7 hari — null = hari ini (default bacaan). */
   const [selDay, setSelDay] = useState<string | null>(null)
+  /* Pagar jurnal makan (audit UX density v2.37): maks 3 entri per
+     kelompok makan di kondisi awal — sisanya via "Lihat semua (N)". */
+  const [openMeals, setOpenMeals] = useState<Set<string>>(new Set())
+  const toggleMeal = (key: string) =>
+    setOpenMeals((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   const today = todayISO()
   const todayEntries = useMemo(
@@ -573,6 +583,10 @@ export function AsupanPanel() {
           {MEAL_SLOTS.map((slot) => {
             const rows = todayEntries.filter((e) => e.meal === slot.key)
             if (rows.length === 0 && todayEntries.length > 0) return null
+            /* Pagar per kelompok (audit v2.37): 3 entri awal + expander. */
+            const expanded = openMeals.has(slot.key)
+            const shown = expanded ? rows : rows.slice(0, 3)
+            const hiddenCount = rows.length - shown.length
             return (
               <div key={slot.key}>
                 <div className="mb-2 flex items-center justify-between px-0.5">
@@ -586,12 +600,24 @@ export function AsupanPanel() {
                   )}
                 </div>
                 <AnimatePresence initial={false} mode="popLayout">
-                  {rows.map((e) => (
+                  {shown.map((e) => (
                     <div key={e.id} className="mb-2">
                       <FoodRow entry={e} />
                     </div>
                   ))}
                 </AnimatePresence>
+                {rows.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleMeal(slot.key)}
+                    aria-expanded={expanded}
+                    className="interactive mb-1 w-full cursor-pointer rounded-full border border-dashed border-border-strong py-2 text-eyebrow font-semibold text-content-secondary transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    {expanded
+                      ? 'Tampilkan lebih sedikit'
+                      : `Lihat semua (${rows.length}) — ${hiddenCount} lainnya`}
+                  </button>
+                )}
                 {rows.length === 0 && todayEntries.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-border px-4 py-3 text-center">
                     <p className="text-meta font-medium text-content-muted">
