@@ -5,7 +5,6 @@ import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 import {
-  Activity,
   ArrowDownRight,
   ArrowUpRight,
   Award,
@@ -26,7 +25,6 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
-  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -43,7 +41,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 
+import { MOOD_DOT, MOOD_TONE } from '../journal-ui'
 import { useAnimePop } from '../anime-kit'
 import { Counter } from '../counter'
 import {
@@ -83,6 +83,7 @@ import {
   useRutina,
   weekCounts,
   weekStartISO,
+  WEEKDAY_MIN,
   type FinCat,
   type Habit,
   type HabitCat,
@@ -90,18 +91,13 @@ import {
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
-import {
-  bodySeries,
-  cardioSummary,
-  prBoard,
-  tonaseOf,
-  weightSeries,
-} from '../fitness/fit-utils'
+import { cardioSummary, weightSeries } from '../fitness/fit-utils'
 
 import {
   Area,
@@ -292,14 +288,11 @@ export default function StatsScreen() {
   const moodLogs = useRutina((s) => s.moodLogs)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const workouts = useRutina((s) => s.workouts)
-  const foodEntries = useRutina((s) => s.foodEntries)
   const bodyLogs = useRutina((s) => s.bodyLogs)
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
   const identityText = useRutina((s) => s.identityText)
-  /* v2.36: target asupan & sasaran tubuh untuk mini-chart Bugar/Tubuh. */
-  const calorieTarget = useRutina((s) => s.calorieTarget)
-  const fitTargets = useRutina((s) => s.fitTargets)
+  const setScreen = useRutina((s) => s.setScreen)
 
   /* Gerbang anti-replay (v2.35): koreografi pembuka Observatory hanya
      pada kunjungan pertama seumur sesi — remount antar-tab tampil instan;
@@ -500,6 +493,22 @@ export default function StatsScreen() {
     return rows
   }, [txs, completions, notes, workouts, weekStart, prevWeekStart, today])
 
+  /* Ringkasan pemicu lipatan "Pekan Ini vs Pekan Lalu" (audit density
+     v2.37 §8) — baris misi dipakai sebagai pembuka: "N misi vs M misi
+     minggu lalu (Δ%)". */
+  const weekDone = weekMetrics.find((r) => r.key === 'done')
+  const weekDeltaPct =
+    weekDone && weekDone.prevN > 0
+      ? Math.round((weekDone.delta / weekDone.prevN) * 100)
+      : null
+  const weekDoneSummary = weekDone
+    ? `${weekDone.curN} misi vs ${weekDone.prevN} misi minggu lalu${
+        weekDeltaPct != null
+          ? ` (${weekDeltaPct > 0 ? '+' : ''}${weekDeltaPct}%)`
+          : ''
+      }`
+    : ''
+
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInView = useInView(chartRef, { once: true, margin: '-40px' })
 
@@ -507,6 +516,11 @@ export default function StatsScreen() {
      interaktif kartu Misi Selesai: ketuk batang → nilai terbaca di baris
      aria-live di bawah grafik (audit Tahap 2 #3). */
   const [selBar, setSelBar] = useState<number | null>(null)
+
+  /* Mode visual seksi Kinerja & Konsistensi (v2.37 §8): batang misi +
+     area 30 hari (grafik) atau heatmap 12 pekan — satu ruang, dua
+     sudut pandang. */
+  const [vizMode, setVizMode] = useState<'grafik' | 'panas'>('grafik')
 
   /* Gerbang pandangan-pertama untuk grafik Recharts (audit Tahap 2 #4):
      kartu dipasang sejak awal (tinggi tetap, tanpa layout shift), grafik
@@ -633,123 +647,55 @@ export default function StatsScreen() {
     return { list: out, woCompare }
   }, [completions, today, workouts, moodLogs])
 
-  /* ===== Statistik lintas modul Bugar — semua dari data nyata =====
-     Perf: seluruh derivasi berat di bawah (prBoard, cardioSummary,
-     weightSeries, bodySeries, dayCounts, weekCounts — masing-masing
-     menyapu histori penuh) dibungkus useMemo; tadinya berjalan ulang di
-     tiap render (ketuk batang grafik, navigasi bulan, pilih hari, ganti
-     periode) padahal input tak berubah. Nama variabel dipertahankan lewat
-     destrukturisasi — murni refaktor, JSX di bawah tak berubah. */
-
-  /* Latihan: sesi & tonase 30 hari, PR terbaik, kardio, plus (v2.36)
-     deret per pekan — 4 pekan terakhir (P4 = pekan berjalan sampai hari
-     ini saja; sesi & tonase per pekan, dua satuan TIDAK dicampur). */
-  const { recent, fitSessions, fitTonase, topPr, cardio, weeklyFit } =
+  /* ===== Ringkasan lintas modul Bugar (audit density v2.37 §9) —
+     Statistik hanya menampilkan baris metrik utama + pintu ke layar
+     Bugar; grafik lengkap (tonase, PR, asupan, tidur/energi/hidrasi)
+     tidak diduplikasi dari modul Bugar. Semua angka dari data nyata,
+     dibungkus useMemo (pola perf yang sama dengan derivasi sebelumnya). ===== */
+  const { fitSessions, fitMinutes, cardio30, lastWeight, weightDelta } =
     useMemo(() => {
       const since30 = addDaysISO(today, -30)
       const recent = workouts.filter((w) => w.date >= since30)
-      const weeklyFit: { start: string; sessions: number; tonase: number }[] =
-        []
-      for (let w = 3; w >= 0; w--) {
-        const start = weekStartISO(addDaysISO(today, -w * 7))
-        const end = addDaysISO(start, 6)
-        const inWeek = workouts.filter(
-          (x) => x.date >= start && x.date <= end && x.date <= today,
-        )
-        weeklyFit.push({
-          start,
-          sessions: inWeek.length,
-          tonase: inWeek.reduce((a, x) => a + tonaseOf(x), 0),
-        })
-      }
+      const wSeries = weightSeries(bodyLogs)
       return {
-        recent,
         fitSessions: recent.length,
-        fitTonase: recent.reduce((a, w) => a + tonaseOf(w), 0),
-        topPr: prBoard(workouts)[0],
-        cardio: cardioSummary(workouts),
-        weeklyFit,
+        fitMinutes: recent.reduce((a, w) => a + w.duration, 0),
+        cardio30: cardioSummary(recent),
+        lastWeight: wSeries.length > 0 ? wSeries[wSeries.length - 1].kg : null,
+        weightDelta:
+          wSeries.length >= 2
+            ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
+            : null,
       }
-    }, [workouts, today])
+    }, [workouts, bodyLogs, today])
 
-  /* Asupan: rata-rata kkal/hari dari 7 hari tercatat terakhir, plus
-     (v2.36) deret 7 hari KALENDER (bukan 7 hari tercatat) — hari tanpa
-     catatan null, tidak digambar seolah nol kkal. */
-  const { last7Kcal, avgKcal, kcalWeek, kcalWeekLogged } = useMemo(() => {
-    const kcalByDay = new Map<string, number>()
-    for (const f of foodEntries) {
-      kcalByDay.set(f.date, (kcalByDay.get(f.date) ?? 0) + f.kcal)
-    }
-    const last7Kcal = [...kcalByDay.entries()]
-      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .slice(0, 7)
-    const kcalWeek: { date: string; kcal: number | null }[] = Array.from(
-      { length: 7 },
-      (_, i) => {
-        const d = addDaysISO(today, i - 6)
-        return { date: d, kcal: kcalByDay.get(d) ?? null }
-      },
-    )
-    return {
-      last7Kcal,
-      avgKcal:
-        last7Kcal.length > 0
-          ? Math.round(
-              last7Kcal.reduce((a, [, k]) => a + k, 0) / last7Kcal.length,
-            )
-          : 0,
-      kcalWeek,
-      kcalWeekLogged: kcalWeek.filter((k) => (k.kcal ?? 0) > 0).length,
-    }
-  }, [foodEntries, today])
-
-  /* Tubuh: rata-rata tidur/energi/hidrasi 7 hari + delta berat, plus
-     (v2.36) tiga deret 7 hari untuk small multiples — tidur (jam), energi
-     (1-5), hidrasi (gelas) — skala masing-masing. */
-  const {
-    last7Logs,
-    avgSleep,
-    avgEnergy,
-    avgWater,
-    weightDelta,
-    sleepWeek,
-    energyWeek,
-    waterWeek,
-  } = useMemo(() => {
-    const last7Logs = Object.entries(bodyLogs)
-      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .slice(0, 7)
-    const avgOf = (
-      pick: (v: {
-        sleepH?: number
-        energy?: number
-        water: number
-      }) => number | undefined,
-    ) => {
-      const vals = last7Logs
-        .map(([, v]) => pick(v))
-        .filter((x): x is number => x != null)
-      return vals.length > 0
-        ? vals.reduce((a, b) => a + b, 0) / vals.length
-        : null
-    }
-    const wSeries = weightSeries(bodyLogs)
-    return {
-      last7Logs,
-      avgSleep: avgOf((v) => v.sleepH),
-      avgEnergy: avgOf((v) => v.energy),
-      avgWater: avgOf((v) => v.water),
-      weightDelta:
-        wSeries.length >= 2
-          ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
-          : null,
-      sleepWeek: bodySeries(bodyLogs, today, 7, (l) => l.sleepH),
-      energyWeek: bodySeries(bodyLogs, today, 7, (l) => l.energy),
-      waterWeek: bodySeries(bodyLogs, today, 7, (l) =>
-        l.water > 0 ? l.water : undefined,
-      ),
-    }
-  }, [bodyLogs, today])
+  /* ===== Ruang Suasana (v2.37 §8): jendela mood 14 hari (terlama →
+      terbaru) + rekap jumlah per mood — pola visual & logika dipindah
+      dari kartu Riwayat Mood Profil (audit density §9: satu pusat
+      suasana hati di Statistik, Profil cukup chip ringkas). ===== */
+  const moodDays = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, idx) => {
+        const back = 13 - idx
+        const iso = addDaysISO(today, -back)
+        return {
+          iso,
+          label: WEEKDAY_MIN[fromISO(iso).getDay()],
+          mood: moodLogs[iso],
+          isToday: back === 0,
+        }
+      }),
+    [moodLogs, today],
+  )
+  const moodCounts = useMemo(
+    () =>
+      MOODS.map((name) => ({
+        name,
+        count: moodDays.filter((d) => d.mood === name).length,
+      })),
+    [moodDays],
+  )
+  const moodLogged = moodCounts.some((c) => c.count > 0)
 
   /* Grafik misi selesai: 7 hari terakhir atau 4 pekan (P4 = berjalan). */
   const { weekData, monthData } = useMemo(
@@ -1172,10 +1118,63 @@ export default function StatsScreen() {
           </m.div>
         </section>
 
-        {/* Misi selesai — panel fokus periode + instrumen grafik.
-            Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
-            periode, total, dan ringkasan; kartu grafik murni batang. */}
-        <RutinaBentoGrid>
+        {/* ===== Kinerja & Konsistensi (audit density v2.37 §8) — grafik
+            misi, tren 30 hari, dan peta panas 12 pekan disatukan dalam
+            SATU seksi ber-saklar mode (sebelumnya tiga blok terpisah
+            memakan tiga layar gulir); id stats-tren dipertahankan untuk
+            pintasan nav. ===== */}
+        <section
+          id="stats-tren"
+          aria-label="Kinerja dan konsistensi"
+          className="scroll-mt-3"
+        >
+          {/* Judul seksi + saklar mode visual — pola segmen aria-pressed
+              rounded-full, selaras toggle mode pembacaan Heatmap. */}
+          <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+            <div className="min-w-0">
+              <h2 className="flex items-center gap-1.5 text-section-lg font-bold tracking-tight text-content-primary">
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
+                />
+                Kinerja &amp; Konsistensi
+              </h2>
+              <p className="mt-0.5 text-meta font-medium text-module-accent-strong">
+                misi per periode · tren 30 hari · peta panas 12 pekan
+              </p>
+            </div>
+            <div
+              role="group"
+              aria-label="Mode visual kinerja dan konsistensi"
+              className="flex shrink-0 gap-1 rounded-full border border-border bg-surface-sunken p-0.5"
+            >
+              {(
+                [
+                  ['grafik', 'Grafik'],
+                  ['panas', 'Peta Panas'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={vizMode === id}
+                  onClick={() => setVizMode(id)}
+                  className={`interactive h-7 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    vizMode === id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-content-secondary hover:text-content-primary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Misi selesai — panel fokus periode + instrumen grafik.
+              Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
+              periode, total, dan ringkasan; kartu grafik murni batang. */}
+          <RutinaBentoGrid className="mt-3">
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4">
             {/* Panel fokus periode — sakelar periode + pembacaan ringkas */}
             <m.section
@@ -1233,12 +1232,14 @@ export default function StatsScreen() {
           </RutinaBentoItem>
 
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-8">
-            {/* Instrumen grafik — batang misi selesai. Kartu instrumen
-                parchment (audit Tahap 2 #6): garis & indikator tegas di atas
-                permukaan terang; batang non-puncak memakai tinta content
-                redup, puncak memakai gradasi chart token. Setiap batang
-                adalah tombol — "tooltip" interaktif terbaca di baris
-                aria-live di bawah grafik. */}
+            {/* Instrumen grafik — batang misi selesai (mode Grafik).
+                Kartu instrumen parchment (audit Tahap 2 #6): garis &
+                indikator tegas di atas permukaan terang; batang non-puncak
+                memakai tinta content redup, puncak memakai gradasi chart
+                token. Setiap batang adalah tombol — "tooltip" interaktif
+                terbaca di baris aria-live di bawah grafik. Mode Peta Panas
+                menggantikan kartu ini dengan heatmap 12 pekan. */}
+            {vizMode === 'grafik' ? (
             <m.section
               ref={chartRef}
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
@@ -1352,22 +1353,23 @@ export default function StatsScreen() {
                 </>
               )}
             </m.section>
+            ) : (
+              /* Heatmap — pola penyelesaian 12 pekan; visitKey diteruskan
+                 agar gerbang anti-replay internal Heatmap (tab pertama
+                 saja) seragam dengan seluruh layar Statistik. */
+              <Heatmap visitKey="stats-heatmap" />
+            )}
           </RutinaBentoItem>
         </RutinaBentoGrid>
 
-        {/* ===== Tren & Konsistensi — area 30 hari + heatmap 12 pekan =====
-            (audit visualisasi v2.12: grafik garis TrendLine 7 hari dihapus
-            karena tumpang tindih dengan grafik batang Misi Selesai — jumlah
-            misi yang sama tak perlu digambar dua kali; area chart dipindah
-            ke sini berpasangan dengan heatmap sebagai satu seksi tren.) */}
-        <section id="stats-tren" aria-label="Tren dan konsistensi" className="@container scroll-mt-3">
-          <SectionTitle title="Tren & Konsistensi" hint="30 hari terakhir · % selesai/hari" />
-          <div className="mt-3 grid grid-cols-1 gap-3 @[36rem]:grid-cols-2">
-            {/* Grafik area tren penyelesaian — kartu instrumen parchment:
-                garis tegas chart-stroke-4 + isi lembut chart-4 opasitas
-                rendah (audit Tahap 2 #6); garis putus rata-rata memberi
-                konteks sekilas; legenda + label periode selalu terlihat
-                (audit Tahap 2 #3). */}
+        {/* Tren penyelesaian 30 hari (mode Grafik) — tetap visual
+            terpisah dari batang misi: sumbu & satuan berbeda, tidak
+            digabung; kini menempati ruang yang sama dengan saklar mode.
+            Kartu instrumen parchment: garis tegas chart-stroke-4 + isi
+            lembut chart-4 opasitas rendah (audit Tahap 2 #6); garis putus
+            rata-rata memberi konteks sekilas; legenda + label periode
+            selalu terlihat (audit Tahap 2 #3). */}
+        {vizMode === 'grafik' && (
             <m.div
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1507,12 +1509,7 @@ export default function StatsScreen() {
                 Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
               </p>
             </m.div>
-
-            {/* Heatmap — pola penyelesaian 12 pekan; visitKey diteruskan
-                agar gerbang anti-replay internal Heatmap (tab pertama
-                saja) seragam dengan seluruh layar Statistik. */}
-            <Heatmap visitKey="stats-heatmap" />
-          </div>
+        )}
         </section>
 
         {/* Kalender Aktivitas + Laporan Bulanan — pasangan bento 7 : 5
@@ -2000,7 +1997,10 @@ export default function StatsScreen() {
         {/* Pekan Ini vs Pekan Lalu + Bugar & Tubuh — pasangan bento (medium · medium) */}
         <RutinaBentoGrid>
           <RutinaBentoItem span="medium">
-            {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12) ===== */}
+            {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12),
+                dilipat secara default (audit density v2.37 §8): ringkasan
+                misi tampil di pemicu (pola persis Laporan Bulanan), tabel
+                perbandingan lengkap dibuka bila dibutuhkan. ===== */}
             <m.section
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
@@ -2008,10 +2008,33 @@ export default function StatsScreen() {
               transition={motionTokens.preset.data}
               aria-label="Pembanding pekan ini vs pekan lalu"
             >
-              <RutinaSectionHeader
-                title="Pekan Ini vs Pekan Lalu"
-                description={`${shortDateLabel(weekStart)} – ${shortDateLabel(today)} · dibanding pekan lalu`}
-              />
+              <Collapsible defaultOpen={false}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={`Pekan ini vs pekan lalu, ${shortDateLabel(weekStart)} sampai ${shortDateLabel(today)}${weekDoneSummary ? `, ${weekDoneSummary}` : ''} — buka untuk detail perbandingan`}
+                    className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+                      <CalendarCheck aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-body font-semibold text-content-primary">
+                        Pekan Ini vs Pekan Lalu
+                      </span>
+                      <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                        {`${shortDateLabel(weekStart)} – ${shortDateLabel(today)}${
+                          weekDoneSummary ? ` · ${weekDoneSummary}` : ''
+                        }`}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
               <RutinaCard radius="2xl" density="comfortable" className="mt-3">
                 <ul className="space-y-2.5">
                   {weekMetrics.map((row) => {
@@ -2102,424 +2125,76 @@ export default function StatsScreen() {
                   nilai lebih kecil dinilai lebih baik. Jumlah catatan
                   dihitung eksak dari tanggal-dibuat (v2.36).
                 </p>
-              </RutinaCard>
+                </RutinaCard>
+                </CollapsibleContent>
+              </Collapsible>
             </m.section>
           </RutinaBentoItem>
 
           <RutinaBentoItem span="medium">
-            {/* ===== Bugar & Tubuh — statistik lintas modul =====
-                Kartu instrumen parchment; ikon memakai varian stroke grafik
-                (tegas di permukaan terang). Seksi tanpa data menampilkan
-                empty-state bermakna (audit Tahap 2 #5): penjelasan data
-                apa yang perlu dikumpulkan & di mana mencatatnya. */}
-            <section id="stats-bugar" aria-label="Statistik bugar dan tubuh" className="@container scroll-mt-3">
-              <SectionTitle title="Bugar & Tubuh" hint="ringkasan modul Bugar" />
-              <div className="grid grid-cols-1 gap-3 @[28rem]:grid-cols-3">
-                {/* Latihan */}
-                <m.div
-                  initial={playEntrance ? { opacity: 0, y: 16 } : false}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={motionTokens.preset.data}
-                  className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+            {/* ===== Bugar & Tubuh — ringkasan satu baris + tautan (audit
+                density v2.37 §9): grafik lengkap modul Bugar (tonase, PR,
+                asupan kkal, tidur/energi/hidrasi) tidak lagi diduplikasi
+                di sini — empat metrik utama + pintu ke layar Bugar. ===== */}
+            <section id="stats-bugar" aria-label="Ringkasan bugar dan tubuh" className="@container scroll-mt-3">
+              <SectionTitle title="Bugar & Tubuh" hint="ringkasan · detail di tab Bugar" />
+              <m.div
+                initial={playEntrance ? { opacity: 0, y: 16 } : false}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-24px' }}
+                transition={motionTokens.preset.data}
+                className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+              >
+                <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
+                  <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
+                  Latihan &amp; Tubuh · 30 hari
+                </p>
+                <div className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-4 @[30rem]:grid-cols-4">
+                  <RutinaMetric
+                    label="Sesi latihan"
+                    value={fitSessions}
+                    unit="sesi"
+                    size="sm"
+                  />
+                  <RutinaMetric
+                    label="Total durasi"
+                    value={fitMinutes}
+                    unit="menit"
+                    size="sm"
+                  />
+                  <RutinaMetric
+                    label="Kardio"
+                    value={cardio30.km.toFixed(1).replace('.', ',')}
+                    unit="km"
+                    size="sm"
+                    caption={`${cardio30.sessions} sesi jalan/lari`}
+                  />
+                  <RutinaMetric
+                    label="Berat terakhir"
+                    value={
+                      lastWeight != null
+                        ? lastWeight.toFixed(1).replace('.', ',')
+                        : '–'
+                    }
+                    unit={lastWeight != null ? 'kg' : undefined}
+                    size="sm"
+                    caption={
+                      weightDelta != null
+                        ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
+                        : 'belum ada riwayat berat'
+                    }
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScreen('bugar')}
+                  aria-label="Buka layar Bugar untuk detail latihan, asupan, dan tubuh"
+                  className="interactive mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-module-accent-strong text-note font-bold text-module-accent-fg shadow-soft transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
-                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-                    <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
-                    Latihan · 30 hari
-                  </p>
-                  {recent.length === 0 ? (
-                    <RutinaEmptyState
-                      className="mt-3 px-4 py-6"
-                      icon={<Dumbbell />}
-                      title="Belum ada sesi Bugar"
-                      description={
-                        workouts.length === 0
-                          ? 'Catat sesi pertamamu di tab Bugar — sesi, tonase, dan PR terbaca di sini.'
-                          : 'Tidak ada sesi dalam 30 hari terakhir — catat sesi baru di tab Bugar.'
-                      }
-                    />
-                  ) : (
-                    <>
-                      <div className="mt-3 grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
-                            {fitSessions}
-                          </p>
-                          <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
-                            sesi
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
-                            {fitTonase >= 1000
-                              ? `${(fitTonase / 1000).toFixed(1).replace('.', ',')}t`
-                              : Math.round(fitTonase).toLocaleString('id-ID')}
-                          </p>
-                          <p className="mt-1 text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
-                            kg tonase
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 space-y-1.5 border-t border-border pt-3">
-                        {topPr ? (
-                          <p className="text-meta font-medium text-content-secondary">
-                            PR e1RM: <span className="font-semibold">{topPr.name}</span>{' '}
-                            ≈ {topPr.best.toFixed(1).replace('.', ',')} kg
-                          </p>
-                        ) : (
-                          <p className="text-meta font-medium text-content-secondary">
-                            Belum ada PR — catat sesi beban pertamamu.
-                          </p>
-                        )}
-                        <p className="text-meta font-medium tabular-nums text-content-secondary">
-                          Kardio: {cardio.km.toFixed(1).replace('.', ',')} km
-                          {cardio.sessions > 0 &&
-                            ` dari ${cardio.sessions} sesi jalan/lari`}
-                        </p>
-                      </div>
-                      {/* v2.36: sesi & tonase per pekan — dua satuan berdiri
-                          sendiri (bar sesi + bar tonase), P4 pekan berjalan. */}
-                      <div
-                        className="mt-3 space-y-2.5 border-t border-border pt-3"
-                        role="img"
-                        aria-label={`Sesi per pekan: ${weeklyFit
-                          .map(
-                            (w, i) =>
-                              `P${i + 1} ${w.sessions} sesi, tonase ${Math.round(w.tonase).toLocaleString('id-ID')} kg`,
-                          )
-                          .join(', ')}. P4 pekan berjalan.`}
-                      >
-                        <div>
-                          <p className="text-chart-label font-semibold uppercase tracking-wide text-content-muted">
-                            Sesi / pekan
-                          </p>
-                          <div className="mt-1 flex items-end gap-1">
-                            {weeklyFit.map((w, i) => {
-                              const maxS = Math.max(
-                                ...weeklyFit.map((x) => x.sessions),
-                                1,
-                              )
-                              return (
-                                <div
-                                  key={w.start}
-                                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
-                                >
-                                  <div className="flex h-8 w-full items-end">
-                                    <div
-                                      className={`w-full rounded-t-sm ${
-                                        i === weeklyFit.length - 1
-                                          ? 'bg-module-accent-strong'
-                                          : 'bg-module-accent/60'
-                                      }`}
-                                      style={{
-                                        height: `${Math.max((w.sessions / maxS) * 100, w.sessions > 0 ? 10 : 3)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <span className="text-chart-label font-semibold tabular-nums text-content-muted">
-                                    P{i + 1}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-chart-label font-semibold uppercase tracking-wide text-content-muted">
-                            Tonase / pekan
-                          </p>
-                          <div className="mt-1 flex items-end gap-1">
-                            {weeklyFit.map((w, i) => {
-                              const maxT = Math.max(
-                                ...weeklyFit.map((x) => x.tonase),
-                                1,
-                              )
-                              return (
-                                <div
-                                  key={w.start}
-                                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
-                                >
-                                  <div className="flex h-8 w-full items-end">
-                                    <div
-                                      className={`w-full rounded-t-sm ${
-                                        i === weeklyFit.length - 1
-                                          ? 'bg-chart-stroke-4'
-                                          : 'bg-chart-stroke-4/50'
-                                      }`}
-                                      style={{
-                                        height: `${Math.max((w.tonase / maxT) * 100, w.tonase > 0 ? 10 : 3)}%`,
-                                      }}
-                                    />
-                                  </div>
-                                  <span className="text-chart-label font-semibold tabular-nums text-content-muted">
-                                    P{i + 1}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </m.div>
-
-                {/* Asupan */}
-                <m.div
-                  initial={playEntrance ? { opacity: 0, y: 16 } : false}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
-                  className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
-                >
-                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-                    <UtensilsCrossed className="h-3.5 w-3.5 text-chart-stroke-3" />
-                    Asupan · 7 hari
-                  </p>
-                  {avgKcal > 0 ? (
-                    <>
-                      <p className="mt-3 flex items-baseline gap-1">
-                        <span className="text-kpi-lg font-semibold leading-none tabular-nums text-content-primary">
-                          {avgKcal.toLocaleString('id-ID')}
-                        </span>
-                        <span className="text-meta font-semibold text-content-muted">
-                          kkal/hari
-                        </span>
-                      </p>
-                      <p className="mt-1.5 text-eyebrow font-medium text-content-muted">
-                        rata-rata dari {last7Kcal.length} hari tercatat
-                      </p>
-                      {/* v2.36: mini bar 7 hari KALENDER + garis target —
-                          hari tanpa catatan = stub netral (bukan nol). */}
-                      <div
-                        className="relative mt-3"
-                        role="img"
-                        aria-label={`Kalori 7 hari terakhir: ${kcalWeek
-                          .map(
-                            (k) =>
-                              `${shortDateLabel(k.date)} ${k.kcal != null && k.kcal > 0 ? `${k.kcal.toLocaleString('id-ID')} kkal` : 'tidak tercatat'}`,
-                          )
-                          .join(', ')}. Target ${calorieTarget.toLocaleString('id-ID')} kkal, ${kcalWeekLogged} dari 7 hari tercatat.`}
-                      >
-                        <div
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-x-0 z-10"
-                          style={{
-                            bottom: `${Math.round(
-                              (calorieTarget /
-                                Math.max(
-                                  ...kcalWeek.map((k) => k.kcal ?? 0),
-                                  calorieTarget,
-                                  1,
-                                )) *
-                                100,
-                            )}%`,
-                          }}
-                        >
-                          <div className="border-t border-dashed border-module-accent-strong/45" />
-                        </div>
-                        <div className="flex h-14 items-end gap-1">
-                          {kcalWeek.map((k) => {
-                            const max = Math.max(
-                              ...kcalWeek.map((x) => x.kcal ?? 0),
-                              calorieTarget,
-                              1,
-                            )
-                            return (
-                              <div
-                                key={k.date}
-                                className="min-w-0 flex-1"
-                                aria-hidden="true"
-                              >
-                                <div
-                                  className={`w-full rounded-t-sm ${
-                                    k.kcal != null && k.kcal > 0
-                                      ? 'bg-module-accent/70'
-                                      : 'h-1 rounded-full bg-surface-sunken'
-                                  }`}
-                                  style={
-                                    k.kcal != null && k.kcal > 0
-                                      ? {
-                                          height: `${Math.max((k.kcal / max) * 56, 5)}px`,
-                                        }
-                                      : undefined
-                                  }
-                                />
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                      <p className="mt-1.5 text-eyebrow font-medium text-content-muted">
-                        {kcalWeekLogged}/7 hari tercatat · garis putus = target
-                      </p>
-                    </>
-                  ) : (
-                    <RutinaEmptyState
-                      className="mt-3 px-4 py-6"
-                      icon={<UtensilsCrossed />}
-                      title="Belum ada jurnal makan"
-                      description="Catat asupan pertamamu di tab Bugar › Asupan — rata-rata kalori harian terbaca di sini."
-                    />
-                  )}
-                </m.div>
-
-                {/* Tubuh */}
-                <m.div
-                  initial={playEntrance ? { opacity: 0, y: 16 } : false}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.relaxed }}
-                  className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
-                >
-                  <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-                    <Activity className="h-3.5 w-3.5 text-chart-stroke-2" />
-                    Tubuh · 7 hari
-                  </p>
-                  {last7Logs.length === 0 ? (
-                    <RutinaEmptyState
-                      className="mt-3 px-4 py-6"
-                      icon={<Activity />}
-                      title="Belum ada check-in tubuh"
-                      description="Isi check-in harian di tab Bugar › Tubuh — tidur, energi, dan hidrasi terpantau di sini."
-                    />
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between text-meta">
-                        <span className="font-medium text-content-secondary">
-                          Tidur rata-rata
-                        </span>
-                        <span className="font-semibold tabular-nums text-content-primary">
-                          {avgSleep != null
-                            ? `${avgSleep.toFixed(1).replace('.', ',')} jam`
-                            : '–'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-meta">
-                        <span className="font-medium text-content-secondary">
-                          Energi rata-rata
-                        </span>
-                        <span className="font-semibold tabular-nums text-content-primary">
-                          {avgEnergy != null
-                            ? `${avgEnergy.toFixed(1).replace('.', ',')}/5`
-                            : '–'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-meta">
-                        <span className="font-medium text-content-secondary">
-                          Hidrasi rata-rata
-                        </span>
-                        <span className="font-semibold tabular-nums text-content-primary">
-                          {avgWater != null
-                            ? `${avgWater.toFixed(1).replace('.', ',')}/8 gelas`
-                            : '–'}
-                        </span>
-                      </div>
-                      {weightDelta != null && (
-                        <div className="flex items-center justify-between text-meta">
-                          <span className="font-medium text-content-secondary">
-                            Berat badan
-                          </span>
-                          <span
-                            className={`flex items-center gap-1 font-semibold tabular-nums ${
-                              weightDelta <= 0 ? 'text-success' : 'text-warning'
-                            }`}
-                          >
-                            {weightDelta <= 0 ? (
-                              <TrendingDown className="h-3 w-3" />
-                            ) : (
-                              <TrendingUp className="h-3 w-3" />
-                            )}
-                            {Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg
-                          </span>
-                        </div>
-                      )}
-                      {avgSleep == null && avgEnergy == null && (
-                        <p className="text-meta font-medium leading-relaxed text-content-muted">
-                          Isi check-in harian di Bugar › Tubuh untuk memantau
-                          pemulihan.
-                        </p>
-                      )}
-                      {/* v2.36: small multiples 7 hari — tidur/energi/hidrasi
-                          masing-masing berdiri sendiri (jam, skor 1-5, gelas);
-                          hari tanpa catatan = stub netral, bukan nol. */}
-                      {(sleepWeek.some((p) => p.value != null) ||
-                        energyWeek.some((p) => p.value != null) ||
-                        waterWeek.some((p) => p.value != null)) && (
-                        <div className="mt-3 space-y-2 border-t border-border pt-3">
-                          {(
-                            [
-                              {
-                                key: 'tidur',
-                                label: 'Tidur',
-                                series: sleepWeek,
-                                max: 8,
-                                fmt: (v: number) => `${v.toFixed(1).replace('.', ',')} j`,
-                              },
-                              {
-                                key: 'energi',
-                                label: 'Energi',
-                                series: energyWeek,
-                                max: 5,
-                                fmt: (v: number) => `${v}/5`,
-                              },
-                              {
-                                key: 'hidrasi',
-                                label: 'Hidrasi',
-                                series: waterWeek,
-                                max: fitTargets.water > 0 ? fitTargets.water : 8,
-                                fmt: (v: number) => `${v} gls`,
-                              },
-                            ] as const
-                          ).map((metric) => (
-                            <div
-                              key={metric.key}
-                              role="img"
-                              aria-label={`${metric.label} 7 hari: ${metric.series
-                                .map(
-                                  (p) =>
-                                    `${p.label} ${
-                                      p.value != null ? metric.fmt(p.value) : 'tidak tercatat'
-                                    }`,
-                                )
-                                .join(', ')}`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="w-12 shrink-0 text-chart-label font-semibold text-content-muted">
-                                  {metric.label}
-                                </span>
-                                <div className="flex h-6 min-w-0 flex-1 items-end gap-[3px]">
-                                  {metric.series.map((p) => (
-                                    <span
-                                      key={p.date}
-                                      aria-hidden="true"
-                                      className="flex h-full min-w-0 flex-1 items-end"
-                                    >
-                                      {p.value != null ? (
-                                        <span
-                                          className="w-full rounded-[2px] bg-module-accent/75"
-                                          style={{
-                                            height: `${Math.max(
-                                              (p.value / metric.max) * 100,
-                                              10,
-                                            )}%`,
-                                          }}
-                                        />
-                                      ) : (
-                                        <span className="h-[3px] w-full rounded-full bg-surface-sunken" />
-                                      )}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </m.div>
-              </div>
+                  <Dumbbell aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
+                  Buka Bugar untuk detail latihan, asupan, &amp; tubuh
+                </button>
+              </m.div>
             </section>
           </RutinaBentoItem>
         </RutinaBentoGrid>
@@ -2566,18 +2241,18 @@ export default function StatsScreen() {
         </Collapsible>
         </div>
 
-        {/* v2.32 Observatory: Check-in suasana hati — dipindah dari slot
-            wawasan; input data tidak lagi menyamar sebagai insight, ia
-            diletakkan di ujung halaman sebagai pintu catat-cepat. */}
+        {/* v2.37 Ruang Suasana (audit density §8/§9): input check-in tetap
+            di ujung halaman + riwayat mood 14 hari (dipindah dari Profil)
+            — satu pusat suasana hati; Profil cukup chip ringkas. */}
         <section
-          aria-label="Check-in suasana hati"
+          aria-label="Ruang suasana hati"
           className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
         >
           <p className="text-body font-semibold tracking-tight text-content-secondary">
-            Check-in Suasana
+            Ruang Suasana
           </p>
           <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
-            satu ketukan — tercermin di Profil & wawasan lintas domain
+            satu ketukan — tercermin di wawasan lintas domain &amp; Profil
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {MOODS.map((m) => {
@@ -2610,6 +2285,135 @@ export default function StatsScreen() {
               ? `Kamu merasa ${mood.toLowerCase()} hari ini`
               : 'Bagaimana perasaanmu?'}
           </p>
+
+          {/* Riwayat 14 hari — pola visual kartu Riwayat Mood Profil
+              (dipindah ke sini; salin polanya, bukan impor komponen). */}
+          {moodLogged ? (
+            <>
+              <div
+                className="mt-4 flex gap-1 border-t border-border pt-4"
+                role="list"
+                aria-label="Mood per hari, 14 hari terakhir"
+              >
+                {moodDays.map((d) => {
+                  const MoodIcon = d.mood != null ? MOOD_ICONS[d.mood] : null
+                  return (
+                    <div
+                      key={d.iso}
+                      role="listitem"
+                      title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
+                      aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
+                      className={cn(
+                        'flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl py-2',
+                        d.isToday && 'bg-secondary/60 ring-1 ring-primary/30',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'text-chart-label font-semibold uppercase tracking-wide',
+                          d.isToday
+                            ? 'text-content-secondary'
+                            : 'text-content-muted',
+                        )}
+                      >
+                        {d.label}
+                      </span>
+                      {MoodIcon ? (
+                        <MoodIcon
+                          className={cn(
+                            'h-4.5 w-4.5',
+                            MOOD_TONE[d.mood ?? '']?.text,
+                          )}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <Minus
+                          className="h-4 w-4 text-content-muted/40"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Distribusi mood — satu bar segmented netral dari MOOD_DOT
+                  (bukan pelangi); hari tanpa check-in TIDAK masuk penyebut. */}
+              {(() => {
+                const logged = moodCounts.reduce((a, c) => a + c.count, 0)
+                const segs = moodCounts.filter((c) => c.count > 0)
+                return (
+                  segs.length > 0 && (
+                    <div className="mt-3">
+                      <div
+                        className="flex h-2 overflow-hidden rounded-full bg-surface-sunken"
+                        role="img"
+                        aria-label={`Distribusi mood 14 hari dari ${logged} hari tercatat: ${segs
+                          .map((c) => `${c.name} ${c.count}`)
+                          .join(', ')}`}
+                      >
+                        {segs.map((c) => (
+                          <span
+                            key={c.name}
+                            className={MOOD_DOT[c.name] ?? 'bg-cocoa/40'}
+                            style={{ width: `${(c.count / logged) * 100}%` }}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-1 px-0.5 text-right text-eyebrow font-medium text-content-muted">
+                        dari {logged} hari tercatat
+                      </p>
+                    </div>
+                  )
+                )
+              })()}
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
+                <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
+                  Rekap 14 hari
+                </span>
+                {moodCounts
+                  .filter((c) => c.count > 0)
+                  .map((c, i, arr) => (
+                    <span
+                      key={c.name}
+                      className="flex items-center gap-2 text-meta font-semibold"
+                    >
+                      <span>
+                        <span className={MOOD_TONE[c.name]?.text}>
+                          {c.name}
+                        </span>{' '}
+                        <span className="tabular-nums text-content-muted">
+                          {c.count}×
+                        </span>
+                      </span>
+                      {i < arr.length - 1 && (
+                        <span
+                          aria-hidden="true"
+                          className="text-content-muted/50"
+                        >
+                          ·
+                        </span>
+                      )}
+                    </span>
+                  ))}
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="text-meta font-medium leading-relaxed text-content-muted">
+                Belum ada catatan suasana pada 14 hari terakhir — ketuk
+                suasana di atas, atau isi lembar check-in lengkap.
+              </p>
+              <button
+                type="button"
+                onClick={() => setScreen('profil')}
+                aria-label="Isi check-in hari ini di Profil"
+                className="interactive mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong transition-colors hover:bg-module-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Isi check-in hari ini
+                <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </section>
 
         </div>

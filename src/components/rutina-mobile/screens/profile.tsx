@@ -5,7 +5,6 @@ import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   ArrowLeft,
-  BatteryLow,
   Bell,
   Check,
   ChevronRight,
@@ -15,13 +14,9 @@ import {
   FileSpreadsheet,
   Fingerprint,
   Globe,
-  HeartPulse,
   Info,
-  Laugh,
   Leaf,
   Loader2,
-  Meh,
-  Minus,
   MonitorSmartphone,
   Moon,
   Pencil,
@@ -57,11 +52,10 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 
-import { MOOD_DOT, MOOD_TONE } from '../journal-ui'
+import { MOOD_TONE } from '../journal-ui'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
 import { RutinaDialog } from '../rutina-dialog'
-import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
@@ -72,16 +66,12 @@ import { exportBackup, forcePull, importBackup } from '../sync-engine'
 import { catMetaOf } from '../finance/cats'
 import {
   activeSinceISO,
-  addDaysISO,
   computeLevel,
   computeXp,
   doneCountOn,
   fromISO,
-  MOODS,
-  shortDateLabel,
   todayISO,
   useRutina,
-  WEEKDAY_MIN,
 } from '../store'
 
 const FAQ_ITEMS = [
@@ -115,15 +105,6 @@ const FOCUS_WORDS = [
   'Tidur cukup',
   'Bersyukur',
 ]
-
-/* Ikon suasana hati — padanan MOODS di store (selaras lembar check-in
-   & panel Statistik; MOOD_ICONS di checkin-sheet tidak diekspor). */
-const MOOD_ICONS: Record<string, typeof Laugh> = {
-  Ceria: Laugh,
-  Baik: Smile,
-  Biasa: Meh,
-  Lelah: BatteryLow,
-}
 
 /* ===== Pola baris pengaturan standar (audit 2g) =====
    Ikon kecil kiri · label text-body semibold · keterangan text-eyebrow
@@ -229,7 +210,7 @@ export default function ProfileScreen() {
   const setScreen = useRutina((s) => s.setScreen)
   const identityText = useRutina((s) => s.identityText)
   const setIdentityText = useRutina((s) => s.setIdentityText)
-  const moodLogs = useRutina((s) => s.moodLogs)
+  const mood = useRutina((s) => s.mood)
 
   /* Draf penyuntingan Suara Identitas (audit #23) — draf terpisah agar
      teks tersimpan tetap utuh selama menyunting; dibatasi 600 karakter
@@ -508,34 +489,6 @@ export default function ProfileScreen() {
     () => habits.filter((h) => h.reminder !== null).length,
     [habits],
   )
-
-  /* Jendela mood 14 hari (terlama → terbaru) untuk kartu Riwayat
-     Mood (audit #25) + rekap jumlah per mood pada periode itu.
-     Memo pada moodLogs/today — tidak dihitung ulang saat menggulir. */
-  const moodDays = useMemo(
-    () =>
-      Array.from({ length: 14 }, (_, idx) => {
-        const back = 13 - idx
-        const iso = addDaysISO(today, -back)
-        return {
-          iso,
-          label: WEEKDAY_MIN[fromISO(iso).getDay()],
-          mood: moodLogs[iso],
-          isToday: back === 0,
-        }
-      }),
-    [moodLogs, today],
-  )
-  const moodCounts = useMemo(
-    () =>
-      MOODS.map((name) => ({
-        name,
-        count: moodDays.filter((d) => d.mood === name).length,
-      })),
-    [moodDays],
-  )
-  const moodLogged = moodCounts.some((c) => c.count > 0)
-  const todayMood = moodDays[13].mood
 
   /* v2.33 Control Room: ruang aktif untuk navigasi kategori split
      (desktop lg+) — scrollspy pita tengah, pola petunjuk arah Kebiasaan. */
@@ -858,157 +811,56 @@ export default function ProfileScreen() {
           )}
         </m.section>
 
-        {/* ===== Riwayat Mood — data pribadi, kartu editorial ===== */}
-        <m.div variants={slideInRow} className="mt-8">
-          <RutinaSectionHeader
-            title="Riwayat Mood"
-            description="Suasana hati 14 hari terakhir"
-            action={
-              moodLogged && !todayMood ? (
-                <RutinaButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => useCheckInSheet.getState().openCheckIn()}
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                  Check-in
-                </RutinaButton>
-              ) : undefined
-            }
-          />
-        </m.div>
+        {/* ===== Suasana hari ini — ringkas (audit density v2.37 §9).
+            Riwayat mood 14 hari + input check-in suasana kini terpusat di
+            Statistik › Ruang Suasana; Profil menyimpan chip status dan dua
+            pintu: lembar check-in lengkap (mood + tubuh) & Statistik. ===== */}
         <m.section
           variants={slideInRow}
-          aria-label="Riwayat mood"
-          className="mt-3 rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
+          aria-label="Suasana hati hari ini"
+          className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2.5 rounded-xl border border-border bg-surface-primary p-3.5 shadow-soft"
         >
-          {moodLogged ? (
-            <>
-              <div
-                className="flex gap-1"
-                role="list"
-                aria-label="Mood per hari, 14 hari terakhir"
-              >
-                {moodDays.map((d) => {
-                  const MoodIcon = d.mood != null ? MOOD_ICONS[d.mood] : null
-                  return (
-                    <div
-                      key={d.iso}
-                      role="listitem"
-                      title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
-                      aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
-                      className={cn(
-                        'flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl py-2',
-                        d.isToday && 'bg-secondary/60 ring-1 ring-primary/30',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'text-chart-label font-semibold uppercase tracking-wide',
-                          d.isToday
-                            ? 'text-content-secondary'
-                            : 'text-content-muted',
-                        )}
-                      >
-                        {d.label}
-                      </span>
-                      {MoodIcon ? (
-                        <MoodIcon
-                          className={cn(
-                            'h-4.5 w-4.5',
-                            MOOD_TONE[d.mood ?? '']?.text,
-                          )}
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <Minus
-                          className="h-4 w-4 text-content-muted/40"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              {/* v2.36 (audit visualisasi): distribusi mood — satu bar
-                  segmented netral dari MOOD_DOT (bukan pelangi); hari
-                  tanpa check-in TIDAK masuk penyebut. */}
-              {(() => {
-                const logged = moodCounts.reduce((a, c) => a + c.count, 0)
-                const segs = moodCounts.filter((c) => c.count > 0)
-                return (
-                  segs.length > 0 && (
-                    <div className="mt-3">
-                      <div
-                        className="flex h-2 overflow-hidden rounded-full bg-surface-sunken"
-                        role="img"
-                        aria-label={`Distribusi mood 14 hari dari ${logged} hari tercatat: ${segs
-                          .map((c) => `${c.name} ${c.count}`)
-                          .join(', ')}`}
-                      >
-                        {segs.map((c) => (
-                          <span
-                            key={c.name}
-                            className={MOOD_DOT[c.name] ?? 'bg-cocoa/40'}
-                            style={{ width: `${(c.count / logged) * 100}%` }}
-                          />
-                        ))}
-                      </div>
-                      <p className="mt-1 px-0.5 text-right text-eyebrow font-medium text-content-muted">
-                        dari {logged} hari tercatat
-                      </p>
-                    </div>
-                  )
-                )
-              })()}
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
-                <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
-                  Rekap 14 hari
+          <span
+            aria-hidden="true"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+          >
+            <Smile className="h-4 w-4" strokeWidth={2.1} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-body font-semibold leading-snug text-content-primary">
+              Suasana hari ini:{' '}
+              {mood ? (
+                <span className={MOOD_TONE[mood]?.text ?? 'text-content-primary'}>
+                  {mood}
                 </span>
-                {moodCounts
-                  .filter((c) => c.count > 0)
-                  .map((c, i, arr) => (
-                    <span
-                      key={c.name}
-                      className="flex items-center gap-2 text-meta font-semibold"
-                    >
-                      <span>
-                        <span className={MOOD_TONE[c.name]?.text}>
-                          {c.name}
-                        </span>{' '}
-                        <span className="tabular-nums text-content-muted">
-                          {c.count}×
-                        </span>
-                      </span>
-                      {i < arr.length - 1 && (
-                        <span
-                          aria-hidden="true"
-                          className="text-content-muted/50"
-                        >
-                          ·
-                        </span>
-                      )}
-                    </span>
-                  ))}
-              </div>
-            </>
-          ) : (
-            <RutinaEmptyState
-              className="mt-1"
-              icon={<Smile className="h-6 w-6" aria-hidden="true" />}
-              title="Belum ada catatan mood"
-              description="Isi check-in harian untuk mulai melihat pola suasana hatimu di sini."
-              action={
-                <RutinaButton
-                  variant="primary"
-                  size="sm"
-                  onClick={() => useCheckInSheet.getState().openCheckIn()}
-                >
-                  Isi check-in hari ini
-                </RutinaButton>
-              }
-            />
-          )}
+              ) : (
+                <span className="font-medium text-content-muted">
+                  belum diisi
+                </span>
+              )}
+            </p>
+            <p className="mt-0.5 text-eyebrow font-medium leading-snug text-content-muted">
+              Riwayat 14 hari &amp; check-in suasana terpusat di Statistik
+            </p>
+          </div>
+          <RutinaButton
+            variant="secondary"
+            size="sm"
+            onClick={() => useCheckInSheet.getState().openCheckIn()}
+            aria-label="Isi lembar check-in hari ini"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            Check-in
+          </RutinaButton>
+          <RutinaButton
+            variant="outline"
+            size="sm"
+            onClick={() => setScreen('statistik')}
+            aria-label="Kelola suasana hati di Statistik"
+          >
+            Kelola di Statistik
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </RutinaButton>
         </m.section>
 
         {/* ===== 2 · PREFERENSI — tampilan & ritme ===== */}
