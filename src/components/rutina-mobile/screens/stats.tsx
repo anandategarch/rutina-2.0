@@ -93,6 +93,7 @@ import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import {
   cardioSummary,
@@ -295,6 +296,11 @@ export default function StatsScreen() {
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
   const identityText = useRutina((s) => s.identityText)
+
+  /* Gerbang anti-replay (v2.35): koreografi pembuka Observatory hanya
+     pada kunjungan pertama seumur sesi — remount antar-tab tampil instan;
+     perubahan data/periode tetap bermorf lewat animate (bukan entrance). */
+  const playEntrance = useFirstVisit('stats-observatory')
 
   const today = todayISO()
 
@@ -920,7 +926,7 @@ export default function StatsScreen() {
           aria-label="Progres level pemain"
         >
           <m.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={playEntrance ? { opacity: 0, scale: 0.9 } : false}
             animate={{ opacity: 1, scale: 1 }}
             transition={motionTokens.preset.data}
             whileTap={{ scale: 0.96 }}
@@ -949,7 +955,11 @@ export default function StatsScreen() {
                 strokeWidth="13"
                 strokeLinecap="round"
                 strokeDasharray={CIRC}
-                initial={{ strokeDashoffset: CIRC }}
+                initial={
+                  playEntrance
+                    ? { strokeDashoffset: CIRC }
+                    : { strokeDashoffset: CIRC * (1 - progress) }
+                }
                 animate={{ strokeDashoffset: CIRC * (1 - progress) }}
                 transition={motionTokens.spring.progressArc}
               />
@@ -993,7 +1003,7 @@ export default function StatsScreen() {
             bersama cincin XP, dua fokus halaman, sisanya pendamping). */}
         <section aria-label="Ringkasan metrik utama">
           <m.div
-            initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
+            initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-24px' }}
             transition={motionTokens.preset.data}
@@ -1053,7 +1063,7 @@ export default function StatsScreen() {
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4">
             {/* Panel fokus periode — sakelar periode + pembacaan ringkas */}
             <m.section
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
@@ -1115,7 +1125,7 @@ export default function StatsScreen() {
                 aria-live di bawah grafik. */}
             <m.section
               ref={chartRef}
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
@@ -1243,7 +1253,7 @@ export default function StatsScreen() {
                 konteks sekilas; legenda + label periode selalu terlihat
                 (audit Tahap 2 #3). */}
             <m.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
@@ -1394,7 +1404,7 @@ export default function StatsScreen() {
             {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
             <m.section
               id="stats-kalender"
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
@@ -1506,7 +1516,11 @@ export default function StatsScreen() {
                       </p>
                       <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
                         <m.div
-                          initial={{ scaleX: 0 }}
+                          initial={
+                            playEntrance
+                              ? { scaleX: 0 }
+                              : { scaleX: monthReport.pct / 100 }
+                          }
                           whileInView={{ scaleX: monthReport.pct / 100 }}
                           viewport={{ once: true, margin: '-16px' }}
                           transition={barFill}
@@ -1546,7 +1560,11 @@ export default function StatsScreen() {
                                   </div>
                                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
                                     <m.div
-                                      initial={{ scaleX: 0 }}
+                                      initial={
+                                        playEntrance
+                                          ? { scaleX: 0 }
+                                          : { scaleX: Math.min(100, c.share) / 100 }
+                                      }
                                       whileInView={{ scaleX: Math.min(100, c.share) / 100 }}
                                       viewport={{ once: true, margin: '-16px' }}
                                       transition={barFill}
@@ -1591,7 +1609,9 @@ export default function StatsScreen() {
                                   </p>
                                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
                                     <m.div
-                                      initial={{ scaleX: 0 }}
+                                      initial={
+                                        playEntrance ? { scaleX: 0 } : { scaleX: pctB / 100 }
+                                      }
                                       whileInView={{ scaleX: pctB / 100 }}
                                       viewport={{ once: true, margin: '-16px' }}
                                       transition={barFill}
@@ -1671,7 +1691,7 @@ export default function StatsScreen() {
                 tooltip terang standar, animasi menyapu hanya saat pertama
                 masuk viewport (audit Tahap 2 #4). */}
             <m.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
@@ -1765,7 +1785,7 @@ export default function StatsScreen() {
                 (audit: data entry tidak semestinya berada di observatorium);
                 input pindah ke seksi Check-in di ujung halaman. */}
             <m.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
@@ -1807,7 +1827,7 @@ export default function StatsScreen() {
           <RutinaBentoItem span="medium">
             {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12) ===== */}
             <m.section
-              initial={{ opacity: 0, y: 16 }}
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
@@ -1862,7 +1882,7 @@ export default function StatsScreen() {
                               role="presentation"
                             >
                               <m.div
-                                initial={{ scaleX: 0 }}
+                                initial={playEntrance ? { scaleX: 0 } : { scaleX: prevW / 100 }}
                                 whileInView={{ scaleX: prevW / 100 }}
                                 viewport={{ once: true, margin: '-16px' }}
                                 transition={barFill}
@@ -1884,7 +1904,7 @@ export default function StatsScreen() {
                               role="presentation"
                             >
                               <m.div
-                                initial={{ scaleX: 0 }}
+                                initial={playEntrance ? { scaleX: 0 } : { scaleX: curW / 100 }}
                                 whileInView={{ scaleX: curW / 100 }}
                                 viewport={{ once: true, margin: '-16px' }}
                                 transition={{ ...barFill, delay: motionTokens.delay.tight }}
@@ -1922,7 +1942,7 @@ export default function StatsScreen() {
               <div className="grid grid-cols-1 gap-3 @[28rem]:grid-cols-3">
                 {/* Latihan */}
                 <m.div
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={playEntrance ? { opacity: 0, y: 16 } : false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={motionTokens.preset.data}
@@ -1988,7 +2008,7 @@ export default function StatsScreen() {
 
                 {/* Asupan */}
                 <m.div
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={playEntrance ? { opacity: 0, y: 16 } : false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
@@ -2024,7 +2044,7 @@ export default function StatsScreen() {
 
                 {/* Tubuh */}
                 <m.div
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={playEntrance ? { opacity: 0, y: 16 } : false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-24px' }}
                   transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.relaxed }}

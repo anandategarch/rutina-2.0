@@ -7,6 +7,7 @@ import { Feather, PenLine, Pin, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { pressSnappy } from '@/lib/motion/transitions'
 import { journalCard, journalList } from '@/lib/motion/variants'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { playfair } from '../serif'
@@ -76,6 +77,10 @@ export default function JournalScreen() {
     }
   }, [notes, journalFilter, query])
 
+  /* v2.35 anti-replay: pembuka Writing Room hanya kunjungan pertama —
+     remount antar-tab tampil instan, transisi layar ringan mengambil alih. */
+  const playEntrance = useFirstVisit('journal-writing')
+
   return (
     <div
       data-module="journal"
@@ -86,7 +91,7 @@ export default function JournalScreen() {
     >
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
       <m.header
-        initial={{ opacity: 0, y: 12 }}
+        initial={playEntrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={motionTokens.preset.panelReveal}
       >
@@ -103,7 +108,7 @@ export default function JournalScreen() {
         type="button"
         onClick={() => openCanvas()}
         whileTap={{ scale: 0.98 }}
-        initial={{ opacity: 0, y: 12 }}
+        initial={playEntrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           ...motionTokens.preset.panelReveal,
@@ -120,7 +125,7 @@ export default function JournalScreen() {
           Latar solid parchment (tanpa blur) — ruang jurnal tetap tenang. */}
       <div className="sticky top-0 z-30 -mx-4 mt-4 border-b border-border-default bg-surface-primary px-4 pb-2.5 pt-2">
         <m.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={playEntrance ? { opacity: 0, y: 12 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             ...motionTokens.preset.data,
@@ -140,7 +145,7 @@ export default function JournalScreen() {
 
         {/* Chip filter kategori + jumlah catatan nyata */}
         <m.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={playEntrance ? { opacity: 0, y: 10 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             ...motionTokens.preset.data,
@@ -313,10 +318,14 @@ function NoteList({
   const [limit, setLimit] = useState(initialLimit ?? items.length)
   const visible = items.slice(0, limit)
   const hidden = items.length - visible.length
+  /* v2.35 anti-replay: deretan kartu naik beruntun hanya pada kunjungan
+     pertama; remount/filter tampil instan. "Muat lagi" menambah kartu TANPA
+     mengulang entrance karena wadah tidak berganti (limit state, bukan key). */
+  const playEntrance = useFirstVisit('journal-notes')
   return (
     <m.div
       variants={journalList}
-      initial="hidden"
+      initial={playEntrance ? 'hidden' : 'show'}
       animate="show"
       className="space-y-3"
     >

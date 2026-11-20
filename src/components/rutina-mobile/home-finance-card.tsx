@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 import { motionTokens } from '@/lib/motion/tokens'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { useCatMeta } from './finance/use-cat-meta'
 import { allowanceInfo, formatIDR, formatIDRShort } from './finance/utils'
 import { RutinaCard } from './rutina-card'
@@ -32,7 +32,7 @@ export function HomeFinanceCard() {
   const setScreen = useRutina((s) => s.setScreen)
 
   /* v2.27 audit motion: gerbang anti-replay entrance. */
-  const playEntrance = firstVisit('home-finance')
+  const playEntrance = useFirstVisit('home-finance')
 
   const today = todayISO()
 

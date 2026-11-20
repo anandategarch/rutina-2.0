@@ -96,6 +96,7 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 /* Subtab Bugar — Latihan, Asupan, Tubuh lengkap. */
 const BUGAR_TABS: { id: BugarTab; label: string }[] = [
@@ -136,10 +137,13 @@ const QUICK_MODES: { label: string; icon: typeof Zap; hint: WorkoutSheetHint }[]
 function ProgramCard({ prog, index }: { prog: Program; index: number }) {
   const workouts = useRutina((s) => s.workouts)
   const [expanded, setExpanded] = useState(false)
+  /* v2.35 anti-replay — kartu program hanya diantar pada kunjungan pertama
+     Studio; expand/detail tetap dianimasikan (interaksi, bukan replay). */
+  const playEntrance = useFirstVisit('bugar-studio')
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{
         ...motionTokens.preset.chipReveal,
@@ -276,6 +280,9 @@ function WorkoutRow({
 }) {
   const deleteWorkout = useRutina((s) => s.deleteWorkout)
   const [expanded, setExpanded] = useState(false)
+  /* v2.35 anti-replay — baris riwayat hanya naik beruntun pada kunjungan
+     pertama; filter/ganti subtab tampil instan. */
+  const playEntrance = useFirstVisit('bugar-studio')
   const isStrength = w.kind === 'beban'
   const isCardio = isCardioKind(w.kind)
   const tonase = tonaseOf(w)
@@ -293,7 +300,7 @@ function WorkoutRow({
 
   return (
     <m.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{
@@ -629,6 +636,8 @@ const TONASE_DAY_NAMES = [
 function TonaseStrip() {
   const workouts = useRutina((s) => s.workouts)
   const reducedMotion = useReducedMotion()
+  /* v2.35 anti-replay — pengungkapan batang tonase hanya kunjungan pertama. */
+  const playEntrance = useFirstVisit('bugar-studio')
   /* Hari terpilih — null = belum memilih (header menampilkan petunjuk). */
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
@@ -678,7 +687,7 @@ function TonaseStrip() {
 
   return (
     <m.section
-      initial={{ opacity: 0, y: 14 }}
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-20px' }}
       transition={{
@@ -728,11 +737,11 @@ function TonaseStrip() {
             >
               <div className="flex h-16 w-full items-end">
                 <m.div
-                  initial={{ scaleY: 0 }}
+                  initial={playEntrance ? { scaleY: 0 } : { scaleY: 1 }}
                   whileInView={{ scaleY: 1 }}
                   viewport={{ once: true, margin: '-30px' }}
                   transition={{
-                    duration: reducedMotion ? 0 : 0.5,
+                    duration: reducedMotion ? 0 : motionTokens.preset.data.duration,
                     delay: reducedMotion
                       ? 0
                       : i * motionTokens.stagger.normal,
@@ -862,6 +871,9 @@ export default function BugarScreen() {
   const bodyLogs = useRutina((s) => s.bodyLogs)
   const fitTargets = useRutina((s) => s.fitTargets)
   const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
+  /* v2.35 anti-replay: pembuka Performance Studio hanya kunjungan pertama
+     seumur sesi; subtab keep-alive (v2.30) menjaga state saat berpindah. */
+  const playEntrance = useFirstVisit('bugar-studio')
   const deloadUntil = useRutina((s) => s.deloadUntil)
   const startDeload = useRutina((s) => s.startDeload)
   const endDeload = useRutina((s) => s.endDeload)
@@ -1044,7 +1056,7 @@ export default function BugarScreen() {
               (hero 8) berdampingan Coach Bugar (feature 4); di bawah xl
               tetap bertumpuk mengikuti urutan DOM. */}
           <m.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={playEntrance ? { opacity: 0, y: 14 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={{
               duration: motionTokens.duration.enter,
@@ -1060,7 +1072,7 @@ export default function BugarScreen() {
               agar teks putih lolos AA 6,4:1; base dipertahankan untuk ikon/
               aksen), teks module-accent-fg ikut terbalik di mode gelap. */}
           <m.section
-            initial={{ opacity: 0, y: 14 }}
+            initial={playEntrance ? { opacity: 0, y: 14 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={motionTokens.preset.chipReveal}
             aria-label="Ringkasan latihan pekan ini"
@@ -1108,7 +1120,7 @@ export default function BugarScreen() {
               </div>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-espresso/35">
                 <m.div
-                  initial={{ scaleX: 0 }}
+                  initial={playEntrance ? { scaleX: 0 } : false}
                   animate={{
                     scaleX: Math.min(
                       1,
@@ -1232,7 +1244,7 @@ export default function BugarScreen() {
         type="button"
         onClick={() => setSessionPickerOpen(true)}
         whileTap={{ scale: 0.98 }}
-        initial={{ opacity: 0, y: 14 }}
+        initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         className="interactive mt-3 flex h-13 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-lift hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -1280,7 +1292,7 @@ export default function BugarScreen() {
         <div className="mt-3 space-y-2.5">
           {/* a. Kesiapan latihan — ringkas dari check-in hari ini */}
           <m.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={playEntrance ? { opacity: 0, y: 14 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={motionTokens.preset.chipReveal}
             className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
@@ -1335,7 +1347,7 @@ export default function BugarScreen() {
               (audit Tahap 2: saring saran, 1–2 rekomendasi saja). */}
           {deloadOn && deloadUntil ? (
             <m.div
-              initial={{ opacity: 0, y: 14 }}
+              initial={playEntrance ? { opacity: 0, y: 14 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
               className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
@@ -1366,7 +1378,7 @@ export default function BugarScreen() {
             </m.div>
           ) : stalledNames.length > 0 ? (
             <m.div
-              initial={{ opacity: 0, y: 14 }}
+              initial={playEntrance ? { opacity: 0, y: 14 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
               className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
@@ -1411,7 +1423,7 @@ export default function BugarScreen() {
             </m.div>
           ) : guard.tooMuch && guard.suggestion ? (
             <m.div
-              initial={{ opacity: 0, y: 14 }}
+              initial={playEntrance ? { opacity: 0, y: 14 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.step }}
               className="rounded-xl border border-destructive/30 bg-surface-sunken p-4"
@@ -1568,7 +1580,7 @@ export default function BugarScreen() {
             ulang (direktif motion: perubahan data ≠ pengulangan entrance). */}
         {distSeries.length >= 3 && (woFilter === 'semua' || woFilter === 'kardio') && (
           <m.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={playEntrance ? { opacity: 0, y: 14 } : false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-20px' }}
             transition={motionTokens.preset.chipReveal}
@@ -1666,7 +1678,7 @@ export default function BugarScreen() {
             {filteredWorkouts.length === 0 && workouts.length > 0 && (
               <m.div
                 key="wo-nofilter"
-                initial={{ opacity: 0, y: 14 }}
+                initial={playEntrance ? { opacity: 0, y: 14 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={motionTokens.preset.chipReveal}
@@ -1681,7 +1693,7 @@ export default function BugarScreen() {
             {workouts.length === 0 && (
               <m.div
                 key="wo-empty"
-                initial={{ opacity: 0, y: 14 }}
+                initial={playEntrance ? { opacity: 0, y: 14 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={motionTokens.preset.chipReveal}
@@ -1744,7 +1756,7 @@ export default function BugarScreen() {
             {prs.map((r, i) => (
               <m.div
                 key={r.name}
-                initial={{ opacity: 0, y: 14 }}
+                initial={playEntrance ? { opacity: 0, y: 14 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
                   ...motionTokens.preset.chipReveal,
@@ -1803,7 +1815,7 @@ export default function BugarScreen() {
         {/* Pencarian pustaka — entrance fade+rise standar (audit Tahap 2:
             tanpa blur — BlurFade dipensiunkan dari informasi harian). */}
         <m.div
-          initial={{ opacity: 0, y: 14 }}
+          initial={playEntrance ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
           className="mt-3"

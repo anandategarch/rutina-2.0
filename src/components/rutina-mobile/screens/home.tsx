@@ -54,7 +54,7 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
 import { useAnimePop } from '../anime-kit'
 import {
@@ -473,7 +473,7 @@ export default function HomeScreen() {
   /* v2.27 audit motion: gerbang anti-replay entrance — kunjungan pertama
      diantar animasi penuh, kunjungan ulang (remount antar-tab) tampil
      instan (direktif: jangan animasikan seluruh layout tiap ganti tab). */
-  const playEntrance = firstVisit('home-daybook')
+  const playEntrance = useFirstVisit('home-daybook')
 
   /* Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali. */
   useEffect(() => {

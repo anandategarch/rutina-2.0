@@ -1,5 +1,7 @@
+'use client'
+
 /**
- * Pintu masuk pertama-per-sesi — gerbang anti-replay entrance.
+ * Gerbang anti-replay entrance — versi hook (v2.35).
  *
  * Masalah (audit motion v2.27): layar Rutina di-remount oleh
  * AnimatePresence pergantian tab, sehingga SEMUA entrance (fade+rise,
@@ -7,23 +9,40 @@
  * melanggar direktif motion "jangan animasikan seluruh layout setiap
  * kali tab berubah".
  *
- * Solusi: Set module-scope. `firstVisit(key)` mengembalikan true hanya
- * pada panggilan PERTAMA untuk key tersebut seumur sesi tab; panggilan
- * berikutnya (remount) mengembalikan false. Komponen memakai hasil ini
- * untuk memilih `initial={first ? {...} : false}` — kunjungan pertama
- * tetap diantar animasi, kunjungan ulang tampil instan.
+ * v2.35 (audit final polish): implementasi lama adalah fungsi biasa
+ * yang MEMUTASI Set module-scope saat render — bukan murni dan berisiko
+ * janggal di StrictMode/concurrent UI. Kini penandaan kunjungan hanya
+ * terjadi SETELAH commit lewat useEffect; pembacaan terjadi sekali di
+ * initializer useState (render tetap murni).
  *
- * Sengaja BUKAN hook: fungsi murni, aman dipanggil di render (client);
- * Set module-scope ikut umur halaman (SSR punya Set terpisah yang tak
- * pernah dibaca balik — snapshot server tidak memakai nilai animasi).
+ * `useFirstVisit(key)` mengembalikan true hanya pada render pertama
+ * untuk key tersebut seumur sesi tab; render/remount berikutnya
+ * mengembalikan false. Komponen memakai hasil ini untuk memilih
+ * `initial={first ? {...} : false}` — kunjungan pertama tetap diantar
+ * animasi, kunjungan ulang tampil instan.
+ *
+ * Catatan lifecycle:
+ * - Dua komponen dengan key SAMA yang mount bersamaan sama-sama melihat
+ *   true — konvensi key per-blok membuat ini tidak terjadi (key unik).
+ * - StrictMode double-effect aman: Set.add idempoten.
+ * - Layar Rutina hanya render pascamount (dibelakang Splash), sehingga
+ *   initializer tidak pernah berjalan di SSR; snapshot server selalu
+ *   konsisten dengan hidrasi klien.
  *
  * Konvensi key: '<layar>-<blok>' — contoh 'home-daybook', 'home-ring'.
  */
+import { useEffect, useState } from 'react'
+
 const visited = new Set<string>()
 
-/** True hanya pada pemanggilan pertama untuk key ini (seumur sesi). */
-export function firstVisit(key: string): boolean {
-  if (visited.has(key)) return false
-  visited.add(key)
-  return true
+/** True hanya pada render pertama untuk key ini (seumur sesi tab).
+ *  Penandaan terjadi setelah commit — render tetap bebas efek samping. */
+export function useFirstVisit(key: string): boolean {
+  const [first] = useState(() => !visited.has(key))
+
+  useEffect(() => {
+    visited.add(key)
+  }, [key])
+
+  return first
 }

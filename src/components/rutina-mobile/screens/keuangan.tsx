@@ -104,7 +104,7 @@ import {
   type PeriodPoint,
 } from '../finance/utils'
 import { motionTokens } from '@/lib/motion/tokens'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
@@ -320,6 +320,9 @@ function SectionTitle({ title, action }: { title: string; action?: ReactNode }) 
 /* ===== Kartu tujuan (cincin SVG animasi) ===== */
 
 function GoalCard({ goal, index }: { goal: Goal; index: number }) {
+  /* v2.35 anti-replay: deretan kartu tujuan hanya diantar pada kunjungan
+     pertama Vault; kontribusi baru tetap bermorf lewat animate ring. */
+  const playEntrance = useFirstVisit('fin-goal-card')
   const openGoalSheet = useRutina((s) => s.openGoalSheet)
   const pct = Math.min(100, Math.round((goal.saved / goal.target) * 100))
   const complete = goal.saved >= goal.target
@@ -334,7 +337,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   return (
     <Spotlight className="w-[188px] shrink-0 snap-start rounded-xl sm:w-full sm:shrink">
       <m.div
-        initial={{ opacity: 0, y: 20, scale: 0.96 }}
+        initial={playEntrance ? { opacity: 0, y: 20, scale: 0.96 } : false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ ...motionTokens.preset.data, delay: Math.min(index * motionTokens.stagger.relaxed, 0.28) }}
         className="relative flex h-full min-h-[200px] flex-col rounded-xl bg-surface-primary p-4 text-content-primary shadow-soft transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-lift"
@@ -375,7 +378,9 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
                 strokeWidth="5"
                 strokeLinecap="round"
                 strokeDasharray={C}
-                initial={{ strokeDashoffset: C }}
+                initial={
+                  playEntrance ? { strokeDashoffset: C } : false
+                }
                 animate={{
                   strokeDashoffset: C * (1 - Math.min(1, goal.saved / goal.target)),
                 }}
@@ -1229,7 +1234,7 @@ function SaldoCard({
   /* Kunjungan ulang layar tidak menghitung ulang saldo dari nol
      (audit motion anti-replay; keep-alive subtab menangani perpindahan
      antar-subtab, gerbang ini menangani perpindahan antar-ruang app). */
-  const playCount = firstVisit('fin-saldo-count')
+  const playCount = useFirstVisit('fin-saldo-count')
 
   return (
     <m.div
@@ -1367,6 +1372,9 @@ const catMeta = useCatMeta()
   const removeBudget = useRutina((s) => s.removeBudget)
   const [draft, setDraft] = useState('')
   const [editOpen, setEditOpen] = useState(false)
+  /* v2.35 anti-replay: batang anggaran terisi hanya kunjungan pertama;
+     suntingan limit tetap bermorf lewat animate. */
+  const playEntrance = useFirstVisit('fin-budget-row')
 
   return (
     <div className="flex items-center gap-3">
@@ -1407,7 +1415,7 @@ const catMeta = useCatMeta()
             }`}
           >
             <m.div
-              initial={{ scaleX: 0 }}
+              initial={playEntrance ? { scaleX: 0 } : false}
               animate={{ scaleX: Math.min(100, pct) / 100 }}
               transition={barFill}
               className="h-full origin-left rounded-full"

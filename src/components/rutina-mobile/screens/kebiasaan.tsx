@@ -42,6 +42,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
 
 import {
@@ -806,6 +807,9 @@ function HabitDetailPanel({
 /* ===== Layar Kebiasaan — Pusat Habit Intelligence ===== */
 
 export default function KebiasaanScreen() {
+  /* v2.35 anti-replay: pembuka Garden hanya kunjungan pertama; panel
+     detail & expand tetap diantar (interaksi, bukan replay layar). */
+  const playEntrance = useFirstVisit('kebiasaan-garden')
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const toggleHabit = useRutina((s) => s.toggleHabit)
@@ -1053,7 +1057,7 @@ export default function KebiasaanScreen() {
       {/* Kepala editorial tenang — tanggal panjang + ringkasan singkat.
           Titik & eyebrow memakai aksen Rose Clay (identitas kebun kebiasaan). */}
       <m.header
-        initial={{ opacity: 0, y: 12 }}
+        initial={playEntrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={motionTokens.preset.panelReveal}
       >
@@ -1085,7 +1089,7 @@ export default function KebiasaanScreen() {
       {hasNoHabits ? (
         /* Belum ada kebiasaan sama sekali — ajakan menanam yang pertama. */
         <m.section
-          initial={{ opacity: 0, y: 14 }}
+          initial={playEntrance ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             ...motionTokens.preset.data,
@@ -1165,7 +1169,7 @@ export default function KebiasaanScreen() {
             id="garden-agenda"
             aria-label="Agenda hari ini"
             className="mt-[var(--layout-gap)] scroll-mt-20"
-            initial={{ opacity: 0, y: 14 }}
+            initial={playEntrance ? { opacity: 0, y: 14 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={motionTokens.preset.chipReveal}
           >
@@ -1452,7 +1456,7 @@ export default function KebiasaanScreen() {
               id="garden-konsistensi"
               aria-label="Konsistensi"
               className="garden-surface mt-[var(--layout-gap)] scroll-mt-20 rounded-[var(--layout-hero-radius)] p-3.5 sm:p-4 xl:p-5"
-              initial={{ opacity: 0, y: 14 }}
+              initial={playEntrance ? { opacity: 0, y: 14 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-20px' }}
               transition={motionTokens.preset.chipReveal}
@@ -1585,7 +1589,7 @@ export default function KebiasaanScreen() {
             id="garden-perpustakaan"
             aria-label="Perpustakaan kebiasaan"
             className="mt-[var(--layout-gap)] scroll-mt-20"
-            initial={{ opacity: 0, y: 14 }}
+            initial={playEntrance ? { opacity: 0, y: 14 } : false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-20px' }}
             transition={motionTokens.preset.chipReveal}
@@ -1780,7 +1784,7 @@ export default function KebiasaanScreen() {
 
       {/* CTA di ujung konten — pintu utama menanam kebiasaan baru */}
       <m.div
-        initial={{ opacity: 0, y: 14 }}
+        initial={playEntrance ? { opacity: 0, y: 14 } : false}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-20px' }}
         transition={motionTokens.preset.panelReveal}

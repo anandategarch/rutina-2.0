@@ -4,7 +4,7 @@ import * as m from 'motion/react-m'
 
 import { Counter } from './counter'
 import { useAnimePop } from './anime-kit'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 /* Geometri cincin: viewBox 110, radius 47, tebal goresan 9. */
@@ -36,7 +36,8 @@ export function HomeProgressRing({
 }) {
   const clamped = Math.min(Math.max(pct, 0), 100)
   const complete = clamped >= 100
-  const playEntrance = entrance ?? firstVisit('home-ring')
+  const selfEntrance = useFirstVisit('home-ring')
+  const playEntrance = entrance ?? selfEntrance
 
   /* Pop perayaan saat cincin BARU saja penuh (bukan saat tetap 100). */
   const ringRef = useAnimePop<SVGSVGElement>(null, complete, {

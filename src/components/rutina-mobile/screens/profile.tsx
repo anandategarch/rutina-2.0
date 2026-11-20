@@ -66,6 +66,7 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { playfair } from '../serif'
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { SyncStatusCard } from '../sync-status-card'
 import { exportBackup, forcePull, importBackup } from '../sync-engine'
 import { catMetaOf } from '../finance/cats'
@@ -209,6 +210,8 @@ function SettingRow({
 }
 
 export default function ProfileScreen() {
+  /* v2.35 anti-replay: pembuka Control Room hanya kunjungan pertama. */
+  const playEntrance = useFirstVisit('profil-control')
   const notes = useRutina((s) => s.notes)
   const habits = useRutina((s) => s.habits)
   const txs = useRutina((s) => s.txs)
@@ -553,7 +556,7 @@ export default function ProfileScreen() {
         onClick={() => setScreen('beranda')}
         aria-label="Kembali ke Beranda"
         whileTap={{ scale: 0.92 }}
-        initial={{ opacity: 0, x: -10 }}
+        initial={playEntrance ? { opacity: 0, x: -10 } : false}
         animate={{ opacity: 1, x: 0 }}
         transition={motionTokens.preset.cardReveal}
         className="interactive -ml-1 flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary pl-3 pr-4 text-note font-semibold text-content-secondary shadow-soft hover:bg-surface-secondary"

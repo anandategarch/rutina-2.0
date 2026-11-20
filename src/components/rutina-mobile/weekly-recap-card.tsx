@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 import { motionTokens } from '@/lib/motion/tokens'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 
 import { DayDetailSheet } from './day-detail-sheet'
 import { playfair } from './serif'
@@ -56,7 +56,7 @@ export function WeeklyRecapCard() {
   const setScreen = useRutina((s) => s.setScreen)
 
   /* v2.27 audit motion: gerbang anti-replay entrance. */
-  const playEntrance = firstVisit('home-recap')
+  const playEntrance = useFirstVisit('home-recap')
 
   /* Hari terpilih pada strip perjalanan (audit Tahap 2: menekan hari
      menampilkan jumlah misi, aktivitas, dan status target hari itu) dan

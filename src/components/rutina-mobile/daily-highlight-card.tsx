@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 
 import { playfair } from './serif'
 import { formatIDR } from './finance/utils'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { todayISO, useRutina, XP_BONUS } from './store'
@@ -85,7 +85,7 @@ export function DailyHighlightCard() {
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
 
   /* v2.27 Daybook: kunjungan ulang tidak mengulang entrance Sorotan. */
-  const playEntrance = firstVisit('home-sorotan')
+  const playEntrance = useFirstVisit('home-sorotan')
 
   const today = todayISO()
   const input: HighlightInput = {

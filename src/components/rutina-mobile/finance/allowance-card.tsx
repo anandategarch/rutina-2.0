@@ -6,7 +6,7 @@ import { CalendarClock, Gauge, Target, TrendingUp } from 'lucide-react'
 
 import { Counter } from '../counter'
 import { useRutina } from '../store'
-import { firstVisit } from '@/lib/motion/first-visit'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { allowanceInfo } from './utils'
@@ -47,14 +47,15 @@ export function AllowanceCard() {
     [budgets, txs],
   )
 
+  /* v2.29 Vault: angka jatah didudukkan ke kpi-sm — TIDAK lagi bersaing
+     dengan saldo (kpi-lg) sebagai hero kedua; hitung-ulang dibuka
+     gerbang firstVisit. (v2.35: hook dinaikkan di atas early-return.) */
+  const playCount = useFirstVisit('fin-allowance-count')
+
   if (!info) return null
 
   const v = VERDICT_META[info.verdict]
   const paceWidth = Math.min(100, info.pacePct)
-  /* v2.29 Vault: angka jatah didudukkan ke kpi-sm — TIDAK lagi bersaing
-     dengan saldo (kpi-lg) sebagai hero kedua; hitung-ulang dibuka
-     gerbang firstVisit. */
-  const playCount = firstVisit('fin-allowance-count')
 
   return (
     <div className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
