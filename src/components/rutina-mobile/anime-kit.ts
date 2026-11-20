@@ -15,6 +15,18 @@
  * bocor setelah unmount, dan SELALU melewatkan render pertama (pop
  * hanya untuk PERUBAHAN — entrance tetap tanggung jawab Motion).
  *
+ * KONTRAK DUA-ENGINE (audit v2.35 — diverifikasi, nol pelanggaran):
+ * Motion for React = pemilik state UI (entrance, layout, gesture,
+ * sheet). anime.js = orkestrasi momen (timeline, SVG, perayaan, pop
+ * nilai). Dua aturan keras:
+ *   1. Elemen yang sama TIDAK boleh dianimasi kedua engine pada
+ *      properti transform yang bersamaan — pisahkan elemen (pop pada
+ *      span anak, hover/whileTap pada induk; pola BadgeCard) atau
+ *      propertinya (anime transform vs Motion opacity).
+ *   2. Setiap instansi anime WAJIB dibatalkan di cleanup effect:
+ *      cancel() bila gaya akhir harus bertahan, revert() bila DOM
+ *      harus dipulihkan (useAnimePop, scope).
+ *
  * CATATAN UNIT: anime.js 4.x yang terpasang (4.5.0) memakai MILIDETIK
  * untuk duration/delay/posisi timeline — JANGAN mengonversi ke detik.
  */
