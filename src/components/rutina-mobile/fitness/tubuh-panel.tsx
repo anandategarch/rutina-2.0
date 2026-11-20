@@ -220,6 +220,17 @@ function BodyHistory({
     () => bodySeries(logs, today, DAYS, (l) => l.energy),
     [logs, today],
   )
+  /* Nyeri & stres (v2.39 audit visual data): dua skala 1–5 yang selama
+     ini hanya muncul sebagai komponen kesiapan hari ini — riwayatnya
+     tercatat di check-in dan kini tergambar sebagai perkembangan. */
+  const soreness = useMemo(
+    () => bodySeries(logs, today, DAYS, (l) => l.soreness),
+    [logs, today],
+  )
+  const stress = useMemo(
+    () => bodySeries(logs, today, DAYS, (l) => l.stress),
+    [logs, today],
+  )
   /* Gelas 0 = belum ditrack (tak ada jalur mencatat "0 gelas"
      secara eksplisit) — jujur dibaca sebagai hari tanpa catatan. */
   const water = useMemo(
@@ -231,6 +242,8 @@ function BodyHistory({
   const selSleep = sleep.find((p) => p.date === sel)
   const selEnergy = energy.find((p) => p.date === sel)
   const selWater = water.find((p) => p.date === sel)
+  const selSoreness = soreness.find((p) => p.date === sel)
+  const selStress = stress.find((p) => p.date === sel)
 
   const fmtJam = (n: number) => n.toFixed(1).replace('.', ',')
   const avgOf = (xs: { value: number | null }[]) => {
@@ -240,6 +253,14 @@ function BodyHistory({
   const avgSleep = avgOf(sleep)
   const avgEnergy = avgOf(energy)
   const avgWater = avgOf(water)
+  const avgSoreness = avgOf(soreness)
+  const avgStress = avgOf(stress)
+
+  /* Skala negatif (5 = terburuk): warna titik jujur mengikuti nilai —
+     rendah hijau, sedang kuning, tinggi merah; berbeda dari energi
+     yang satu arah (makin tinggi makin baik, satu warna cukup). */
+  const negTone = (v: number) =>
+    v <= 2 ? 'bg-success' : v === 3 ? 'bg-warning' : 'bg-destructive'
 
   /* Skala tidur: minimal 8 jam agar zona target 7–8 selalu terlihat
      dan 8 jam tidak terlihat seperti "penuh". */
@@ -252,7 +273,9 @@ function BodyHistory({
   const nothingLogged =
     bodyCoverage(sleep) === 0 &&
     bodyCoverage(energy) === 0 &&
-    bodyCoverage(water) === 0
+    bodyCoverage(water) === 0 &&
+    bodyCoverage(soreness) === 0 &&
+    bodyCoverage(stress) === 0
 
   return (
     <m.section
@@ -380,6 +403,94 @@ function BodyHistory({
             </div>
           )}
 
+          {/* --- Nyeri otot: titik skala 1–5 (DOMS, 5 = sangat nyeri) --- */}
+          {bodyCoverage(soreness) > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between px-0.5">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Nyeri otot · skala 1–5
+                </p>
+                <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  rerata {avgSoreness != null ? `${avgSoreness.toFixed(1).replace('.', ',')}/5` : '–'} ·{' '}
+                  {bodyCoverage(soreness)}/{DAYS} hari
+                </p>
+              </div>
+              <div className="mt-2 flex h-14 gap-[3px]">
+                {soreness.map((p) => (
+                  <button
+                    key={p.date}
+                    type="button"
+                    aria-pressed={sel === p.date}
+                    aria-label={`${p.label} ${dateShort(p.date)} — ${
+                      p.value != null ? `nyeri otot ${p.value} dari 5` : 'tidak tercatat'
+                    }`}
+                    onClick={() => setSel(sel === p.date ? null : p.date)}
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    {p.value != null ? (
+                      <span
+                        className={`absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full ${negTone(p.value)}`}
+                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 4px)` }}
+                      />
+                    ) : (
+                      <span className="absolute bottom-0 left-1/2 h-1.5 w-2 -translate-x-1/2 rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                    )}
+                    {sel === p.date && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* --- Stres: titik skala 1–5 (5 = sangat stres) --- */}
+          {bodyCoverage(stress) > 0 && (
+            <div>
+              <div className="flex items-baseline justify-between px-0.5">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Stres · skala 1–5
+                </p>
+                <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  rerata {avgStress != null ? `${avgStress.toFixed(1).replace('.', ',')}/5` : '–'} ·{' '}
+                  {bodyCoverage(stress)}/{DAYS} hari
+                </p>
+              </div>
+              <div className="mt-2 flex h-14 gap-[3px]">
+                {stress.map((p) => (
+                  <button
+                    key={p.date}
+                    type="button"
+                    aria-pressed={sel === p.date}
+                    aria-label={`${p.label} ${dateShort(p.date)} — ${
+                      p.value != null ? `stres ${p.value} dari 5` : 'tidak tercatat'
+                    }`}
+                    onClick={() => setSel(sel === p.date ? null : p.date)}
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    {p.value != null ? (
+                      <span
+                        className={`absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full ${negTone(p.value)}`}
+                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 4px)` }}
+                      />
+                    ) : (
+                      <span className="absolute bottom-0 left-1/2 h-1.5 w-2 -translate-x-1/2 rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                    )}
+                    {sel === p.date && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* --- Hidrasi: batang terhadap target gelas --- */}
           {bodyCoverage(water) > 0 && (
             <div>
@@ -448,6 +559,10 @@ function BodyHistory({
                   selEnergy?.value != null ? `${selEnergy.value}/5` : '–'
                 } · hidrasi ${
                   selWater?.value != null ? `${selWater.value}/${waterTarget} gelas` : '–'
+                } · nyeri ${
+                  selSoreness?.value != null ? `${selSoreness.value}/5` : '–'
+                } · stres ${
+                  selStress?.value != null ? `${selStress.value}/5` : '–'
                 }`
               : 'Ketuk batang untuk membaca hari tertentu.'}
           </p>

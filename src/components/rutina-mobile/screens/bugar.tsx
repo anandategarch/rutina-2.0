@@ -663,7 +663,7 @@ function WeekActivityCard() {
   const playEntrance = useFirstVisit('bugar-studio-tonase')
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
-  const { days, sessions, values, lastValues, max } = useMemo(() => {
+  const { days, sessions, values, lastValues, max, weeks } = useMemo(() => {
     const start = weekRange().start
     const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
     const sessions = days.map((d) => workouts.filter((w) => w.date === d))
@@ -673,12 +673,24 @@ function WeekActivityCard() {
     const lastValues = days.map((d) =>
       tonaseOn(workouts.filter((w) => w.date === addDaysISO(d, -7))),
     )
+    /* Tren tonase 6 pekan (v2.39 audit visual data) — satu angka per
+       pekan; footer hero hanya membawa angka pekan BERJALAN, tren
+       multi-pekan selama ini tak tergambar. */
+    const weeks = Array.from({ length: 6 }, (_, k) => {
+      const wStart = addDaysISO(start, -7 * (5 - k))
+      const wEnd = addDaysISO(wStart, 6)
+      const total = workouts
+        .filter((w) => w.date >= wStart && w.date <= wEnd)
+        .reduce((a, w) => a + tonaseOf(w), 0)
+      return { start: wStart, total }
+    })
     return {
       days,
       sessions,
       values,
       lastValues,
       max: Math.max(...values, 0),
+      weeks,
     }
   }, [workouts])
 
@@ -930,6 +942,94 @@ function WeekActivityCard() {
           </m.div>
         )}
       </AnimatePresence>
+
+      {/* Tren tonase 6 pekan (v2.39 audit visual data) — satu bar per
+          pekan, pekan berjalan disorot; skala relatif pekan terberat.
+          Label kolom = tanggal Senin pekan itu (d/b), kolom akhir
+          “ini” berpasangan dengan angka kepala kartu. */}
+      {(() => {
+        const weeksMax = Math.max(...weeks.map((w) => w.total), 0)
+        if (weeksMax <= 0) return null
+        const weeksAvg = Math.round(
+          weeks.reduce((a, w) => a + w.total, 0) / weeks.length,
+        )
+        const fmtMonday = (iso: string) => {
+          const d = new Date(iso + 'T00:00:00')
+          return `${d.getDate()}/${d.getMonth() + 1}`
+        }
+        return (
+          <div className="mt-4 border-t border-border-default pt-3">
+            <div className="flex items-baseline justify-between gap-2 px-0.5">
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                Tonase 6 pekan
+              </p>
+              <p className="text-eyebrow font-medium tabular-nums text-content-muted">
+                rata² {fmtKg(weeksAvg)}/pekan
+              </p>
+            </div>
+            <div
+              className="mt-2 flex h-12 gap-1.5"
+              role="img"
+              aria-label={`Tonase barbel per pekan: ${weeks
+                .map((wk, i) =>
+                  `${
+                    i === weeks.length - 1 ? 'pekan ini' : `pekan ${fmtMonday(wk.start)}`
+                  } ${fmtKg(wk.total)}`,
+                )
+                .join(', ')}`}
+            >
+              {weeks.map((wk, i) => {
+                const isCurrent = i === weeks.length - 1
+                const h =
+                  wk.total <= 0
+                    ? 5
+                    : Math.max(12, Math.round((wk.total / weeksMax) * 100))
+                return (
+                  <div
+                    key={wk.start}
+                    className="flex h-full min-w-0 flex-1 flex-col gap-1"
+                  >
+                    <div className="flex w-full flex-1 items-end">
+                      <m.div
+                        className={
+                          'w-full origin-bottom rounded-full ' +
+                          (isCurrent
+                            ? 'bg-module-accent-strong'
+                            : wk.total > 0
+                              ? 'bg-module-accent/55'
+                              : 'bg-module-accent/15')
+                        }
+                        style={{ height: `${h}%` }}
+                        initial={playEntrance ? { scaleY: 0 } : false}
+                        animate={{ scaleY: 1 }}
+                        transition={{
+                          duration: reducedMotion
+                            ? 0
+                            : motionTokens.preset.data.duration,
+                          delay: reducedMotion
+                            ? 0
+                            : i * motionTokens.stagger.normal,
+                          ease: motionTokens.easing.standard,
+                        }}
+                      />
+                    </div>
+                    <span
+                      className={
+                        'text-center text-chart-label font-semibold ' +
+                        (isCurrent
+                          ? 'text-module-accent-strong'
+                          : 'text-content-muted')
+                      }
+                    >
+                      {isCurrent ? 'ini' : fmtMonday(wk.start)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
     </m.section>
   )
 }
@@ -1506,6 +1606,24 @@ export default function BugarScreen() {
                   style={{ width: '100%' }}
                 />
               </div>
+              {/* v2.39 (audit visual data): petak sesi pekan — satu petak
+                  per sesi sasaran, terisi per sesi selesai; angka N/M
+                  sesi tetap di baris teks di atas. */}
+              {fitTargets.sessions > 0 && (
+                <div className="mt-2 flex items-center gap-1.5" aria-hidden="true">
+                  {Array.from({ length: fitTargets.sessions }, (_, i) => (
+                    <span
+                      key={i}
+                      className={
+                        'h-1.5 flex-1 rounded-full ' +
+                        (i < weekSessions
+                          ? 'bg-module-accent-fg'
+                          : 'bg-espresso/30')
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
