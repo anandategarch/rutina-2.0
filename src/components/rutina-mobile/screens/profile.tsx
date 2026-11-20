@@ -49,30 +49,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
-import { Progress } from '@/components/ui/progress'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 
-import { Counter } from '../counter'
 import { MOOD_TONE } from '../journal-ui'
-import { SplitText } from '../motion-kit'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
+import { CONTENT_W } from '../layout-widths'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -85,18 +72,15 @@ import { catMetaOf } from '../finance/cats'
 import {
   activeSinceISO,
   addDaysISO,
-  bestStreak,
   computeLevel,
   computeXp,
   doneCountOn,
   fromISO,
-  habitsOn,
   MOODS,
   shortDateLabel,
   todayISO,
   useRutina,
   WEEKDAY_MIN,
-  XP_TARGET,
 } from '../store'
 
 const FAQ_ITEMS = [
@@ -251,6 +235,10 @@ export default function ProfileScreen() {
      dalam bingkai ponsel (shadcn Dialog di-portal ke body & lolos dari
      bingkai di desktop). */
   const [aboutOpen, setAboutOpen] = useState(false)
+  /* Dialog reset (v2.33): zona kritis kini memakai RutinaDialog dalam
+     bingkai (bukan AlertDialog terportal) — konsisten dengan dialog
+     ekspor/tentang; gerbang state sederhana. */
+  const [resetOpen, setResetOpen] = useState(false)
 
   /* Dialog "Ekspor cadangan" — satu pintu, dua pilihan format
      (JSON lengkap / CSV transaksi); unduhan dipicu dari dialog. */
@@ -485,12 +473,11 @@ export default function ProfileScreen() {
   /* Semua angka dihitung dari histori nyata — bukan demo statis. */
   const today = todayISO()
   const doneCount = doneCountOn(completions, today)
-  const scheduledToday = habitsOn(habits, today).length
-  const pct =
-    scheduledToday === 0 ? 0 : Math.round((doneCount / scheduledToday) * 100)
   const xp = computeXp(doneCount, bonusClaimed)
   const level = computeLevel(xp)
-  const xpPct = Math.min(Math.round((xp / XP_TARGET) * 100), 100)
+  /* scheduledToday & streak: dulu dipakai kisi statistik hero — v2.33
+     kisi dihapus; angka lengkap hidup di Statistik (konsolidasi, bukan
+     kehilangan fitur). */
 
   /* "Aktif sejak" — bulan aktivitas terawal dari completions. */
   const activeSince = activeSinceISO(completions)
@@ -500,8 +487,6 @@ export default function ProfileScreen() {
         year: 'numeric',
       }).format(fromISO(activeSince))}`
     : 'Belum ada aktivitas'
-
-  const streak = bestStreak(habits, completions, today).streak
 
   /* Pengingat aktif — jumlah nyata kebiasaan yang memakai jam pengingat
      (diatur per kebiasaan di lembar suntingnya, bukan saklar global). */
@@ -526,17 +511,41 @@ export default function ProfileScreen() {
   const moodLogged = moodCounts.some((c) => c.count > 0)
   const todayMood = moodDays[13].mood
 
-  const stats = [
-    { label: 'Catatan', value: notes.length, percent: false },
-    { label: 'Streak (hari)', value: streak, percent: false },
-    { label: 'Selesai', value: pct, percent: true },
-  ]
+  /* v2.33 Control Room: ruang aktif untuk navigasi kategori split
+     (desktop lg+) — scrollspy pita tengah, pola petunjuk arah Kebiasaan. */
+  const [activeCat, setActiveCat] = useState<
+    'identitas' | 'preferensi' | 'data' | 'zona' | 'bantuan'
+  >('identitas')
+  useEffect(() => {
+    const cats: [string, typeof activeCat][] = [
+      ['profil-identitas', 'identitas'],
+      ['profil-preferensi', 'preferensi'],
+      ['profil-data', 'data'],
+      ['profil-zona', 'zona'],
+      ['profil-bantuan', 'bantuan'],
+    ]
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue
+          const hit = cats.find(([id]) => id === e.target.id)
+          if (hit) setActiveCat(hit[1])
+        }
+      },
+      { rootMargin: '-30% 0px -55% 0px' },
+    )
+    for (const [id] of cats) {
+      const el = document.getElementById(id)
+      if (el) obs.observe(el)
+    }
+    return () => obs.disconnect()
+  }, [])
 
   return (
     <div
       data-module="profil"
       data-layout="control-room"
-      className="mx-auto h-full w-full max-w-[680px] overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      className={`mx-auto h-full w-full ${CONTENT_W} overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary`}
     >
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
       <m.button
@@ -563,16 +572,62 @@ export default function ProfileScreen() {
         <h1
           className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-none tracking-tight text-content-primary`}
         >
-          <SplitText text="Profil" inView />
+          Profil
           <span className="text-module-accent">.</span>
         </h1>
       </header>
 
       {/* ANIMATION OWNERSHIP RULE — koreografi seluruh baris/seksi dipegang
           Motion lewat variants staggerRows/slideInRow (satu pemilik). */}
-      <m.div variants={staggerRows} initial="hidden" animate="show">
+      {/* v2.33 Control Room (audit direktif): koreografi stagger
+          seluruh halaman DIHENTIKAN (initial={false}) — ruang kendali
+          menuntut ketenangan; switch/accordion/toast tetap bergerak. */}
+      <m.div variants={staggerRows} initial={false} animate="show">
+        {/* Split layout desktop (v2.33): navigasi kategori kiri (sticky),
+            konten pengaturan kanan; ponsel/tablet menumpuk (nav disembunyikan). */}
+        <div className="grid grid-cols-1 lg:grid-cols-[168px_minmax(0,1fr)] lg:gap-8">
+          <nav aria-label="Kategori pengaturan" className="hidden lg:block">
+            <ul className="sticky top-6 space-y-0.5">
+              {(
+                [
+                  ['profil-identitas', 'Identitas', false],
+                  ['profil-preferensi', 'Preferensi', false],
+                  ['profil-data', 'Data & Sinkron', false],
+                  ['profil-bantuan', 'Bantuan', false],
+                  ['profil-zona', 'Zona Kritis', true],
+                ] as const
+              ).map(([id, label, danger]) => {
+                const isActive = activeCat === id.replace('profil-', '')
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document
+                          .getElementById(id)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                      aria-current={isActive ? 'location' : undefined}
+                      className={
+                        'w-full cursor-pointer rounded-lg px-3 py-2 text-left text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        (danger
+                          ? 'mt-4 text-content-danger hover:bg-destructive/10' +
+                            (isActive ? ' bg-destructive/10' : '')
+                          : isActive
+                            ? 'bg-module-accent/15 text-module-accent-strong'
+                            : 'text-content-muted hover:bg-surface-sunken hover:text-content-primary')
+                      }
+                    >
+                      {label}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
+          <div className="min-w-0">
         {/* ===== 1 · IDENTITAS PENGGUNA — paling atas ===== */}
-        <m.div variants={slideInRow} className="mt-4">
+        <m.div id="profil-identitas" variants={slideInRow} className="mt-4 scroll-mt-4">
           <RutinaSectionHeader
             title="Identitas"
             description="Siapa dirimu di Rutina — tanpa akun, tersinkron cloud"
@@ -641,49 +696,10 @@ export default function ProfileScreen() {
             </Badge>
           </div>
 
-          {/* Progres XP menuju level berikutnya */}
-          <div className="mt-5 w-full">
-            <div className="flex items-baseline justify-between px-0.5">
-              <span className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-                Progres Level
-              </span>
-              <span className="text-eyebrow font-semibold tabular-nums text-hero-accent">
-                <Counter to={xp} /> / {XP_TARGET} XP
-              </span>
-            </div>
-            <Progress
-              value={xpPct}
-              className="mt-2 h-2.5 rounded-full bg-hero-surface-raised [&_[data-slot=progress-indicator]]:bg-hero-accent"
-              aria-label="Progres XP menuju level berikutnya"
-            />
-            <p className="mt-2 text-eyebrow font-medium text-hero-content-muted">
-              {level >= 8
-                ? 'Level maksimal tercapai — petualang sejati!'
-                : `${XP_TARGET - xp} XP lagi menuju Level ${level + 1}`}
-            </p>
-          </div>
-
-          {/* Statistik ringkas — satu baris di dalam hero (tanpa kartu
-              kecil terpisah), dipisah hairline hero. */}
-          <div className="mt-5 grid w-full grid-cols-3 gap-2 border-t border-hero-content/15 pt-4">
-            {stats.map((s) => (
-              <div key={s.label} className="flex flex-col items-center">
-                <p className="flex items-baseline">
-                  <span className="text-kpi-sm font-semibold leading-none tracking-tight text-hero-content">
-                    <Counter to={s.value} />
-                  </span>
-                  {s.percent ? (
-                    <span className="text-body font-semibold text-hero-content">
-                      %
-                    </span>
-                  ) : null}
-                </p>
-                <p className="mt-1.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-hero-content-muted">
-                  {s.label}
-                </p>
-              </div>
-            ))}
-          </div>
+          {/* v2.33 Control Room: kartu identitas ringkas — tanpa bar XP &
+              tanpa kisi statistik (pelanggaran audit: 'tanpa KPI dashboard');
+              progres penuh hidup di cincin XP Statistik. Level tetap tampil
+              sebagai lencana. */}
         </m.section>
 
         {/* Suara Identitas (audit #23) — pernyataan editorial "aku menjadi
@@ -937,9 +953,10 @@ export default function ProfileScreen() {
           />
         </m.div>
         <m.section
+          id="profil-preferensi"
           variants={slideInRow}
           aria-label="Preferensi aplikasi"
-          className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+          className="mt-3 scroll-mt-4 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
           <div className="divide-y divide-border-default">
             {/* Mode gelap — Switch (next-themes; satu sumber tema). */}
@@ -1065,6 +1082,7 @@ export default function ProfileScreen() {
           />
         </m.div>
         <m.section
+          id="profil-data"
           variants={slideInRow}
           aria-label="Data dan penyimpanan"
           className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
@@ -1132,8 +1150,10 @@ export default function ProfileScreen() {
         </m.section>
 
         {/* Info sinkron hidup — keadaan nyata dari engine (bukan statis):
-            menyiapkan / menyinkronkan / tersinkron + jam / offline / gagal. */}
-        <m.div variants={slideInRow} className="mt-3">
+            menyiapkan / menyinkronkan / tersinkron + jam / offline / gagal.
+            v2.33: disembunyikan di xl+ — kartu sync sudah tampil di rail
+            konteks (hindari duplikasi serentak, audit shell). */}
+        <m.div variants={slideInRow} className="mt-3 xl:hidden">
           <SyncStatusCard variant="rail" />
         </m.div>
 
@@ -1212,6 +1232,7 @@ export default function ProfileScreen() {
           />
         </m.div>
         <m.section
+          id="profil-zona"
           variants={slideInRow}
           aria-label="Zona kritis"
           className="mt-3 rounded-xl border border-destructive/30 bg-surface-primary p-4 shadow-soft"
@@ -1233,43 +1254,52 @@ export default function ProfileScreen() {
               </p>
             </div>
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          {/* v2.33: konfirmasi reset kini RutinaDialog dalam bingkai
+              (konsisten dengan dialog ekspor/tentang; sebelumnya
+              AlertDialog terportal yang lolos dari bingkai desktop). */}
+          <button
+            type="button"
+            onClick={() => setResetOpen(true)}
+            className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-note font-bold text-content-danger hover:bg-destructive/10"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Mulai dari awal
+          </button>
+          <RutinaDialog
+            open={resetOpen}
+            onClose={() => setResetOpen(false)}
+            label="Hapus semua data"
+            className="max-w-[320px] p-6"
+          >
+            <h2 className="text-section-lg font-bold tracking-tight text-content-primary">
+              Hapus semua data?
+            </h2>
+            <p className="mt-2 text-note leading-relaxed text-content-muted">
+              Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
+              tabungan akan dihapus permanen — dari perangkat ini dan
+              penyimpanan cloud. Tindakan ini tidak bisa dibatalkan.
+            </p>
+            <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-surface-primary text-note font-bold text-content-danger hover:bg-destructive/10"
+                onClick={() => setResetOpen(false)}
+                className="interactive h-10 flex-1 cursor-pointer rounded-full border border-border-strong text-note font-bold text-content-secondary hover:bg-surface-sunken"
               >
-                <RotateCcw className="h-4 w-4" />
-                Mulai dari awal
+                Batal
               </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="max-w-[320px] rounded-2xl border-border">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-section-lg font-bold tracking-tight text-content-primary">
-                  Hapus semua data?
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-note leading-relaxed text-content-muted">
-                  Seluruh kebiasaan, histori, catatan, transaksi, dan tujuan
-                  tabungan akan dihapus permanen — dari perangkat ini dan
-                  penyimpanan cloud. Tindakan ini tidak bisa dibatalkan.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="flex-row gap-2">
-                <AlertDialogCancel className="mt-0 h-10 flex-1 rounded-full border-border-strong text-note font-bold text-content-secondary">
-                  Batal
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    useRutina.getState().startFresh()
-                    toast.success('Aplikasi direset — mulailah dari nol.')
-                  }}
-                  className="h-10 flex-1 rounded-full border-none bg-destructive text-note font-bold text-white hover:bg-destructive/90"
-                >
-                  Ya, hapus
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <button
+                type="button"
+                onClick={() => {
+                  useRutina.getState().startFresh()
+                  setResetOpen(false)
+                  toast.success('Aplikasi direset — mulailah dari nol.')
+                }}
+                className="interactive h-10 flex-1 cursor-pointer rounded-full border-none bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+              >
+                Ya, hapus
+              </button>
+            </div>
+          </RutinaDialog>
         </m.section>
 
         {/* ===== 5 · APLIKASI & BANTUAN — paling bawah ===== */}
@@ -1280,6 +1310,7 @@ export default function ProfileScreen() {
           />
         </m.div>
         <m.section
+          id="profil-bantuan"
           variants={slideInRow}
           aria-label="Aplikasi dan bantuan"
           className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
@@ -1351,6 +1382,9 @@ export default function ProfileScreen() {
             ))}
           </Accordion>
         </m.section>
+
+        </div>
+        </div>
 
         {/* Tentang — RutinaDialog: tetap di dalam bingkai ponsel
             (shadcn Dialog di-portal ke body dan lolos dari bingkai

@@ -9,6 +9,7 @@ import { pressSnappy } from '@/lib/motion/transitions'
 import { journalCard, journalList } from '@/lib/motion/variants'
 import { motionTokens } from '@/lib/motion/tokens'
 
+import { playfair } from '../serif'
 import { MOOD_DOT, isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
 import {
   FOLDERS,
@@ -79,7 +80,9 @@ export default function JournalScreen() {
     <div
       data-module="journal"
       data-layout="writing-room"
-      className="mx-auto h-full w-full max-w-[680px] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      /* v2.33 Writing Room: lebar kanvas 720px (dari lantai 680), ritme
+         antar-blok mengikuti token layout-gap (bukan mt-4 ad-hoc). */
+      className="mx-auto h-full w-full max-w-[720px] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary [&>*+*]:mt-[var(--layout-gap)]"
     >
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
       <m.header
@@ -399,7 +402,9 @@ function NoteCard({
       />
       <div className="pointer-events-none relative z-10">
         <div className="flex items-start justify-between gap-1">
-          <h3 className="line-clamp-2 min-w-0 flex-1 text-section font-bold leading-snug text-content-primary">
+          <h3
+            className={`${playfair.className} line-clamp-2 min-w-0 flex-1 text-section font-semibold leading-snug text-content-primary`}
+          >
             {note.title !== '' ? (
               note.title
             ) : (

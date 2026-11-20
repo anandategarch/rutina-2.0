@@ -105,6 +105,10 @@ function CanvasPanel() {
 
   const [title, setTitle] = useState(session.initial.title)
   const [body, setBody] = useState(session.initial.body)
+  /* v2.33 Writing Room: mode menulis — saat judul/isi difokuskan,
+     metadata merunduk (opacity turun, tak bisa disentuh) agar kanvas
+     MENGEMBANG; fokus kembali ke metadata mengembalikannya. */
+  const [writing, setWriting] = useState(false)
   const [folder, setFolder] = useState<FolderKey>(session.initial.folder)
   const [mood, setMood] = useState<string | null>(session.initial.mood)
   const [status, setStatus] = useState<SaveStatus>(
@@ -374,9 +378,9 @@ function CanvasPanel() {
         </m.button>
       </header>
 
-      {/* Kertas menulis — kolom terbatas & lega */}
+      {/* Kertas menulis — kolom terbatas & lega (v2.33: 720px) */}
       <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar overscroll-contain">
-        <div className="mx-auto w-full max-w-[680px] px-5 pb-24 pt-6">
+        <div className="mx-auto w-full max-w-[720px] px-5 pb-24 pt-6">
           <m.input
             ref={titleRef}
             value={title}
@@ -384,6 +388,8 @@ function CanvasPanel() {
               setTitle(e.target.value)
               scheduleSave()
             }}
+            onFocus={() => setWriting(true)}
+            onBlur={() => setWriting(false)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
@@ -392,26 +398,19 @@ function CanvasPanel() {
             }}
             placeholder="Judul refleksi…"
             aria-label="Judul catatan"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.4,
-              delay: 0.05,
-              ease: motionTokens.easing.entrance,
-            }}
+            /* v2.33: tanpa entrance berantai untuk permukaan teks — panel
+               cukup satu fade tenang (direktif: jangan animasikan teks). */
             className={`w-full bg-transparent text-kpi font-semibold tracking-tight text-content-primary outline-none placeholder:text-content-muted/60 sm:text-3xl ${playfair.className}`}
           />
 
-          {/* Metadata — suasana hati + kategori, redup sampai aktif */}
-          <m.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.4,
-              delay: 0.1,
-              ease: motionTokens.easing.entrance,
-            }}
-            className="mt-4 space-y-2 border-b border-border/60 pb-4"
+          {/* Metadata — suasana hati + kategori; MERUNDUK saat mode menulis
+              (v2.33 Writing Room: fokus pada judul/isi → kanvas mengembang,
+              metadata turun ke opacity-40 & tak bisa disentuh). */}
+          <div
+            className={
+              'mt-4 space-y-2 border-b border-border/60 pb-4 transition-opacity duration-300 ' +
+              (writing ? 'pointer-events-none opacity-40' : 'opacity-100')
+            }
           >
             <div className="flex items-center gap-2">
               <span className="w-20 shrink-0 text-chart-label font-semibold uppercase tracking-[0.16em] text-content-muted">
@@ -473,7 +472,7 @@ function CanvasPanel() {
                 })}
               </div>
             </div>
-          </m.div>
+          </div>
 
           <m.textarea
             ref={bodyRef}
@@ -482,30 +481,20 @@ function CanvasPanel() {
               setBody(e.target.value)
               scheduleSave()
             }}
+            onFocus={() => setWriting(true)}
+            onBlur={() => setWriting(false)}
             placeholder="Tulis apa yang ada di pikiranmu…"
             aria-label="Isi catatan"
             rows={8}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.4,
-              delay: 0.16,
-              ease: motionTokens.easing.entrance,
-            }}
-            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-section-lg leading-[1.8] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
+            /* v2.33: tanpa entrance; leading 1.75 (spesifikasi ruang tulis) */
+            className="mt-5 min-h-[38vh] w-full resize-none bg-transparent text-section-lg leading-[1.75] text-content-secondary outline-none [field-sizing:content] placeholder:text-content-muted/70"
           />
         </div>
       </div>
 
-      {/* Bilah format ringkas — tebal, miring, status simpan, hitung kata */}
-      <m.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          duration: motionTokens.duration.normal,
-          delay: 0.22,
-          ease: motionTokens.easing.standard,
-        }}
+      {/* Bilah format ringkas — tebal, miring, status simpan, hitung kata
+          (v2.33: tanpa entrance — panel sudah hadir lewat satu fade). */}
+      <footer
         className="flex shrink-0 items-center gap-1 border-t border-border-default bg-surface-primary px-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-1.5"
       >
         <button
@@ -547,7 +536,7 @@ function CanvasPanel() {
         >
           {wordCount} kata
         </span>
-      </m.footer>
+      </footer>
     </m.div>
   )
 }
