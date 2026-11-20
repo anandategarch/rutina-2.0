@@ -378,9 +378,11 @@ function CanvasPanel() {
         </m.button>
       </header>
 
-      {/* Kertas menulis — kolom terbatas & lega (v2.33: 720px) */}
+      {/* Kertas menulis — kolom terbatas & lega (v2.33: 720px; v2.35:
+          measure kini token --layout-content-max, satu angka bersama
+          layar Jurnal) */}
       <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar overscroll-contain">
-        <div className="mx-auto w-full max-w-[720px] px-5 pb-24 pt-6">
+        <div className="mx-auto w-full max-w-[var(--layout-content-max)] px-5 pb-24 pt-6">
           <m.input
             ref={titleRef}
             value={title}

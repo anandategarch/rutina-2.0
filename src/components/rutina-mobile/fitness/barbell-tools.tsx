@@ -98,7 +98,7 @@ function Plate({ spec, count }: { spec: PlateSpec; count: number }) {
         {fmtKg(spec.kg)}
       </span>
       {count > 1 && (
-        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-espresso px-1 text-[9px] font-bold text-parchment shadow-soft">
+        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-espresso px-1 text-chart-label font-bold text-parchment shadow-soft">
           ×{count}
         </span>
       )}

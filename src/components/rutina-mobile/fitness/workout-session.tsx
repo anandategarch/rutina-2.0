@@ -374,7 +374,7 @@ function RestCard({
             >
               {secondsLeft}
             </p>
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-hero-content-muted">
+            <p className="mt-1 text-chart-label font-bold uppercase tracking-[0.16em] text-hero-content-muted">
               dtk
             </p>
           </div>

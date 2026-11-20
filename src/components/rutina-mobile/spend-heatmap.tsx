@@ -135,7 +135,7 @@ export function SpendHeatmap() {
   }
 
   return (
-    <div className="rounded-[20px] border border-border bg-surface-primary p-4 shadow-soft">
+    <div className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft">
       <div className="flex gap-2">
         {/* Label hari kiri — hanya Sen/Rab/Jum. */}
         <div aria-hidden="true" className="flex w-6 shrink-0 flex-col gap-1">

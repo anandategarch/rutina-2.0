@@ -227,7 +227,7 @@ export function ReadingSheet() {
                     Hapus
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-[320px] rounded-[24px] border-border p-6 sm:max-w-[320px]">
+                <AlertDialogContent className="max-w-[320px] rounded-2xl border-border p-6 sm:max-w-[320px]">
                   <AlertDialogHeader>
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
                       <Trash2 className="h-5 w-5 text-content-danger" />

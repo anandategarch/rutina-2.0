@@ -85,9 +85,10 @@ export default function JournalScreen() {
     <div
       data-module="journal"
       data-layout="writing-room"
-      /* v2.33 Writing Room: lebar kanvas 720px (dari lantai 680), ritme
-         antar-blok mengikuti token layout-gap (bukan mt-4 ad-hoc). */
-      className="mx-auto h-full w-full max-w-[720px] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary [&>*+*]:mt-[var(--layout-gap)]"
+      /* v2.33 Writing Room: lebar kanvas mengikuti token layout grammar
+         (--layout-content-max, 720px — v2.35), ritme antar-blok memakai
+         token layout-gap (bukan mt-4 ad-hoc). */
+      className="mx-auto h-full w-full max-w-[var(--layout-content-max)] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary [&>*+*]:mt-[var(--layout-gap)]"
     >
       {/* Kepala editorial tenang — tanggal kecil kapital + judul seksi */}
       <m.header
