@@ -32,7 +32,7 @@ const rutinaButtonVariants = cva(
           'text-content-secondary hover:bg-surface-secondary hover:text-content-primary',
         /** Tindakan berisiko — hapus, keluar. */
         destructive:
-          'bg-destructive text-white shadow-xs hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90',
         /** Tautan bergaya teks. */
         link: 'text-primary underline-offset-4 hover:underline active:scale-100',
       },

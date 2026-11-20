@@ -132,13 +132,15 @@ export function BottomNav() {
         {/* ===== Tombol plus besar di tengah — membuka Quick Action Hub =====
             Dock menonjol ke atas batas bar; "kerah" ring senada permukaan
             bar membuat lingkaran tampak keluar dari dalam navigasi. Halo
-            bernapas menandai pintu aksi; plus berputar 45° menjadi silang
-            saat hub terbuka. */}
+            STATIS menandai pintu aksi (animate-glow dihapus — direktif
+            melarang animasi berulang dekoratif, pola yang sama dengan
+            daily-highlight-card); plus berputar 45° menjadi silang saat
+            hub terbuka. */}
         <div className="relative flex h-[58px] items-center justify-center">
           <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-[45%]">
             <span
               aria-hidden="true"
-              className={`absolute -inset-2 rounded-full bg-primary/40 blur-md motion-safe:animate-glow ${
+              className={`absolute -inset-2 rounded-full bg-primary/40 blur-md ${
                 hubOpen ? 'opacity-0' : 'opacity-100'
               } transition-opacity duration-300`}
             />

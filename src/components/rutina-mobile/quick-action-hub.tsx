@@ -361,7 +361,7 @@ export function QuickActionHub() {
             key="hub-backdrop"
             aria-hidden="true"
             onClick={closeHub}
-            className="absolute inset-0 z-[65] bg-black/35 backdrop-blur-[2px]"
+            className="absolute inset-0 z-[65] bg-espresso/45 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -423,7 +423,9 @@ export function QuickActionHub() {
                     onValueChange={setQuery}
                     placeholder="Cari aksi, catatan, kebiasaan…"
                     aria-label="Cari aksi, catatan, kebiasaan, atau transaksi"
-                    className="h-6 w-full bg-transparent text-section font-medium text-content-primary outline-none placeholder:font-normal placeholder:text-content-muted"
+                    /* outline-none tanpa pengganti membuat fokus keyboard
+                       tak terlihat — ring halus di dalam baris cari. */
+                    className="h-6 w-full bg-transparent text-section font-medium text-content-primary outline-none placeholder:font-normal placeholder:text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                   />
                 </div>
 
@@ -703,11 +705,13 @@ export function QuickActionFab() {
           exit={{ scale: 0, opacity: 0 }}
           transition={motionTokens.spring.snappy}
         >
-          {/* Halo bernapas — tanda "pintu" aksi cepat, di belakang tombol.
-              Menghilang saat hub terbuka agar tidak bersaing dengan panel. */}
+          {/* Halo STATIS — penanda "pintu" aksi cepat di belakang tombol
+              (animate-glow dihapus — direktif melarang animasi berulang
+              dekoratif, pola yang sama dengan daily-highlight-card);
+              menghilang saat hub terbuka agar tidak bersaing dengan panel. */}
           <span
             aria-hidden="true"
-            className={`absolute -inset-2 rounded-full bg-primary/40 blur-md motion-safe:animate-glow ${
+            className={`absolute -inset-2 rounded-full bg-primary/40 blur-md ${
               open ? 'opacity-0' : 'opacity-100'
             } transition-opacity duration-300`}
           />

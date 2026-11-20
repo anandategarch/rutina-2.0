@@ -52,11 +52,20 @@ export function ReadingSheet() {
 
   // Tutup dengan Escape — kecuali kanvas menulis sedang terbuka di atas
   // sheet ini (Escape milik kanvas duluan, sheet menyusul setelahnya).
+  // AlertDialog hapus juga dikecualikan: Radix sengaja menahan Escape
+  // pada alertdialog — tanpa guard ini sheet tertutup dan dialog
+  // konfirmasi tertinggal yatim.
   useEffect(() => {
     if (!note) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (useJournalUi.getState().canvasOpen) return
+      /* Tanpa pengecekan state "open": Radix 1.1.x memang TIDAK menahan
+         Escape pada AlertDialog (hanya interaksi luar), jadi saat handler
+         window ini berjalan dialog sudah memasuki animasi keluar namun
+         ELEMENNYA masih ada — Escape pertama menutup dialog saja,
+         Escape kedua menutup sheet. */
+      if (document.querySelector('[role="alertdialog"]')) return
       closeReading()
     }
     window.addEventListener('keydown', onKey)
@@ -96,7 +105,7 @@ export function ReadingSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetSpring}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[calc(100%-1.5rem)] w-full overflow-y-auto no-scrollbar overscroll-contain rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[calc(100%-1.5rem)] w-full overflow-y-auto no-scrollbar overscroll-contain rounded-t-sheet bg-surface-primary px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-2.5 shadow-sheet ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -250,7 +259,7 @@ export function ReadingSheet() {
                         deleteNote(note.id)
                         toast('Catatan dihapus')
                       }}
-                      className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+                      className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90"
                     >
                       Ya, Hapus
                     </AlertDialogAction>

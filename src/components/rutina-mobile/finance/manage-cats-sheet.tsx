@@ -86,6 +86,11 @@ export function ManageCatsSheet() {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        /* Radix 1.1.x tidak menahan Escape pada AlertDialog — saat handler
+           ini berjalan dialog konfirmasi hapus sudah menutup namun
+           elemennya masih ada; Escape pertama untuk dialog, kedua untuk
+           sheet. */
+        if (document.querySelector('[role="alertdialog"]')) return
         if (editing) setEditing(null)
         else close()
       }

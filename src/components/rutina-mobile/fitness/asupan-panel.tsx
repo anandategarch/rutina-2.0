@@ -169,7 +169,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
                 deleteFoodEntry(entry.id)
                 toast(`${entry.name} dihapus dari jurnal.`)
               }}
-              className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-white hover:bg-destructive/90"
+              className="h-10 flex-1 rounded-full bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90"
             >
               Ya, Hapus
             </AlertDialogAction>
@@ -543,7 +543,7 @@ export function AsupanPanel() {
       <m.button
         type="button"
         onClick={openFoodSheet}
-        whileTap={{ scale: 0.98 }}
+        whileTap={{ scale: 0.97 }}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}

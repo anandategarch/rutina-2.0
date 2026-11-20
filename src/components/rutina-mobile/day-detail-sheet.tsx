@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
 import {
   BatteryLow,
@@ -229,13 +229,17 @@ const habitIcon = (row: HabitRow) =>
 /**
  * DayDetailBody — tubuh detail hari yang dibagi sheet & panel.
  * `listClassName` mengatur wadah gulirnya (sheet: flex-1; panel: max-h).
+ * `headerAction` mengisi slot aksi kepala seksi — dipakai sheet untuk
+ * tombol tutup (panel desktop permanen tak membutuhkannya).
  */
 function DayDetailBody({
   shown,
   listClassName,
+  headerAction,
 }: {
   shown: string
   listClassName: string
+  headerAction?: ReactNode
 }) {
   const catMeta = useCatMeta()
   const data = useDayData(shown)
@@ -243,7 +247,11 @@ function DayDetailBody({
   return (
     <>
       <div className="pb-1">
-        <RutinaSectionHeader eyebrow="Detail harian" title={longDateLabel(shown)} />
+        <RutinaSectionHeader
+          eyebrow="Detail harian"
+          title={longDateLabel(shown)}
+          action={headerAction}
+        />
       </div>
 
       <div className={listClassName}>
@@ -529,6 +537,19 @@ export function DayDetailSheet({
         <DayDetailBody
           shown={shown}
           listClassName="mt-3 min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pb-3 no-scrollbar"
+          /* Kontrol tutup eksplisit — Esc/backdrop/seret tak terlihat
+             bagi pengguna sentuh & pembaca layar (audit a11y); handler
+             sama dengan backdrop (onClose milik RutinaSheet). */
+          headerAction={
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Tutup detail hari"
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          }
         />
       ) : null}
     </RutinaSheet>

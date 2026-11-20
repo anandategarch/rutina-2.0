@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { Check } from 'lucide-react'
 
@@ -38,6 +39,12 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
   // Perayaan berakhir otomatis setelah partikel konfeti selesai jatuh —
   // dipusatkan di sini agar setiap varian layar mewarisinya.
   const setCelebrating = useRutina((s) => s.setCelebrating)
+  /* prefers-reduced-motion: MotionConfig reducedMotion="user" hanya
+     mematikan transformasi — keyframe opacity tetap beranimasi. Maka
+     koreografi dilewati total: konfeti tak dirender (keadaan akhirnya
+     memang di luar layar/pudar) dan kartu langsung tampil pada keadaan
+     akhirnya (initial={false} = tanpa animasi masuk). */
+  const reducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (!active) return
@@ -55,33 +62,34 @@ export function CelebrationOverlay({ active }: { active: boolean }) {
       {/* Partikel & kartu terpusat dalam kolom aplikasi agar tetap
           proporsional di layar lebar (mode layar penuh). */}
       <div className={`absolute inset-0 mx-auto w-full ${CONTENT_W}`}>
-        {PIECES.map((p, i) => (
-          <m.span
-            key={i}
-            className="absolute top-0"
-            style={{
-              width: p.size,
-              height: p.size,
-              backgroundColor: p.color,
-              borderRadius: p.round ? '9999px' : '3px',
-            }}
-            initial={{ x: p.x, y: -24, rotate: 0, opacity: 1 }}
-            animate={{
-              x: p.x + p.drift,
-              y: 1000,
-              rotate: p.rot,
-              opacity: [1, 1, 0],
-            }}
-            transition={{ duration: p.dur, delay: p.delay, ease: motionTokens.easing.confettiFall }}
-          />
-        ))}
+        {!reducedMotion &&
+          PIECES.map((p, i) => (
+            <m.span
+              key={i}
+              className="absolute top-0"
+              style={{
+                width: p.size,
+                height: p.size,
+                backgroundColor: p.color,
+                borderRadius: p.round ? '9999px' : '3px',
+              }}
+              initial={{ x: p.x, y: -24, rotate: 0, opacity: 1 }}
+              animate={{
+                x: p.x + p.drift,
+                y: 1000,
+                rotate: p.rot,
+                opacity: [1, 1, 0],
+              }}
+              transition={{ duration: p.dur, delay: p.delay, ease: motionTokens.easing.confettiFall }}
+            />
+          ))}
 
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <m.div
-            initial={{ scale: 0.4, opacity: 0 }}
+            initial={reducedMotion ? false : { scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ ...celebrate, delay: motionTokens.delay.normal }}
-            className="flex flex-col items-center gap-3 rounded-sheet bg-surface-sunken/90 px-7 py-6 shadow-ink-deep backdrop-blur-[2px]"
+            className="flex flex-col items-center gap-3 rounded-2xl bg-surface-sunken/90 px-7 py-6 shadow-ink-deep backdrop-blur-[2px]"
           >
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-ink">
               <Check className="h-9 w-9 text-primary-foreground" strokeWidth={3} />

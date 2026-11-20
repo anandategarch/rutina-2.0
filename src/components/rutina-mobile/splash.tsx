@@ -117,7 +117,17 @@ export function Splash({ onDone }: { onDone: () => void }) {
       exit={{ opacity: 0, scale: 1.06 }}
       transition={motionTokens.preset.navigation}
       onClick={finish}
+      onKeyDown={(e) => {
+        /* Akses papan tik: role="button" tanpa tabIndex/onKeyDown tak
+           bisa dijangkau — dukung Enter & Spasi (Spasi di-prevent agar
+           tidak menggulir halaman). */
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === ' ') e.preventDefault()
+          finish()
+        }
+      }}
       role="button"
+      tabIndex={0}
       aria-label="Lewati layar pembuka"
       className="absolute inset-0 z-[70] flex cursor-pointer select-none flex-col items-center justify-center bg-primary text-primary-foreground"
     >

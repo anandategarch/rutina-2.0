@@ -160,11 +160,21 @@ export function HabitSheet() {
     }
   }
 
-  /* Tutup dengan Escape */
+  /* Tutup dengan Escape — kecuali AlertDialog konfirmasi hapus sedang
+     terbuka di atas sheet: Radix memang sengaja MEMBIARKAN Escape pada
+     alertdialog (konfirmasi tak boleh terlewat). Tanpa guard ini sheet
+     ikut tertutup dan dialog tertinggal yatim di atas layar kosong. */
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeHabitSheet()
+      if (e.key !== 'Escape') return
+      /* Tanpa pengecekan state "open": Radix 1.1.x memang TIDAK menahan
+         Escape pada AlertDialog (hanya interaksi luar), jadi saat handler
+         window ini berjalan dialog sudah memasuki animasi keluar namun
+         ELEMENNYA masih ada — Escape pertama menutup dialog saja,
+         Escape kedua menutup sheet. */
+      if (document.querySelector('[role="alertdialog"]')) return
+      closeHabitSheet()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -294,7 +304,7 @@ export function HabitSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetSpring}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[88%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[88%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-2.5 shadow-sheet no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
@@ -462,7 +472,10 @@ export function HabitSheet() {
                           aria-label={`Warna kelompok ${c.label}`}
                           aria-pressed={newGroupColor === c.token}
                           title={c.label}
-                          className={`h-6 w-6 cursor-pointer rounded-full transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          /* Hit-slop: swatch 24px terlalu kecil bagi jari —
+                             pseudo-element 6px memperluas area sentuh ke
+                             ~36px tanpa mengubah ukuran visual. */
+                          className={`relative h-6 w-6 cursor-pointer rounded-full transition-transform before:absolute before:-inset-1.5 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                             newGroupColor === c.token
                               ? 'scale-110 ring-2 ring-primary ring-offset-2 ring-offset-surface-primary'
                               : 'hover:scale-105'
@@ -539,7 +552,9 @@ export function HabitSheet() {
                               setNewGroupColor(g.color)
                             }}
                             aria-label={`Ganti nama kelompok ${g.name}`}
-                            className="flex h-7 cursor-pointer items-center gap-1 rounded-full px-2.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            /* Hit-slop: tombol 28px diperluas ke ~40px
+                               via pseudo-element transparan. */
+                            className="relative flex h-7 cursor-pointer items-center gap-1 rounded-full px-2.5 text-eyebrow font-semibold text-content-secondary transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
                             <span
                               aria-hidden="true"
@@ -563,7 +578,9 @@ export function HabitSheet() {
                               )
                             }}
                             aria-label={`Hapus kelompok ${g.name}`}
-                            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            /* Hit-slop: tombol 28px diperluas ke ~40px
+                               via pseudo-element transparan. */
+                            className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-content-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
                             <Trash2 className="h-3 w-3" aria-hidden="true" />
                           </button>
@@ -916,15 +933,18 @@ export function HabitSheet() {
                               aria-label="Cari kebiasaan pemicu"
                               className="h-11 rounded-xl border-border bg-surface-primary text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                             />
+                            {/* Grup tombol biasa (bukan listbox): tanpa
+                                navigasi panah/roving tabindex, semantik
+                                listbox/option menyesatkan pembaca layar —
+                                aria-pressed pada tombol sudah jujur. */}
                             <div
-                              role="listbox"
+                              role="group"
                               aria-label="Kandidat kebiasaan pemicu"
                               className="max-h-64 space-y-1.5 overflow-y-auto no-scrollbar rounded-xl border border-border bg-surface-sunken/50 p-1.5"
                             >
                               <button
                                 type="button"
-                                role="option"
-                                aria-selected={draft.afterId === null}
+                                aria-pressed={draft.afterId === null}
                                 onClick={() => {
                                   setDraft((p) => ({ ...p, afterId: null }))
                                   setPickTriggerOpen(false)
@@ -942,8 +962,7 @@ export function HabitSheet() {
                                 <button
                                   key={x.id}
                                   type="button"
-                                  role="option"
-                                  aria-selected={draft.afterId === x.id}
+                                  aria-pressed={draft.afterId === x.id}
                                   onClick={() => {
                                     setDraft((p) => ({ ...p, afterId: x.id }))
                                     setPickTriggerOpen(false)

@@ -167,7 +167,9 @@ export function ComposeSheet() {
                       type="button"
                       onClick={() => setFolder(f.key)}
                       aria-pressed={folder === f.key}
-                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors ${
+                      /* Fokus keyboard — pola focus-visible chip yang sama
+                         dengan pemilih kategori di habit-sheet. */
+                      className={`h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         folder === f.key
                           ? 'bg-primary text-primary-foreground'
                           : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary'

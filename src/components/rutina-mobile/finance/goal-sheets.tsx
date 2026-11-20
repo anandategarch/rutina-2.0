@@ -64,7 +64,12 @@ export function ContributeGoalSheet() {
   useEffect(() => {
     if (!goalSheetId) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeGoalSheet()
+      /* Radix 1.1.x tidak menahan Escape pada AlertDialog — saat handler
+         ini berjalan dialog konfirmasi hapus sudah menutup namun
+         elemennya masih ada; Escape pertama untuk dialog, kedua untuk
+         sheet. */
+      if (e.key === 'Escape' && !document.querySelector('[role="alertdialog"]'))
+        closeGoalSheet()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
