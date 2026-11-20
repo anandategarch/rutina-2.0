@@ -239,7 +239,7 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
                         workouts,
                       )
                     }
-                    className="interactive mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary text-note font-bold text-primary-foreground hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-primary/40 text-note font-semibold text-success hover:bg-secondary hover:text-success focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Play className="h-3.5 w-3.5" />
                     Mulai sesi {day.label}
@@ -256,13 +256,14 @@ function ProgramCard({ prog, index }: { prog: Program; index: number }) {
 
 /* ===== Baris riwayat aktivitas — semua jenis olahraga (v2.17) ===== */
 
-/** Ikon + warna chip per jenis aktivitas. */
+/** Ikon + warna chip per jenis aktivitas. v2.30: chip kini OPEN
+ *  (bukan tint /15) — menutup tulang punggung timeline di belakangnya. */
 function kindVisual(w: Workout): { Icon: typeof Dumbbell; cls: string } {
   if (w.kind === 'badminton')
-    return { Icon: Volleyball, cls: 'bg-module-accent/15 text-module-accent-strong' }
+    return { Icon: Volleyball, cls: 'bg-module-accent-soft text-module-accent-strong' }
   if (w.kind === 'beban')
     return { Icon: Dumbbell, cls: 'bg-secondary text-success' }
-  return { Icon: Footprints, cls: 'bg-destructive/10 text-content-danger' }
+  return { Icon: Footprints, cls: 'bg-surface-secondary text-content-danger' }
 }
 
 function WorkoutRow({
@@ -301,9 +302,10 @@ function WorkoutRow({
         delay: Math.min(index * 0.04, 0.2),
         ease: motionTokens.easing.standard,
       }}
-      /* Timeline vertikal hairline (ledger-row) — audit Tahap 2:
-         riwayat ringkas ala buku kas, bukan kartu berbayang per item. */
-      className="ledger-row py-3"
+      /* Riwayat ala TIMELINE (v2.30 audit): hairline ledger-row + tulang
+         punggung vertikal timeline-node di belakang chip — chip menjadi
+         node pada rel, menyambung antar-baris; tetap bukan kartu berbayang. */
+      className="ledger-row timeline-node py-3"
     >
       <button
         type="button"
@@ -312,7 +314,7 @@ function WorkoutRow({
         className="interactive flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cls}`}
+          className={`relative z-[1] flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${cls}`}
         >
           <Icon className="h-4.5 w-4.5" />
         </span>
@@ -679,7 +681,8 @@ function TonaseStrip() {
   return (
     <m.section
       initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-20px' }}
       transition={{
         duration: 0.24,
         delay: 0.06,
@@ -729,7 +732,8 @@ function TonaseStrip() {
               <div className="flex h-16 w-full items-end">
                 <m.div
                   initial={{ scaleY: 0 }}
-                  animate={{ scaleY: 1 }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true, margin: '-30px' }}
                   transition={{
                     duration: reducedMotion ? 0 : 0.5,
                     delay: reducedMotion
@@ -873,6 +877,9 @@ export default function BugarScreen() {
   const [libQuery, setLibQuery] = useState('')
   const [libMuscle, setLibMuscle] = useState<string>('Semua')
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
+  /* Batang jarak terpilih pada grafik perkembangan (v2.30: ketuk-untuk-
+     baca, pola TonaseStrip). */
+  const [distIdx, setDistIdx] = useState<number | null>(null)
   const [barbellOpen, setBarbellOpen] = useState(false)
   const reducedMotion = useReducedMotion()
 
@@ -955,11 +962,15 @@ export default function BugarScreen() {
       ),
     [workouts, woFilter, woRange],
   )
-  /* Deret jarak sesi kardio terakhir — grafik perkembangan (v2.17). */
+  /* Deret jarak sesi kardio terakhir — grafik perkembangan (v2.17).
+     v2.30: kini mengikuti rentang riwayat (30/90/semua) — grafik tidak
+     lagi diam saat pengguna mengganti rentang; batang MORPH (bukan
+     entrance ulang) saat data berganti. */
   const distSeries = useMemo(
-    () => [...cardioSeries(workouts, 8)].reverse(),
-    [workouts],
+    () => [...cardioSeries(filteredWorkouts, 8)].reverse(),
+    [filteredWorkouts],
   )
+  const distSel = distIdx !== null ? (distSeries[distIdx] ?? null) : null
 
   /* Batas render riwayat (audit performa v2.13): histori bertambah tanpa
      batas — 15 sesi terbaru dirender dulu, sisanya dimuat bertahap agar
@@ -1027,20 +1038,11 @@ export default function BugarScreen() {
         </RutinaTabsList>
       </RutinaTabs>
 
-      {/* Transisi antar-subtab — crossfade pendek khusus opacity
-          (mode="wait": panel lama memudar dulu, lalu panel baru masuk). */}
-      <AnimatePresence mode="wait" initial={false}>
-        {tab === 'latihan' && (
-          <m.div
-            key="latihan"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: reducedMotion ? 0 : 0.18,
-              ease: motionTokens.easing.standard,
-            }}
-          >
+      {/* v2.30 (audit direktif): subtab keep-alive — panel tidak
+          di-remount. State expand program/riwayat bertahan, entrance
+          tidak diulang saat berpindah-pindah subtab; panel lain
+          disembunyikan. */}
+      <div className={tab === 'latihan' ? 'block' : 'hidden'}>
           {/* Komposisi bento desktop (xl): ringkasan pekan + pintasan sesi
               (hero 8) berdampingan Coach Bugar (feature 4); di bawah xl
               tetap bertumpuk mengikuti urutan DOM. */}
@@ -1320,7 +1322,9 @@ export default function BugarScreen() {
               <button
                 type="button"
                 onClick={openCheckIn}
-                className="interactive mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full bg-surface-inverse pl-4 pr-[72px] text-note font-bold text-content-inverse hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                /* v2.30: CTA tenang (outline) — mengisi gelap bersaing dengan
+                   CTA utama 'Mulai Sesi' (audit: satu CTA paling kuat). */
+                className="interactive mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-full border border-border bg-surface-primary pl-4 pr-[72px] text-note font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 {/* pr-[72px] = FAB 56px + jarak 16px: label tak pernah
                     tertindih FAB mengambang yang anchored di kanan-bawah. */}
@@ -1561,18 +1565,18 @@ export default function BugarScreen() {
           </RutinaTabsList>
         </RutinaTabs>
 
-        {/* Grafik perkembangan jarak — khusus sesi kardio ≥ 3
-            (v2.17); kompak, satu grafik saja agar halaman tidak penuh. */}
+        {/* Grafik perkembangan jarak — khusus sesi kardio ≥ 3 (v2.17).
+            v2.30: reveal saat masuk viewport (sekali); batang dapat
+            DITEKAN untuk membaca (pola TonaseStrip); tinggi batang
+            dimorph spring.chart saat rentang berganti — bukan entrance
+            ulang (direktif motion: perubahan data ≠ pengulangan entrance). */}
         {distSeries.length >= 3 && (woFilter === 'semua' || woFilter === 'kardio') && (
           <m.div
             initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-20px' }}
             transition={{ duration: 0.24, ease: motionTokens.easing.standard }}
             className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
-            role="img"
-            aria-label={`Grafik perkembangan jarak ${distSeries.length} sesi kardio terakhir: ${distSeries
-              .map((d) => `${d.km.toFixed(1).replace('.', ',')} km`)
-              .join(', ')}`}
           >
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
@@ -1582,29 +1586,59 @@ export default function BugarScreen() {
                 {distSeries.length} sesi terakhir
               </span>
             </div>
-            <div className="mt-3 flex h-20 items-end gap-1.5">
+            <div
+              className="mt-3 flex h-20 items-end gap-1.5"
+              role="group"
+              aria-label={`Grafik perkembangan jarak: ${distSeries
+                .map((d) => `${shortDateLabel(d.date)} ${d.km.toFixed(1).replace('.', ',')} km`)
+                .join(', ')}`}
+            >
               {(() => {
                 const max = Math.max(...distSeries.map((d) => d.km), 0.1)
-                return distSeries.map((d, i) => (
-                  <m.div
-                    key={`${d.date}-${i}`}
-                    initial={{ scaleY: 0 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{
-                      duration: 0.5,
-                      delay: i * motionTokens.stagger.normal,
-                      ease: motionTokens.easing.standard,
-                    }}
-                    style={{
-                      height: `${Math.max(8, (d.km / max) * 100)}%`,
-                      transformOrigin: 'bottom',
-                    }}
-                    className="min-w-0 flex-1 rounded-t-md bg-module-accent/70"
-                    title={`${shortDateLabel(d.date)} · ${d.km.toFixed(2).replace('.', ',')} km`}
-                  />
-                ))
+                return distSeries.map((d, i) => {
+                  const isSel = distIdx === i
+                  return (
+                    <button
+                      key={`${d.date}-${i}`}
+                      type="button"
+                      aria-pressed={isSel}
+                      aria-label={`${shortDateLabel(d.date)}: ${d.km.toFixed(2).replace('.', ',')} km`}
+                      onClick={() => setDistIdx(isSel ? null : i)}
+                      className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-stretch rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+                    >
+                      <div className="flex h-16 w-full items-end">
+                        <m.div
+                          initial={false}
+                          animate={{
+                            height: `${Math.max(8, (d.km / max) * 100)}%`,
+                          }}
+                          transition={{
+                            ...motionTokens.spring.chart,
+                            delay: i * motionTokens.stagger.normal,
+                          }}
+                          className={`w-full rounded-t-md transition-colors ${
+                            isSel
+                              ? 'bg-module-accent-strong'
+                              : 'bg-module-accent/70 group-hover:bg-module-accent'
+                          }`}
+                        />
+                      </div>
+                    </button>
+                  )
+                })
               })()}
             </div>
+            {/* Ringkasan batang terpilih — misal aksesibilitas grafik */}
+            <p
+              className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
+              aria-live="polite"
+            >
+              {distSel
+                ? `${longDateLabel(distSel.date)} · ${distSel.km
+                    .toFixed(2)
+                    .replace('.', ',')} km`
+                : 'Ketuk batang untuk membaca nilai.'}
+            </p>
             <div className="mt-1.5 flex justify-between text-chart-label font-medium text-content-muted">
               <span>{shortDateLabel(distSeries[0]!.date)}</span>
               <span>
@@ -1828,39 +1862,15 @@ export default function BugarScreen() {
         </div>
       </section>
           </div>
-          </m.div>
-        )}
+        </div>
 
-        {tab === 'asupan' && (
-          <m.div
-            key="asupan"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: reducedMotion ? 0 : 0.18,
-              ease: motionTokens.easing.standard,
-            }}
-          >
-            <AsupanPanel />
-          </m.div>
-        )}
+        <div className={tab === 'asupan' ? 'block' : 'hidden'}>
+          <AsupanPanel />
+        </div>
 
-        {tab === 'tubuh' && (
-          <m.div
-            key="tubuh"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: reducedMotion ? 0 : 0.18,
-              ease: motionTokens.easing.standard,
-            }}
-          >
-            <TubuhPanel />
-          </m.div>
-        )}
-      </AnimatePresence>
+        <div className={tab === 'tubuh' ? 'block' : 'hidden'}>
+          <TubuhPanel />
+        </div>
 
       {/* Mode sesi latihan imersif — fixed overlay di atas navigasi bawah;
           state sesi hidup di session-store sehingga tetap berjalan walau

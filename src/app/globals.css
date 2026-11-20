@@ -837,6 +837,22 @@
   }
 }
 
+/* Timeline node (v2.30 studio Bugar) — tulang punggung hairline vertikal
+   di belakang chip ikon riwayat: chip menjadi NODE pada rel, segmen
+   garis tersambung antar-baris. Chip wajib berlatar OPEN + z-index
+   di atas garis (relatif z-[1]); baris tetap memakai ledger-row. */
+@utility timeline-node {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 1.1875rem; /* pusat chip 40px (20px - 1px) */
+    width: 2px;
+    background: var(--border-default);
+  }
+}
+
 /* Garden bed — bedeng kebun: permukaan lembut bertint tanah untuk
    mengelompokkan klaster tanaman kebiasaan. */
 @utility garden-bed {
