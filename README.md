@@ -6,8 +6,25 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.36.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.37.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.37 — Deep Audit Sweep: Gelombang Audit Paralel & Perbaikan Menyeluruh
+
+Audit menyeluruh lima agen paralel (motion governance · sistem CSS · a11y ·
+integritas data CRUD · responsif+perf) atas seluruh basis kode v2.36, lalu
+perbaikan terkurasi dalam batch paralel tanpa saling bertabrakan file.
+Tidak ada redesain, tidak ada dependensi baru.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Palet donat** | 4 var `--palette-*` yang direferensikan DONUT_COLORS Keuangan namun tak pernah didefinisikan (slice 4+ ter render hitam) kini didefinisikan & diverifikasi di browser. |
+| **P1 — Integritas data** | "Mulai dari awal" kini menghapus SEMUA kunci domain (sebelumnya 14 kunci sintas — termasuk berat badan & dompet); negosiasi sync tahan selisih jam server; flush pada tab-hide + retry saat fokus; pemicu kebiasaan & mood catatan dipangkas bersih saat induknya dihapus. |
+| **P1 — Anti-replay & morph** | Grafik Arus Kas memorf per ganti periode (bukan tumbuh ulang); 11 BlurFade + 5 daftar Kebiasaan + gelombang Statistik + heatmap digerbang kunjungan-pertama (`visitKey` baru); 6 kunci `bugar-studio` kembar dipecah per-blok. |
+| **P1 — A11y alur utama** | Hit-slop ≥44px untuk checkbox kebiasaan & stepper; sel heatmap 24px; Escape 2-langkah (dialog dulu, sheet kemudian) di 4 sheet dengan AlertDialog — diverifikasi dengan instrumentasi event-order. |
+| **P2 — Konsistensi & perf** | `text-white` di destructive → token fg (dark-mode AA); shadow-sheet & radius kartu seksi diseragamkan; default RutinaCard `2xl`; derivasi berat Statistik/Profil masuk useMemo; kunci id stabil untuk blok latihan (animasi keluar di kartu yang benar). |
+| **Kebijakan gerak & CSS** | Animasi berulang dikodifikasi (ambient identitas + indikator fungsional; glow FAB dihapus); CSS mati dibersihkan (6 var, grain, 9 utility+keyframes, ShineBorder, 6 pemetaan @theme); api streak hero kini benar-benar bernafas via `ambientPulse`. |
+| **Pembuktian mutu** | lint & tsc nol error; E2E browser: 7 layar, autosave Jurnal utuh, CRUD hapus bersih, donat resolve, 320/390/768/1440px tanpa overflow, nol error konsol. |
 
 ## v2.36 — Full Data Visualization Expansion
 
