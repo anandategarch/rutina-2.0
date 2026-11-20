@@ -12,12 +12,13 @@ import {
 } from 'lucide-react'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { barFill } from '@/lib/motion/transitions'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { useCatMeta } from './finance/use-cat-meta'
-import { allowanceInfo, formatIDR, formatIDRShort } from './finance/utils'
+import { allowanceInfo, formatIDR, formatIDRShort, spendByDay } from './finance/utils'
 import { RutinaCard } from './rutina-card'
 import { RutinaSectionHeader } from './rutina-section-header'
-import { todayISO, useRutina } from './store'
+import { addDaysISO, fromISO, todayISO, useRutina, WEEKDAY_MIN } from './store'
 
 /**
  * Kartu "Arus Kas Hari Ini" — ringkasan finansial harian di Beranda
@@ -69,6 +70,27 @@ export function HomeFinanceCard() {
 
   const visibleTxs = todayTxs.slice(0, 3)
   const empty = todayTxs.length === 0
+
+  /* v2.39 (audit visual data): pengeluaran harian 7 hari terakhir —
+     trio angka keluar/masuk/saldo kini punya konteks mingguan; hari ini
+     disorot, rata-rata kalender di kepala strip. */
+  const weekSpend = useMemo(() => {
+    const byDay = spendByDay(txs)
+    const days: { iso: string; label: string; total: number }[] = []
+    for (let i = 6; i >= 0; i--) {
+      const iso = addDaysISO(today, -i)
+      days.push({
+        iso,
+        label: WEEKDAY_MIN[fromISO(iso).getDay()],
+        total: byDay[iso]?.total ?? 0,
+      })
+    }
+    return days
+  }, [txs, today])
+  const weekMax = weekSpend.reduce((a, d) => Math.max(a, d.total), 0)
+  const weekAvg = Math.round(
+    weekSpend.reduce((a, d) => a + d.total, 0) / weekSpend.length,
+  )
 
   return (
     <m.section
@@ -166,38 +188,127 @@ export function HomeFinanceCard() {
               </div>
             </div>
 
-            {/* Jatah aman hari ini (v2.22) — strip di bawah metrik */}
+            {/* Strip pengeluaran 7 hari (v2.39) — konteks mingguan bagi
+                tiga metrik harian: tinggi bar = proporsi vs hari terboros,
+                bar hari ini disorot. Nilai persis tinggal di tab Keuangan. */}
+            {weekMax > 0 && (
+              <div className="mt-4">
+                <div className="flex items-baseline justify-between gap-2 text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                  <span>Pengeluaran 7 hari</span>
+                  <span className="normal-case tracking-normal tabular-nums">
+                    Rata² {formatIDRShort(weekAvg)}/hari
+                  </span>
+                </div>
+                <div className="mt-2 flex h-12 gap-1" aria-hidden="true">
+                  {weekSpend.map((d) => {
+                    const isToday = d.iso === today
+                    const h =
+                      d.total <= 0
+                        ? 4
+                        : Math.max(10, Math.round((d.total / weekMax) * 100))
+                    return (
+                      <span
+                        key={d.iso}
+                        className="flex h-full min-w-0 flex-1 flex-col gap-1"
+                      >
+                        <span className="flex w-full flex-1 items-end">
+                          <m.span
+                            className={
+                              'w-full origin-bottom rounded-full ' +
+                              (d.total <= 0
+                                ? 'bg-primary/15'
+                                : isToday
+                                  ? 'bg-primary'
+                                  : 'bg-primary/35')
+                            }
+                            style={{ height: `${h}%` }}
+                            initial={playEntrance ? { scaleY: 0 } : false}
+                            animate={{ scaleY: 1 }}
+                            transition={barFill}
+                          />
+                        </span>
+                        <span
+                          className={
+                            'text-center text-chart-label font-semibold ' +
+                            (isToday
+                              ? 'text-content-secondary'
+                              : 'text-content-muted')
+                          }
+                        >
+                          {d.label}
+                        </span>
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Jatah aman hari ini (v2.22) — strip di bawah metrik;
+                v2.39: bar laju mini (terpakai vs posisi ideal bulan)
+                menyertai vonis proyeksi, angka lengkap di tab Keuangan. */}
             {allowance && (
               <button
                 type="button"
                 onClick={() => setScreen('keuangan')}
-                aria-label={`Jatah aman hari ini sekitar ${formatIDR(allowance.daily)} — buka tab Keuangan`}
-                className="mt-4 flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl bg-surface-sunken px-3.5 py-2.5 text-left transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                aria-label={`Jatah aman hari ini sekitar ${formatIDR(allowance.daily)}, laju belanja ${allowance.pacePct} persen dari anggaran — buka tab Keuangan`}
+                className="mt-4 flex w-full cursor-pointer flex-col rounded-xl bg-surface-sunken px-3.5 py-2.5 text-left transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  <Gauge
-                    aria-hidden="true"
-                    className="h-4 w-4 shrink-0 text-module-accent-strong"
-                    strokeWidth={2.2}
-                  />
-                  <span className="min-w-0 truncate text-note font-semibold text-content-primary">
-                    Jatah hari ini ±{formatIDRShort(allowance.daily)}
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Gauge
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-module-accent-strong"
+                      strokeWidth={2.2}
+                    />
+                    <span className="min-w-0 truncate text-note font-semibold text-content-primary">
+                      Jatah hari ini ±{formatIDRShort(allowance.daily)}
+                    </span>
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-eyebrow font-bold ${
+                      allowance.verdict === 'aman'
+                        ? 'bg-secondary text-success'
+                        : allowance.verdict === 'waspada'
+                          ? 'bg-gold/25 text-warning'
+                          : 'bg-clay/25 text-content-danger'
+                    }`}
+                  >
+                    {allowance.verdict === 'aman'
+                      ? 'proyeksi aman'
+                      : allowance.verdict === 'waspada'
+                        ? 'proyeksi waspada'
+                        : 'proyeksi lewat batas'}
                   </span>
                 </span>
+                {/* Bar laju — terpakai (skala) + penanda posisi ideal */}
                 <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-eyebrow font-bold ${
-                    allowance.verdict === 'aman'
-                      ? 'bg-secondary text-success'
-                      : allowance.verdict === 'waspada'
-                        ? 'bg-gold/25 text-warning'
-                        : 'bg-clay/25 text-content-danger'
-                  }`}
+                  aria-hidden="true"
+                  className="relative mt-2.5 block h-1.5 overflow-visible rounded-full bg-surface-primary"
                 >
-                  {allowance.verdict === 'aman'
-                    ? 'proyeksi aman'
-                    : allowance.verdict === 'waspada'
-                      ? 'proyeksi waspada'
-                      : 'proyeksi lewat batas'}
+                  <span className="block h-full overflow-hidden rounded-full">
+                    <m.span
+                      className={
+                        'block h-full w-full origin-left rounded-full ' +
+                        (allowance.verdict === 'aman'
+                          ? 'bg-primary'
+                          : allowance.verdict === 'waspada'
+                            ? 'bg-warning'
+                            : 'bg-destructive')
+                      }
+                      initial={playEntrance ? { scaleX: 0 } : false}
+                      animate={{
+                        scaleX: Math.min(allowance.pacePct, 100) / 100,
+                      }}
+                      transition={barFill}
+                    />
+                  </span>
+                  <span
+                    className="absolute -bottom-[3px] -top-[3px] w-0.5 rounded-full bg-espresso/70"
+                    style={{
+                      left: `${Math.min(100, allowance.idealPct)}%`,
+                    }}
+                  />
                 </span>
               </button>
             )}

@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { TaskRow } from '../task-row'
-import { HomeProgressRing } from '../home-progress-ring'
+import { MissionSteps } from '../mission-steps'
 import { GardenTree } from '../garden-tree'
 import { HomeFinanceCard } from '../home-finance-card'
 import { DailyHighlightCard } from '../daily-highlight-card'
@@ -630,9 +630,13 @@ export default function HomeScreen() {
                 className="garden-surface h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
                 <div className="sm:mx-auto sm:max-w-[600px]">
-                  <div className="flex items-center gap-5">
-                    <HomeProgressRing pct={pct} entrance={playEntrance} />
-                    <div className="min-w-0 flex-1">
+                  {/* v2.39: petak misi menggantikan cincin lama yang
+                      menampak seperti roda gigi — model linear: angka misi
+                      di kiri, persen besar di kanan, lalu petak kebun
+                      memanjang selebar kartu di bawahnya (tiap misi
+                      terjadwal = satu petak; centang menumbuhkannya). */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
                       <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                         Progres hari ini
                       </p>
@@ -656,11 +660,25 @@ export default function HomeScreen() {
                               : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
                     </div>
+                    <p className="flex shrink-0 items-baseline pt-0.5 text-content-primary">
+                      <span className="text-kpi font-bold leading-none tracking-tight">
+                        <Counter to={pct} immediate={!playEntrance} />
+                      </span>
+                      <span className="ml-0.5 text-note font-bold text-content-muted">
+                        %
+                      </span>
+                    </p>
                   </div>
+                  <MissionSteps
+                    done={doneToday}
+                    total={todayHabits.length}
+                    entrance={playEntrance}
+                    className="mt-4"
+                  />
 
                   {/* v2.27 Daybook: strip pendamping di bawah hairline —
                       chip streak/level + mini-bar XP tidak lagi memadati
-                      ruang utama cincin (pola sub-metri studio Bugar:
+                      ruang utama petak misi (pola sub-metri studio Bugar:
                       informasi tetap lengkap, tenang, tak berebut). */}
                   <div className="mt-5 border-t border-border-default pt-4">
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
