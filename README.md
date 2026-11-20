@@ -6,8 +6,25 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.37.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.38.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.38 — UX Density, Duplication Control & Activity-to-Habit Automation
+
+Implementasi audit UX density v2.37: gulir lebih ringkas, informasi dan
+tindakan tidak lagi berulang, dan aktivitas Bugar dapat menyelesaikan
+kebiasaan yang secara eksplisit dihubungkan. Tidak ada redesain, tidak ada
+fitur yang dihapus — semua data tetap bisa diakses lengkap.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Beranda** | `homeAttention()` — satu derivasi pusat untuk Agenda, pemulihan, dan Sorotan (dedup `Set<habit.id>`). Agenda berpagar 4 tugas prioritas + penghitung "4 dari N tugas" + CTA "Lihat semua kebiasaan". `TaskRow` varian compact (centang + nama + jam + badge). "Jangan Bolong Dua Kali" hanya untuk kebiasaan tak terjadwal hari ini (maks 2); Sorotan tidak pernah membuat tombol centang kedua (`excludeHabitIds`). |
+| **P0 — Kebiasaan** | Agenda maks 5 awal + badge "Terlewat kemarin"; kartu Coach dedup vs Agenda. Perpustakaan murni inventaris: status non-interaktif (bukan jalur centang kedua), pencarian, grup collapsible (pratinjau 3 + hitungan). Detail ponsel pindah ke bottom sheet; desktop tetap kolom sticky (gerbang JS selaras sheet). |
+| **P0 — Otomatisasi Bugar** | `Habit.linkedActivity` (pilihan eksplisit, default null untuk kebiasaan lama). Satu jalur pusat di `addWorkout()`: jadwal/rest-day/createdAt dicek; target menit → durasi, target km → jarak, satuan tak cocok → dibiarkan; idempoten; centang manual tak pernah tertimpa. Provenance `habitAuto` (base + id workout) membuat `deleteWorkout()` mengembalikan nilai manual tanpa merusak histori. Persistensi penuh: persist v3, Prisma (linkedActivity + autoBase/autoWo), db-migrate Turso, Zod wire, sync-server/engine, backup JSON. |
+| **P1 — Bugar** | "Aktivitas Pekan Ini" (gabungan Tonase + Campuran Aktivitas, satu sumbu hari); "Tren Kardio" (Jarak \| Pace — dua unit tak pernah satu sumbu); riwayat 5 awal + "Lihat semua riwayat" tanpa nested scroll ponsel; pustaka gerakan grup otot collapsible; asupan 3 entri per kelompok makan. |
+| **P1 — Keuangan & Jurnal** | Ringkasan cepat: 3 transaksi + accordion "Analisis Pengeluaran" (donut+langganan+heatmap+temuan) default tertutup. Jurnal: pagar global 10 catatan awal (pinned 3, draft 3, muat bertahap; pencarian = tanpa pagar) + WritingActivityCard collapsible. |
+| **P1/P2 — Statistik & Profil** | "Kinerja & Konsistensi" satu ruang (Grafik \| Peta Panas); "Pekan Ini vs Pekan Lalu" dilipat; "Bugar & Tubuh" jadi ringkasan 4 metrik + CTA; "Ruang Suasana" (input + riwayat mood 14 hari) terpusat di Statistik; Profil kembali Control Room murni (mood jadi satu baris ringkas + tautan). |
+| **Pembuktian mutu** | `bun run verify` hijau (typecheck + lint + 156 test). E2E browser: siklus auto-complete penuh (tambah sesi → selesai otomatis + chip status → hapus sesi → kembali manual), pagar agenda 13 kebiasaan (4→13→ringkas), pagar Perpustakaan + pencarian, accordion tertutup default, 320px & 1440px tanpa overflow, nol error konsol. |
 
 ## v2.37 — Deep Audit Sweep: Gelombang Audit Paralel & Perbaikan Menyeluruh
 
