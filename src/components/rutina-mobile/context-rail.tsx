@@ -104,27 +104,17 @@ function MetricRow({
   )
 }
 
-/** Slot kartu dengan animasi masuk seragam (jeda berjenjang 0.05/0.13/0.21). */
+/** Slot kartu rail — tanpa koreografi masuk (v2.34: konten bertukar instan). */
 function RailSection({
-  delay,
   children,
 }: {
-  delay: number
   children: ReactNode
 }) {
-  return (
-    <m.section
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        delay,
-        duration: motionTokens.duration.enter,
-        ease: motionTokens.easing.standard,
-      }}
-    >
-      {children}
-    </m.section>
-  )
+  /* v2.34 (audit shell): tanpa entrance — kartu rail berganti identitas
+     tiap pindah ruang; koreografi masuk ulang pada setiap navigasi
+     dilarang (direktif: jangan animasikan seluruh layout tiap ganti
+     tab). Konten bertukar instan, tenang. */
+  return <section>{children}</section>
 }
 
 /** Keadaan kosong tenang — pola garis putus-putus yang sudah ada di rail. */
@@ -986,7 +976,7 @@ export function ContextRail() {
       {mounted && (
         <>
           {/* Kartu 1 — ringkasan utama domain layar aktif */}
-          <RailSection delay={0.05}>
+          <RailSection>
             {screen === 'bugar' ? (
               <BodyReadinessCard />
             ) : screen === 'keuangan' ? (
@@ -1003,7 +993,7 @@ export function ContextRail() {
           </RailSection>
 
           {/* Kartu 2 — agenda / rekor / anggaran / pencapaian sesuai domain */}
-          <RailSection delay={0.13}>
+          <RailSection>
             {screen === 'bugar' ? (
               <PrCard />
             ) : screen === 'keuangan' ? (
@@ -1020,7 +1010,7 @@ export function ContextRail() {
           </RailSection>
 
           {/* Kartu 3 — hidrasi / aktivitas / taman / fokus / preferensi */}
-          <RailSection delay={0.21}>
+          <RailSection>
             {screen === 'bugar' ? (
               <HydrationCard />
             ) : screen === 'keuangan' ? (

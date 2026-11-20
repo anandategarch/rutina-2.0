@@ -89,7 +89,10 @@ export default function Heatmap() {
       ease: 'outBack(1.4)',
     })
     return () => {
-      anim.revert()
+      /* v2.34: cancel (bukan revert) — selaras pembersihan batang grafik
+         Statistik; revert memasang kembali gaya pra-animasi dan berisiko
+         kedipan saat efek berjalan ulang (toggle reduced-motion). */
+      anim.cancel()
     }
   }, [inView, reducedMotion])
 

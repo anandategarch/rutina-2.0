@@ -2373,7 +2373,11 @@ export default function KeuanganScreen() {
             <RutinaTabsTrigger
               key={t.id}
               value={t.id}
-              className="flex-1 px-2 data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
+              /* v2.34: lebar sangat sempit (320px) — label satu kata tidak
+                 bisa menyusut di bawah min-content (scroll melebar +51px,
+                 audit responsif); langkah font/padding turun pada kontainer
+                 < 24rem, normal di atasnya. */
+              className="flex-1 min-w-0 px-1.5 text-chart-label @[24rem]:px-2 @[24rem]:text-meta data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
             >
               {t.label}
             </RutinaTabsTrigger>
