@@ -1,6 +1,5 @@
 'use client'
 
-import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 
 import { chartBar, pressSnappy } from '@/lib/motion/transitions'
@@ -15,6 +14,8 @@ import type { PeriodPoint } from './utils'
  * (layoutId); titik lain diredupkan namun tetap dapat ditekan.
  * Lebar batang & kepadatan label menyesuaikan jumlah titik sehingga
  * deret panjang (mode "Semua") tetap muat tanpa bertumpuk.
+ * v2.37 (audit P1): ganti periode/data memorf tinggi batang lewat
+ * spring.chart — batang tidak pernah ditumbuhkan ulang dari nol.
  */
 
 const TRACK_H = 118 // ruang tumbuh batang (px)
@@ -62,9 +63,10 @@ export function FinChart({
   const { bar: BAR_W, gap: BAR_GAP } = barMetrics(points.length)
   const every = labelEvery(points.length)
 
-  /* Reduced-motion: batang langsung dirender pada tinggi akhir
-     (initial={false}) — tanpa animasi reveal maupun morph. */
-  const reducedMotion = useReducedMotion()
+  /* v2.37 (audit P1): batang MEMORF saat data berganti — tanpa initial
+     tersembunyi & stagger, tinggi cukup menunggangi transisi chartBar
+     (spring.chart). Entrance blok ditangani pemanggil (gerbang
+     firstVisit), bukan per batang. */
 
   /* Ringkasan nonvisual — total masuk/keluar/selisih seluruh deret;
      pembaca layar mendapat gambaran umum tanpa menelusuri tiap kolom. */
@@ -108,9 +110,12 @@ export function FinChart({
           <div className="absolute inset-0 flex items-end justify-between gap-1">
         {points.map((p, i) => {
           const isOn = i === active
+          /* Kunci indeks (pola Observatory stats.tsx): node DOM batang
+             dipertahankan antar periode sehingga pergantian deret memorf
+             tinggi batang — bukan remount & tumbuh ulang dari nol. */
           return (
             <button
-              key={`${p.label}-${i}`}
+              key={i}
               type="button"
               onClick={() => onPick(i)}
               aria-pressed={isOn}
@@ -138,13 +143,8 @@ export function FinChart({
               >
                 <m.span
                   aria-hidden="true"
-                  initial={reducedMotion ? false : { height: BAR_MIN }}
                   animate={{ height: h(p.masuk) }}
-                  transition={
-                    reducedMotion
-                      ? chartBar
-                      : { ...chartBar, delay: Math.min(i * 0.045, 0.5) }
-                  }
+                  transition={chartBar}
                   style={{ backgroundColor: INCOME, width: BAR_W }}
                   className={`rounded-full transition-opacity duration-300 ${
                     isOn ? 'opacity-100' : 'opacity-60 group-hover:opacity-85'
@@ -152,13 +152,8 @@ export function FinChart({
                 />
                 <m.span
                   aria-hidden="true"
-                  initial={reducedMotion ? false : { height: BAR_MIN }}
                   animate={{ height: h(p.keluar) }}
-                  transition={
-                    reducedMotion
-                      ? chartBar
-                      : { ...chartBar, delay: Math.min(i * 0.045 + 0.03, 0.53) }
-                  }
+                  transition={chartBar}
                   style={{ backgroundColor: EXPENSE, width: BAR_W }}
                   className={`rounded-full transition-opacity duration-300 ${
                     isOn ? 'opacity-100' : 'opacity-60 group-hover:opacity-85'

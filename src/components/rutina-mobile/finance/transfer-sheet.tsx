@@ -277,7 +277,7 @@ export function TransferSheet() {
             <m.button
               type="button"
               onClick={submit}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               className="mt-5 h-12 w-full cursor-pointer rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Transfer Sekarang

@@ -51,6 +51,9 @@ export function AllowanceCard() {
      dengan saldo (kpi-lg) sebagai hero kedua; hitung-ulang dibuka
      gerbang firstVisit. (v2.35: hook dinaikkan di atas early-return.) */
   const playCount = useFirstVisit('fin-allowance-count')
+  /* v2.37 anti-replay: bar laju hanya tumbuh pada kunjungan pertama —
+     selaras gerbang Counter di atasnya. */
+  const playPace = useFirstVisit('keuangan-allowance-pace')
 
   if (!info) return null
 
@@ -99,7 +102,7 @@ export function AllowanceCard() {
         <div className="relative mt-2 h-3 overflow-visible rounded-full bg-border">
           <div className="h-full overflow-hidden rounded-full">
             <m.div
-              initial={{ scaleX: 0 }}
+              initial={playPace ? { scaleX: 0 } : false}
               animate={{ scaleX: paceWidth / 100 }}
               transition={barFill}
               className={`h-full origin-left rounded-full ${v.bar}`}
