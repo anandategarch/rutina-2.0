@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 
 import { Progress } from '@/components/ui/progress'
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { PlantGlyph, usePlantGrowth, type PlantStageKey } from './plant-glyph'
 import { PLANT_STAGES, plantStageOf } from './habit-coach'
 import { RutinaSectionHeader } from './rutina-section-header'
@@ -42,6 +43,9 @@ export function PlantGarden({
 }) {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
+  /* v2.38 anti-replay: komponen dipakai di Beranda DAN Kebiasaan — entrance
+     seksi hanya kunjungan pertama sesi tab; remount antar-tab tampil instan. */
+  const playSection = useFirstVisit('garden-plant-section')
 
   const today = todayISO()
   const active = habits.filter((h) => !h.archived)
@@ -85,7 +89,7 @@ export function PlantGarden({
 
   return (
     <m.section
-      initial={{ opacity: 0, y: 18 }}
+      initial={playSection ? { opacity: 0, y: 18 } : false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={motionTokens.preset.pageEntrance}

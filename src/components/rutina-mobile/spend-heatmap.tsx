@@ -143,7 +143,9 @@ export function SpendHeatmap() {
           {ROW_LABELS.map((label, d) => (
             <span
               key={d}
-              className="flex h-5 items-center justify-end pr-0.5 text-chart-label font-bold uppercase leading-none text-content-muted"
+              /* Tinggi label mengikuti tinggi sel (v2.38: 20px → 24px,
+                 WCAG 2.5.8) agar baris label tetap sejajar baris sel. */
+              className="flex h-6 items-center justify-end pr-0.5 text-chart-label font-bold uppercase leading-none text-content-muted"
             >
               {label}
             </span>
@@ -174,7 +176,7 @@ export function SpendHeatmap() {
                 <span
                   key={c.iso}
                   aria-hidden="true"
-                  className="h-5 rounded-[5px] bg-surface-sunken/60"
+                  className="h-6 rounded-[5px] bg-surface-sunken/60"
                 />
               ) : (
                 <button
@@ -191,7 +193,8 @@ export function SpendHeatmap() {
                       ? `${formatIDR(c.total)} (${c.count} transaksi)`
                       : 'tidak ada pengeluaran'
                   }`}
-                  className={`h-5 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
+                  /* v2.38: sel 20px → 24px — minimum target sentuh WCAG 2.5.8. */
+                  className={`h-6 w-full cursor-pointer rounded-[5px] transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ${
                     LEVEL_CLS[c.level]
                   }${
                     c.iso === selISO

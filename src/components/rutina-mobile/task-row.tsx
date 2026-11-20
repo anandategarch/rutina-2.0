@@ -34,6 +34,7 @@ import {
 } from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { pressSnappy } from '@/lib/motion/transitions'
 /**
  * Baris kebiasaan: geser kanan untuk menandai selesai, geser kiri untuk
@@ -76,6 +77,10 @@ export function TaskRow({
   onEdit: () => void
 }) {
   const dragGuardRef = useRef(false)
+  /* v2.38 anti-replay: bar stepper hanya tumbuh pada kunjungan pertama
+     sesi tab — kunci per-blok: seluruh baris daftar mount bersamaan dan
+     sama-sama melihat true; remount antar-tab melihat false (instan). */
+  const playStepper = useFirstVisit('garden-task-stepper')
 
   /* Kecerdasan kebiasaan — pemicu susun & tahap tanaman dibaca langsung
      dari store agar baris tetap ringkas tanpa prop tambahan dari induk. */
@@ -197,7 +202,7 @@ export function TaskRow({
         tabIndex={0}
         aria-expanded={expanded}
         aria-label={`${habit.title} — ketuk untuk detail, tombol lingkaran untuk menandai selesai`}
-        whileTap={{ scale: 0.985 }}
+        whileTap={{ scale: 0.97 }}
         className={
           'relative z-10 flex flex-wrap cursor-pointer items-center gap-2 p-3 transition-colors duration-300 ' +
           (done ? 'bg-secondary' : 'bg-surface-primary')
@@ -219,14 +224,15 @@ export function TaskRow({
           aria-checked={done}
           aria-disabled={readOnly}
           aria-label={`Tandai selesai: ${habit.title}`}
-          className={
-            'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ' +
-            (done
+          /* Hit-slop ±8px via ::before — centang 32px visual (aksi tersering
+             di aplikasi), target sentuh ≥44px (WCAG 2.5.8). */
+          className={`relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 before:absolute before:-inset-2 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ${
+            done
               ? 'border-primary bg-primary text-primary-foreground'
               : readOnly
                 ? 'border-border text-transparent'
-                : 'border-border-strong text-transparent hover:border-primary/60')
-          }
+                : 'border-border-strong text-transparent hover:border-primary/60'
+          }`}
         >
           <m.span
             key={String(done)}
@@ -388,7 +394,8 @@ export function TaskRow({
             disabled={readOnly || progress <= 0}
             onClick={() => stepValue(-1)}
             aria-label="Kurangi progres"
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            /* Hit-slop: tombol 36px visual, target sentuh ≥44px. */
+            className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary before:absolute before:-inset-2 before:content-[''] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span aria-hidden="true" className="text-note font-bold">
               −
@@ -423,7 +430,7 @@ export function TaskRow({
                   done ? 'bg-primary' : 'bg-secondary'
                 }`}
                 style={{ width: '100%' }}
-                initial={{ scaleX: 0 }}
+                initial={playStepper ? { scaleX: 0 } : false}
                 animate={{ scaleX: measuredPct / 100 }}
                 transition={pressSnappy}
               />
@@ -434,7 +441,8 @@ export function TaskRow({
             disabled={readOnly || done}
             onClick={() => stepValue(1)}
             aria-label="Tambah progres"
-            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-primary/40 bg-secondary text-success transition-all hover:bg-secondary/80 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            /* Hit-slop: tombol 36px visual, target sentuh ≥44px. */
+            className="relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-primary/40 bg-secondary text-success transition-all hover:bg-secondary/80 active:scale-95 before:absolute before:-inset-2 before:content-[''] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span aria-hidden="true" className="text-note font-bold">
               +

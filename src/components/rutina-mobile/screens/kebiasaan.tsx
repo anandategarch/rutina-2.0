@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence, LayoutGroup } from 'motion/react'
+import {
+  AnimatePresence,
+  LayoutGroup,
+  useReducedMotion,
+} from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   Archive,
@@ -257,14 +261,15 @@ function HabitCheck({
          skala tekan 0.90–0.92 untuk kontrol ikon kecil di tokens.ts). */
       whileTap={{ scale: 0.92 }}
       transition={pressSnappy}
-      className={
-        'interactive flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 ' +
-        (size === 'md' ? 'h-9 w-9' : 'h-8 w-8') +
-        ' ' +
-        (done
+      /* Hit-slop ±8px via ::before — centang tetap 32–36px visual tapi
+         target sentuh ≥44px (WCAG 2.5.8) tanpa mengubah tata letak. */
+      className={`interactive relative flex shrink-0 cursor-pointer items-center justify-center rounded-full border-2 before:absolute before:-inset-2 before:content-[''] ${
+        size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
+      } ${
+        done
           ? 'border-module-accent bg-module-accent text-module-accent-fg'
-          : 'border-border-strong text-transparent hover:border-module-accent/60')
-      }
+          : 'border-border-strong text-transparent hover:border-module-accent/60'
+      }`}
     >
       <m.span
         key={String(done)}
@@ -393,7 +398,8 @@ function AgendaRow({
             onClick={() => stepBy(-1)}
             disabled={progress <= 0}
             aria-label="Kurangi progres"
-            className="interactive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary text-content-secondary"
+            /* Hit-slop: tombol 36px visual, target sentuh ≥44px. */
+            className="interactive relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary text-content-secondary before:absolute before:-inset-2 before:content-['']"
           >
             <span aria-hidden="true" className="text-note font-bold">
               −
@@ -432,7 +438,8 @@ function AgendaRow({
             type="button"
             onClick={() => stepBy(1)}
             aria-label="Tambah progres"
-            className="interactive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-module-accent/50 bg-module-accent-soft text-module-accent-strong"
+            /* Hit-slop: tombol 36px visual, target sentuh ≥44px. */
+            className="interactive relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-module-accent/50 bg-module-accent-soft text-module-accent-strong before:absolute before:-inset-2 before:content-['']"
           >
             <span aria-hidden="true" className="text-note font-bold">
               +
@@ -927,8 +934,12 @@ function HabitDetailPanel({
 
 export default function KebiasaanScreen() {
   /* v2.35 anti-replay: pembuka Garden hanya kunjungan pertama; panel
-     detail & expand tetap diantar (interaksi, bukan replay layar). */
+     detail & expand tetap diantar (interaksi, bukan replay layar).
+     v2.38: gerbang yang sama menaungi daftar stagger & batang % agenda
+     di bawah — remount antar-tab tidak boleh memutar ulang entrance. */
   const playEntrance = useFirstVisit('kebiasaan-garden')
+  /* Reduce-motion: pil ruang melompat instan, bukan gulir animasi. */
+  const reducedMotion = useReducedMotion()
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const toggleHabit = useRutina((s) => s.toggleHabit)
@@ -1225,7 +1236,7 @@ export default function KebiasaanScreen() {
               <m.button
                 type="button"
                 onClick={openHabitCreate}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.96 }}
                 className="flex h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Plus className="h-4 w-4" strokeWidth={2.4} />
@@ -1260,7 +1271,11 @@ export default function KebiasaanScreen() {
                     onClick={() =>
                       document
                         .getElementById(id)
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        /* Reduce-motion: lompat instan ke ruang tujuan. */
+                        ?.scrollIntoView({
+                          behavior: reducedMotion ? 'auto' : 'smooth',
+                          block: 'start',
+                        })
                     }
                     aria-current={isActive ? 'location' : undefined}
                     className={
@@ -1339,7 +1354,7 @@ export default function KebiasaanScreen() {
                     <m.div
                       className="h-full origin-left rounded-full bg-module-accent"
                       style={{ width: '100%' }}
-                      initial={{ scaleX: 0 }}
+                      initial={playEntrance ? { scaleX: 0 } : false}
                       animate={{ scaleX: agendaPct }}
                       transition={barFill}
                     />
@@ -1370,9 +1385,11 @@ export default function KebiasaanScreen() {
                             {g.items.length}
                           </span>
                         </div>
+                        {/* v2.38 anti-replay: gerbang sama dengan kepala
+                            seksi — stagger hanya kunjungan pertama. */}
                         <m.div
                           variants={journalList}
-                          initial="hidden"
+                          initial={playEntrance ? 'hidden' : 'show'}
                           animate="show"
                           className="grid grid-cols-1 gap-1 @[44rem]:grid-cols-2 xl:grid-cols-3"
                         >
@@ -1421,7 +1438,7 @@ export default function KebiasaanScreen() {
                       </m.p>
                       <m.div
                         variants={journalList}
-                        initial="hidden"
+                        initial={playEntrance ? 'hidden' : 'show'}
                         animate="show"
                         className="grid grid-cols-1 gap-1 @[44rem]:grid-cols-2 xl:grid-cols-3"
                       >
@@ -1470,7 +1487,7 @@ export default function KebiasaanScreen() {
               />
               <m.div
                 variants={journalList}
-                initial="hidden"
+                initial={playEntrance ? 'hidden' : 'show'}
                 animate="show"
                 className="mt-3 space-y-2.5"
               >
@@ -1605,7 +1622,7 @@ export default function KebiasaanScreen() {
                   menandai tiap angka di atas permukaan garden-bed. */}
               <m.div
                 variants={journalList}
-                initial="hidden"
+                initial={playEntrance ? 'hidden' : 'show'}
                 animate="show"
                 className="mt-4"
               >
@@ -1694,7 +1711,11 @@ export default function KebiasaanScreen() {
                       sadar-jadwal + toggle — membedakan heatmap ini dari
                       heatmap "jumlah" di Statistik (tiap halaman punya
                       pertanyaan berbeda; bukan duplikasi visual). */}
-                  <Heatmap mode="kepatuhan" allowModeToggle />
+                  <Heatmap
+                    mode="kepatuhan"
+                    allowModeToggle
+                    visitKey="kebiasaan-heatmap"
+                  />
                 </div>
                 <div className="mt-5">
                   <PlantGarden variant="beds" />
@@ -1734,12 +1755,14 @@ export default function KebiasaanScreen() {
               /* Split-screen desktop (kontainer ≥52rem): daftar ledger di
                  kiri, panel detail menempel di kanan. Di bawah itu susunan
                  tetap satu kolom — panel inline per baris yang terpilih. */
-              <div className="@[52rem]:grid @[52rem]:grid-cols-12 @[52rem]:gap-[var(--layout-gap)]">
+              /* v2.38: jarak kisi meniru token RutinaBentoGrid
+                 (--layout-grid-gap), bukan jarak antar-seksi. */
+              <div className="@[52rem]:grid @[52rem]:grid-cols-12 @[52rem]:gap-[var(--layout-grid-gap)]">
                 {/* Kolom kiri — daftar ledger terkelompok */}
                 <div className="min-w-0 @[52rem]:col-span-7">
                   <m.div
                     variants={journalList}
-                    initial="hidden"
+                    initial={playEntrance ? 'hidden' : 'show'}
                     animate="show"
                     className="mt-2 space-y-5"
                   >

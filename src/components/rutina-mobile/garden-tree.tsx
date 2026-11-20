@@ -6,6 +6,7 @@ import * as m from 'motion/react-m'
 import { toast } from 'sonner'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { PLANT_STAGES } from './habit-coach'
 import { PlantGlyph, usePlantGrowth } from './plant-glyph'
@@ -77,6 +78,9 @@ const TREE_HINTS: Record<number, string> = {
 export function GardenTree() {
   const completions = useRutina((s) => s.completions)
   const reducedMotion = useReducedMotion()
+  /* v2.38 anti-replay: bar progres hanya tumbuh pada kunjungan pertama
+     sesi tab — remount antar-tab langsung menampilkan nilai akhir. */
+  const firstVisit = useFirstVisit('kebiasaan-garden-tree')
   const info = useMemo(() => treeInfoOf(completions), [completions])
 
   /* Koreografi pertumbuhan saat naik tahap (anime.js) + toast milestone —
@@ -116,13 +120,7 @@ export function GardenTree() {
               : { rotate: [-1.2, 1.2, -1.2] }
           }
           transition={
-            reducedMotion
-              ? undefined
-              : {
-                  duration: 7,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }
+            reducedMotion ? undefined : motionTokens.preset.gardenSway
           }
           style={{ transformOrigin: '50% 90%' }}
           className="shrink-0 text-module-accent-strong"
@@ -157,7 +155,7 @@ export function GardenTree() {
             <m.div
               className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
               style={{ width: '100%' }}
-              initial={{ scaleX: 0 }}
+              initial={firstVisit ? { scaleX: 0 } : false}
               animate={{ scaleX: info.progress }}
               transition={barFill}
             />

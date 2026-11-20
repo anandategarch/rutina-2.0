@@ -14,6 +14,7 @@ import {
 } from './store'
 
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 /* ===== Konsistensi 12 pekan — dari histori penyelesaian nyata ===== */
 
 const WEEKS = 12
@@ -67,15 +68,25 @@ function levelOfPct(pct: number): number {
 export default function Heatmap({
   mode: modeProp = 'jumlah',
   allowModeToggle = false,
+  visitKey,
 }: {
   mode?: HeatmapMode
   allowModeToggle?: boolean
+  /** Kunci anti-replay (v2.38): bila diberikan, entrance kartu & gelombang
+   *  sel hanya berlaku pada kunjungan pertama per sesi tab — remount
+   *  antar-tab menampilkan heatmap instan. Tanpa kunci, perilaku lama
+   *  (selalu diantar) dipertahankan untuk pemakaian yang belum digerbangi. */
+  visitKey?: string
 }) {
   const completions = useRutina((s) => s.completions)
   const habits = useRutina((s) => s.habits)
   const today = todayISO()
   const reducedMotion = useReducedMotion()
   const [mode, setMode] = useState<HeatmapMode>(modeProp)
+  /* Anti-replay: useFirstVisit tanpa kunci selalu true (lihat lib), jadi
+     pemanggil tanpa visitKey tidak berubah perilaku. */
+  const first = useFirstVisit(visitKey)
+  const play = visitKey ? first : true
 
   /** 84 hari terakhir diakhiri hari ini — kolom terakhir grid adalah
       pekan berjalan dan sel terakhir adalah hari ini. */
@@ -98,10 +109,12 @@ export default function Heatmap({
     /* Selektor data-cell (bukan 'button') — tombol lain di masa depan
        tidak ikut gelombang tanpa sengaja. */
     const cells = rootRef.current.querySelectorAll('[data-cell]')
-    if (!inView || reducedMotion) {
-      /* Tanpa animasi (belum terlihat / reduce-motion): pastikan sel pada
-         keadaan alami — termasuk membersihkan sisa scale(0) dari run sebelumnya
-         bila preferensi berubah di tengah jalan. */
+    /* !play = kunjungan ulang tab: sel tampil instan tanpa gelombang. */
+    if (!inView || reducedMotion || !play) {
+      /* Tanpa animasi (belum terlihat / reduce-motion / kunjungan ulang):
+         pastikan sel pada keadaan alami — termasuk membersihkan sisa
+         scale(0) dari run sebelumnya bila preferensi berubah di tengah
+         jalan. */
       cells.forEach((el) => {
         ;(el as HTMLElement).style.transform = ''
       })
@@ -153,8 +166,12 @@ export default function Heatmap({
   return (
     <m.div
       ref={rootRef}
-      initial={{ opacity: 0, y: 16 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+      initial={play ? { opacity: 0, y: 16 } : false}
+      /* !play: animate langsung ke keadaan akhir — tanpa ini kartu tetap
+         tersembunyi lalu ikut beranimasi saat inView (replay terselubung). */
+      animate={
+        inView || !play ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
+      }
       transition={motionTokens.preset.data}
       className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
     >
@@ -232,7 +249,7 @@ export default function Heatmap({
                 title={`Pekan ${WEEKS - w}, ${cellText(idx)}`}
                 onClick={() => setSel({ w, d })}
                 className={
-                  'h-5 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                  'h-6 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
                     ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
                     : '') +

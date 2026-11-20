@@ -158,7 +158,9 @@ export function WeeklyRecapCard() {
   return (
     <section
       aria-label="Rekap pekan ini"
-      className="garden-surface rounded-xl border border-border-default p-4 shadow-soft sm:p-5"
+      /* v2.38: 12px → 16px — menyatu dengan permukaan garden 24px
+         (GardenTree / PlantGarden) yang tepat di bawahnya di Beranda. */
+      className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-5"
     >
       {/* Kepala — judul + rentang + pintu ke Statistik (Statistik bukan
           tab sejak navigasi plus-tengah v2.14; rekap menjadi pintunya). */}
@@ -175,7 +177,7 @@ export function WeeklyRecapCard() {
           type="button"
           onClick={() => setScreen('statistik')}
           aria-label="Buka Statistik"
-          whileTap={{ scale: 0.94 }}
+          whileTap={{ scale: 0.96 }}
           className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary/80 px-3.5 text-meta font-bold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <BarChart3 className="h-4 w-4" strokeWidth={2.2} aria-hidden="true" />
