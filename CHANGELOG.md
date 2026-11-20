@@ -5,6 +5,23 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.39] — Data Everywhere: Audit Visual Angka & Model Progres Baru
+
+Audit visual tiga agen paralel atas tujuh ruang untuk menemukan "data angka
+yang punya potensi digambar" — lalu menggambarkannya. Semua visual baru
+membaca data yang SUDAH ada (tidak ada skema/f.fitur data baru); angka
+persis tetap dibawa teks, visual bersifat pelengkap yang terverifikasi.
+Model progres hero Beranda diganti: cincin lama (lingkar titik putus yang
+menampak seperti roda gigi) → petak misi linear "tangga misi".
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Beranda: petak misi + arus kas bergambar** | `HomeProgressRing` dihapus, diganti `MissionSteps`: satu petak per misi terjadwal hari ini (≤14; di atasnya proporsional), terisi reaktif via spring per centang/batal, ledakan elastis anime.js saat penuh, dekoratif aria-hidden (angka persis dibawa teks). Hero: "X dari Y misi" + sisa di kiri, persen `Counter` besar di kanan, petak selebar kartu di bawah — informasi per-misi lebih kaya dari cincin agregat. `HomeFinanceCard`: strip bar pengeluaran 7 hari (bar hari ini disorot, rata²/hari di kepala strip; hanya tampil bila ada belanja) + bar laju mini pada strip Jatah (terpakai berwarna vonis + penanda posisi ideal bulan, pola AllowanceCard). |
+| **P1 — Kebiasaan · Jurnal · Profil: angka berdenominator digambar** | `RutinaMetric` prop baru `progress` (0–1) — bar tipis reaktif di bawah caption, pola tunggal lintas layar: "Selesai pekan ini" (weekDone/weeklyTarget), "Target pekan ini" di Konsistensi (persen tercapai), bar tumbuh "Tahap tanaman" (total/nextAt, rasio sama dengan teks). Jurnal: bar segmen distribusi mood memakai warna titik Ruang Suasana (pola langsung dari Statistik). Profil: bar rasio "N dari M kebiasaan memakai jam pengingat" di baris pengaturan (`SettingRow.description` kini menerima ReactNode). |
+| **P1 — Bugar: riwayat pemulihan lengkap + tren tonase multi-pekan** | Riwayat Tubuh 14 hari kini LIMA baris kecil: "Nyeri otot" & "Stres" (titik skala 1–5 bernada semantik — hijau ≤2, kuning 3, merah ≥4; skala negatif diwarnai jujur, berbeda dari energi satu arah) mengikuti tidur/energi/hidrasi; bacaan hari terpilih menyertakan keduanya. "Aktivitas Pekan Ini" mendapat bagian "Tonase 6 pekan": satu bar per pekan ISO (Senin–Minggu, label tanggal Senin d/m + "ini"), pekan berjalan disorot, rata²/pekan, aria-label penuh per pekan — tren tonase yang selama ini hanya teks footer hero. Hero Bugar: petak sesi (satu petak per sesi sasaran, terisi per sesi selesai) melengkapi bar menit. |
+| **P1 — Keuangan & Statistik: jangkar kepercayaan bergambar** | Kartu Vault: sparkline saldo 30 hari — garis emas `--hero-accent` + isian gradien lembut + label rentang min–maks, dihitung mundur dari `totalSaldo` sehingga selalu konsisten dengan angka utama; tidak digambar bila datar (gerak nol = garis tak bermakna). Langganan: bar proporsi biaya per baris (porsi dari total bulanan; nominal tetap di kolom kanan). Tujuan Tabungan: bar agregat bertumpuk — satu segmen per tujuan (satu keluarga warna makin pudar), lebar = porsi dari total target + keterangan persen. Statistik "Berat terakhir": sparkline mini 14 catatan terakhir (netral — naik/turun belum tentu baik/buruk; baru digambar dari 3 catatan, aturan jujur 2 titik ≠ tren). |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | `bun run lint` & typecheck hijau. E2E browser dengan dataset seed nyata (6 kebiasaan berkategori valid, 21 sesi latihan 6 pekan, 32 transaksi + 3 langganan berulang, 14 hari log tubuh, 8 catatan bermood): 13 titik visual diverifikasi DOM — petak misi 6 segmen "2 dari 6 misi" + 33%; strip 7 hari (7 bar) + bar laju jatah; bar detail kebiasaan (3 mini bar); "17/30 target" Konsistensi; petak sesi hero 4/4; 6 bar tonase dengan label aria per pekan (2.275 → 4.720 kg naik); 5 baris riwayat tubuh (14 tombol per baris nyeri/stres, tone semantik); sparkline saldo (polyline + area + caption); 3 bar proporsi langganan (0,65/0,23/0,12); bar agregat 3 segmen + persen; sparkline berat 5 titik; segmen mood (Baik 3× · Ceria 3× · Biasa 2×); bar pengingat penuh 6/6. 390px & 1280px tanpa overflow horizontal; nol error konsol & halaman setelah reload bersih; pemeriksaan visual model (VLM): cincin roda gigi hilang, petak segmen terisi 2/6 tampil benar, tren 6 pekan terbaca. |
+
 ## [2.38] — UX Density, Duplication Control & Activity-to-Habit Automation
 
 Implementasi audit UX density v2.37: mengurangi gulir yang tidak perlu,

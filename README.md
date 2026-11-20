@@ -6,8 +6,22 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.38.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.39.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.39 — Data Everywhere: Audit Visual Angka & Model Progres Baru
+
+Audit visual tiga agen paralel atas tujuh ruang untuk menemukan "data angka
+yang punya potensi digambar" — lalu menggambarkannya. Semua visual baru
+membaca data yang sudah ada; angka persis tetap dibawa teks.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Beranda** | Cincin progres lama (menampak seperti roda gigi) diganti `MissionSteps` — petak linear satu-per-misi terjadwal, terisi reaktif per centang, pop elastis saat penuh; persen `Counter` tetap menonjol. `HomeFinanceCard`: strip bar pengeluaran 7 hari (hari ini disorot + rata²/hari) + bar laju mini di strip Jatah (terpakai vs penanda ideal bulan). |
+| **P1 — Kebiasaan · Jurnal · Profil** | `RutinaMetric` prop `progress` (bar tipis reaktif): "Selesai pekan ini", "Target pekan ini" Konsistensi, bar tumbuh "Tahap tanaman". Jurnal: bar segmen distribusi mood (pola Ruang Suasana). Profil: bar rasio kebiasaan berpengingat. |
+| **P1 — Bugar** | Riwayat Tubuh 14 hari kini lima baris — "Nyeri otot" & "Stres" (titik 1–5 bernada semantik) menyusul tidur/energi/hidrasi. "Tonase 6 pekan": bar per pekan, pekan berjalan disorot + rata²/pekan. Hero: petak sesi melengkapi bar menit. |
+| **P1 — Keuangan & Statistik** | Kartu Vault: sparkline saldo 30 hari (konsisten `totalSaldo`, tak digambar bila datar). Langganan: bar proporsi per baris. Tujuan Tabungan: bar agregat bertumpuk + persen. Statistik: sparkline mini berat di "Berat terakhir" (dari 3 catatan, warna netral). |
+| **Pembuktian mutu** | lint & typecheck hijau; E2E browser dataset seed penuh — 13 titik visual terverifikasi DOM (petak misi 2/6, 7 bar mingguan, sesi 4/4, 6 bar tonase 2.275→4.720 kg, 5 baris tubuh, sparkline saldo, proporsi langganan 65/23/12%, agregat tujuan, berat 5 titik, mood, pengingat 6/6); 390px & 1280px tanpa overflow; nol error konsol; VLM konfirmasi visual. |
 
 ## v2.38 — UX Density, Duplication Control & Activity-to-Habit Automation
 
