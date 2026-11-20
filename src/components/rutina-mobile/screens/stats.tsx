@@ -96,6 +96,7 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import {
+  bodySeries,
   cardioSummary,
   prBoard,
   tonaseOf,
@@ -296,6 +297,9 @@ export default function StatsScreen() {
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
   const identityText = useRutina((s) => s.identityText)
+  /* v2.36: target asupan & sasaran tubuh untuk mini-chart Bugar/Tubuh. */
+  const calorieTarget = useRutina((s) => s.calorieTarget)
+  const fitTargets = useRutina((s) => s.fitTargets)
 
   /* Gerbang anti-replay (v2.35): koreografi pembuka Observatory hanya
      pada kunjungan pertama seumur sesi — remount antar-tab tampil instan;
@@ -561,13 +565,21 @@ export default function StatsScreen() {
   /* ===== Wawasan lintas domain (v2.32 Observatory) — menjawab "kenapa",
       bukan menambah angka (audit: insight harus menjawab apa yang berubah
       & mengapa). Observasional jujur: hanya tampil bila data cukup —
-      tidak ada data tidak ada wawasan, bukan angka karangan. ===== */
+      tidak ada data tidak ada wawasan, bukan angka karangan.
+      v2.36: mengembalikan juga data terstruktur untuk visual pembanding
+      (rata-rata misi hari berlatih vs tanpa latihan). ===== */
   const crossInsights = useMemo(() => {
     const out: { title: string; body: string }[] = []
     const days = dayCounts(completions, today, 30)
     const woDates = new Set(workouts.map((w) => w.date))
 
     /* Latihan vs misi. */
+    let woCompare: {
+      avgWith: number
+      avgWithout: number
+      nWith: number
+      nWithout: number
+    } | null = null
     const withWo = days.filter((d) => woDates.has(d.date))
     const withoutWo = days.filter((d) => !woDates.has(d.date))
     if (withWo.length >= 3 && withoutWo.length >= 3) {
@@ -575,6 +587,12 @@ export default function StatsScreen() {
         xs.reduce((a, x) => a + x.count, 0) / xs.length
       const a1 = avg(withWo)
       const a0 = avg(withoutWo)
+      woCompare = {
+        avgWith: a1,
+        avgWithout: a0,
+        nWith: withWo.length,
+        nWithout: withoutWo.length,
+      }
       if (Math.abs(a1 - a0) >= 0.5) {
         out.push({
           title: 'Hari berlatih vs hari tanpa latihan',
@@ -606,7 +624,7 @@ export default function StatsScreen() {
         })
       }
     }
-    return out
+    return { list: out, woCompare }
   }, [completions, today, workouts, moodLogs])
 
   /* ===== Statistik lintas modul Bugar — semua dari data nyata ===== */
@@ -648,6 +666,39 @@ export default function StatsScreen() {
     wSeries.length >= 2
       ? wSeries[wSeries.length - 1].kg - wSeries[0].kg
       : null
+
+  /* ===== v2.36 (audit visualisasi Tahap 3): deret mini-chart Bugar/Tubuh ===== */
+
+  /* Latihan per pekan — 4 pekan terakhir (P4 = pekan berjalan sampai
+     hari ini saja; sesi & tonase per pekan, dua satuan TIDAK dicampur). */
+  const weeklyFit: { start: string; sessions: number; tonase: number }[] = []
+  for (let w = 3; w >= 0; w--) {
+    const start = weekStartISO(addDaysISO(today, -w * 7))
+    const end = addDaysISO(start, 6)
+    const inWeek = workouts.filter(
+      (x) => x.date >= start && x.date <= end && x.date <= today,
+    )
+    weeklyFit.push({
+      start,
+      sessions: inWeek.length,
+      tonase: inWeek.reduce((a, x) => a + tonaseOf(x), 0),
+    })
+  }
+
+  /* Asupan: deret 7 hari KALENDER (bukan 7 hari tercatat) — hari tanpa
+     catatan null, tidak digambar seolah nol kkal. */
+  const kcalWeek: { date: string; kcal: number | null }[] =
+    Array.from({ length: 7 }, (_, i) => {
+      const d = addDaysISO(today, i - 6)
+      return { date: d, kcal: kcalByDay.get(d) ?? null }
+    })
+  const kcalWeekLogged = kcalWeek.filter((k) => (k.kcal ?? 0) > 0).length
+
+  /* Tubuh: tiga deret 7 hari untuk small multiples — tidur (jam), energi
+     (1-5), hidrasi (gelas) — skala masing-masing. */
+  const sleepWeek = bodySeries(bodyLogs, today, 7, (l) => l.sleepH)
+  const energyWeek = bodySeries(bodyLogs, today, 7, (l) => l.energy)
+  const waterWeek = bodySeries(bodyLogs, today, 7, (l) => (l.water > 0 ? l.water : undefined))
 
   /* Grafik misi selesai: 7 hari terakhir atau 4 pekan (P4 = berjalan). */
   const weekData = dayCounts(completions, today, 7)
@@ -1797,7 +1848,64 @@ export default function StatsScreen() {
               <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
                 observasi 30 hari — bukan sebab-akibat
               </p>
-              {crossInsights.length === 0 ? (
+              {/* v2.36: visual pembanding hari berlatih vs tanpa latihan —
+                  dua bar horizontal + jumlah sampel; hubungan tetap
+                  disclaim sebagai observasional. */}
+              {crossInsights.woCompare && (
+                <div
+                  className="mt-3 space-y-2 rounded-xl bg-surface-sunken px-3.5 py-3"
+                  role="img"
+                  aria-label={`Rata-rata misi pada ${crossInsights.woCompare.nWith} hari berlatih: ${crossInsights.woCompare.avgWith.toFixed(1).replace('.', ',')}, vs ${crossInsights.woCompare.avgWithout.toFixed(1).replace('.', ',')} pada ${crossInsights.woCompare.nWithout} hari tanpa latihan. Observasional, bukan sebab-akibat.`}
+                >
+                  {(
+                    [
+                      {
+                        label: 'Hari berlatih',
+                        n: crossInsights.woCompare.nWith,
+                        avg: crossInsights.woCompare.avgWith,
+                        bar: 'bg-chart-stroke-4',
+                      },
+                      {
+                        label: 'Tanpa latihan',
+                        n: crossInsights.woCompare.nWithout,
+                        avg: crossInsights.woCompare.avgWithout,
+                        bar: 'bg-primary/45',
+                      },
+                    ] as const
+                  ).map((row) => {
+                    const max = Math.max(
+                      crossInsights.woCompare!.avgWith,
+                      crossInsights.woCompare!.avgWithout,
+                      0.1,
+                    )
+                    return (
+                      <div key={row.label}>
+                        <div className="flex items-baseline justify-between gap-2 text-chart-label">
+                          <span className="font-semibold text-content-secondary">
+                            {row.label}
+                            <span className="ml-1 font-medium text-content-muted">
+                              {row.n} hari
+                            </span>
+                          </span>
+                          <span className="font-bold tabular-nums text-content-primary">
+                            {row.avg.toFixed(1).replace('.', ',')} misi/hari
+                          </span>
+                        </div>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-primary">
+                          <m.div
+                            initial={false}
+                            className={`h-full rounded-full ${row.bar}`}
+                            style={{
+                              width: `${Math.max((row.avg / max) * 100, 3)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {crossInsights.list.length === 0 ? (
                 <RutinaEmptyState
                   className="mt-3 px-4 py-6"
                   icon={<Sparkles className="h-6 w-6" />}
@@ -1806,7 +1914,7 @@ export default function StatsScreen() {
                 />
               ) : (
                 <ul className="mt-3 space-y-3.5">
-                  {crossInsights.map((f) => (
+                  {crossInsights.list.map((f) => (
                     <li key={f.title}>
                       <p className="text-note font-semibold text-content-primary">
                         {f.title}
@@ -2002,6 +2110,89 @@ export default function StatsScreen() {
                             ` dari ${cardio.sessions} sesi jalan/lari`}
                         </p>
                       </div>
+                      {/* v2.36: sesi & tonase per pekan — dua satuan berdiri
+                          sendiri (bar sesi + bar tonase), P4 pekan berjalan. */}
+                      <div
+                        className="mt-3 space-y-2.5 border-t border-border pt-3"
+                        role="img"
+                        aria-label={`Sesi per pekan: ${weeklyFit
+                          .map(
+                            (w, i) =>
+                              `P${i + 1} ${w.sessions} sesi, tonase ${Math.round(w.tonase).toLocaleString('id-ID')} kg`,
+                          )
+                          .join(', ')}. P4 pekan berjalan.`}
+                      >
+                        <div>
+                          <p className="text-chart-label font-semibold uppercase tracking-wide text-content-muted">
+                            Sesi / pekan
+                          </p>
+                          <div className="mt-1 flex items-end gap-1">
+                            {weeklyFit.map((w, i) => {
+                              const maxS = Math.max(
+                                ...weeklyFit.map((x) => x.sessions),
+                                1,
+                              )
+                              return (
+                                <div
+                                  key={w.start}
+                                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
+                                >
+                                  <div className="flex h-8 w-full items-end">
+                                    <div
+                                      className={`w-full rounded-t-sm ${
+                                        i === weeklyFit.length - 1
+                                          ? 'bg-module-accent-strong'
+                                          : 'bg-module-accent/60'
+                                      }`}
+                                      style={{
+                                        height: `${Math.max((w.sessions / maxS) * 100, w.sessions > 0 ? 10 : 3)}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="text-chart-label font-semibold tabular-nums text-content-muted">
+                                    P{i + 1}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-chart-label font-semibold uppercase tracking-wide text-content-muted">
+                            Tonase / pekan
+                          </p>
+                          <div className="mt-1 flex items-end gap-1">
+                            {weeklyFit.map((w, i) => {
+                              const maxT = Math.max(
+                                ...weeklyFit.map((x) => x.tonase),
+                                1,
+                              )
+                              return (
+                                <div
+                                  key={w.start}
+                                  className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
+                                >
+                                  <div className="flex h-8 w-full items-end">
+                                    <div
+                                      className={`w-full rounded-t-sm ${
+                                        i === weeklyFit.length - 1
+                                          ? 'bg-chart-stroke-4'
+                                          : 'bg-chart-stroke-4/50'
+                                      }`}
+                                      style={{
+                                        height: `${Math.max((w.tonase / maxT) * 100, w.tonase > 0 ? 10 : 3)}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="text-chart-label font-semibold tabular-nums text-content-muted">
+                                    P{i + 1}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </m.div>
@@ -2030,6 +2221,70 @@ export default function StatsScreen() {
                       </p>
                       <p className="mt-1.5 text-eyebrow font-medium text-content-muted">
                         rata-rata dari {last7Kcal.length} hari tercatat
+                      </p>
+                      {/* v2.36: mini bar 7 hari KALENDER + garis target —
+                          hari tanpa catatan = stub netral (bukan nol). */}
+                      <div
+                        className="relative mt-3"
+                        role="img"
+                        aria-label={`Kalori 7 hari terakhir: ${kcalWeek
+                          .map(
+                            (k) =>
+                              `${shortDateLabel(k.date)} ${k.kcal != null && k.kcal > 0 ? `${k.kcal.toLocaleString('id-ID')} kkal` : 'tidak tercatat'}`,
+                          )
+                          .join(', ')}. Target ${calorieTarget.toLocaleString('id-ID')} kkal, ${kcalWeekLogged} dari 7 hari tercatat.`}
+                      >
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-x-0 z-10"
+                          style={{
+                            bottom: `${Math.round(
+                              (calorieTarget /
+                                Math.max(
+                                  ...kcalWeek.map((k) => k.kcal ?? 0),
+                                  calorieTarget,
+                                  1,
+                                )) *
+                                100,
+                            )}%`,
+                          }}
+                        >
+                          <div className="border-t border-dashed border-module-accent-strong/45" />
+                        </div>
+                        <div className="flex h-14 items-end gap-1">
+                          {kcalWeek.map((k) => {
+                            const max = Math.max(
+                              ...kcalWeek.map((x) => x.kcal ?? 0),
+                              calorieTarget,
+                              1,
+                            )
+                            return (
+                              <div
+                                key={k.date}
+                                className="min-w-0 flex-1"
+                                aria-hidden="true"
+                              >
+                                <div
+                                  className={`w-full rounded-t-sm ${
+                                    k.kcal != null && k.kcal > 0
+                                      ? 'bg-module-accent/70'
+                                      : 'h-1 rounded-full bg-surface-sunken'
+                                  }`}
+                                  style={
+                                    k.kcal != null && k.kcal > 0
+                                      ? {
+                                          height: `${Math.max((k.kcal / max) * 56, 5)}px`,
+                                        }
+                                      : undefined
+                                  }
+                                />
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <p className="mt-1.5 text-eyebrow font-medium text-content-muted">
+                        {kcalWeekLogged}/7 hari tercatat · garis putus = target
                       </p>
                     </>
                   ) : (
@@ -2117,6 +2372,82 @@ export default function StatsScreen() {
                           Isi check-in harian di Bugar › Tubuh untuk memantau
                           pemulihan.
                         </p>
+                      )}
+                      {/* v2.36: small multiples 7 hari — tidur/energi/hidrasi
+                          masing-masing berdiri sendiri (jam, skor 1-5, gelas);
+                          hari tanpa catatan = stub netral, bukan nol. */}
+                      {(sleepWeek.some((p) => p.value != null) ||
+                        energyWeek.some((p) => p.value != null) ||
+                        waterWeek.some((p) => p.value != null)) && (
+                        <div className="mt-3 space-y-2 border-t border-border pt-3">
+                          {(
+                            [
+                              {
+                                key: 'tidur',
+                                label: 'Tidur',
+                                series: sleepWeek,
+                                max: 8,
+                                fmt: (v: number) => `${v.toFixed(1).replace('.', ',')} j`,
+                              },
+                              {
+                                key: 'energi',
+                                label: 'Energi',
+                                series: energyWeek,
+                                max: 5,
+                                fmt: (v: number) => `${v}/5`,
+                              },
+                              {
+                                key: 'hidrasi',
+                                label: 'Hidrasi',
+                                series: waterWeek,
+                                max: fitTargets.water > 0 ? fitTargets.water : 8,
+                                fmt: (v: number) => `${v} gls`,
+                              },
+                            ] as const
+                          ).map((metric) => (
+                            <div
+                              key={metric.key}
+                              role="img"
+                              aria-label={`${metric.label} 7 hari: ${metric.series
+                                .map(
+                                  (p) =>
+                                    `${p.label} ${
+                                      p.value != null ? metric.fmt(p.value) : 'tidak tercatat'
+                                    }`,
+                                )
+                                .join(', ')}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="w-12 shrink-0 text-chart-label font-semibold text-content-muted">
+                                  {metric.label}
+                                </span>
+                                <div className="flex h-6 min-w-0 flex-1 items-end gap-[3px]">
+                                  {metric.series.map((p) => (
+                                    <span
+                                      key={p.date}
+                                      aria-hidden="true"
+                                      className="flex h-full min-w-0 flex-1 items-end"
+                                    >
+                                      {p.value != null ? (
+                                        <span
+                                          className="w-full rounded-[2px] bg-module-accent/75"
+                                          style={{
+                                            height: `${Math.max(
+                                              (p.value / metric.max) * 100,
+                                              10,
+                                            )}%`,
+                                          }}
+                                        />
+                                      ) : (
+                                        <span className="h-[3px] w-full rounded-full bg-surface-sunken" />
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}

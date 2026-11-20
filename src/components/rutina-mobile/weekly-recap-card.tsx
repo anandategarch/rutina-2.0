@@ -125,11 +125,19 @@ export function WeeklyRecapCard() {
     },
   ]
 
-  /* Ringkasan nonvisual strip perjalanan (aksesibilitas grafik). */
+  /* Ringkasan nonvisual strip perjalanan (aksesibilitas grafik) —
+     v2.36: sertakan proporsi capaian vs target. */
   const stripAria = recap.days
     .map(
       (d) =>
-        `${d.label} ${d.isFuture ? 'belum berjalan' : `${d.done} misi${d.metGoal ? ', target tercapai' : ''}`}`,
+        `${d.label} ${
+          d.isFuture
+            ? 'belum berjalan'
+            : `${d.done} misi (${Math.min(
+                100,
+                Math.round((d.done / Math.max(dailyGoal, 1)) * 100),
+              )}% dari target)${d.metGoal ? ', target tercapai' : ''}`
+        }`,
     )
     .join(', ')
 
@@ -215,7 +223,10 @@ export function WeeklyRecapCard() {
                     type="button"
                     onClick={() => setSelectedDay(daySelected ? null : d.iso)}
                     aria-pressed={daySelected}
-                    aria-label={`${longDateLabel(d.iso)} — ${d.done} misi${d.metGoal ? ', target tercapai' : ''}`}
+                    aria-label={`${longDateLabel(d.iso)} — ${d.done} misi (${Math.min(
+                      100,
+                      Math.round((d.done / Math.max(dailyGoal, 1)) * 100),
+                    )}% dari target ${dailyGoal})${d.metGoal ? ', target tercapai' : ''}`}
                     className="interactive flex cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <m.div
@@ -254,6 +265,29 @@ export function WeeklyRecapCard() {
                         <span className="h-1.5 w-1.5 rounded-full bg-content-muted/50" />
                       )}
                     </m.div>
+                    {/* Proporsi capaian vs target (audit v2.36): bar tipis
+                        di bawah lingkaran membedakan 25% / 60% / 100% —
+                        tidak lagi hanya tunas kosong-sebagian-penuh. */}
+                    <span
+                      aria-hidden="true"
+                      className="mt-1 h-1 w-9 overflow-hidden rounded-full bg-surface-primary/70 sm:w-10"
+                    >
+                      <m.span
+                        initial={false}
+                        className={
+                          'block h-full rounded-full ' +
+                          (sprout === 'full'
+                            ? 'bg-success'
+                            : 'bg-[var(--palette-matcha)]')
+                        }
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (d.done / Math.max(dailyGoal, 1)) * 100,
+                          )}%`,
+                        }}
+                      />
+                    </span>
                   </button>
                 )}
                 <span
@@ -316,6 +350,16 @@ export function WeeklyRecapCard() {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-eyebrow font-semibold text-content-muted">
                 <span className="tabular-nums">{sel.done} misi selesai</span>
+                {/* v2.36: jadwal + persentase kepatuhan — hari tanpa jadwal
+                    tidak menampilkan angka kosong yang menyesatkan. */}
+                {sel.scheduled > 0 ? (
+                  <span className="tabular-nums">
+                    {Math.min(sel.done, sel.scheduled)}/{sel.scheduled} jadwal (
+                    {Math.round((sel.done / sel.scheduled) * 100)}%)
+                  </span>
+                ) : (
+                  <span>tanpa kebiasaan terjadwal</span>
+                )}
                 {selWorkouts > 0 && (
                   <span className="flex items-center gap-1 tabular-nums">
                     <Dumbbell className="h-3 w-3" aria-hidden="true" />

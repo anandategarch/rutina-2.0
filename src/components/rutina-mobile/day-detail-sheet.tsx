@@ -261,6 +261,11 @@ function DayDetailBody({
                 <div>
                   <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
                     Kebiasaan — {data.doneCount} dari {data.habitRows.length} selesai
+                    {/* v2.36: persentase kepatuhan hari itu (denominator =
+                        kebiasaan terjadwal saja, hari jeda tetap terhitung
+                        sebagaimana daftar barisnya). */}
+                    {data.doneCount > 0 &&
+                      ` (${Math.round((data.doneCount / data.habitRows.length) * 100)}%)`}
                   </p>
                   <ul className="mt-2 space-y-2">
                     {data.habitRows.map((row) => (

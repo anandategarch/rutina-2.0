@@ -158,9 +158,12 @@ interface DayChip {
   isFuture: boolean
   /** Jumlah kebiasaan selesai NYATA pada tanggal itu. */
   done: number
+  /** Kebiasaan terjadwal hari itu (v2.36 — intensitas sadar-jadwal). */
+  scheduled: number
 }
 
 function DateStrip() {
+  const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const selectedDate = useRutina((s) => s.selectedDate)
@@ -182,10 +185,11 @@ function DateStrip() {
         isToday: i === 0,
         isFuture: i > 0,
         done: doneCountOn(completions, iso),
+        scheduled: habitsOn(habits, iso).length,
       })
     }
     return chips
-  }, [completions, today])
+  }, [habits, completions, today])
 
   const stripRef = useRef<HTMLDivElement>(null)
 
@@ -221,9 +225,19 @@ function DateStrip() {
         {days.map((d) => {
           const isSelected = d.iso === selectedDate
           const done = d.done
+          /* v2.36 (audit visualisasi): caption sadar-jadwal — hari tanpa
+             jadwal TIDAK dibaca sebagai 0/0 misi. */
           const caption = d.isFuture
             ? 'belum terjadi'
-            : `${Math.min(done, goal)}/${goal} misi`
+            : d.scheduled > 0
+              ? `${Math.min(done, d.scheduled)}/${d.scheduled} jadwal (${Math.round(
+                  (done / d.scheduled) * 100,
+                )}%)`
+              : 'tanpa kebiasaan terjadwal'
+          /* Proporsi selesai/terjadwal — lebar bar = intensitas; hari
+             tanpa jadwal = garis netral (bukan bar kosong 0%). */
+          const schedPct =
+            d.scheduled > 0 ? Math.min(100, Math.round((done / d.scheduled) * 100)) : null
           return (
             <button
               key={d.iso}
@@ -250,18 +264,37 @@ function DateStrip() {
               <span className="text-section font-bold leading-none tabular-nums">
                 {d.dateNum}
               </span>
+              {/* Bar intensitas ritme harian (audit v2.36): proporsi
+                  selesai dibanding jadwal — menggantikan titik tunggal
+                  "target tercapai/tidak". */}
               {!d.isFuture && (
                 <span
                   aria-hidden="true"
                   className={
-                    'absolute bottom-1 h-1 w-1 rounded-full ' +
-                    (done >= goal
-                      ? d.isToday
-                        ? 'bg-primary-foreground'
-                        : 'bg-primary'
-                      : 'bg-primary/30')
+                    'absolute bottom-1.5 h-1 w-6 overflow-hidden rounded-full ' +
+                    (schedPct == null
+                      ? 'bg-primary/15'
+                      : d.isToday
+                        ? 'bg-primary-foreground/30'
+                        : 'bg-primary/15')
                   }
-                />
+                >
+                  {schedPct != null && (
+                    <span
+                      className={
+                        'block h-full rounded-full ' +
+                        (d.isToday
+                          ? schedPct >= 100
+                            ? 'bg-primary-foreground'
+                            : 'bg-primary-foreground/70'
+                          : schedPct >= 100
+                            ? 'bg-primary'
+                            : 'bg-primary/70')
+                      }
+                      style={{ width: `${schedPct}%` }}
+                    />
+                  )}
+                </span>
               )}
             </button>
           )
@@ -270,10 +303,14 @@ function DateStrip() {
       <p className="mt-2 px-0.5 text-meta font-medium text-content-muted">
         {selected
           ? selected.isToday
-            ? `Hari ini — ${Math.min(selected.done, goal)}/${goal} misi target tercapai`
+            ? selected.scheduled > 0
+              ? `Hari ini — ${Math.min(selected.done, selected.scheduled)}/${selected.scheduled} jadwal selesai`
+              : 'Hari ini — tanpa kebiasaan terjadwal'
             : selected.isFuture
               ? `${longDateLabel(selected.iso)} — belum terjadi`
-              : `${longDateLabel(selected.iso)} — ${selected.done} misi selesai`
+              : selected.scheduled > 0
+                ? `${longDateLabel(selected.iso)} — ${selected.done} misi selesai dari ${selected.scheduled} jadwal`
+                : `${longDateLabel(selected.iso)} — ${selected.done} misi selesai`
           : 'Memuat kalender…'}
       </p>
     </div>

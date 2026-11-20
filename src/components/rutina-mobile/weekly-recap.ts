@@ -11,6 +11,7 @@ import {
   addDaysISO,
   bestStreak,
   doneCountOn,
+  habitsOn,
   weekStartISO,
   WEEKDAY_MIN,
   XP_PER_TASK,
@@ -27,6 +28,8 @@ export interface RecapDayInfo {
   label: string
   /** Jumlah misi selesai hari itu. */
   done: number
+  /** Kebiasaan terjadwal hari itu (v2.36 — proporsi & kepatuhan). */
+  scheduled: number
   /** Target harian tercapai (done ≥ dailyGoal). */
   metGoal: boolean
   isToday: boolean
@@ -99,6 +102,7 @@ export function weeklyRecapOf(input: WeeklyRecapInput): WeeklyRecapInfo {
       iso,
       label: WEEKDAY_MIN[fromISO(iso).getDay()],
       done,
+      scheduled: habitsOn(habits, iso).length,
       metGoal: done >= dailyGoal && dailyGoal > 0,
       isToday: iso === today,
       isFuture,
