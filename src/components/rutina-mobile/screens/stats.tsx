@@ -287,6 +287,7 @@ export default function StatsScreen() {
   const notes = useRutina((s) => s.notes)
   const mood = useRutina((s) => s.mood)
   const setMood = useRutina((s) => s.setMood)
+  const moodLogs = useRutina((s) => s.moodLogs)
   const bonusClaimed = useRutina((s) => s.bonusClaimed)
   const workouts = useRutina((s) => s.workouts)
   const foodEntries = useRutina((s) => s.foodEntries)
@@ -551,41 +552,56 @@ export default function StatsScreen() {
     }
   }, [habits, completions, today])
 
-  const kpiTiles = [
-    {
-      key: 'konsistensi',
-      /* Label pendek agar tak membungkus di tile sempit (ponsel 2 kolom);
-         konteks "30 hari" dibawa caption tile Misi. */
-      label: 'Konsistensi',
-      value: kpi.consistency,
-      unit: '%',
-      caption:
-        kpi.sched > 0
-          ? `${kpi.done} dari ${kpi.sched} terjadwal · 30 hari`
-          : 'Belum ada jadwal kebiasaan',
-    },
-    {
-      key: 'misi',
-      label: 'Misi Selesai',
-      value: kpi.missions,
-      unit: 'misi',
-      caption: 'dalam 30 hari terakhir',
-    },
-    {
-      key: 'streak',
-      label: 'Streak Berjalan',
-      value: best.streak,
-      unit: 'hari',
-      caption: best.habit ? best.habit.title : 'Belum ada kebiasaan aktif',
-    },
-    {
-      key: 'rekor',
-      label: 'Rekor Streak',
-      value: best.record,
-      unit: 'hari',
-      caption: 'rekor terpanjangmu',
-    },
-  ]
+  /* ===== Wawasan lintas domain (v2.32 Observatory) — menjawab "kenapa",
+      bukan menambah angka (audit: insight harus menjawab apa yang berubah
+      & mengapa). Observasional jujur: hanya tampil bila data cukup —
+      tidak ada data tidak ada wawasan, bukan angka karangan. ===== */
+  const crossInsights = useMemo(() => {
+    const out: { title: string; body: string }[] = []
+    const days = dayCounts(completions, today, 30)
+    const woDates = new Set(workouts.map((w) => w.date))
+
+    /* Latihan vs misi. */
+    const withWo = days.filter((d) => woDates.has(d.date))
+    const withoutWo = days.filter((d) => !woDates.has(d.date))
+    if (withWo.length >= 3 && withoutWo.length >= 3) {
+      const avg = (xs: { count: number }[]) =>
+        xs.reduce((a, x) => a + x.count, 0) / xs.length
+      const a1 = avg(withWo)
+      const a0 = avg(withoutWo)
+      if (Math.abs(a1 - a0) >= 0.5) {
+        out.push({
+          title: 'Hari berlatih vs hari tanpa latihan',
+          body: `Rata-rata ${a1.toFixed(1).replace('.', ',')} misi pada ${withWo.length} hari berlatih, vs ${a0.toFixed(1).replace('.', ',')} pada ${withoutWo.length} hari tanpa latihan — misi cenderung ${a1 > a0 ? 'lebih banyak' : 'lebih sedikit'} saat kamu berlatih. Observasi saja, bukan sebab-akibat.`,
+        })
+      }
+    }
+
+    /* Suasana vs misi — hanya bila moodLogs cukup. */
+    const moodDays = days.filter((d) => moodLogs[d.date])
+    if (moodDays.length >= 6) {
+      const byMood = new Map<string, { sum: number; n: number }>()
+      for (const d of moodDays) {
+        const mm = moodLogs[d.date]!
+        const rec = byMood.get(mm) ?? { sum: 0, n: 0 }
+        rec.sum += d.count
+        rec.n += 1
+        byMood.set(mm, rec)
+      }
+      const ranked = [...byMood.entries()]
+        .map(([mm, r]) => ({ mm, avg: r.sum / r.n }))
+        .sort((a, b) => b.avg - a.avg)
+      const top = ranked[0]
+      const low = ranked[ranked.length - 1]
+      if (ranked.length >= 2 && Math.abs(top.avg - low.avg) >= 0.5) {
+        out.push({
+          title: 'Suasana hati vs misi',
+          body: `Misi selesai paling banyak saat suasana "${top.mm}" (rata-rata ${top.avg.toFixed(1).replace('.', ',')}), paling sedikit saat "${low.mm}" (${low.avg.toFixed(1).replace('.', ',')}). Pola awal dari ${moodDays.length} hari tercatat — perlu lebih banyak hari sebelum bisa dibaca lebih jauh.`,
+        })
+      }
+    }
+    return out
+  }, [completions, today, workouts, moodLogs])
 
   /* ===== Statistik lintas modul Bugar — semua dari data nyata ===== */
 
@@ -971,47 +987,63 @@ export default function StatsScreen() {
           </p>
         </section>
 
-        {/* ===== KPI strip — empat metrik inti, lensa 30 hari =====
-            FIX KRITIS (audit Tahap 2 #1): grid dasar RutinaBentoGrid masih
-            membawa @[52rem]:grid-cols-12 — tanpa penimpa eksplisit, di
-            ruang kerja ≥832px tile KPI menyusut jadi 12 kolom (±60px) dan
-            label terpotong ("KONS…"). Penimpa @[42rem] TIDAK menghapus
-            breakpoint 52rem (tailwind-merge hanya mendedupe variant sama),
-            maka dua penimpa eksplisit dipasang: 4 kolom mulai 42rem DAN
-            tetap 4 kolom di 52rem+. Ponsel tetap 2 kolom (dua baris). */}
+        {/* ===== KPI hierarki (v2.32 Observatory): SATU angka dominan +
+            baris sekunder inline di bawah hairline — menggantikan kisi
+            empat kotak seragam (audit: KPI utama cukup 1–2 dominan;
+            bersama cincin XP, dua fokus halaman, sisanya pendamping). */}
         <section aria-label="Ringkasan metrik utama">
-          <RutinaBentoGrid className="grid-cols-2 @[42rem]:grid-cols-4 @[52rem]:grid-cols-4">
-            {kpiTiles.map((tile, i) => (
-              <RutinaBentoItem key={tile.key}>
-                <m.div
-                  initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-24px' }}
-                  transition={{ ...motionTokens.preset.data, delay: i * 0.05 }}
-                  className="flex h-full flex-col rounded-lg border border-border bg-hero-surface p-4 shadow-soft"
+          <m.div
+            initial={{ opacity: 0, y: reducedMotion ? 0 : 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-24px' }}
+            transition={motionTokens.preset.data}
+            className="rounded-lg border border-border bg-hero-surface p-4 shadow-soft sm:p-5"
+          >
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+              Konsistensi · 30 hari
+            </p>
+            <p className="mt-1.5 flex items-baseline gap-1.5">
+              <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums text-hero-content">
+                <Counter to={kpi.consistency} />
+              </span>
+              <span className="text-note font-semibold text-hero-content-muted">%</span>
+            </p>
+            <p className="mt-1 text-eyebrow font-medium leading-snug text-hero-content-muted">
+              {kpi.sched > 0
+                ? `${kpi.done} dari ${kpi.sched} terjadwal selesai`
+                : 'Belum ada jadwal kebiasaan'}
+            </p>
+            {/* Baris sekunder — misi, streak berjalan, rekor; pola sub-metri
+                studio (hairline atas, dibaca sekali sapuan, tanpa kotak). */}
+            <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1.5 border-t border-hero-content-muted/20 pt-3 text-meta text-hero-content-muted">
+              <span className="flex items-baseline gap-1.5">
+                Misi 30 hari
+                <span className="font-bold tabular-nums text-hero-content">
+                  {kpi.missions}
+                </span>
+              </span>
+              <span className="flex items-baseline gap-1.5">
+                Streak berjalan
+                <span className="font-bold tabular-nums text-hero-content">
+                  {best.streak} hari
+                </span>
+              </span>
+              <span className="flex items-baseline gap-1.5">
+                Rekor
+                <span className="font-bold tabular-nums text-hero-content">
+                  {best.record} hari
+                </span>
+              </span>
+              {best.habit && (
+                <span
+                  className="hidden min-w-0 truncate sm:inline"
+                  title={best.habit.title}
                 >
-                  <p className="flex items-center gap-1.5 text-chart-label font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-                    <span
-                      aria-hidden="true"
-                      className="h-1 w-1 shrink-0 rounded-full bg-module-accent"
-                    />
-                    {tile.label}
-                  </p>
-                  <p className="mt-2.5 flex items-baseline gap-1.5">
-                    <span className="text-kpi font-semibold leading-none tracking-tight tabular-nums text-hero-content">
-                      <Counter to={tile.value} />
-                    </span>
-                    <span className="text-eyebrow font-semibold text-hero-content-muted">
-                      {tile.unit}
-                    </span>
-                  </p>
-                  <p className="mt-auto line-clamp-2 break-words pt-2 text-eyebrow font-medium leading-snug text-hero-content-muted">
-                    {tile.caption}
-                  </p>
-                </m.div>
-              </RutinaBentoItem>
-            ))}
-          </RutinaBentoGrid>
+                  pemegang streak: {best.habit.title}
+                </span>
+              )}
+            </div>
+          </m.div>
         </section>
 
         {/* Misi selesai — panel fokus periode + instrumen grafik.
@@ -1226,7 +1258,7 @@ export default function StatsScreen() {
                     persentase misi selesai · 30 hari terakhir
                   </p>
                   <p className="mt-1.5 flex items-baseline gap-1.5">
-                    <span className="text-kpi-hero font-semibold leading-none tracking-tight text-content-primary">
+                    <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
                       <Counter to={trendAvg} decimals={1} />
                     </span>
                     <span className="text-note font-medium text-content-muted">
@@ -1465,7 +1497,7 @@ export default function StatsScreen() {
                         Konsistensi kebiasaan
                       </p>
                       <p className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-kpi-hero font-semibold leading-none tabular-nums text-success">
+                        <span className="text-kpi-lg font-semibold leading-none tabular-nums text-success">
                           {monthReport.pct}%
                         </span>
                         <span className="text-meta font-medium text-content-muted">
@@ -1728,7 +1760,10 @@ export default function StatsScreen() {
           </RutinaBentoItem>
 
           <RutinaBentoItem span="medium">
-            {/* Suasana hati — catatan perasaan, dipindah dari Ringkasan Pekan */}
+            {/* Wawasan lintas domain (v2.32 Observatory) — menjawab "kenapa",
+                bukan menambah angka. Menggantikan slot input suasana hati
+                (audit: data entry tidak semestinya berada di observatorium);
+                input pindah ke seksi Check-in di ujung halaman. */}
             <m.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1737,39 +1772,32 @@ export default function StatsScreen() {
               className="h-full rounded-lg border border-border bg-surface-primary p-5 shadow-soft"
             >
               <p className="text-body font-semibold tracking-tight text-content-secondary">
-                Suasana Hati
+                Wawasan Lintas Domain
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {MOODS.map((m) => {
-                  const MoodIcon = MOOD_ICONS[m]
-                  const selected = mood === m
-                  return (
-                    <button
-                      /* key berubah saat terpilih → tombol dipasang ulang
-                         sehingga animasi pop CSS bermain setiap kali aktif. */
-                      key={selected ? `on-${m}` : `off-${m}`}
-                      type="button"
-                      aria-pressed={selected}
-                      aria-label={`Catat suasana hati: ${m}`}
-                      onClick={() => setMood(selected ? null : m)}
-                      className={
-                        'interactive flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border ' +
-                        (selected
-                          ? 'motion-safe:animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
-                          : 'border-border bg-surface-secondary text-content-secondary hover:bg-surface-sunken')
-                      }
-                    >
-                      <MoodIcon className="h-4 w-4" />
-                      <span className="text-eyebrow font-semibold">{m}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="mt-3 text-eyebrow font-medium text-content-muted">
-                {mood
-                  ? `Kamu merasa ${mood.toLowerCase()} hari ini`
-                  : 'Bagaimana perasaanmu?'}
+              <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
+                observasi 30 hari — bukan sebab-akibat
               </p>
+              {crossInsights.length === 0 ? (
+                <RutinaEmptyState
+                  className="mt-3 px-4 py-6"
+                  icon={<Sparkles className="h-6 w-6" />}
+                  title="Belum cukup pola"
+                  description="Catat latihan dan suasana hatimu beberapa hari lagi — wawasan muncul otomatis begitu datanya cukup."
+                />
+              ) : (
+                <ul className="mt-3 space-y-3.5">
+                  {crossInsights.map((f) => (
+                    <li key={f.title}>
+                      <p className="text-note font-semibold text-content-primary">
+                        {f.title}
+                      </p>
+                      <p className="mt-1 text-pretty text-meta leading-relaxed text-content-secondary">
+                        {f.body}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </m.div>
           </RutinaBentoItem>
         </RutinaBentoGrid>
@@ -2119,6 +2147,52 @@ export default function StatsScreen() {
           </CollapsibleContent>
         </Collapsible>
         </div>
+
+        {/* v2.32 Observatory: Check-in suasana hati — dipindah dari slot
+            wawasan; input data tidak lagi menyamar sebagai insight, ia
+            diletakkan di ujung halaman sebagai pintu catat-cepat. */}
+        <section
+          aria-label="Check-in suasana hati"
+          className="mt-[var(--layout-gap)] rounded-lg border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+        >
+          <p className="text-body font-semibold tracking-tight text-content-secondary">
+            Check-in Suasana
+          </p>
+          <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
+            satu ketukan — tercermin di Profil & wawasan lintas domain
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {MOODS.map((m) => {
+              const MoodIcon = MOOD_ICONS[m]
+              const selected = mood === m
+              return (
+                <button
+                  /* key berubah saat terpilih → tombol dipasang ulang
+                     sehingga animasi pop CSS bermain setiap kali aktif. */
+                  key={selected ? `on-${m}` : `off-${m}`}
+                  type="button"
+                  aria-pressed={selected}
+                  aria-label={`Catat suasana hati: ${m}`}
+                  onClick={() => setMood(selected ? null : m)}
+                  className={
+                    'interactive flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border ' +
+                    (selected
+                      ? 'motion-safe:animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
+                      : 'border-border bg-surface-secondary text-content-secondary hover:bg-surface-sunken')
+                  }
+                >
+                  <MoodIcon className="h-4 w-4" />
+                  <span className="text-eyebrow font-semibold">{m}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-3 text-eyebrow font-medium text-content-muted">
+            {mood
+              ? `Kamu merasa ${mood.toLowerCase()} hari ini`
+              : 'Bagaimana perasaanmu?'}
+          </p>
+        </section>
 
         </div>
 
