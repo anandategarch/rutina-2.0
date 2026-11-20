@@ -42,11 +42,8 @@ import { HomeFinanceCard } from '../home-finance-card'
 import { DailyHighlightCard } from '../daily-highlight-card'
 import { WeeklyRecapCard } from '../weekly-recap-card'
 import { PlantGarden } from '../plant-garden'
-import {
-  goldilocksOf,
-  missedYesterday,
-  type GoldilocksAdvice,
-} from '../habit-coach'
+import { goldilocksOf, type GoldilocksAdvice } from '../habit-coach'
+import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
 import { RutinaCard } from '../rutina-card'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaEmptyState } from '../rutina-empty-state'
@@ -369,6 +366,10 @@ export default function HomeScreen() {
 
   const [showArchive, setShowArchive] = useState(false)
   const [showDone, setShowDone] = useState(false)
+  /* Pagar agenda (audit v2.37): kondisi awal ringkas (maks 4 tugas
+     prioritas); ekspansi lokal tetap tersedia, data tidak pernah
+     dianggap selesai karena disembunyikan. */
+  const [showAllAgenda, setShowAllAgenda] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const firedRef = useRef(false)
@@ -428,8 +429,19 @@ export default function HomeScreen() {
     [txs],
   )
 
+  /* SATU SUMBER TUGAS (audit v2.37): agenda, kartu pemulihan, dan
+     dedup Sorotan semuanya membaca derivasi homeAttention — tidak
+     ada lagi tiga jalur yang masing-masing menghitung kandidat
+     sendiri tanpa deduplikasi habit.id. */
+  const attention = useMemo(
+    () => homeAttention(habits, completions, today, selectedDate),
+    [habits, completions, today, selectedDate],
+  )
+  const totalPending = attention.items.length
+
   /* Agenda terbuka: belum selesai dikelompokkan per waktu, selesai
-     dilipat ke bagian "Selesai" di bawahnya. */
+     dilipat ke bagian "Selesai" di bawahnya — sumbernya kini satu:
+     attention.items (sudah terurut prioritas). */
   const pendingGroups = useMemo(() => {
     const buckets: Record<AgendaSlot, Habit[]> = {
       pagi: [],
@@ -437,21 +449,20 @@ export default function HomeScreen() {
       malam: [],
       bebas: [],
     }
-    for (const h of dayHabits) {
-      if (!isDoneOn(completions, selectedDate, h.id)) {
-        buckets[slotOf(h)].push(h)
-      }
-    }
-    const byTime = (a: Habit, b: Habit) => {
-      const ra = a.reminder ?? '99:99'
-      const rb = b.reminder ?? '99:99'
-      return ra === rb ? a.title.localeCompare(b.title) : ra < rb ? -1 : 1
-    }
+    for (const item of attention.items) buckets[slotOf(item.habit)].push(item.habit)
     return SLOT_META.map((meta) => ({
       ...meta,
-      items: buckets[meta.key].sort(byTime),
+      items: buckets[meta.key],
     })).filter((g) => g.items.length > 0)
-  }, [dayHabits, completions, selectedDate])
+  }, [attention])
+
+  /* Mode ringkas: hanya bila tugas tertunda melebihi pagar — daftar
+     kecil (< 4) tetap memakai rel waktu penuh (desain Daybook). */
+  const compactAgenda = !showAllAgenda && totalPending > HOME_AGENDA_LIMIT
+  const visibleAgenda = compactAgenda
+    ? attention.items.slice(0, HOME_AGENDA_LIMIT)
+    : attention.items
+  const hiddenAgendaCount = totalPending - visibleAgenda.length
 
   const doneHabits = useMemo(
     () => dayHabits.filter((h) => isDoneOn(completions, selectedDate, h.id)),
@@ -470,15 +481,11 @@ export default function HomeScreen() {
   )
   const quoteSavedToday = quoteSavedDate === today
 
-  /* Nudge "Jangan Bolong Dua Kali" — terlewat kemarin DAN belum
-     diselesaikan hari ini; kartu lenyap sendiri begitu semua selesai. */
-  const missedList = useMemo(
-    () =>
-      missedYesterday(habits, completions, today).filter(
-        (h) => !isDoneOn(completions, today, h.id),
-      ),
-    [habits, completions, today],
-  )
+  /* Pemulihan "Jangan Bolong Dua Kali" (audit v2.37): HANYA kebiasaan
+     terlewat kemarin yang TIDAK terjadwal hari ini — yang terjadwal
+     hari ini sudah punya baris Agenda berbadge "Terlewat kemarin",
+     kartu pemulihan terpisah akan menjadi tombol centang kedua. */
+  const recoveryList = attention.recovery
 
   /* Saran Coach (Goldilocks) — kebiasaan terjadwal hari ini yang hasil
      pekanannya meminta penyesuaian; batasi 3 saran paling releven. */
@@ -765,7 +772,7 @@ export default function HomeScreen() {
           <RutinaBentoItem
             span="wide"
             className={
-              missedList.length === 0 && coachTips.length === 0
+              recoveryList.length === 0 && coachTips.length === 0
                 ? '@[52rem]:col-span-12'
                 : undefined
             }
@@ -823,10 +830,42 @@ export default function HomeScreen() {
                   />
                 ) : (
                   <>
-                    {/* Kelompok misi belum selesai — tiap waktu menjadi
-                        baris rel (agenda-rail): titik aksen + hairline
-                        vertikal ala planner kertas; label waktu kecil
-                        di kepala rel. */}
+                    {/* Pagar agenda (audit v2.37): kondisi awal hanya 4
+                        tugas prioritas — baris cepat tanpa kartu bertumpuk.
+                        Tugas tersembunyi TIDAK dianggap selesai; lengkapnya
+                        hidup di rel waktu (ekspansi) & halaman Kebiasaan. */}
+                    {compactAgenda ? (
+                      <div role="list" className="divide-y divide-border/60">
+                        {visibleAgenda.map((item) => (
+                          <div key={item.habit.id} role="listitem">
+                            <TaskRow
+                              habit={item.habit}
+                              done={false}
+                              streak={item.streak}
+                              recent={recentDays(completions, item.habit.id, selectedDate)}
+                              weekDone={weekDoneCount(completions, item.habit.id, selectedDate)}
+                              expanded={false}
+                              readOnly={selectedDate > today}
+                              viewDate={selectedDate}
+                              variant="compact"
+                              missedYesterday={item.missedYesterday}
+                              streakRisk={item.streakRisk}
+                              onToggle={() => {
+                                toggleHabit(item.habit.id, selectedDate)
+                                setShowDone(true)
+                              }}
+                              onExpand={() => setShowAllAgenda(true)}
+                              onEdit={() => openHabitEdit(item.habit.id)}
+                              onOpen={() => setScreen('kebiasaan')}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                    /* Kelompok misi belum selesai — tiap waktu menjadi
+                       baris rel (agenda-rail): titik aksen + hairline
+                       vertikal ala planner kertas; label waktu kecil
+                       di kepala rel. (Ekspansi penuh — pagar terbuka.) */
                     <div className="space-y-5">
                       {pendingGroups.map((g, gi) => (
                         <m.div
@@ -892,6 +931,52 @@ export default function HomeScreen() {
                         </m.div>
                       ))}
                     </div>
+                    )}
+
+                    {/* Penghitung pagar agenda + akses sisa (audit v2.37):
+                        "4 dari 12 tugas" — sisa jelas, satu CTA ke
+                        Kebiasaan, satu ekspansi lokal. */}
+                    {totalPending > 0 && (
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border border-border bg-surface-sunken/50 px-3.5 py-2.5">
+                        <p className="text-meta font-semibold tabular-nums text-content-secondary">
+                          {compactAgenda
+                            ? `${visibleAgenda.length} dari ${totalPending} tugas`
+                            : `${totalPending} tugas terjadwal`}
+                          {hiddenAgendaCount > 0 && (
+                            <span className="font-medium text-content-muted">
+                              {' '}
+                              · {hiddenAgendaCount} menunggu
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {compactAgenda ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllAgenda(true)}
+                              className="h-9 cursor-pointer rounded-full border border-border-strong px-3.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            >
+                              Tampilkan semua ({totalPending})
+                            </button>
+                          ) : totalPending > HOME_AGENDA_LIMIT ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllAgenda(false)}
+                              className="h-9 cursor-pointer rounded-full border border-border-strong px-3.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            >
+                              Tampilkan ringkas
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => setScreen('kebiasaan')}
+                            className="h-9 cursor-pointer rounded-full bg-primary px-3.5 text-eyebrow font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            Lihat semua kebiasaan
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Misi selesai — dilipat, terbuka otomatis saat ada yang baru */}
                     {doneHabits.length > 0 && (
@@ -1064,11 +1149,13 @@ export default function HomeScreen() {
                panel sekunder SETELAH hero progres & daftar misi, sesuai
                komposisi Daybook (daily insight = panel kecil, bukan hero
                kedua yang bersaing di posisi teratas). */}
-            <DailyHighlightCard />
+            <DailyHighlightCard excludeHabitIds={attention.actionIds} />
 
-            {/* Nudge "Jangan Bolong Dua Kali" — kartu hangat (bukan merah):
-               kebiasaan terlewat kemarin, selesaikan hari ini. */}
-            {missedList.length > 0 && (
+            {/* Pemulihan "Jangan Bolong Dua Kali" — kartu hangat (bukan
+               merah): kebiasaan terlewat kemarin yang TIDAK terjadwal
+               hari ini (maks 2) — yang terjadwal hari ini sudah ada di
+               Agenda dengan badge, tidak boleh dobel. */}
+            {recoveryList.length > 0 && (
               <m.section
                 initial={playEntrance ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
@@ -1094,7 +1181,7 @@ export default function HomeScreen() {
                     </div>
                   </div>
                   <div className="mt-3 space-y-1.5">
-                    {missedList.map((h) => (
+                    {recoveryList.map((h) => (
                       <div
                         key={h.id}
                         className="flex items-center gap-3 rounded-lg border border-gold/30 bg-surface-primary/70 px-3 py-1.5"

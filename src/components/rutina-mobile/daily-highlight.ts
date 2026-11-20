@@ -109,6 +109,11 @@ export interface HighlightInput {
   bonusClaimed: boolean
   /** XP bonus harian — untuk teks CTA klaim. */
   bonusXp: number
+  /** habit.id yang sudah punya baris aksi di Beranda (Agenda /
+   *  pemulihan) — kandidat streak-risk yang ada di sini DILEWATI
+   *  supaya Sorotan tidak pernah membuat tombol centang kedua
+   *  untuk kebiasaan yang sama (audit v2.37). */
+  excludeHabitIds?: Set<string>
 }
 
 /** Total pengeluaran bulan berjalan per kategori (tipe keluar saja). */
@@ -142,18 +147,22 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     workouts,
     bonusClaimed,
     bonusXp,
+    excludeHabitIds,
   } = input
 
   const active = habits.filter((h) => !h.archived)
   const todayHabits = habitsOn(habits, today)
 
   /* 1 — Streak dipertaruhkan: terjadwal hari ini, belum selesai,
-         runtun aktif terpanjang di antara kandidat. */
+         runtun aktif terpanjang di antara kandidat. Kandidat yang sudah
+         punya baris aksi di Agenda/pemulihan DILEWATI — Sorotan tidak
+         boleh mengulang tombol centang untuk habit yang sama. */
   const risky = todayHabits
     .filter(
       (h) =>
         !isDoneOn(completions, today, h.id) &&
-        habitStreak(h, completions, today) >= STREAK_RISK_MIN,
+        habitStreak(h, completions, today) >= STREAK_RISK_MIN &&
+        !excludeHabitIds?.has(h.id),
     )
     .sort(
       (a, b) =>

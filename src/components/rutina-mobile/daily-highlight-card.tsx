@@ -75,7 +75,13 @@ function budgetBarClass(pct: number): string {
   return 'bg-primary'
 }
 
-export function DailyHighlightCard() {
+export function DailyHighlightCard({
+  excludeHabitIds,
+}: {
+  /** habit.id yang sudah punya baris aksi di Beranda — Sorotan tidak
+   *  membuat tombol centang kedua untuk kebiasaan yang sama. */
+  excludeHabitIds?: Set<string>
+}) {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const txs = useRutina((s) => s.txs)
@@ -98,6 +104,7 @@ export function DailyHighlightCard() {
     workouts,
     bonusClaimed,
     bonusXp: XP_BONUS,
+    excludeHabitIds,
   }
   const hl = pickDailyHighlight(input)
 

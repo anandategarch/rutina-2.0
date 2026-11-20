@@ -42,8 +42,214 @@ import { pressSnappy } from '@/lib/motion/transitions'
  * - Tombol lingkaran centang (32px, target sentuh luas) = satu-satunya
  *   cara menandai selesai.
  * - Sisa baris (judul, pil meta, chevron) = membuka detail.
+ *
+ * Dispatcher varian (audit v2.37): `default` → kartu lengkap di halaman
+ * Kebiasaan (TaskRowFull); `compact` → baris cepat Agenda Beranda
+ * (TaskRowCompact) — hanya centang, nama, jam pengingat, dan badge
+ * prioritas. Dua komponen terpisah agar urutan hook masing-masing statis.
  */
 export function TaskRow({
+  habit,
+  done,
+  streak,
+  recent,
+  weekDone,
+  xp,
+  expanded,
+  readOnly = false,
+  viewDate,
+  variant = 'default',
+  missedYesterday = false,
+  streakRisk = false,
+  onToggle,
+  onExpand,
+  onEdit,
+  onOpen,
+}: TaskRowProps) {
+  if (variant === 'compact') {
+    return (
+      <TaskRowCompact
+        habit={habit}
+        done={done}
+        streak={streak}
+        readOnly={readOnly}
+        viewDate={viewDate}
+        missedYesterday={missedYesterday}
+        streakRisk={streakRisk}
+        onToggle={onToggle}
+        onExpand={onExpand}
+        onOpen={onOpen}
+      />
+    )
+  }
+  return (
+    <TaskRowFull
+      habit={habit}
+      done={done}
+      streak={streak}
+      recent={recent}
+      weekDone={weekDone}
+      xp={xp}
+      expanded={expanded}
+      readOnly={readOnly}
+      viewDate={viewDate}
+      onToggle={onToggle}
+      onExpand={onExpand}
+      onEdit={onEdit}
+    />
+  )
+}
+
+interface TaskRowProps {
+  habit: Habit
+  done: boolean
+  /** Streak aktif nyata (dihitung parent dari histori). */
+  streak: number
+  /** 14 hari terakhir berakhir pada tanggal yang dilihat. */
+  recent: boolean[]
+  /** Selesai dalam pekan berjalan vs target mingguan. */
+  weekDone: number
+  xp?: number
+  expanded: boolean
+  /** true bila tanggal yang dilihat masa depan — centang dimatikan. */
+  readOnly?: boolean
+  /** Tanggal yang sedang dilihat (v2.22) — dasar stepper kebiasaan
+   *  terukur; default hari ini. */
+  viewDate?: string
+  /** Varian tampilan: `default` (kartu lengkap — Kebiasaan) atau
+   * `compact` (baris cepat — Agenda Beranda). */
+  variant?: 'default' | 'compact'
+  /** Badge "Terlewat kemarin" — hanya bermakna di Beranda (hari ini). */
+  missedYesterday?: boolean
+  /** Badge runtun berisiko — hanya bermakna di Beranda (hari ini). */
+  streakRisk?: boolean
+  onToggle: () => void
+  onExpand: () => void
+  onEdit: () => void
+  /** Varian compact: ketuk badan baris membuka ruang lengkapnya
+   * (default: navigasi ke halaman Kebiasaan). */
+  onOpen?: () => void
+}
+
+/* ===== Varian compact — baris cepat Agenda Beranda =====
+   Satu centang, satu nama, jam pengingat, badge prioritas. Tanpa
+   kartu bertumpuk: detail lengkap hidup di halaman Kebiasaan. */
+function TaskRowCompact({
+  habit,
+  done,
+  streak,
+  readOnly = false,
+  viewDate,
+  missedYesterday = false,
+  streakRisk = false,
+  onToggle,
+  onExpand,
+  onOpen,
+}: {
+  habit: Habit
+  done: boolean
+  streak: number
+  readOnly?: boolean
+  viewDate?: string
+  missedYesterday?: boolean
+  streakRisk?: boolean
+  onToggle: () => void
+  onExpand: () => void
+  onOpen?: () => void
+}) {
+  const completions = useRutina((s) => s.completions)
+  const viewISO = viewDate ?? todayISO()
+  const isMeasured = habit.target != null && habit.target > 0
+  const progress = useMemo(
+    () => (isMeasured ? habitProgressOn(habit, completions, viewISO) : 0),
+    [isMeasured, habit, completions, viewISO],
+  )
+
+  return (
+    <div
+      className={
+        'flex min-h-12 items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors duration-200 hover:bg-surface-sunken/60 ' +
+        (done ? 'opacity-70' : '')
+      }
+    >
+      <m.button
+        type="button"
+        disabled={readOnly}
+        onClick={onToggle}
+        whileTap={{ scale: 0.92 }}
+        role="checkbox"
+        aria-checked={done}
+        aria-disabled={readOnly}
+        aria-label={`Tandai selesai: ${habit.title}`}
+        className={`relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-colors duration-300 before:absolute before:-inset-2 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed ${
+          done
+            ? 'border-primary bg-primary text-primary-foreground'
+            : readOnly
+              ? 'border-border text-transparent'
+              : 'border-border-strong text-transparent hover:border-primary/60'
+        }`}
+      >
+        <m.span
+          key={String(done)}
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={pressSnappy}
+          aria-hidden="true"
+          className="flex"
+        >
+          <Check className="h-4 w-4" strokeWidth={3} />
+        </m.span>
+      </m.button>
+
+      <button
+        type="button"
+        onClick={onOpen ?? onExpand}
+        className="interactive min-w-0 flex-1 cursor-pointer rounded-lg px-1 py-0.5 text-left"
+      >
+        <span
+          className={
+            'block truncate text-section font-medium leading-snug ' +
+            (done ? 'text-content-muted line-through' : 'text-content-primary')
+          }
+        >
+          {habit.title}
+        </span>
+        <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-eyebrow font-medium text-content-muted">
+          {habit.reminder && (
+            <span className="flex shrink-0 items-center gap-1 tabular-nums">
+              <Clock className="h-3 w-3" aria-hidden="true" />
+              {habit.reminder}
+            </span>
+          )}
+          {isMeasured && (
+            <span className="shrink-0 tabular-nums">
+              {progress}/{habit.target} {habit.unit ?? 'kali'}
+            </span>
+          )}
+          {missedYesterday && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-1.5 py-0.5 font-semibold text-warning">
+              Terlewat kemarin
+            </span>
+          )}
+          {streakRisk && !missedYesterday && streak > 0 && (
+            <span
+              className="flex shrink-0 items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 font-semibold text-module-accent-strong"
+              title={`Streak ${streak} hari dipertaruhkan`}
+            >
+              <Flame className="h-3 w-3" aria-hidden="true" />
+              <span className="tabular-nums">{streak}</span>
+              <span className="sr-only"> hari beruntun dipertaruhkan</span>
+            </span>
+          )}
+          <span className="sr-only">. Ketuk untuk membuka di Kebiasaan.</span>
+        </span>
+      </button>
+    </div>
+  )
+}
+
+/* ===== Varian default — kartu lengkap (halaman Kebiasaan) ===== */
+function TaskRowFull({
   habit,
   done,
   streak,
