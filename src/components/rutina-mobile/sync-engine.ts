@@ -45,6 +45,7 @@ const META_KEY = 'rutina-2.0-sync-meta'
 const DOMAIN_KEYS = [
   'habits',
   'completions',
+  'habitAuto',
   'notes',
   'txs',
   'goals',
@@ -201,8 +202,22 @@ function applyServerState(remote: SyncState): void {
       target: h.target ?? null,
       unit: h.unit ?? null,
       groupId: h.groupId ?? null,
+      linkedActivity: h.linkedActivity ?? null,
     })),
     completions: remote.completions,
+    /* Provenance penyelesaian otomatis (audit v2.37 §4D) — bentuk
+       dalam-dalam disalin per-tanggal agar tak berbagi referensi. */
+    habitAuto: Object.fromEntries(
+      Object.entries(remote.habitAuto ?? {}).map(([habitId, dates]) => [
+        habitId,
+        Object.fromEntries(
+          Object.entries(dates).map(([date, e]) => [
+            date,
+            { base: e.base, wo: [...(e.wo ?? [])] },
+          ]),
+        ),
+      ]),
+    ),
     notes: remote.notes.map((n) => ({ ...n, folder: n.folder as FolderKey })),
     txs: remote.txs.map((t) => ({
       ...t,
@@ -629,6 +644,7 @@ export async function importBackup(raw: string): Promise<string | null> {
     applyServerState({
       habits: [],
       completions: {},
+      habitAuto: {},
       notes: [],
       txs: [],
       goals: [],

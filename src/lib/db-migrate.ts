@@ -82,6 +82,11 @@ async function runDdl(): Promise<void> {
     ['rutina_habits', 'groupId'],
     /* v2.22: progres parsial kebiasaan terukur di log. */
     ['rutina_habit_logs', 'value'],
+    /* v2.38 (audit v2.37 §4): tautan aktivitas Bugar pada habit +
+       provenance penyelesaian otomatis pada log. */
+    ['rutina_habits', 'linkedActivity'],
+    ['rutina_habit_logs', 'autoBase'],
+    ['rutina_habit_logs', 'autoWo'],
   ]
   const COL_TYPES: Record<string, string> = {
     distance: 'REAL',
@@ -89,6 +94,9 @@ async function runDdl(): Promise<void> {
     unit: 'TEXT',
     groupId: 'TEXT',
     value: 'REAL',
+    linkedActivity: 'TEXT',
+    autoBase: 'TEXT',
+    autoWo: "TEXT NOT NULL DEFAULT '[]'",
   }
   for (const [table, column] of cardioCols) {
     if (await hasColumn(table, column)) continue

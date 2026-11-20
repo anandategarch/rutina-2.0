@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Dumbbell,
   Gauge,
   Layers,
   Link2,
@@ -53,8 +54,10 @@ import {
   todayISO,
   useRutina,
   WEEKDAY_MIN,
+  WORKOUT_KIND_LABEL,
   type HabitCat,
   type HabitInput,
+  type WorkoutKind,
 } from './store'
 import { useFocusTrap } from './use-focus-trap'
 
@@ -76,6 +79,7 @@ const EMPTY_DRAFT: Draft = {
   target: null,
   unit: null,
   groupId: null,
+  linkedActivity: null,
 }
 
 /**
@@ -149,6 +153,7 @@ export function HabitSheet() {
           target: editing.target ?? null,
           unit: editing.unit ?? null,
           groupId: editing.groupId ?? null,
+          linkedActivity: editing.linkedActivity ?? null,
         })
         setReminderOn(Boolean(editing.reminder))
         setMeasuredOn(Boolean(editing.target))
@@ -250,6 +255,9 @@ export function HabitSheet() {
           ? (draft.unit ?? '').trim() || 'kali'
           : null,
       groupId: draft.groupId || null,
+      /* Tautan aktivitas Bugar (audit v2.37 §4A) — pilihan eksplisit
+         pengguna, null = tidak terhubung. */
+      linkedActivity: draft.linkedActivity ?? null,
       /* Jeda Runtun dikelola langsung lewat bagiannya (scheduleRestDay /
          cancelRestDay memutasi store saat itu juga) — kirim nilai TERKINI
          milik kebiasaan, bukan draf yang mungkin basi. */
@@ -796,6 +804,74 @@ export function HabitSheet() {
                     </p>
                   </m.div>
                 )}
+              </div>
+
+              {/* Hubungkan aktivitas Bugar (audit v2.37 §4A) — pilihan
+                  EKSPLISIT: sesi jenis terpilih dapat menyelesaikan /
+                  menambah progres kebiasaan ini otomatis. */}
+              <div className="space-y-1.5">
+                <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
+                  <Dumbbell
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 text-primary"
+                  />
+                  Hubungkan aktivitas Bugar
+                </span>
+                <div
+                  role="group"
+                  aria-label="Pilih jenis aktivitas yang dihubungkan"
+                  className="flex flex-wrap gap-1.5"
+                >
+                  {(
+                    [
+                      null,
+                      'jalan',
+                      'lari',
+                      'lari-jalan',
+                      'badminton',
+                      'beban',
+                    ] as (WorkoutKind | null)[]
+                  ).map((kind) => {
+                    const selected = (draft.linkedActivity ?? null) === kind
+                    return (
+                      <button
+                        key={kind ?? 'none'}
+                        type="button"
+                        onClick={() =>
+                          setDraft((p) => ({ ...p, linkedActivity: kind }))
+                        }
+                        aria-pressed={selected}
+                        className={
+                          'h-9 cursor-pointer rounded-full border px-3.5 text-eyebrow font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                          (selected
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-surface-primary text-content-secondary hover:border-primary/50 hover:text-content-primary')
+                        }
+                      >
+                        {kind == null
+                          ? 'Tanpa tautan'
+                          : WORKOUT_KIND_LABEL[kind]}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-meta leading-relaxed text-content-muted">
+                  {draft.linkedActivity == null
+                    ? 'Tidak dihubungkan — kebiasaan ini tidak pernah diubah oleh sesi Bugar.'
+                    : !measuredOn || (draft.target ?? 0) <= 0
+                      ? `Sesi ${WORKOUT_KIND_LABEL[draft.linkedActivity]} otomatis menandai kebiasaan ini selesai pada tanggal sesi.`
+                      : (draft.unit ?? '').trim().toLowerCase() === 'menit'
+                        ? `Durasi sesi ${WORKOUT_KIND_LABEL[draft.linkedActivity]} menambah progres menuju target ${draft.target} menit.`
+                        : (draft.unit ?? '').trim().toLowerCase() === 'km'
+                          ? `Jarak sesi ${WORKOUT_KIND_LABEL[draft.linkedActivity]} menambah progres menuju target ${draft.target} km.`
+                          : `Satuan "${(draft.unit ?? '').trim() || 'kali'}" tidak dibaca dari sesi — pakai menit atau km agar otomatis.`}
+                  {draft.linkedActivity != null && (
+                    <>
+                      {' '}Berlaku hanya bila terjadwal & bukan hari jeda;
+                      centang manual tidak pernah terhapus.
+                    </>
+                  )}
+                </p>
               </div>
 
               {/* Pengingat */}

@@ -45,6 +45,9 @@ model Habit {
   unit        String? // satuan ("gelas", "halaman", "menit")
   /* Kelompok kebiasaan custom (v2.22) — id HabitGroup, null = tanpa kelompok. */
   groupId     String?
+  /* Tautan aktivitas Bugar (audit v2.37 §4A) — WorkoutKind yang
+     eksplisit dihubungkan pengguna; null = tidak terhubung. */
+  linkedActivity String?
   archived    Boolean    @default(false)
   createdAt   String // ISO yyyy-mm-dd — batas hitung streak
   logs        HabitLog[]
@@ -65,12 +68,17 @@ model HabitGroup {
 /// completions[tanggalISO][habitId] = true — satu baris per centang.
 /// value (v2.22): progres parsial kebiasaan terukur (mis. 5 dari 8 gelas);
 /// null = kebiasaan centang biasa yang selesai penuh.
+/// autoBase/autoWo (audit v2.37 §4D): provenance penyelesaian otomatis
+/// dari aktivitas Bugar — nilai manual sebelum otomatisasi (JSON) dan
+/// daftar id workout penyumbang (JSON array).
 model HabitLog {
-  id      String @id @default(cuid())
-  habitId String
-  date    String // ISO yyyy-mm-dd
-  value   Float? // progres parsial kebiasaan terukur
-  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  habitId  String
+  date     String // ISO yyyy-mm-dd
+  value    Float? // progres parsial kebiasaan terukur
+  autoBase String? // JSON: boolean | number — nilai dasar manual
+  autoWo   String  @default("[]") // JSON: string[] — id workout penyumbang
+  habit    Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   @@unique([habitId, date])
   @@index([date])

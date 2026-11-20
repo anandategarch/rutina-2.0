@@ -57,6 +57,31 @@ function parseSets(json: string): WorkoutWire['sets'] {
   }
 }
 
+/** Aman baca JSON array string dari kolom autoWo. */
+function parseAutoWo(json: string | null | undefined): string[] {
+  try {
+    const parsed = json ? JSON.parse(json) : []
+    return Array.isArray(parsed) ? (parsed as string[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Aman baca nilai base provenance (boolean | number) dari kolom. */
+function parseAutoBase(
+  json: string | null | undefined,
+): boolean | number | undefined {
+  if (json == null || json === '') return undefined
+  try {
+    const parsed = JSON.parse(json)
+    return typeof parsed === 'boolean' || typeof parsed === 'number'
+      ? parsed
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** Aman baca JSON objek dari AppSetting — null saat kosong/rusak. */
 function parseJsonSetting<T>(raw: string | undefined, fallback: T): T {
   if (!raw) return fallback
@@ -117,11 +142,21 @@ export async function readFullState(): Promise<FullStateResult> {
   }
   if (!initialized) return result
 
-  /* completions[tanggal][habitId] = true | number (progres parsial — v2.22). */
+  /* completions[tanggal][habitId] = true | number (progres parsial — v2.22).
+     habitAuto (audit v2.37 §4D) direkonstruksi dari kolom provenance
+     HabitLog: autoBase + autoWo. */
   const completions: SyncState['completions'] = {}
+  const habitAuto: SyncState['habitAuto'] = {}
   for (const log of logs) {
     ;(completions[log.date] ??= {})[log.habitId] =
       log.value == null ? true : log.value
+    const woIds = parseAutoWo(log.autoWo)
+    if (woIds.length > 0) {
+      ;(habitAuto[log.habitId] ??= {})[log.date] = {
+        base: parseAutoBase(log.autoBase),
+        wo: woIds,
+      }
+    }
   }
 
   /* bodyLogs[tanggal] */
@@ -157,6 +192,7 @@ export async function readFullState(): Promise<FullStateResult> {
     target: h.target ?? null,
     unit: h.unit ?? null,
     groupId: h.groupId ?? null,
+    linkedActivity: (h.linkedActivity as HabitWire['linkedActivity']) ?? null,
     archived: h.archived,
     createdAt: h.createdAt,
   }))
@@ -246,6 +282,7 @@ export async function readFullState(): Promise<FullStateResult> {
   result.state = {
     habits: habitWires,
     completions,
+    habitAuto,
     notes: noteWires,
     txs: txWires,
     goals: goals.map((g) => ({
@@ -304,15 +341,37 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
   await ensureSchema()
   /* Log hanya untuk kebiasaan yang masih ada (jaga FK habitId → habit.id).
      Nilai completions (v2.22): true = selesai penuh (value null); number
-     > 0 = progres parsial kebiasaan terukur (disimpan di kolom value). */
+     > 0 = progres parsial kebiasaan terukur (disimpan di kolom value).
+     Provenance otomatis (audit v2.37): autoBase (JSON) + autoWo (JSON
+     array id workout) dari state.habitAuto. */
   const habitIds = new Set(state.habits.map((h) => h.id))
-  const logRows: { habitId: string; date: string; value: number | null }[] = []
+  const logRows: {
+    habitId: string
+    date: string
+    value: number | null
+    autoBase: string | null
+    autoWo: string
+  }[] = []
   for (const [date, day] of Object.entries(state.completions)) {
     for (const [habitId, done] of Object.entries(day)) {
       if (!habitIds.has(habitId)) continue
-      if (done === true) logRows.push({ habitId, date, value: null })
+      const auto = state.habitAuto?.[habitId]?.[date]
+      if (done === true)
+        logRows.push({
+          habitId,
+          date,
+          value: null,
+          autoBase: auto?.base === undefined ? null : JSON.stringify(auto.base),
+          autoWo: JSON.stringify(auto?.wo ?? []),
+        })
       else if (typeof done === 'number' && done > 0)
-        logRows.push({ habitId, date, value: done })
+        logRows.push({
+          habitId,
+          date,
+          value: done,
+          autoBase: auto?.base === undefined ? null : JSON.stringify(auto.base),
+          autoWo: JSON.stringify(auto?.wo ?? []),
+        })
     }
   }
 
@@ -398,6 +457,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               target: h.target ?? null,
               unit: h.unit ?? null,
               groupId: h.groupId ?? null,
+              linkedActivity: h.linkedActivity ?? null,
               archived: h.archived,
               createdAt: h.createdAt,
             })),

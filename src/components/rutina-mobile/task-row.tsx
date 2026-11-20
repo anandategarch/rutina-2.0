@@ -158,12 +158,15 @@ function TaskRowCompact({
   onOpen?: () => void
 }) {
   const completions = useRutina((s) => s.completions)
+  const habitAuto = useRutina((s) => s.habitAuto)
   const viewISO = viewDate ?? todayISO()
   const isMeasured = habit.target != null && habit.target > 0
   const progress = useMemo(
     () => (isMeasured ? habitProgressOn(habit, completions, viewISO) : 0),
     [isMeasured, habit, completions, viewISO],
   )
+  /* Sumber penyelesaian otomatis (audit v2.37 §4D). */
+  const autoToday = (habitAuto[habit.id]?.[viewISO]?.wo ?? []).length > 0
 
   return (
     <div
@@ -229,6 +232,11 @@ function TaskRowCompact({
           {missedYesterday && (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-1.5 py-0.5 font-semibold text-warning">
               Terlewat kemarin
+            </span>
+          )}
+          {autoToday && done && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 font-semibold text-module-accent-strong">
+              Otomatis · Bugar
             </span>
           )}
           {streakRisk && !missedYesterday && streak > 0 && (

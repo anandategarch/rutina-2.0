@@ -326,6 +326,10 @@ function AgendaRow({
   onEdit: () => void
 }) {
   const setHabitValue = useRutina((s) => s.setHabitValue)
+  /* Sumber penyelesaian otomatis (audit v2.37 §4D) — tampil sebagai
+     status kecil bila completion hari ini berasal dari sesi Bugar. */
+  const habitAuto = useRutina((s) => s.habitAuto)
+  const autoToday = (habitAuto[habit.id]?.[today]?.wo ?? []).length > 0
 
   /* Kebiasaan terukur — progres & persentase hari yang dilihat. */
   const isMeasured = habit.target != null && habit.target > 0
@@ -387,6 +391,11 @@ function AgendaRow({
             {missedYesterday && (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold/20 px-1.5 py-0.5 font-semibold text-warning">
                 Terlewat kemarin
+              </span>
+            )}
+            {autoToday && done && (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 font-semibold text-module-accent-strong">
+                Otomatis · Bugar
               </span>
             )}
             {streak > 0 && (

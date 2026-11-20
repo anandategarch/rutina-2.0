@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { toast } from 'sonner'
 
 /* Label seluruh kategori bawaan (satu sistem terpadu — v2.17) untuk
    validasi anti-duplikat kategori buatan. finance/cats.ts hanya
@@ -239,6 +240,11 @@ export interface Habit {
   unit: string | null
   /** Kelompok custom (v2.22) — id HabitGroup, null = tanpa kelompok. */
   groupId: string | null
+  /** Hubungan eksplisit dengan aktivitas Bugar (audit v2.37 §4A):
+   *  jenis workout yang dicatat dapat menyelesaikan / menambah progres
+   *  kebiasaan ini secara otomatis. null = tidak terhubung (default
+   *  kebiasaan lama — TIDAK pernah ditebak dari judul/kategori). */
+  linkedActivity: WorkoutKind | null
   archived: boolean
   /** Tanggal ISO mulai kebiasaan dijalankan (batas hitung streak). */
   createdAt: string
@@ -258,6 +264,8 @@ export interface HabitInput {
   target: number | null
   unit: string | null
   groupId: string | null
+  /** Lihat Habit.linkedActivity — pilihan eksplisit pengguna. */
+  linkedActivity: WorkoutKind | null
 }
 
 /* ===== Kelompok kebiasaan custom (v2.22) ===== */
@@ -286,6 +294,211 @@ export const HABIT_GROUP_COLORS = [
  *  Semantik lama (boolean) tetap utuh sehingga streak, statistik, dan
  *  histori Rutina 1.0 tidak berubah perilaku. */
 export type Completions = Record<string, Record<string, boolean | number>>
+
+/* ===== Otomatisasi Bugar → Kebiasaan (audit v2.37 §4) =====
+
+   Provenance penyelesaian: habitAuto[habitId][dateISO] menyimpan nilai
+   dasar (manual) SEBELUM kontribusi otomatis pertama + daftar id workout
+   yang berkontribusi. Inilah yang membuat sistem tahu asal completion
+   (centang manual vs workout tertentu vs lebih dari satu workout) dan
+   bisa mengevaluasi ulang saat workout dihapus — tanpa pernah menghapus
+   centang manual. */
+
+export interface HabitAutoEntry {
+  /** Nilai completion sebelum kontribusi otomatis pertama —
+   *  undefined = belum ada catatan manual. */
+  base: boolean | number | undefined
+  /** Id workout yang berkontribusi pada tanggal ini. */
+  wo: string[]
+}
+
+export type HabitAuto = Record<string, Record<string, HabitAutoEntry>>
+
+/** Satuan target habit yang bisa dipenuhi data workout — tanpa
+ *  konversi lintas satuan (audit v2.37 §4B: satuan tidak cocok =
+ *  kebiasaan dibiarkan tidak berubah). */
+const ACTIVITY_UNIT_SOURCE: Record<string, 'duration' | 'distance'> = {
+  menit: 'duration',
+  minute: 'duration',
+  minutes: 'duration',
+  km: 'distance',
+  kilometer: 'distance',
+}
+
+/** Apakah habit layak dievaluasi untuk workout ini (audit v2.37 §4C,
+ *  langkah 3–7): tautan eksplisit, tidak diarsip, tanggal tidak
+ *  mendahului createdAt, terjadwal, dan bukan hari jeda. */
+function habitEligibleForWorkout(
+  h: Habit,
+  wo: Pick<Workout, 'kind' | 'date'>,
+  dateISO: string,
+): boolean {
+  if (h.archived) return false
+  if (h.linkedActivity == null || h.linkedActivity !== wo.kind) return false
+  if (dateISO < h.createdAt) return false
+  if (!scheduledOn(h, dateISO)) return false
+  if ((h.restDays ?? []).includes(dateISO)) return false
+  return true
+}
+
+/** Kontribusi terukur sebuah workout terhadap target habit — null bila
+ *  satuan tidak cocok / data tidak cukup (kebiasaan dibiarkan). */
+function workoutContribution(
+  h: Pick<Habit, 'target' | 'unit'>,
+  wo: Pick<Workout, 'duration' | 'distance'>,
+): number | null | 'complete' {
+  if (h.target == null) return 'complete'
+  const source = ACTIVITY_UNIT_SOURCE[(h.unit ?? '').trim().toLowerCase()]
+  if (!source) return null
+  const raw = source === 'duration' ? wo.duration : (wo.distance ?? null)
+  if (raw == null || raw <= 0) return null
+  return raw
+}
+
+/** Hasil penerapan satu workout ke habit terhubung. */
+export interface WorkoutAutoResult {
+  completions: Completions
+  habitAuto: HabitAuto
+  /** Habit yang otomatis tercatat SELESAI PENUH (untuk toast). */
+  completed: Habit[]
+  /** Habit yang menerima PROGRES PARSIAL (untuk toast). */
+  progressed: { habit: Habit; value: number; target: number }[]
+}
+
+/** Terapkan satu workout baru ke semua habit terhubung yang layak —
+ *  murni, idempoten (id workout yang sama tidak dihitung dua kali),
+ *  dan tidak pernah menimpa centang manual yang sudah ada. */
+export function applyWorkoutToHabits(
+  wo: Workout,
+  habits: Habit[],
+  completions: Completions,
+  habitAuto: HabitAuto,
+): WorkoutAutoResult {
+  let nextCompletions = completions
+  let nextAuto = habitAuto
+  const completed: Habit[] = []
+  const progressed: { habit: Habit; value: number; target: number }[] = []
+
+  for (const h of habits) {
+    if (!habitEligibleForWorkout(h, wo, wo.date)) continue
+    const cur = nextCompletions[wo.date]?.[h.id]
+    const entry = nextAuto[h.id]?.[wo.date]
+    /* Centang manual penuh sudah ada dan belum ada kontribusi otomatis
+       → workout tidak menambah apa pun (jangan gandakan completion). */
+    if (cur === true && !entry) continue
+    /* Workout ini sudah tercatat sebagai sumber → idempoten. */
+    if (entry?.wo.includes(wo.id)) continue
+
+    const contribution = workoutContribution(h, wo)
+    if (contribution == null) continue
+
+    let nextValue: boolean | number
+    if (contribution === 'complete') {
+      nextValue = true
+    } else {
+      const progressNow =
+        typeof cur === 'number' ? cur : cur === true ? (h.target ?? 1) : 0
+      const sum = progressNow + contribution
+      nextValue = sum >= (h.target ?? 1) ? true : Math.round(sum * 10) / 10
+    }
+
+    /* Simpan base hanya sekali — nilai manual sebelum otomatisasi. */
+    const base = entry ? entry.base : cur
+    nextAuto = {
+      ...nextAuto,
+      [h.id]: {
+        ...nextAuto[h.id],
+        [wo.date]: { base, wo: [...(entry?.wo ?? []), wo.id] },
+      },
+    }
+    const day = { ...(nextCompletions[wo.date] ?? {}) }
+    day[h.id] = nextValue
+    nextCompletions = { ...nextCompletions, [wo.date]: day }
+
+    if (nextValue === true) completed.push(h)
+    else if (typeof nextValue === 'number')
+      progressed.push({ habit: h, value: nextValue, target: h.target ?? 1 })
+  }
+
+  return { completions: nextCompletions, habitAuto: nextAuto, completed, progressed }
+}
+
+/** Evaluasi ulang provenance setelah penghapusan workout (audit v2.37
+ *  §4D): pulihkan nilai manual saat SEMUA sumber hilang; pertahankan
+ *  completion bila masih ada workout lain yang valid; centang manual
+ *  tidak pernah tersentuh. Mengembalikan daftar habit yang nilai hari
+ *  itu berubah (untuk toast transparan). */
+export function reevaluateHabitAutoAfterDelete(
+  removedWoId: string,
+  habits: Habit[],
+  workouts: Workout[],
+  completions: Completions,
+  habitAuto: HabitAuto,
+): {
+  completions: Completions
+  habitAuto: HabitAuto
+  reverted: { habit: Habit; date: string }[]
+} {
+  let nextCompletions = completions
+  let nextAuto = habitAuto
+  const reverted: { habit: Habit; date: string }[] = []
+
+  for (const [habitId, dates] of Object.entries(habitAuto)) {
+    for (const [date, entry] of Object.entries(dates)) {
+      if (!entry.wo.includes(removedWoId)) continue
+      const habit = habits.find((h) => h.id === habitId)
+      /* Sumber workout lain yang MASIH ADA. */
+      const remaining = entry.wo.filter(
+        (wid) =>
+          wid !== removedWoId && workouts.some((w) => w.id === wid),
+      )
+
+      if (remaining.length === 0) {
+        /* Semua sumber otomatis hilang → kembali ke nilai manual. */
+        const day = { ...(nextCompletions[date] ?? {}) }
+        if (entry.base === undefined) delete day[habitId]
+        else day[habitId] = entry.base
+        const nextDays = { ...nextCompletions }
+        if (Object.keys(day).length === 0) delete nextDays[date]
+        else nextDays[date] = day
+        nextCompletions = nextDays
+        const habitDates = { ...nextAuto[habitId] }
+        delete habitDates[date]
+        const nextHabitAuto = { ...nextAuto }
+        if (Object.keys(habitDates).length === 0) delete nextHabitAuto[habitId]
+        else nextHabitAuto[habitId] = habitDates
+        nextAuto = nextHabitAuto
+        if (habit) reverted.push({ habit, date })
+      } else {
+        /* Masih ada sumber lain → hitung ulang dari base + sisa sumber. */
+        const keepEntry = { ...entry, wo: remaining }
+        nextAuto = {
+          ...nextAuto,
+          [habitId]: { ...nextAuto[habitId], [date]: keepEntry },
+        }
+        if (habit) {
+          /* Hitung ulang nilai dari base + sisa sumber yang masih ada. */
+          let nextValue: boolean | number = true
+          if (habit.target != null) {
+            let sum = typeof entry.base === 'number' ? entry.base : 0
+            for (const wid of remaining) {
+              const w = workouts.find((x) => x.id === wid)
+              if (!w) continue
+              const c = workoutContribution(habit, w)
+              if (typeof c === 'number') sum += c
+            }
+            nextValue = sum >= habit.target ? true : sum
+          }
+          const day = { ...(nextCompletions[date] ?? {}) }
+          day[habitId] = nextValue
+          nextCompletions = { ...nextCompletions, [date]: day }
+        }
+      }
+    }
+  }
+
+  return { completions: nextCompletions, habitAuto: nextAuto, reverted }
+}
 
 /** Nilai mentah sebuah kebiasaan pada tanggal tertentu. */
 export function habitValueOn(
@@ -852,6 +1065,15 @@ export type WorkoutKind =
   | 'lari-jalan'
   | 'badminton'
 
+/** Label tampilan jenis aktivitas — dipakai toast otomatisasi habit. */
+export const WORKOUT_KIND_LABEL: Record<WorkoutKind, string> = {
+  beban: 'Barbel',
+  jalan: 'Jalan',
+  lari: 'Lari',
+  'lari-jalan': 'Lari + Jalan',
+  badminton: 'Badminton',
+}
+
 export interface WorkoutSet {
   /** Nama gerakan — merujuk EX_LIB di fitness/data.ts. */
   exercise: string
@@ -1094,6 +1316,9 @@ interface RutinaState {
   /* Kebiasaan & histori */
   habits: Habit[]
   completions: Completions
+  /** Provenance penyelesaian otomatis dari aktivitas Bugar (audit
+   *  v2.37 §4D) — lihat HabitAuto. */
+  habitAuto: HabitAuto
   /** Kelompok kebiasaan custom (v2.22) — mis. "Pagi", "Gym". */
   habitGroups: HabitGroup[]
   /** Tanggal yang sedang dilihat di kalender Beranda (ISO). */
@@ -1347,6 +1572,7 @@ type DomainSlice = Pick<
   RutinaState,
   | 'habits'
   | 'completions'
+  | 'habitAuto'
   | 'habitGroups'
   | 'notes'
   | 'txs'
@@ -1381,6 +1607,7 @@ function initialDomainState(): DomainSlice {
   return {
     habits: [],
     completions: {},
+    habitAuto: {},
     habitGroups: [],
     notes: [],
     txs: [],
@@ -1839,29 +2066,64 @@ export const useRutina = create<RutinaState>()(
       workoutSheetHint: null,
     }),
 
-  addWorkout: ({ kind, date, duration, note, sets, distance, kcal }) =>
-    set((s) => ({
-      workouts: [
-        {
-          id: `wo-${Date.now()}`,
-          kind,
-          date,
-          duration,
-          note: note.trim(),
-          sets: sets.map((x) => ({ ...x })),
-          distance,
-          ...(kcal && kcal > 0 ? { kcal: Math.round(kcal) } : {}),
-        },
-        ...s.workouts,
-      ],
+  addWorkout: ({ kind, date, duration, note, sets, distance, kcal }) => {
+    const wo: Workout = {
+      id: `wo-${Date.now()}`,
+      kind,
+      date,
+      duration,
+      note: note.trim(),
+      sets: sets.map((x) => ({ ...x })),
+      distance,
+      ...(kcal && kcal > 0 ? { kcal: Math.round(kcal) } : {}),
+    }
+    const s = get()
+    /* SATU jalur pusat aturan otomatis (audit v2.37 §4C): WorkoutSheet
+       dan WorkoutSession sama-sama lewat sini — habit terhubung
+       eksplisit dicatat selesai/berprogres pada TANGGAL workout. */
+    const auto = applyWorkoutToHabits(wo, s.habits, s.completions, s.habitAuto)
+    set({
+      workouts: [wo, ...s.workouts],
+      completions: auto.completed.length + auto.progressed.length > 0 ? auto.completions : s.completions,
+      habitAuto: auto.completed.length + auto.progressed.length > 0 ? auto.habitAuto : s.habitAuto,
       workoutSheetOpen: false,
       workoutSheetSeed: null,
-    })),
+    })
+    /* Notifikasi menyebut nama habit yang otomatis terselesaikan. */
+    for (const h of auto.completed) {
+      toast.success(`"${h.title}" otomatis selesai dari sesi ${WORKOUT_KIND_LABEL[kind] ?? kind}`)
+    }
+    for (const p of auto.progressed) {
+      toast.info(
+        `"${p.habit.title}" +${p.value}/${p.target} ${p.habit.unit ?? ''} — dari sesi ${WORKOUT_KIND_LABEL[kind] ?? kind}`,
+      )
+    }
+  },
 
-  deleteWorkout: (id) =>
-    set((s) => ({
-      workouts: s.workouts.filter((w) => w.id !== id),
-    })),
+  deleteWorkout: (id) => {
+    const s = get()
+    const workouts = s.workouts.filter((w) => w.id !== id)
+    /* Evaluasi ulang provenance (audit v2.37 §4D): centang manual tak
+       pernah terhapus; completion bertahan bila masih ada sumber lain. */
+    const re = reevaluateHabitAutoAfterDelete(
+      id,
+      s.habits,
+      workouts,
+      s.completions,
+      s.habitAuto,
+    )
+    set({
+      workouts,
+      ...(re.reverted.length > 0
+        ? { completions: re.completions, habitAuto: re.habitAuto }
+        : {}),
+    })
+    for (const r of re.reverted) {
+      toast.info(
+        `Sesi dihapus — "${r.habit.title}" kembali ke progres manual.`,
+      )
+    }
+  },
 
   /* --- Aksi asupan --- */
 
@@ -1994,6 +2256,7 @@ export const useRutina = create<RutinaState>()(
           target: input.target && input.target > 0 ? input.target : null,
           unit: input.target && input.target > 0 ? (input.unit ?? '').trim() || null : null,
           groupId: input.groupId || null,
+          linkedActivity: input.linkedActivity ?? null,
           archived: false,
           createdAt: todayISO(),
         },
@@ -2017,6 +2280,8 @@ export const useRutina = create<RutinaState>()(
         if (patch.unit !== undefined)
           next.unit = patch.unit ? patch.unit.trim() || null : null
         if (patch.groupId !== undefined) next.groupId = patch.groupId || null
+        if (patch.linkedActivity !== undefined)
+          next.linkedActivity = patch.linkedActivity ?? null
         return next
       }),
     })),
@@ -2034,6 +2299,12 @@ export const useRutina = create<RutinaState>()(
         const { [id]: _removed, ...rest } = day
         if (Object.keys(rest).length > 0) completions[date] = rest
       }
+      /* Provenance otomatis ikut bersih — habit-nya tidak ada lagi. */
+      const habitAuto: HabitAuto = {}
+      for (const [habitId, dates] of Object.entries(s.habitAuto)) {
+        if (habitId === id) continue
+        habitAuto[habitId] = dates
+      }
       return {
         habits: s.habits
           .filter((h) => h.id !== id)
@@ -2042,6 +2313,7 @@ export const useRutina = create<RutinaState>()(
              tidak ada (pemicu tak pernah ketemu di kebiasaan.tsx). */
           .map((h) => (h.afterId === id ? { ...h, afterId: null } : h)),
         completions,
+        habitAuto,
         expandedTaskId: s.expandedTaskId === id ? null : s.expandedTaskId,
         habitSheetId: s.habitSheetId === id ? null : s.habitSheetId,
         habitSheetMode:
@@ -2272,16 +2544,17 @@ export const useRutina = create<RutinaState>()(
       /* Persistensi lokal — histori pengguna nyata & permanen di perangkat,
          selaras dengan janji "data tersimpan di perangkat" pada FAQ Profil. */
       name: 'rutina-2.0-store',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       /* Rehidrasi manual pasca-mount (pola aman Next.js SSR): HTML server
          dirender dari seed, lalu state tersimpan dipulihkan di klien —
          bebas hydration mismatch. RutinaApp memanggil rehydrate(). */
       skipHydration: true,
-      /* Migrasi v1 → v2 → v2.22: isi field baru (Jeda Runtun, Susun
+      /* Migrasi v1 → v2 → v3: isi field baru (Jeda Runtun, Susun
          Kebiasaan, Versi 2 Menit, moodLogs, identitas, deload, kutipan
          harian, kelompok kebiasaan, kategori rename/sembunyi, sasaran
-         bugar, kebiasaan terukur). */
+         bugar, kebiasaan terukur; v3: tautan aktivitas Bugar +
+         provenance habitAuto — kebiasaan lama default TIDAK terhubung). */
       migrate: (persisted) => {
         const p = persisted as Record<string, unknown> & {
           habits?: Record<string, unknown>[]
@@ -2295,9 +2568,14 @@ export const useRutina = create<RutinaState>()(
             target: typeof h.target === 'number' ? h.target : null,
             unit: typeof h.unit === 'string' ? h.unit : null,
             groupId: typeof h.groupId === 'string' ? h.groupId : null,
+            linkedActivity:
+              typeof h.linkedActivity === 'string' && h.linkedActivity
+                ? (h.linkedActivity as WorkoutKind)
+                : null,
           }))
         }
         if (!p.moodLogs || typeof p.moodLogs !== 'object') p.moodLogs = {}
+        if (!p.habitAuto || typeof p.habitAuto !== 'object') p.habitAuto = {}
         if (typeof p.identityText !== 'string') p.identityText = ''
         if (typeof p.deloadUntil !== 'string') p.deloadUntil = null
         if (typeof p.quoteSavedDate !== 'string') p.quoteSavedDate = null
@@ -2315,6 +2593,7 @@ export const useRutina = create<RutinaState>()(
       partialize: (s) => ({
         habits: s.habits,
         completions: s.completions,
+        habitAuto: s.habitAuto,
         habitGroups: s.habitGroups,
         notes: s.notes,
         txs: s.txs,

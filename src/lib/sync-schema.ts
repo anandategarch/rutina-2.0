@@ -70,6 +70,13 @@ export const habitSchema = z.object({
   unit: z.string().max(16).nullable().default(null),
   /** Kelompok kebiasaan custom (v2.22) — id HabitGroup. */
   groupId: z.string().max(64).nullable().default(null),
+  /** Tautan aktivitas Bugar (audit v2.37 §4A) — jenis workout yang
+   *  eksplisit dihubungkan pengguna; null = tidak terhubung (default
+   *  kebiasaan lama — tidak pernah ditebak). */
+  linkedActivity: z
+    .enum(['beban', 'jalan', 'lari', 'lari-jalan', 'badminton'])
+    .nullable()
+    .default(null),
   archived: z.boolean(),
   createdAt: isoDate,
 })
@@ -89,6 +96,19 @@ export const habitGroupSchema = z.object({
 export const completionsSchema = z.record(
   isoDate,
   z.record(z.string().min(1).max(64), z.union([z.boolean(), z.number().min(0).max(100_000)])),
+)
+
+/* ===== Provenance penyelesaian otomatis (audit v2.37 §4D) ===== */
+
+/** habitAuto[habitId][dateISO] — nilai dasar manual sebelum kontribusi
+ *  otomatis pertama + daftar id workout penyumbang. */
+export const habitAutoEntrySchema = z.object({
+  base: z.union([z.boolean(), z.number().min(0).max(100_000)]).optional(),
+  wo: z.array(z.string().min(1).max(64)).max(50).default([]),
+})
+export const habitAutoSchema = z.record(
+  z.string().min(1).max(64),
+  z.record(isoDate, habitAutoEntrySchema),
 )
 
 /* ===== Domain: jurnal ===== */
@@ -253,6 +273,8 @@ export const fitTargetsSchema = z.object({
 export const syncStateSchema = z.object({
   habits: z.array(habitSchema).max(500),
   completions: completionsSchema,
+  /** Provenance penyelesaian otomatis Bugar → habit (audit v2.37). */
+  habitAuto: habitAutoSchema.default({}),
   notes: z.array(noteSchema).max(2000),
   txs: z.array(txSchema).max(10_000),
   goals: z.array(goalSchema).max(200),
