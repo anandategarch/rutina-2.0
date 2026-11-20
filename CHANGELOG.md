@@ -5,6 +5,25 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.41] — Saran Coach Tanpa Repetisi: Satu Inti Saran, Satu Kartu
+
+Laporan "Saran Coach kenapa tampil beberapa kali — 1 card isi 'perkecil dulu
+biar hidup', di bawahnya card lagi 'perkecil lagi biar hidup'" — akar masalah:
+setiap kebiasaan mendapat KARTU sendiri dengan judul & esensi identik, hanya
+nama kebiasaan berbeda. Tiga kebiasaan yang kesulitan = tiga kartu berjudul
+sama di Beranda; di Kebiasaan tambah dua kartu "terlewat kemarin" berisi
+tombol full-width kembar. Audit antirepetisi menyeluruh atas seluruh titik
+saran lalu mengkonsolidasikannya — tanpa menghapus satu pun informasi.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Goldilocks dikelompokkan per INTI saran** | `goldilocksGroups()` baru di habit-coach (refactor: statistik pekan diekstrak jadi `goldilocksStats()` tunggal; `goldilocksOf` per-kebiasaan dihapus — tak ada lagi pemakai): semua kebiasaan yang perlu "diperkecil" bergabung dalam SATU kartu, begitu pula yang "pekan sempurna". Teks agregat di kepala kartu (menyebut nama kebiasaan HANYA bila tunggal — kartu multi-baris sudah memuat nama per baris), kebiasaan jadi baris ringkas: titik kategori + nama + capaian "selesai/terjadwal hari". Urutan: kecilkan dulu (yang kesulitan lebih butuh perhatian), lalu naik. |
+| **P0 — Kebiasaan: kartu pemulihan tunggal** | Dua kartu "terlewat kemarin" dengan tombol full-width kembar → SATU kartu "Jangan bolong dua kali": teks kepala ringkas (menyebut nama hanya bila tunggal) + baris per kebiasaan (pola baris kartu pemulihan Beranda) dengan tombol centang bundar 44px per baris (aria-label per kebiasaan). `MISSED_NUDGES` (rotasi kalimat untuk menutupi repetisi — solusi kosmetik atas gejala) dihapus: repetisinya sendiri yang dihilangkan. Tetap hanya untuk kebiasaan TIDAK terjadwal hari ini (yang terjadwal tetap berbadge di Agenda — dedup v2.37 dipertahankan). |
+| **P0 — Guard anti-dobel lintas kartu** | Kebiasaan yang sudah ditangani kartu pemulihan DIKECUALIKAN dari grup Goldilocks (`excludeIds`) — satu kebiasaan tidak pernah muncul dua kali dalam satu seksi. Di Beranda, kartu pemulihan (populasi: tidak terjadwal hari ini) dan saran pekanan (populasi: terjadwal hari ini) memang tak beririsan sejak v2.38. |
+| **P1 — Satu komponen, dua layar** | `CoachGroupCard` baru — markup kartu Goldilocks terkonsolidasi dipakai Bersama Beranda & Kebiasaan (bentuk saran coach identik di seluruh aplikasi, satu sumber kebenaran). Ukuran kompak sesuai permintaan: p-3 (dulu p-3.5), ikon h-8 (dulu h-9), baris py-1.5 — kartu "perkecil agar tetap hidup" kini sendiri ringkas. Aksen disatukan: kecilkan = gold/warning, naik = secondary/success (dulu dua layar memakai kombinasi berbeda). |
+| **Audit repetisi lain (diperiksa, terkonfirmasi bersih)** | Sorotan Hari Ini vs Agenda vs pemulihan: dedup `excludeHabitIds` tetap utuh. Agenda badge "Terlewat kemarin" vs kartu pemulihan: populasi terpisah (terjadwal vs tidak terjadwal hari ini). Coach Bugar (double progression, kesiapan) = domain latihan, bukan repetisi Goldilocks. Perpustakaan vs Agenda = inventaris vs tindakan (komposisi berbeda by design v2.38). Jangkar lintas-ruang (Rekap Pekan Beranda ↔ Statistik, Kartu Keuangan Beranda ↔ Vault) = progressive disclosure yang disengaja, bukan repetisi dalam satu tampilan. |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | typecheck & lint hijau. E2E browser dengan seed nyata via UI (3 kebiasaan harian kesulitan + 1 kebiasaan target-1 diselesaikan + 1 kebiasaan tanpa Jumat ber-createdAt mundur): Beranda — 2 kartu (dulu 4): "Perkecil dulu…" 3 baris (Baca buku/Meditasi/Push up 0/5) + "Pekan sempurna!" tunggal; Kebiasaan — 3 kartu ber-INTI berbeda: pemulihan 1 baris + kecilkan 3 baris (Sarapan sehat TERKECUALI — exclusion terbukti) + naik; klik centang pemulihan → completion kemarin tercatat di store + kartu lenyap; 320px & 1280px tanpa overflow horizontal; nol error konsol & halaman; VLM konfirmasi: tak ada judul berulang dalam satu layar, baris kompak bertitik dalam satu kartu. |
+
 ## [2.40] — Serah Terima Pembuka yang Sempurna: Pra-Pasang di Balik Splash
 
 Laporan "waktu buka aplikasi transisi ikonnya gak smooth" — diagnosis akar:

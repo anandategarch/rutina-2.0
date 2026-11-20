@@ -16,14 +16,12 @@ import {
   Gift,
   Heart,
   Lightbulb,
-  Minimize2,
   Plus,
   Quote,
   RefreshCw,
   Sun,
   Sunrise,
   Sunset,
-  TrendingUp,
   Undo2,
   Wallet,
   Zap,
@@ -42,7 +40,8 @@ import { HomeFinanceCard } from '../home-finance-card'
 import { DailyHighlightCard } from '../daily-highlight-card'
 import { WeeklyRecapCard } from '../weekly-recap-card'
 import { PlantGarden } from '../plant-garden'
-import { goldilocksOf, type GoldilocksAdvice } from '../habit-coach'
+import { goldilocksGroups } from '../habit-coach'
+import { CoachGroupCard } from '../coach-card'
 import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
 import { RutinaCard } from '../rutina-card'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -487,16 +486,18 @@ export default function HomeScreen() {
      kartu pemulihan terpisah akan menjadi tombol centang kedua. */
   const recoveryList = attention.recovery
 
-  /* Saran Coach (Goldilocks) — kebiasaan terjadwal hari ini yang hasil
-     pekanannya meminta penyesuaian; batasi 3 saran paling releven. */
-  const coachTips = useMemo(() => {
-    const out: { habit: Habit; advice: GoldilocksAdvice }[] = []
-    for (const h of todayHabits) {
-      const advice = goldilocksOf(h, completions, today)
-      if (advice) out.push({ habit: h, advice })
-    }
-    return out.slice(0, 3)
-  }, [todayHabits, completions, today])
+  /* Saran Coach (Goldilocks) terkonsolidasi — audit antirepetisi v2.41:
+     SATU kartu per INTI saran; semua kebiasaan terjadwal hari ini yang
+     perlu "diperkecil" bergabung dalam satu kartu (baris ringkas nama +
+     capaian), begitu pula yang "pekan sempurna". Tidak ada lagi
+     deretan kartu berjudul identik. Kartu pemulihan terlewat kemarin
+     (recoveryList) tidak tumpang-tindih: populasinya kebiasaan yang
+     TIDAK terjadwal hari ini, sedangkan saran pekanan ini hanya membaca
+     yang terjadwal hari ini. */
+  const coachGroups = useMemo(
+    () => goldilocksGroups(todayHabits, completions, today),
+    [todayHabits, completions, today],
+  )
 
   /* Header menyusut halus saat layar digulir — transform & opacity saja. */
   const { scrollY } = useScroll({ container: scrollRef })
@@ -790,7 +791,7 @@ export default function HomeScreen() {
           <RutinaBentoItem
             span="wide"
             className={
-              recoveryList.length === 0 && coachTips.length === 0
+              recoveryList.length === 0 && coachGroups.length === 0
                 ? '@[52rem]:col-span-12'
                 : undefined
             }
@@ -1224,8 +1225,9 @@ export default function HomeScreen() {
               </m.section>
             )}
 
-            {/* Saran Coach — Goldilocks: naikkan atau perkecil, dari hasil pekan */}
-            {coachTips.length > 0 && (
+            {/* Saran Coach — Goldilocks terkonsolidasi: satu kartu per inti
+                saran (perkecil / naikkan), dari hasil pekan */}
+            {coachGroups.length > 0 && (
               <m.section
                 initial={playEntrance ? { opacity: 0, y: 16 } : false}
                 animate={{ opacity: 1, y: 0 }}
@@ -1240,36 +1242,9 @@ export default function HomeScreen() {
                   description="Penyesuaian kecil dari hasil pekan ini"
                 />
                 <div className="mt-3 space-y-2.5">
-                  {coachTips.map(({ habit: h, advice }) => {
-                    const naik = advice.tone === 'naik'
-                    const Icon = naik ? TrendingUp : Minimize2
-                    return (
-                      <div
-                        key={h.id}
-                        className="flex items-start gap-3 rounded-lg border border-border bg-surface-primary p-3.5 shadow-soft"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={
-                            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full ' +
-                            (naik
-                              ? 'bg-secondary text-success'
-                              : 'bg-gold/25 text-warning')
-                          }
-                        >
-                          <Icon className="h-4 w-4" strokeWidth={2.2} />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-note font-semibold text-content-primary">
-                            {advice.title}
-                          </p>
-                          <p className="mt-0.5 text-pretty text-meta leading-relaxed text-content-muted">
-                            {advice.text}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
+                  {coachGroups.map((group) => (
+                    <CoachGroupCard key={group.tone} group={group} />
+                  ))}
                 </div>
               </m.section>
             )}

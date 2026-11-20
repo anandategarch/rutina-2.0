@@ -195,9 +195,16 @@ export function RutinaApp() {
       void loadStats()
       void loadProfile()
     }
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(warm, { timeout: 2500 })
-      return () => window.cancelIdleCallback(id)
+    /* Alias opsional — `in`/typeof pada `window` langsung membuat TS
+       menyempitkan tipe ke never di cabang lain (lib DOM selalu
+       mendeklarasikan requestIdleCallback), jadi cek lewat alias. */
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(warm, { timeout: 2500 })
+      return () => w.cancelIdleCallback?.(id)
     }
     const t = window.setTimeout(warm, 1200)
     return () => window.clearTimeout(t)

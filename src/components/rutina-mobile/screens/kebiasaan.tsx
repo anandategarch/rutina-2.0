@@ -19,12 +19,10 @@ import {
   Plus,
   Search,
   Snowflake,
-  Sparkles,
   Sprout,
   Sun,
   Sunrise,
   Sunset,
-  Target,
   Timer,
   Trash2,
   Zap,
@@ -54,11 +52,11 @@ import { RutinaSheet } from '../rutina-sheet'
 
 import {
   PLANT_STAGES,
-  goldilocksOf,
+  goldilocksGroups,
   missedYesterday,
   plantStageOf,
-  type GoldilocksAdvice,
 } from '../habit-coach'
+import { CoachGroupCard } from '../coach-card'
 import { PlantGarden } from '../plant-garden'
 import Heatmap from '../heatmap'
 import { PlantGlyph } from '../plant-glyph'
@@ -109,14 +107,6 @@ import {
  * Panel Detail Kebiasaan dibagikan dua jalur: inline di bawah baris
  * terpilih (ponsel/tablet) dan kolom kanan split-screen (ruang ≥52rem).
  */
-
-/* variasi saran “terlewat kemarin” — bergilir agar tumpukan
-   kartu coach tidak menampilkan kalimat identik berulang-ulang. */
-const MISSED_NUDGES = [
-  'Terlewat kemarin — jangan bolong dua kali.',
-  'Satu hari kosong bukan gagal — tuntaskan kemarin, lanjutkan hari ini.',
-  'Runtun masih bisa diselamatkan — satu centang kemarian cukup.',
-] as const
 
 /** Pagar Agenda Kebiasaan (audit v2.37) — kondisi awal maks 5 baris. */
 const AGENDA_LIMIT = 5
@@ -1133,32 +1123,35 @@ export default function KebiasaanScreen() {
     [activeHabits, completions, today],
   )
 
-  /* Saran Coach — maksimal DUA saran paling relevan (audit Tahap 2).
-     v2.37 dedup: nudge "terlewat kemarin" HANYA untuk kebiasaan yang
-     TIDAK terjadwal hari ini — yang terjadwal hari ini sudah tampil di
-     Agenda berbadge "Terlewat kemarin" dan tidak boleh muncul dobel. */
-  const coachCards = useMemo<
-    (
-      | { kind: 'missed'; habit: Habit }
-      | { kind: 'goldilocks'; habit: Habit; advice: GoldilocksAdvice }
-    )[]
-  >(() => {
-    const missed = missedYesterday(habits, completions, today)
-      .filter(
-        (h) => !scheduledOn(h, today) && !isDoneOn(completions, today, h.id),
-      )
-      .slice(0, 2)
-      .map((habit) => ({ kind: 'missed' as const, habit }))
-    const room = Math.max(0, 2 - missed.length)
-    const tips: { kind: 'goldilocks'; habit: Habit; advice: GoldilocksAdvice }[] =
-      []
-    for (const h of activeHabits) {
-      if (tips.length >= room) break
-      const advice = goldilocksOf(h, completions, today)
-      if (advice) tips.push({ kind: 'goldilocks', habit: h, advice })
-    }
-    return [...missed, ...tips]
-  }, [habits, completions, today, activeHabits])
+  /* Saran Coach terkonsolidasi — audit antirepetisi v2.41. Dulu tiap
+     kebiasaan mendapat kartu SENDIRI: dua kartu "terlewat kemarin"
+     dengan tombol full-width masing-masing + deretan kartu Goldilocks
+     berjudul identik ("Perkecil dulu…" × N). Kini:
+     - SATU kartu pemulihan untuk semua kebiasaan terlewat kemarin yang
+       TIDAK terjadwal hari ini (baris ringkas + centang per baris);
+       yang terjadwal hari ini tetap hanya berbadge di Agenda.
+     - SATU kartu Goldilocks per INTI saran (perkecil / naikkan) —
+       kebiasaan yang sudah di kartu pemulihan DIKECUALIKAN agar tidak
+       muncul dua kali dalam satu seksi. */
+  const missedCoach = useMemo(
+    () =>
+      missedYesterday(habits, completions, today)
+        .filter(
+          (h) => !scheduledOn(h, today) && !isDoneOn(completions, today, h.id),
+        )
+        .slice(0, 2),
+    [habits, completions, today],
+  )
+  const coachGroups = useMemo(
+    () =>
+      goldilocksGroups(
+        activeHabits,
+        completions,
+        today,
+        new Set(missedCoach.map((h) => h.id)),
+      ),
+    [activeHabits, completions, today, missedCoach],
+  )
 
   /* Semua kebiasaan aktif — dikelompokkan per KATEGORI, atau per
      KELOMPOK CUSTOM bila ada yang memakainya (v2.22): bedeng kebun
@@ -1618,15 +1611,16 @@ export default function KebiasaanScreen() {
             )}
           </m.section>
 
-          {/* ============ Saran Coach — maksimal dua, yang paling relevan ============ */}
-          {coachCards.length > 0 && (
+          {/* ============ Saran Coach — satu inti saran, satu kartu
+               (audit antirepetisi v2.41) ============ */}
+          {(missedCoach.length > 0 || coachGroups.length > 0) && (
             <section
               className="mt-[var(--layout-gap)]"
               aria-label="Saran Coach"
             >
               <RutinaSectionHeader
                 title="Saran Coach"
-                description="Penyesuaian kecil dari hasil pekan ini"
+                description="Pemulihan & penyesuaian kecil dari pekan ini"
               />
               <m.div
                 variants={journalList}
@@ -1634,94 +1628,76 @@ export default function KebiasaanScreen() {
                 animate="show"
                 className="mt-3 space-y-2.5"
               >
-                {coachCards.map((card, cardIdx) =>
-                  card.kind === 'missed' ? (
-                    <m.div
-                      key={`missed-${card.habit.id}`}
-                      variants={journalCard}
-                      className="rounded-lg border border-gold/40 bg-gold/15 p-3.5"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span
-                          aria-hidden="true"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/30 text-warning"
-                        >
-                          <Flame className="h-4 w-4" strokeWidth={2.2} />
-                        </span>
-                        <div className="min-w-0">
-                          {/* Titik kategori (v2.19): pembeda visual antar
-                              kartu yang tadinya identik — warna kategori
-                              kebiasaan + saran yang berbeda-beda. */}
-                          <p className="flex items-center gap-1.5 text-note font-semibold text-content-primary">
-                            <span
-                              aria-hidden="true"
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  HABIT_CAT_COLORS[card.habit.cat],
-                              }}
-                            />
-                            <span className="truncate">
-                              {card.habit.title}
-                            </span>
-                          </p>
-                          <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
-                            {card.habit.mini
-                              ? `Kemarin terlewat — coba versi mini: “${card.habit.mini}”.`
-                              : MISSED_NUDGES[cardIdx % MISSED_NUDGES.length]}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          /* Tanggal kemarin dihitung di dalam handler — nilai
-                             turunan `today` yang di-pass ke aksi store di
-                             level render membuat React Compiler membatalkan
-                             memoisasi ("today" dianggap bisa berubah). */
-                          toggleHabit(card.habit.id, addDaysISO(today, -1))
-                          toast.success(
-                            `"${card.habit.title}" kemarin selesai — runtun kembali utuh.`,
-                          )
-                        }}
-                        className="mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                      >
-                        <Check className="h-4 w-4" strokeWidth={2.6} />
-                        Tandai selesai kemarin
-                      </button>
-                    </m.div>
-                  ) : (
-                    <m.div
-                      key={`gold-${card.habit.id}`}
-                      variants={journalCard}
-                      className="flex items-start gap-3 rounded-lg border border-border bg-surface-primary p-3.5 shadow-soft"
-                    >
+                {missedCoach.length > 0 && (
+                  <m.div
+                    variants={journalCard}
+                    className="rounded-lg border border-gold/40 bg-gold/15 p-3"
+                  >
+                    <div className="flex items-start gap-2.5">
                       <span
                         aria-hidden="true"
-                        className={
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full ' +
-                          (card.advice.tone === 'naik'
-                            ? 'bg-secondary text-success'
-                            : 'bg-secondary/70 text-content-secondary')
-                        }
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold/30 text-warning"
                       >
-                        {card.advice.tone === 'naik' ? (
-                          <Sparkles className="h-4 w-4" strokeWidth={2.2} />
-                        ) : (
-                          <Target className="h-4 w-4" strokeWidth={2.2} />
-                        )}
+                        <Flame className="h-4 w-4" strokeWidth={2.2} />
                       </span>
                       <div className="min-w-0">
                         <p className="text-note font-semibold text-content-primary">
-                          {card.advice.title}
+                          Jangan bolong dua kali
                         </p>
-                        <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
-                          {card.advice.text}
+                        <p className="mt-0.5 text-pretty text-meta leading-relaxed text-content-muted">
+                          {missedCoach.length === 1
+                            ? missedCoach[0]!.mini
+                              ? 'Terlewat kemarin — coba versi mininya dulu, atau centang kemarin di bawah.'
+                              : 'Terlewat kemarin — satu centang kemarin menyelamatkan runtun.'
+                            : `${missedCoach.length} kebiasaan terlewat kemarin — satu centang kemarin per kebiasaan menyelamatkan runtunnya.`}
                         </p>
                       </div>
-                    </m.div>
-                  ),
+                    </div>
+                    {/* Baris ringkas per kebiasaan (pola kartu pemulihan
+                        Beranda): nama hanya tampil sekali — di sini. */}
+                    <div className="mt-2 space-y-1">
+                      {missedCoach.map((h) => (
+                        <div
+                          key={h.id}
+                          className="flex items-center gap-2.5 rounded-md border border-gold/30 bg-surface-primary/70 px-2.5 py-1.5"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor: HABIT_CAT_COLORS[h.cat],
+                            }}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
+                            {h.title}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              /* Tanggal kemarin dihitung di dalam handler — nilai
+                                 turunan `today` yang di-pass ke aksi store di
+                                 level render membuat React Compiler membatalkan
+                                 memoisasi ("today" dianggap bisa berubah). */
+                              toggleHabit(h.id, addDaysISO(today, -1))
+                              toast.success(
+                                `"${h.title}" kemarin selesai — runtun kembali utuh.`,
+                              )
+                            }}
+                            aria-label={`Tandai "${h.title}" selesai kemarin`}
+                            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.95] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            <Check className="h-4 w-4" strokeWidth={2.6} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </m.div>
                 )}
+                {coachGroups.map((group) => (
+                  <m.div key={group.tone} variants={journalCard}>
+                    <CoachGroupCard group={group} />
+                  </m.div>
+                ))}
               </m.div>
             </section>
           )}

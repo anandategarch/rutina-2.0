@@ -6,8 +6,23 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.40.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.41.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.41 — Saran Coach Tanpa Repetisi: Satu Inti Saran, Satu Kartu
+
+Saran Coach tidak lagi muncul berkali-kali dengan judul identik — semua
+kebiasaan yang perlu "diperkecil" bergabung dalam SATU kartu kompak (baris
+ringkas: titik kategori + nama + capaian "selesai/terjadwal"), begitu pula
+yang "pekan sempurna"; pemulihan "terlewat kemarin" menjadi satu kartu dengan
+centang per baris. Kebiasaan yang sudah ditangani kartu pemulihan dikecualikan
+dari grup lain — satu kebiasaan tak pernah muncul dua kali dalam satu seksi.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Konsolidasi** | `goldilocksGroups()` menggantikan saran per-kebiasaan; kartu pemulihan tunggal menggantikan deretan kartu kembar; `MISSED_NUDGES` (rotasi kalimat penutup repetisi) dihapus — repetisinya yang dihilangkan. |
+| **P1 — Satu komponen** | `CoachGroupCard` dipakai Beranda & Kebiasaan — bentuk identik, ukuran kompak (p-3, ikon h-8, baris py-1.5), aksen disatukan. |
+| **Pembuktian mutu** | typecheck & lint hijau; E2E seed nyata: Beranda 2 kartu (dulu 4), Kebiasaan 3 kartu ber-inti berbeda, exclusion terbukti, centang pemulihan bekerja (completion tercatat, kartu lenyap); 320/1280px tanpa overflow; nol error konsol; VLM konfirmasi. |
 
 ## v2.40 — Serah Terima Pembuka yang Sempurna: Pra-Pasang di Balik Splash
 

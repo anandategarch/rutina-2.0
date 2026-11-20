@@ -120,51 +120,108 @@ export function missedYesterday(
 
 export type GoldilocksTone = 'naik' | 'kecilkan'
 
-export interface GoldilocksAdvice {
-  tone: GoldilocksTone
-  title: string
-  text: string
-}
-
-/** Saran berdasarkan hasil pekan berjalan (Senin–Minggu):
- *  - Pekan sempurna (target tercapai)  → tawarkan peningkatan.
- *  - Capaian < 50% hari terjadwal      → sarankan memperkecil. */
-export function goldilocksOf(
+/** Statistik pekan berjalan (Senin–Minggu, hari terjadwal yang sudah
+ *  lewat): berapa hari terjadwal & berapa selesai — dasar tunggal
+ *  bagi seluruh saran Goldilocks (dipakai goldilocksGroups). */
+function goldilocksStats(
   h: Habit,
   c: Completions,
   today: string,
-): GoldilocksAdvice | null {
+): { done: number; scheduled: number } | null {
   const wk = weekStartISO(today)
-  let scheduledPassed = 0
+  let scheduled = 0
   let done = 0
   for (let d = 0; d < 7; d++) {
     const iso = addDaysISO(wk, d)
     if (iso > today) break
     if (!scheduledOn(h, iso)) continue
-    scheduledPassed++
+    scheduled++
     if (isDoneOn(c, iso, h.id)) done++
   }
-  if (scheduledPassed === 0) return null
+  return scheduled === 0 ? null : { done, scheduled }
+}
 
-  /* Pekan sempurna: target pekanan sudah tercapai — tawarkan tantangan. */
-  if (done >= h.weeklyTarget && h.weeklyTarget < 7) {
-    return {
-      tone: 'naik',
-      title: 'Pekan sempurna!',
-      text: `"${h.title}" sudah ${done}/${h.weeklyTarget} pekan ini. Saatnya menantang diri: tambah satu hari jadwal atau naikkan target pekanan.`,
-    }
+/* ===== Saran Coach terkonsolidasi (audit antirepetisi v2.41) =====
+
+   Masalah: sebelumnya tiap kebiasaan mendapat KARTU sendiri, sehingga
+   tiga kebiasaan yang kesulitan menghasilkan tiga kartu berjudul
+   identik "Perkecil dulu biar tetap hidup" — informasi repetitif
+   dengan inti sama. Kini SATU inti saran = SATU kartu: pesan agregat
+   di kepala kartu, kebiasaan menjadi baris ringkas (nama + titik
+   kategori + capaian "d/s hari") di dalamnya. */
+
+export interface GoldilocksItem {
+  habit: Habit
+  /** Hari terjadwal pekan ini yang sudah lewat. */
+  scheduled: number
+  /** Hari terjadwal tersebut yang selesai. */
+  done: number
+}
+
+export interface GoldilocksGroup {
+  tone: GoldilocksTone
+  title: string
+  /** Pesan agregat — menyebut nama kebiasaan HANYA bila tunggal
+   *  (kartu multi-baris sudah memuat nama per baris, jangan dobel). */
+  text: string
+  items: GoldilocksItem[]
+}
+
+/** Kelompokkan seluruh saran Goldilocks menurut INTI saran. Urutan
+ *  keluaran: 'kecilkan' dulu (yang kesulitan lebih butuh perhatian),
+ *  lalu 'naik'. `excludeIds` mengecualikan kebiasaan yang sedang
+ *  ditangani kartu lain (mis. pemulihan terlewat kemarin) agar satu
+ *  kebiasaan tidak muncul dua kali dalam satu seksi. */
+export function goldilocksGroups(
+  habits: Habit[],
+  c: Completions,
+  today: string,
+  excludeIds?: Set<string>,
+): GoldilocksGroup[] {
+  const byTone = new Map<GoldilocksTone, GoldilocksItem[]>()
+  for (const h of habits) {
+    if (h.archived) continue
+    if (excludeIds?.has(h.id)) continue
+    const s = goldilocksStats(h, c, today)
+    if (!s) continue
+    let tone: GoldilocksTone | null = null
+    if (s.done >= h.weeklyTarget && h.weeklyTarget < 7) tone = 'naik'
+    else if (s.scheduled >= 3 && s.done / s.scheduled < 0.5)
+      tone = 'kecilkan'
+    if (!tone) continue
+    const list = byTone.get(tone) ?? []
+    list.push({ habit: h, done: s.done, scheduled: s.scheduled })
+    byTone.set(tone, list)
   }
 
-  /* Capaian di bawah 50% dari hari terjadwal yang sudah lewat —
-     sarankan memperkecil agar kebiasaan tetap hidup. */
-  if (scheduledPassed >= 3 && done / scheduledPassed < 0.5) {
-    return {
+  const groups: GoldilocksGroup[] = []
+  const shrink = byTone.get('kecilkan')
+  if (shrink?.length) {
+    const one = shrink[0]!
+    groups.push({
       tone: 'kecilkan',
       title: 'Perkecil dulu biar tetap hidup',
-      text: `Baru ${done} dari ${scheduledPassed} hari terjadwal pekan ini. Mulai dengan Versi 2 Menit — "${h.mini || 'versi terkecilnya'}" — lalu naik bertahap.`,
-    }
+      text:
+        shrink.length === 1
+          ? `Baru ${one.done} dari ${one.scheduled} hari terjadwal pekan ini. Mulai dengan Versi 2 Menit — "${one.habit.mini || 'versi terkecilnya'}" — lalu naik bertahap.`
+          : `${shrink.length} kebiasaan baru tercapai kurang dari separuh hari terjadwalnya pekan ini. Mulai dari Versi 2 Menit — versi terkecil yang tetap hidup — lalu naik bertahap.`,
+      items: shrink,
+    })
   }
-  return null
+  const rise = byTone.get('naik')
+  if (rise?.length) {
+    const one = rise[0]!
+    groups.push({
+      tone: 'naik',
+      title: 'Pekan sempurna!',
+      text:
+        rise.length === 1
+          ? `"${one.habit.title}" sudah ${one.done}/${one.habit.weeklyTarget} pekan ini. Saatnya menantang diri: tambah satu hari jadwal atau naikkan target pekanan.`
+          : `Target pekanan tercapai untuk ${rise.length} kebiasaan. Saatnya menantang diri: tambah satu hari jadwal atau naikkan target pekanan.`,
+      items: rise,
+    })
+  }
+  return groups
 }
 
 /* ===== Susun Kebiasaan — label pemicu ===== */
