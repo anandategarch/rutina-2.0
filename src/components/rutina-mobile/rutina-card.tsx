@@ -55,7 +55,11 @@ const cardVariants = cva('relative overflow-hidden', {
   defaultVariants: {
     variant: 'default',
     density: 'comfortable',
-    radius: 'lg',
+    /* v2.37: default lg → 2xl — audit menemukan SEMUA kartu seksi layar
+       (home/kebiasaan/stats/day-detail) menulis radius="2xl" eksplisit;
+       default kini mencerminkan realitas. Context-rail (kartu inspektur
+       padat) tetap lg secara eksplisit. */
+    radius: '2xl',
   },
 })
 

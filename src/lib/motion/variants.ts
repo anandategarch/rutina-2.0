@@ -26,7 +26,12 @@ export const slideInRow: Variants = {
   show: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.56, ease: easing.entrance },
+    /* v2.37: literal 0.56 → token pageEntrance (0.55) — kebocoran
+       governance terakhir di lapisan variants. */
+    transition: {
+      duration: motionTokens.preset.pageEntrance.duration,
+      ease: easing.entrance,
+    },
   },
 }
 

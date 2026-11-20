@@ -19,10 +19,26 @@
  *
  * LAPISAN CSS PRESS (di luar Motion, disengaja): umpan balik tekan murah
  * di komponen dasar memakai kelas CSS `active:scale-*` + `duration-150`
- * (rutina-button 0.97 · bottom-nav 0.94 · rutina-tabs 0.96). Ini BUKAN
+ * (rutina-button 0.97 · bottom-nav 0.94 · rutina-tabs 0.96), utility
+ * `interactive` (scale 0.98 · 160ms — dipakai 90+ titik), dan
+ * `active:scale-[0.98]/[0.95]` tersebar di kartu/baris. Ini BUKAN
  * pelanggaran governance — CSS lebih murah dari Motion untuk press state.
  * Konvensi skala tekan Motion: 0.96–0.97 elemen besar/kartu, 0.90–0.92
  * ikon/FAB kecil.
+ *
+ * KEBIJAKAN ANIMASI BERULANG (v2.37): hanya dua keluarga yang diizinkan —
+ * (1) ambient identitas: ambientPulse (api streak) & gardenSway (pohon
+ * kebun); (2) indikator FUNGSIONAL: activityPulse (autosave Jurnal) serta
+ * CSS animate-pulse-soft / animate-breathe untuk titik-hidup sesi latihan
+ * & cincin tujuan hampir tercapai (selalu dengan awalan motion-safe:).
+ * Dekoratif lain (glow FAB, shine) dilarang.
+ *
+ * KOREOGRAFI SATU KALI (v2.37): timeline anime.js berdurasi tetap yang
+ * bermain sekali per kejadian (splash, perayaan konfeti, pertumbuhan
+ * tanaman, urutan baca) DIKECUALIKAN dari token ms — angkanya adalah
+ * koreografi seni per-momen, bukan bahasa gerak lintas layar;
+ * chartRevealMs/valuePopMs/gardenMilestone tetap token untuk pola yang
+ * berulang lintas konteks.
  */
 
 export const motionTokens = {
@@ -143,6 +159,9 @@ export const motionTokens = {
    *  di `delay` transisi. (Governance v2.35: sebelumnya 0.05–0.18
    *  ditulis bebas di 30+ titik.) */
   delay: {
+    /** Offset terhalus — cascadeBlurFade berdekatan (v2.37: mematok
+     *  literal 0.03/0.04 yang dahulu ditulis bebas di Keuangan). */
+    micro: 0.03,
     /** Offset terkecil — blok tepat setelah blok sebelumnya. */
     tight: 0.05,
     /** Satu langkah kecil ke bawah (setengah beat). */
@@ -182,6 +201,12 @@ export const motionTokens = {
      *  diizinkan (api streak, amplitudo ≤8%). Direndam menjadi preset
      *  agar daftar animasi infinite bisa dihitung & diaudit. */
     ambientPulse: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+    /** Ayunan ambient pohon kebun (garden-tree) — animasi berulang
+     *  kedua yang diizinkan; identitas Ruang Kebiasaan. Amplitudo
+     *  ±1,2° dikontrol di komponen; MotionConfig reducedMotion="user"
+     *  otomatis mematikan transform untuk pengguna reduce-motion.
+     *  (v2.37: sebelumnya literal `duration: 7` bebas di komponen.) */
+    gardenSway: { duration: 7, repeat: Infinity, ease: 'easeInOut' },
     /** Denyut AKTIVITAS (indikator autosave Jurnal) — satu-satunya
      *  animasi infinite kedua yang diizinkan; lebih cepat dari
      *  ambientPulse karena menandakan pekerjaan sedang berjalan. */

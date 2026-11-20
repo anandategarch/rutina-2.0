@@ -36,12 +36,14 @@ import { useEffect, useState } from 'react'
 const visited = new Set<string>()
 
 /** True hanya pada render pertama untuk key ini (seumur sesi tab).
- *  Penandaan terjadi setelah commit — render tetap bebas efek samping. */
-export function useFirstVisit(key: string): boolean {
-  const [first] = useState(() => !visited.has(key))
+ *  Penandaan terjadi setelah commit — render tetap bebas efek samping.
+ *  Key opsional: tanpa key selalu true (komponen bebas menganimasi),
+ *  dipakai wrapper opsional seperti BlurFade `visitKey`. */
+export function useFirstVisit(key?: string): boolean {
+  const [first] = useState(() => (key !== undefined ? !visited.has(key) : true))
 
   useEffect(() => {
-    visited.add(key)
+    if (key !== undefined) visited.add(key)
   }, [key])
 
   return first

@@ -5,21 +5,26 @@
  * di GitHub, disesuaikan dengan bahasa desain earth-tone Rutina 2.0:
  *
  * • BlurFade     — magicuidesign/magicui (23.3k ★)
- * • ShineBorder  — magicuidesign/magicui (23.3k ★)
  * • SplitText    — ibelick/motion-primitives "TextEffect" (7k ★)
+ *
+ * (v2.37: ShineBorder dihapus — komponen tak pernah terpakai dan
+ *  membawa animasi infinite `animate-shine` yang melanggar direktif
+ *  gerak: "tidak ada animasi dekoratif berulang".)
  *
  * Referensi sumber asli dicantumkan di tiap komponen.
  */
 
-import { useRef, type CSSProperties, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import {
   useInView,
+  useReducedMotion,
   type Variants,
 } from 'motion/react'
 import * as m from 'motion/react-m'
 
 import { cn } from '@/lib/utils'
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 
 /* Tipe margin useInView (template literal) — tidak diekspor publik,
    jadi diturunkan dari signature fungsi. */
@@ -46,22 +51,35 @@ interface BlurFadeProps {
   inViewMargin?: InViewMargin
   /** Kekuatan blur awal. */
   blur?: string
+  /** Kunci anti-replay (v2.37, konvensi '<layar>-<blok>'). Bila
+   *  diberikan, blur-fade hanya bermain pada kunjungan PERTAMA blok
+   *  tersebut seumur sesi tab; remount berikutnya (kembali dari tab
+   *  lain) merender keadaan akhir secara instan. Pengguna
+   *  reduced-motion selalu mendapat versi instan. */
+  visitKey?: string
 }
 
 export function BlurFade({
   children,
   className,
-  duration = 0.5,
+  duration = motionTokens.preset.data.duration,
   delay = 0,
   offset = 10,
   direction = 'up',
   inView = true,
   inViewMargin = '-40px',
   blur = '6px',
+  visitKey,
 }: BlurFadeProps) {
   const ref = useRef<HTMLDivElement>(null)
   const inViewResult = useInView(ref, { once: true, margin: inViewMargin })
+  const reducedMotion = useReducedMotion()
+  const firstVisit = useFirstVisit(visitKey)
   const show = !inView || inViewResult
+
+  /* Anti-replay + reduced-motion: lompat langsung ke keadaan akhir
+     (initial={false} → tanpa transisi apa pun). */
+  const skip = !firstVisit || !!reducedMotion
 
   const axis = direction === 'left' || direction === 'right' ? 'x' : 'y'
   const hiddenOffset =
@@ -77,65 +95,13 @@ export function BlurFade({
   return (
     <m.div
       ref={ref}
-      initial={hidden}
-      animate={show ? visible : hidden}
-      transition={{ duration, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={skip ? false : hidden}
+      animate={skip || show ? visible : hidden}
+      transition={{ duration, delay, ease: motionTokens.easing.standard }}
       className={className}
     >
       {children}
     </m.div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* ShineBorder — sapuan kilau radial-gradient pada tepi elemen induk.  */
-/* Sumber: magicui (apps/www/registry/magicui/shine-border.tsx)        */
-/* ------------------------------------------------------------------ */
-
-interface ShineBorderProps {
-  /** Lebar tepi (px). */
-  borderWidth?: number
-  /** Durasi satu putaran sapuan (detik). */
-  duration?: number
-  /** Warna kilau — satu atau daftar warna. */
-  shineColor?: string | string[]
-  className?: string
-  style?: CSSProperties
-}
-
-export function ShineBorder({
-  borderWidth = 1,
-  duration = 8,
-  shineColor = 'var(--chart-3)',
-  className,
-  style,
-}: ShineBorderProps) {
-  return (
-    <div
-      aria-hidden="true"
-      style={
-        {
-          backgroundImage: `radial-gradient(transparent, transparent, ${
-            Array.isArray(shineColor) ? shineColor.join(',') : shineColor
-          }, transparent, transparent)`,
-          backgroundSize: '300% 300%',
-          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          WebkitMask:
-            'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          WebkitMaskComposite: 'xor',
-          maskComposite: 'exclude',
-          padding: `${borderWidth}px`,
-          ['--shine-duration' as string]: `${duration}s`,
-          ...style,
-        } as CSSProperties
-      }
-      className={cn(
-        /* Tanpa will-change — hindari promosi lapisan permanen untuk
-           animasi kecil berulang; biarkan komposit menilai sendiri. */
-        'pointer-events-none absolute inset-0 size-full rounded-[inherit] motion-safe:animate-shine',
-        className,
-      )}
-    />
   )
 }
 
@@ -146,7 +112,12 @@ export function ShineBorder({
 
 const letterParent: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.035, delayChildren: 0.05 } },
+  show: {
+    transition: {
+      staggerChildren: motionTokens.stagger.tight,
+      delayChildren: motionTokens.delay.tight,
+    },
+  },
 }
 
 const letter: Variants = {

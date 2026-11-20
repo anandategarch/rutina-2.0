@@ -44,16 +44,14 @@
   --palette-clay: #d98e6b;
   --palette-gold: #d9b98c;
   --palette-linen: #eae5d9;
-
-  /* Skala jarak — ritme vertikal/horizontal seluruh halaman.
-     Ekuivalen utilitas Tailwind: p-1 … p-8 (4/8/12/16/20/24/32px). */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
+  /* Perluasan palet donat Vault (v2.37, audit desain): 4 nama yang
+     direferensikan DONUT_COLORS Keuangan namun belum didefinisikan —
+     slice 4–7 kategori pengeluaran pernah dirender hitam/tak terlihat.
+     Semua mid-tone agar terbaca di kanvas parchment MAUPUN espresso. */
+  --palette-eucalyptus: #8aa892;
+  --palette-bronze: #a5804e;
+  --palette-mauve: #a08b96;
+  --palette-slate: #77848b;
 }
 
 /* ---------- Lapisan 2 · Semantic tokens ---------- */
@@ -209,8 +207,8 @@
   --sidebar-ring: var(--palette-matcha);
 
   /* ---------- Lapisan 3 · Component tokens ---------- */
-  --radius: 16px; /* basis untuk referensi var(--radius) langsung */
-  --card-radius: 16px;
+  /* (v2.37: --radius & --card-radius dihapus — 0 konsumen; radius kartu
+     dikendalikan RutinaCard CVA, utilitas rounded-* memakai skala @theme.) */
   --button-height: 2.75rem; /* 44px — target sentuh minimum WCAG */
   --nav-height: 4rem;
   --sheet-shadow: 0 -18px 48px rgb(35 31 30 / 22%);
@@ -401,27 +399,21 @@
   --color-module-bugar: var(--module-bugar);
   --color-module-bugar-strong: var(--module-bugar-strong);
   --color-module-bugar-soft: var(--module-bugar-soft);
-  --color-module-bugar-fg: var(--module-bugar-fg);
   --color-module-finance: var(--module-finance);
   --color-module-finance-strong: var(--module-finance-strong);
   --color-module-finance-soft: var(--module-finance-soft);
-  --color-module-finance-fg: var(--module-finance-fg);
   --color-module-journal: var(--module-journal);
   --color-module-journal-strong: var(--module-journal-strong);
   --color-module-journal-soft: var(--module-journal-soft);
-  --color-module-journal-fg: var(--module-journal-fg);
   --color-module-stats: var(--module-stats);
   --color-module-stats-strong: var(--module-stats-strong);
   --color-module-stats-soft: var(--module-stats-soft);
-  --color-module-stats-fg: var(--module-stats-fg);
   --color-module-kebiasaan: var(--module-kebiasaan);
   --color-module-kebiasaan-strong: var(--module-kebiasaan-strong);
   --color-module-kebiasaan-soft: var(--module-kebiasaan-soft);
-  --color-module-kebiasaan-fg: var(--module-kebiasaan-fg);
   --color-module-profil: var(--module-profil);
   --color-module-profil-strong: var(--module-profil-strong);
   --color-module-profil-soft: var(--module-profil-soft);
-  --color-module-profil-fg: var(--module-profil-fg);
 
   /* Aksen kontekstual — mengikuti data-module layar aktif (default matcha).
      Contoh: chip bg-module-accent/15 di layar Bugar otomatis eucalyptus,
@@ -553,7 +545,8 @@
   --shadow-ink: 0 10px 28px rgb(12 9 7 / 42%);
   --shadow-ink-deep: 0 24px 56px rgb(12 9 7 / 55%);
   --shadow-leaf: 0 16px 38px rgb(94 131 71 / 42%);
-  --shadow-clay: 0 12px 30px rgb(178 94 63 / 38%);
+  /* (v2.37: --shadow-clay dihapus — 0 konsumen setelah surface destructive
+     memakai --shadow-soft.) */
   --shadow-gold: 0 12px 30px rgb(217 185 140 / 45%);
   --shadow-sheet: var(--sheet-shadow);
 }
@@ -622,53 +615,44 @@
   /* ===== Layout Grammar — satu produk, lima ruang kerja =====
      data-module memilih domain warna; data-layout menentukan POLA
      KOMPOSISI (kepadatan, jarak antar-bagian, radius hero). Tiap ruang
-     kerja punya empat token yang dikonsumsi layar & kisi bento:
+     kerja punya token yang dikonsumsi layar & kisi bento:
 
        --layout-gap          jarak antar-SEKSI utama (warisan v2.8)
        --layout-hero-radius  radius sudut hero modul
-       --layout-density      karakter kepadatan ruang (spacious/airy/
-                             balanced/compact) — kontrak dokumentasi
-                             untuk aturan permukaan di masa depan
        --layout-grid-gap     jarak antar-TILE bento (dipakai RutinaBentoGrid)
+
+     (v2.37: --layout-density & --layout-section-gap dihapus — keduanya
+     deklarasi tanpa konsumen; grammar hanya menyimpan token yang hidup.)
 
      daybook (planner lapang) · performance (studio rapat) · vault
      (ruang kas presisi) · garden (kebun organik) · observatory
      (laboratorium data) · writing-room (ruang tulis tenang) ·
      control-room (ruang kendali presisi). */
   [data-layout] {
-    --layout-density: balanced;
     /* Ponsel: micro-bento 2 kolom memakai jarak rapat 12px agar pas
        di 320–430px; melebar otomatis begitu kontainer lega (lihat
        @container di bawah). */
     --layout-grid-gap: 0.75rem;
-    /* Jarak antar-seksi = ritme layout-gap (satu sumber konfigurasi;
-       boleh menyimpang per-ruang di masa depan tanpa menyentuh layar). */
-    --layout-section-gap: var(--layout-gap);
   }
   [data-layout='daybook'] {
     --layout-gap: 1.75rem;
     --layout-hero-radius: 1.75rem;
-    --layout-density: spacious;
   }
   [data-layout='performance'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1.5rem;
-    --layout-density: compact;
   }
   [data-layout='vault'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1.75rem;
-    --layout-density: compact;
   }
   [data-layout='garden'] {
     --layout-gap: 1.5rem;
     --layout-hero-radius: 1.5rem;
-    --layout-density: airy;
   }
   [data-layout='observatory'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1.5rem;
-    --layout-density: compact;
   }
   /* Writing Room (Jurnal) — ruang tulis tenang: satu kanvas, tanpa grid
      dashboard. Radius DITAHAN (restrained) sesuai direktif kepribadian;
@@ -676,7 +660,6 @@
   [data-layout='writing-room'] {
     --layout-gap: 1.25rem;
     --layout-hero-radius: 1rem;
-    --layout-density: intimate;
   }
   /* Control Room (Profil) — ruang kendali presisi: baris pengaturan,
      tanpa hero dekoratif. Radius disiplin mengikuti utilitas, bukan
@@ -684,7 +667,6 @@
   [data-layout='control-room'] {
     --layout-gap: 1.5rem;
     --layout-hero-radius: 1.25rem;
-    --layout-density: precise;
   }
 
   /* Kepadatan grid relatif LEBAR KONTAINER, bukan viewport. Desktop
@@ -874,18 +856,8 @@
   border-radius: var(--radius-xl);
 }
 
-/* Tekstur butiran halus (grain) — lapisan dekoratif atas kanvas ambien */
-@utility grain {
-  position: relative;
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.05;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'%3E%3C/svg%3E");
-  }
-}
+/* (v2.37: utility `grain` dihapus — 0 konsumen. Tekstur ambien kanvas
+   kini murni gradien blob, tanpa lapisan noise SVG.) */
 
 /* ===== Tipografi fluid — skala responsif berbasis container query =====
    Layar Rutina berjalan dalam kolom @container (lihat rutina-app), maka
@@ -922,17 +894,10 @@
   letter-spacing: -0.015em;
 }
 
-/* Kunci animasi tambahan untuk Rutina 2.0 */
-@keyframes rutina-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-9px);
-  }
-}
-
+/* Kunci animasi tambahan untuk Rutina 2.0
+   (v2.37 pembersihan audit CSS: rutina-float/rutina-shine/rutina-wiggle
+   dihapus — 0 konsumen, dua yang pertama juga melanggar direktif
+   anti-animasi-dekoratif-berulang.) */
 @keyframes rutina-pulse-soft {
   0%,
   100% {
@@ -942,17 +907,6 @@
   50% {
     opacity: 1;
     transform: scale(1.05);
-  }
-}
-
-/* Sapuan kilau pada tepi kartu — adaptasi magicui shine-border
-   (github.com/magicuidesign/magicui, 23.3k ★). */
-@keyframes rutina-shine {
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 200% 200%;
   }
 }
 
@@ -969,24 +923,6 @@
   }
 }
 
-/* Geliat kecil — untuk ikon hadiah/streak yang mengundang sentuhan. */
-@keyframes rutina-wiggle {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(-7deg);
-  }
-  60% {
-    transform: rotate(5deg);
-  }
-}
-
-@utility animate-float {
-  animation: rutina-float 5s ease-in-out infinite;
-}
-
 @utility animate-pulse-soft {
   animation: rutina-pulse-soft 2.6s ease-in-out infinite;
 }
@@ -995,21 +931,12 @@
   animation: rutina-pop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@utility animate-wiggle {
-  animation: rutina-wiggle 0.7s ease-in-out;
-}
-
-/* Kilau menyapu tepi elemen (dipasangkan dgn mask di komponen ShineBorder).
-   Durasi default diperlambat (12s) agar kilau terasa tenang. */
-@utility animate-shine {
-  animation: rutina-shine var(--shine-duration, 12s) linear infinite;
-}
-
 /* =====================================================================
    v2.6 "Gerak & Permukaan" — lapisan motion CSS murni.
-   Semua animasi di bawah adalah dekoratif & berulang (bukan umpan
-   balik interaksi): gunakan awalan `motion-safe:` di lokasi pemakaian
-   agar pengguna reduce-motion mendapat versi diam.
+   Hanya kunci yang HIDUP yang dipertahankan (v2.37): shimmer (skeleton)
+   dan breathe (indikator fungsional cincin tujuan). Animasi dekoratif
+   berulang (sway/rise/pan/spin-slow/glow) telah dihapus sesuai
+   direktif gerak; gunakan awalan `motion-safe:` di lokasi pemakaian.
    ===================================================================== */
 
 /* Shimmer — sapuan cahaya diagonal untuk skeleton & aksen teks. */
@@ -1022,7 +949,8 @@
   }
 }
 
-/* Breathe — ikon "hidup" (api streak) mengembang-kecil perlahan. */
+/* Breathe — indikator fungsional: cincin tujuan mendekati 100%
+   (Keuangan). Terdaftar di kebijakan animasi berulang tokens.ts. */
 @keyframes rutina-breathe {
   0%,
   100% {
@@ -1033,90 +961,8 @@
   }
 }
 
-/* Sway — tanaman emoji berayun lembut tertiup angin kebun. */
-@keyframes rutina-sway {
-  0%,
-  100% {
-    transform: rotate(-3deg);
-  }
-  50% {
-    transform: rotate(3deg);
-  }
-}
-
-/* Rise — entrance naik + fade untuk item daftar berantai
-   (tunda per item lewat --rise-delay di inline style). */
-@keyframes rutina-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Pan — gradien latar hero bergeser bolak-balik sangat lambat. */
-@keyframes rutina-pan {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* Spin slow — cincin dekoratif (garis putus) berputar sunyi. */
-@keyframes rutina-spin-slow {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Glow — halo di belakang FAB bernapas, menandai pintu aksi cepat. */
-@keyframes rutina-glow {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.14);
-  }
-}
-
-@utility animate-shimmer {
-  animation: rutina-shimmer 2.4s linear infinite;
-}
-
 @utility animate-breathe {
   animation: rutina-breathe 3.2s ease-in-out infinite;
-}
-
-@utility animate-sway {
-  animation: rutina-sway 5.5s ease-in-out infinite;
-  transform-origin: 50% 90%;
-}
-
-@utility animate-rise {
-  animation: rutina-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: var(--rise-delay, 0s);
-}
-
-@utility animate-pan {
-  background-size: 220% 220%;
-  animation: rutina-pan 16s ease-in-out infinite;
-}
-
-@utility animate-spin-slow {
-  animation: rutina-spin-slow 26s linear infinite;
-}
-
-@utility animate-glow {
-  animation: rutina-glow 2.8s ease-in-out infinite;
 }
 
 /* Skeleton Rutina — blok pengganti saat data cloud masih ditarik.

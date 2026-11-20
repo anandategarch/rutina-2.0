@@ -176,7 +176,7 @@ function WeekSummaryCard() {
   )
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Ringkasan pekan ini" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
@@ -213,7 +213,7 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
   const next = upcoming[0] ?? null
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title={title} />
       {next ? (
         <div className="mt-4 flex items-center gap-3">
@@ -259,7 +259,7 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
 
 function TipsCard() {
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Tips" />
       <div className="mt-3.5 flex items-start gap-3">
         <span
@@ -285,7 +285,7 @@ function BodyReadinessCard() {
   const log = latest?.[1]
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Kesiapan tubuh" />
       {log && (log.sleepH != null || log.energy != null) ? (
         <>
@@ -333,7 +333,7 @@ function PrCard() {
   const last = [...workouts].sort((a, b) => (a.date < b.date ? 1 : -1))[0] ?? null
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Rekor pribadi" />
       {prs.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3.5">
@@ -376,7 +376,7 @@ function HydrationCard() {
   const isToday = bodyLogs[today] != null
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Hidrasi" />
       {log ? (
         <>
@@ -418,7 +418,7 @@ function PeriodCard() {
   const flow = monthFlow(txs, todayISO().slice(0, 7))
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Ringkasan periode" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
@@ -460,7 +460,7 @@ const catMeta = useCatMeta()
     null
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Anggaran" />
       {top ? (
         <ul className="mt-4 flex flex-col gap-3.5">
@@ -499,7 +499,7 @@ const catMeta = useCatMeta()
   const recent = [...txs].sort((a, b) => (a.ts < b.ts ? 1 : -1)).slice(0, 3)
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Aktivitas terakhir" />
       {recent.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3.5">
@@ -551,7 +551,7 @@ function ConsistencyCard() {
   )
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Konsistensi" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
@@ -576,7 +576,7 @@ function GardenCard() {
   const activeCount = habits.filter((h) => !h.archived).length
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Taman" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
@@ -611,7 +611,7 @@ function InsightCard() {
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Insight" />
       {thisWeek > 0 || lastWeek > 0 ? (
         <ul className="mt-4 flex flex-col gap-3.5">
@@ -664,7 +664,7 @@ function FocusCard() {
   const activeCount = habits.filter((h) => !h.archived).length
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Fokus" />
       {focus && focus.count > 0 ? (
         <ul className="mt-4 flex flex-col gap-3.5">
@@ -711,7 +711,7 @@ function AchievementCard() {
   )
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Pencapaian" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
@@ -752,7 +752,7 @@ function StorageRailCard() {
   const activeHabits = habits.filter((h) => !h.archived).length
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Penyimpanan" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
@@ -791,7 +791,7 @@ function PreferencesRailCard() {
   const streak = bestStreak(habits, completions, todayISO()).streak
 
   return (
-    <RutinaCard>
+    <RutinaCard radius="lg">
       <RutinaSectionHeader title="Preferensi" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
