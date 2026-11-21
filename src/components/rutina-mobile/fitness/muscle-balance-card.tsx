@@ -132,7 +132,7 @@ export function MuscleBalanceCard() {
                 }}
                 aria-pressed={on}
                 className={
-                  'interactive h-6.5 cursor-pointer rounded-full px-2.5 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
+                  'interactive h-9 cursor-pointer rounded-full px-2.5 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
                   (on
                     ? 'bg-surface-inverse text-content-inverse shadow-soft'
                     : 'text-content-secondary hover:text-content-primary')

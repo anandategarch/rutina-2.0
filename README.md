@@ -6,8 +6,32 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.47.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.48.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.48 — Audit Menyeluruh Edisi Visualisasi Ilustratif: 45 Perbaikan
+
+Audit penuh lima arah (paralel per modul + fondasi) atas v2.47 — **nol
+kebojuran data kritis, nol fungsionalitas hilang** — lalu 45 perbaikan
+diterapkan di akar. Yang menonjol: **bug ketukan konstelasi 30 hari**
+(overlay tombol tidak sejajar sumbu bintang — di 320px ketukan bintang hari
+ini membaca hari yang salah; kini tiap bintang punya tombol 24px terpusat
+pada sumbunya di wadah geser, terverifikasi geometris & live); **sasaran
+ketukan peta anatomi** (garis luar "Seluruh badan" mencuri ketukan kaki —
+kini bentuk sasaran tak-terlihat per wilayah + urutan gambar dibalik; ketuk
+sela kaki = "Otot Kaki") + fokus keyboard terlihat + chip legenda 44px;
+**persen jujur sampai ujung** (stoples & badge "Terpakai" tanpa clamp 100,
+"sisa Rp0" → "lewat Rp X" saat melampaui batas); **kata jurnal eksak**
+("1.234", bukan "1,2 rb"); **satu sumber kebenaran kepatuhan harian**
+(dayCompliance() dipakai daySchedules + konstelasi + sulur; KPI Konsistensi
+kini sadar-createdAt & sepakat dengan konstelasi); daun rekap pekan
+sadar-jadwal; roda mood proporsional di ekor kecil + celah arc nyata;
+fokus outline-gold kontras-rendah → outline-primary; target sentuh
+kontrol visualisasi dinaikkan (44px chip/baris utama, 36px pil ringkas);
+guard input degenerate (NaN/Infinity) pada komponen bersama; dependensi
+`recharts` + `ui/chart.tsx` yang mati dihapus. Verifikasi: tsc & lint hijau,
+157/157 test, E2E browser 6 layar × 320/390/768/1440px nol overflow & nol
+error konsol.
 
 ## v2.47 — Warm Editorial Productivity: Edisi Visualisasi Data Ilustratif
 

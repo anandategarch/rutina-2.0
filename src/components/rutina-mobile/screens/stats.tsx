@@ -73,6 +73,7 @@ import {
   computeLevel,
   computeXp,
   dayCounts,
+  daySchedules,
   doneCountOn,
   fromISO,
   habitsOn,
@@ -103,6 +104,7 @@ import {
   LifeConstellation,
 } from '../visualizations/stats/life-constellation'
 import { HabitFlower } from '../visualizations/stats/habit-flower'
+import { useSvgId } from '../visualizations/shared/svg-id'
 
 /** Keliling ring progres XP (r = 78 pada viewBox 200). */
 const R = 78
@@ -264,6 +266,11 @@ export default function StatsScreen() {
      pada kunjungan pertama seumur sesi — remount antar-tab tampil instan;
      perubahan data/periode tetap bermorf lewat animate (bukan entrance). */
   const playEntrance = useFirstVisit('stats-observatory')
+
+  /* Id gradient ring XP — hook bersama useSvgId (sanitasi ":" dari
+     useId agar aman dirujuk url(#…)); mencegah kolisi bila ring
+     dirender ganda (audit v2.47 #12). */
+  const xpGradId = useSvgId('stats-xp-grad')
 
   const today = todayISO()
 
@@ -522,21 +529,19 @@ export default function StatsScreen() {
   }, [habits, completions, today, bonusClaimed])
 
   /* ===== KPI strip — lensa 30 hari =====
-     Konsistensi & misi memakai sumber kebenaran yang sama dengan grafik
-     dan laporan di bawah: habitsOn + isDoneOn (ala rateSeries/monthReport)
-     untuk rasio terjadwal, doneCountOn (ala dayCounts) untuk total misi.
-     Streak & rekor dari bestStreak — sama dengan widget runtun. */
+     Konsistensi memakai sumber kebenaran yang sama dengan rata-rata
+     konstelasi di bawah: daySchedules (sadar createdAt & arsip, hari
+     jeda diampuni keluar penyebut — audit v2.47 #11) sehingga KPI dan
+     grafik TIDAK BISA berselisih di layar yang sama; misi memakai
+     doneCountOn (ala dayCounts). Streak & rekor dari bestStreak —
+     sama dengan widget runtun. */
   const kpi = useMemo(() => {
-    let sched = 0
-    let done = 0
+    const sched30 = daySchedules(habits, completions, today, 30)
+    const sched = sched30.reduce((a, sd) => a + sd.scheduled, 0)
+    const done = sched30.reduce((a, sd) => a + sd.done, 0)
     let missions = 0
     for (let i = 29; i >= 0; i--) {
-      const iso = addDaysISO(today, -i)
-      for (const h of habitsOn(habits, iso)) {
-        sched++
-        if (isDoneOn(completions, iso, h.id)) done++
-      }
-      missions += doneCountOn(completions, iso)
+      missions += doneCountOn(completions, addDaysISO(today, -i))
     }
     return {
       consistency: sched > 0 ? Math.round((done / sched) * 100) : 0,
@@ -647,16 +652,12 @@ export default function StatsScreen() {
     const out: { key: string; title: string; body: string; tone: Tone }[] = []
 
     /* 1 — Konsistensi 30 hari vs 30 hari sebelumnya (ambang 5 poin
-       agar derau kecil tidak dibesarkan). */
-    let schedPrev = 0
-    let donePrev = 0
-    for (let i = 0; i < 30; i++) {
-      const iso = addDaysISO(today, -59 + i)
-      for (const h of habitsOn(habits, iso)) {
-        schedPrev++
-        if (isDoneOn(completions, iso, h.id)) donePrev++
-      }
-    }
+       agar derau kecil tidak dibesarkan). Pembanding memakai rumus
+       yang SAMA dengan KPI (daySchedules — audit v2.47 #11) agar
+       delta tidak mencampur dua sumber berbeda. */
+    const prev30 = daySchedules(habits, completions, addDaysISO(today, -30), 30)
+    const schedPrev = prev30.reduce((a, sd) => a + sd.scheduled, 0)
+    const donePrev = prev30.reduce((a, sd) => a + sd.done, 0)
     if (kpi.sched > 0 && schedPrev > 0) {
       const prev = Math.round((donePrev / schedPrev) * 100)
       const diff = kpi.consistency - prev
@@ -1056,7 +1057,7 @@ export default function StatsScreen() {
                 cy="100"
                 r={R}
                 fill="none"
-                stroke="url(#stats-xp-grad)"
+                stroke={`url(#${xpGradId})`}
                 strokeWidth="13"
                 strokeLinecap="round"
                 strokeDasharray={CIRC}
@@ -1070,7 +1071,7 @@ export default function StatsScreen() {
               />
               <defs>
                 <linearGradient
-                  id="stats-xp-grad"
+                  id={xpGradId}
                   x1="0%"
                   y1="0%"
                   x2="100%"

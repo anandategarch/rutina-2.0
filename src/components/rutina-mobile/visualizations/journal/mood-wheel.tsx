@@ -12,6 +12,9 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
  *
  * Mengganti bar segmen proporsi mood: donat arc ∝ jumlah/total dengan
  * celah tipis antar-arc dan ujung membulat (strokeLinecap round).
+ * Slot sudut selalu menjumlah tepat 360°; arc kecil (sub-visible)
+ * merender sebagai dot terpusat yang luapannya dibatasi tarikan cap
+ * (audit v2.47 (3-d)).
  * Angka persis tetap dibawa legenda teks "{mood} {n}×" di pemanggil —
  * roda adalah bentuk, bukan sumber angka.
  *
@@ -42,15 +45,21 @@ const CY = 48
 /** Radius tengah donat — inner 26 / outer 40 (stroke 14). */
 const R_MID = 33
 const STROKE = 14
-/** Celah terlihat antar ujung arc yang membulat. */
+/** Celah tinta-ke-tinta antar arc (derajat), dibagi rata ke dua sisi
+ *  slot: endpoint path ditarik mundur CAP_DEG + GAP_DEG/2 per ujung
+ *  sehingga SETELAH ujung bulat menjulur CAP_DEG, sisa celah visual
+ *  tetap GAP_DEG. Audit v2.47 (3-d): dulu GAP_DEG tak pernah dipakai —
+ *  tarikan 2×CAP_DEG dikonsumsi ulang pas oleh ujung bulat, arc saling
+ *  menempel 0°. */
 const GAP_DEG = 2
 /** Ujung bulat (strokeLinecap round) menjulur melewati ujung path
  *  sepanjang setengah lebar goresan → sudut padanannya di radius
- *  tengah; endpoint path ditarik mundur sejauh ini agar celah antar
- *  arc tetap GAP_DEG. */
+ *  tengah; endpoint path ditarik mundur sejauh ini per ujung. */
 const CAP_DEG = (180 / Math.PI) * (STROKE / 2 / R_MID)
-/** Rentang sapuan minimal saat proporsi terlalu kecil untuk dua
- *  tarikan — tampil sebagai titik arc berujung bulat. */
+/** Rentang path minimal yang masih terrender andal — dipakai HANYA
+ *  untuk arc yang sejatinya sub-visible (± < 2×CAP_DEG): tampil sebagai
+ *  titik arc kecil berujung bulat, tidak pernah lebih lebar dari
+ *  sudut sejatinya. */
 const MIN_SPAN_DEG = 1.2
 
 /** Titik pada lingkaran — 0° = pukul dua belas, searah jarum jam. */
@@ -78,9 +87,17 @@ export function MoodWheel({
 
   const total = counts.reduce((a, [, n]) => a + n, 0)
 
-  /* Geometri arc: sudut ∝ jumlah/total; tarikan CAP_DEG di kedua ujung
-     menjaga celah antar arc tetap terbaca. (Sudut awal dihitung dalam
-     loop murni — bukan reassign di dalam callback map.) */
+  /* Geometri arc — slot ∝ jumlah/total dan selalu menjumlah tepat
+     360° (sudut awal dihitung dalam loop murni, bukan reassign di
+     dalam callback map). Audit v2.47 (3-d), dua perbaikan:
+     (1) GAP_DEG kini benar-benar dikurangkan dari sapuan path —
+         tinta antar-arc bersela nyata, pasangan tint gelap
+         bersebelahan (mis. Biasa/Lelah) tetap terbedakan;
+     (2) lantai MIN_SPAN_DEG hanya untuk arc yang SEJATINYA
+         sub-visible — sisanya proporsional penuh (visual =
+         true − GAP_DEG), dot kecil dipusatkan pada slotnya, dan
+         span tak pernah melebihi sudut sejati sehingga luapan tinta
+         dibatasi tarikan cap (visual ≤ true + 2×CAP_DEG). */
   const arcs = useMemo(() => {
     const starts: number[] = []
     let acc = 0
@@ -88,12 +105,27 @@ export function MoodWheel({
       starts.push(acc)
       acc += (n / total) * 360
     }
-    return counts.map(([mood, n], i) => ({
-      mood,
-      count: n,
-      start: starts[i] ?? 0,
-      span: Math.max((n / total) * 360 - 2 * CAP_DEG, MIN_SPAN_DEG),
-    }))
+    return counts.map(([mood, n], i) => {
+      const slotStart = starts[i] ?? 0
+      const trueSpan = (n / total) * 360
+      /* Sapuan normal: sudut sejati − tarikan cap dua ujung − celah. */
+      const pulled = trueSpan - 2 * CAP_DEG - GAP_DEG
+      let pathStart: number
+      let span: number
+      if (pulled >= MIN_SPAN_DEG) {
+        /* Visual = [slot+GAP/2, slot+true−GAP/2] — proporsional,
+           bersela GAP_DEG nyata di kedua batas slot. */
+        span = pulled
+        pathStart = slotStart + CAP_DEG + GAP_DEG / 2
+      } else {
+        /* Arc sub-visible: path menyusut ke lantai MIN_SPAN_DEG (ujung
+           bulat tetap membentuk dot ±2×CAP), DIPUSATKAN pada slot,
+           dan tidak pernah lebih lebar dari sudut sejatinya. */
+        span = Math.min(MIN_SPAN_DEG, trueSpan)
+        pathStart = slotStart + (trueSpan - span) / 2
+      }
+      return { mood, count: n, start: slotStart, pathStart, span }
+    })
   }, [counts, total])
 
   return (
@@ -120,7 +152,7 @@ export function MoodWheel({
           return (
             <m.path
               key={a.mood}
-              d={arcPath(a.start + CAP_DEG, a.span)}
+              d={arcPath(a.pathStart, a.span)}
               fill="none"
               stroke={fill}
               strokeWidth={STROKE}

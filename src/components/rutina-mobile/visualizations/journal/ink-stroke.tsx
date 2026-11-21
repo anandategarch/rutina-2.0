@@ -1,6 +1,7 @@
 'use client'
 
 import * as m from 'motion/react-m'
+import { useReducedMotion } from 'motion/react'
 
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
@@ -60,10 +61,14 @@ export function InkStroke({
   delay: number
 }) {
   const play = useFirstVisit('journal-ink')
+  /* Audit v2.47 (3-d): gerbang reduced-motion EKSPLISIT — jangan hanya
+     mengandalkan MotionConfig global; pola yang sama dengan mood-wheel /
+     cashflow-river (entrance hanya saat kunjungan pertama & motion hidup). */
+  const reduced = useReducedMotion()
 
   return (
     <m.div
-      initial={play ? { scaleY: 0 } : false}
+      initial={play && !reduced ? { scaleY: 0 } : false}
       animate={{ scaleY: 1 }}
       transition={{
         duration: motionTokens.duration.enter,
@@ -115,10 +120,13 @@ export function InkStroke({
  */
 export function InkDot({ delay }: { delay: number }) {
   const play = useFirstVisit('journal-ink')
+  /* Audit v2.47 (3-d): gerbang reduced-motion eksplisit — serumpun
+     InkStroke / mood-wheel. */
+  const reduced = useReducedMotion()
 
   return (
     <m.div
-      initial={play ? { scale: 0, opacity: 0 } : false}
+      initial={play && !reduced ? { scale: 0, opacity: 0 } : false}
       animate={{ scale: 1, opacity: 1 }}
       transition={{
         ...motionTokens.spring.snappy,

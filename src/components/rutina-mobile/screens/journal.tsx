@@ -202,8 +202,24 @@ function WritingActivityCard({
   const activeWriteDays = wordWeeks.reduce((a, w) => a + w.days, 0)
   const avgWordsPerDay =
     activeWriteDays > 0 ? Math.round(totalWords / activeWriteDays) : 0
-  const fmtWords = (n: number) =>
-    n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} rb` : String(n)
+
+  /* Audit v2.47 (3-d): jumlah kata pekan terfilter untuk chip — angka
+     PERSIS (id-ID, mis. "1.234"), dihitung dari sumber yang sama dengan
+     wordWeeks (countWords atas catatan ber-tanggal pasti; pekan berjalan
+     sampai hari ini) sehingga tetap jujur untuk rentang pekan apa pun,
+     bukan hanya jendela 4 pekan terakhir. */
+  const selWeekWords = useMemo(() => {
+    if (weekFilter === null) return 0
+    const end = addDaysISO(weekFilter, 6)
+    let sum = 0
+    for (const n of notes) {
+      const iso = noteDateISO(n)
+      if (iso == null || iso < weekFilter || iso > end) continue
+      if (iso > today) continue
+      sum += countWords(n.body)
+    }
+    return sum
+  }, [notes, weekFilter, today])
 
   /* Tanggal terakhir menulis — pengganti streak bila masih pendek. */
   const lastWrite = useMemo(() => {
@@ -255,7 +271,9 @@ function WritingActivityCard({
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-3">
           {/* Mode baca (review v2.44): kalender jumlah catatan / volume
-              kata per pekan — jumlah catatan ≠ produktivitas menulis. */}
+              kata per pekan — jumlah catatan ≠ produktivitas menulis.
+              Audit v2.47 (3-d): h-6.5 (26px) → h-9 (36px) — target sentuh
+              nyaman; lebar pill tidak berubah. */}
           <div
             role="group"
             aria-label="Mode aktivitas menulis"
@@ -271,7 +289,7 @@ function WritingActivityCard({
                     onClick={() => setView(v)}
                     aria-pressed={on}
                     className={
-                      'interactive h-6.5 cursor-pointer rounded-full px-3 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                      'interactive h-9 cursor-pointer rounded-full px-3 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                       (on
                         ? 'bg-surface-inverse text-content-inverse shadow-soft'
                         : 'text-content-secondary hover:text-content-primary')
@@ -286,7 +304,9 @@ function WritingActivityCard({
 
           {view === 'kalender' ? (
           <>
-          {/* Navigasi bulan — ikut terlipat bersama kalendernya. */}
+          {/* Navigasi bulan — ikut terlipat bersama kalendernya. Audit
+              v2.47 (3-d): h-8 w-8 (32px) → h-9 w-9 (36px) — target sentuh;
+              label bulan tetap muat di 320px. */}
           <div className="flex items-center justify-end gap-1">
             <button
               type="button"
@@ -296,7 +316,7 @@ function WritingActivityCard({
                 const prev = mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`
                 setViewYm(prev)
               }}
-              className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
                 <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -314,7 +334,7 @@ function WritingActivityCard({
                 const next = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`
                 setViewYm(next)
               }}
-              className="interactive flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              className="interactive flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-muted hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
                 <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -349,7 +369,9 @@ function WritingActivityCard({
                   }
                   onClick={() => onPickDay(isSel ? null : iso)}
                   className={
-                    'interactive h-8 w-full cursor-pointer rounded-[5px] text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                    /* Audit v2.47 (3-d): h-8 (32px) → h-9 (36px) — target
+                        sentuh sel kalender; kisi 7 kolom tak berubah lebar. */
+                    'interactive h-9 w-full cursor-pointer rounded-[5px] text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                     (isSel
                       ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
                       : iso === today
@@ -405,10 +427,10 @@ function WritingActivityCard({
                   >
                     {wordWeeks.map((w, i) => {
                       const isCurrent = i === wordWeeks.length - 1
-                      const h =
-                        w.words <= 0
-                          ? 4
-                          : Math.max(10, Math.round((w.words / max) * 100))
+                      /* Audit v2.47 (3-d): cabang mati `w.words <= 0 ? 4`
+                         dihapus — pekan tanpa kata merender InkDot di bawah,
+                         bukan sapuan; max > 0 terjamin early-return atas. */
+                      const h = Math.max(10, Math.round((w.words / max) * 100))
                       const isSel = weekFilter === w.start
                       return (
                         <button
@@ -461,18 +483,22 @@ function WritingActivityCard({
                       )
                     })}
                   </div>
+                  {/* Audit v2.47 (3-d): angka kata PERSIS per pekan
+                      ("1.234", bukan "1,2 rb") — sapuan tinta adalah
+                      hero mode 'kata'; deret angka utama tidak boleh
+                      membulatkan nilai. */}
                   <p className="mt-1.5 text-chart-label tabular-nums text-content-muted">
                     {wordWeeks
                       .map(
                         (w, i) =>
-                          `${i === wordWeeks.length - 1 ? 'ini' : `P${i + 1}`} ${fmtWords(w.words)}`,
+                          `${i === wordWeeks.length - 1 ? 'ini' : `P${i + 1}`} ${w.words.toLocaleString('id-ID')}`,
                       )
                       .join(' · ')}{' '}
                     kata
                   </p>
                   <p className="mt-1 text-meta text-content-muted">
-                    {fmtWords(totalWords)} kata · {activeWriteDays} hari aktif
-                    menulis · rata² {fmtWords(avgWordsPerDay)} kata/hari
+                    {totalWords.toLocaleString('id-ID')} kata · {activeWriteDays} hari aktif
+                    menulis · rata² {avgWordsPerDay.toLocaleString('id-ID')} kata/hari
                   </p>
                 </div>
               )
@@ -560,7 +586,10 @@ function WritingActivityCard({
               className="interactive mt-3 ml-2 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Filter pekan: {shortDateLabel(weekFilter)}–
-              {shortDateLabel(addDaysISO(weekFilter, 6))}
+              {shortDateLabel(addDaysISO(weekFilter, 6))} ·{' '}
+              {/* Audit v2.47 (3-d): chip membawa jumlah kata PERSIS
+                  pekan terpilih — nilai sama dengan batangnya. */}
+              {selWeekWords.toLocaleString('id-ID')} kata
               <span aria-hidden="true">✕</span>
               <span className="sr-only">Hapus filter pekan</span>
             </button>

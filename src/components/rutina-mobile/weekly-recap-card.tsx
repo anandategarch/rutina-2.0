@@ -309,7 +309,9 @@ export function WeeklyRecapCard({
           hidup, mekar penuh saat target harian tercapai, titik di hari
           kosong, lingkar putus untuk hari yang belum tiba. Setiap hari
           yang sudah berjalan bisa DITEKAN untuk membuka ringkasan
-          hari itu (misi, aktivitas, status target) di bawah strip. */}
+          hari itu (misi, aktivitas, status target) di bawah strip.
+          Audit v2.47 (3-d): tombol hari diberi min-h-11 (≥44px) —
+          target sentuh nyaman; baris 7 kolom tak berubah lebarnya. */}
       <div
         className="relative mt-4"
         role="group"
@@ -349,7 +351,7 @@ export function WeeklyRecapCard({
                       100,
                       Math.round((d.done / Math.max(dailyGoal, 1)) * 100),
                     )}% dari target ${dailyGoal})${d.metGoal ? ', target tercapai' : ''}${isBest ? ' — hari terbaik pekan ini' : ''}`}
-                    className="interactive relative flex cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive relative flex min-h-11 cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {isBest && (
                       <span

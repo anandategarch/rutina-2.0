@@ -1,6 +1,7 @@
 'use client'
 
 import * as m from 'motion/react-m'
+import { useReducedMotion } from 'motion/react'
 
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
@@ -73,7 +74,8 @@ export function MacroPlate({
   carbTarget: number
   fatTarget: number
 }) {
-  const playEntrance = useFirstVisit('bugar-macro-plate')
+  const first = useFirstVisit('bugar-macro-plate')
+  const reduced = useReducedMotion()
 
   const segs: MacroSeg[] = [
     {
@@ -106,6 +108,10 @@ export function MacroPlate({
   ]
 
   const total = segs.reduce((a, s) => a + s.kcal, 0)
+
+  /* Total energi ≤ 0 (audit v2.47.1) — komponen BERSAMA: jangan render
+     juring NaN; kartu asupan menampilkan keadaan kosongnya sendiri. */
+  if (total <= 0) return null
 
   /* Sudut juring — dari pukul dua belas, searah jarum jam. */
   let acc = 0
@@ -160,11 +166,11 @@ export function MacroPlate({
           return (
             <m.g
               key={a.key}
-              initial={playEntrance ? { opacity: 0 } : false}
+              initial={first && !reduced ? { opacity: 0 } : false}
               animate={{ opacity: 1 }}
               transition={{
                 duration: motionTokens.preset.data.duration,
-                delay: playEntrance ? i * motionTokens.stagger.normal : 0,
+                delay: first && !reduced ? i * motionTokens.stagger.normal : 0,
                 ease: motionTokens.easing.standard,
               }}
             >
@@ -177,7 +183,11 @@ export function MacroPlate({
           )
         })}
 
-        {/* Tengah piring — bukan lubang: scrim tipis + total energi makro. */}
+        {/* Tengah piring — bukan lubang: scrim tipis + total energi makro.
+            v2.47.2 (audit): teks memakai parchment terang yang stabil
+            lintas tema — scrim espresso gelap di KEDUA tema, jadi teks
+            terang benar di keduanya (module-accent-fg pernah gelap di
+            mode gelap → kontras ~3:1). */}
         <circle cx={CX} cy={CY} r="25.5" fill="var(--palette-espresso)" fillOpacity="0.55" />
         <text
           x={CX}
@@ -185,7 +195,7 @@ export function MacroPlate({
           textAnchor="middle"
           fontSize="15.5"
           fontWeight="700"
-          fill="var(--module-accent-fg)"
+          fill="var(--palette-parchment)"
         >
           {fmt(total)}
         </text>
@@ -194,7 +204,7 @@ export function MacroPlate({
           y={CY + 12}
           textAnchor="middle"
           fontSize="6"
-          fill="var(--module-accent-fg)"
+          fill="var(--palette-parchment)"
           fillOpacity="0.75"
         >
           kkal makro
@@ -203,11 +213,11 @@ export function MacroPlate({
 
       {/* Legenda — gram, pangsa energi, dan sasaran per makro. */}
       <m.div
-        initial={playEntrance ? { opacity: 0 } : false}
+        initial={first && !reduced ? { opacity: 0 } : false}
         animate={{ opacity: 1 }}
         transition={{
           duration: motionTokens.preset.data.duration,
-          delay: playEntrance ? motionTokens.delay.step : 0,
+          delay: first && !reduced ? motionTokens.delay.step : 0,
           ease: motionTokens.easing.standard,
         }}
         className="min-w-0 flex-1 space-y-2"

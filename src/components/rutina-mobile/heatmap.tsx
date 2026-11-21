@@ -192,7 +192,11 @@ export default function Heatmap({
     }
     const sd = schedBy.get(iso)
     if (!sd || sd.pct == null) {
-      return `${cd?.label ?? ''}, ${fmtDate(iso)} — tanpa kebiasaan terjadwal`
+      /* Seluruh jadwal hari itu diampuni (rest > 0) tetap disebut —
+         hari tanpa jadwal ≠ hari yang semua jadwalnya jeda (audit #6). */
+      return `${cd?.label ?? ''}, ${fmtDate(iso)} — tanpa kebiasaan terjadwal${
+        sd && sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''
+      }`
     }
     return `${sd.label}, ${fmtDate(iso)} — kepatuhan ${sd.pct}% (${sd.done} dari ${sd.scheduled} terjadwal)${sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''}`
   }

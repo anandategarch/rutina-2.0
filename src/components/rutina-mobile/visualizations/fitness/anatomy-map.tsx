@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import * as m from 'motion/react-m'
+import { useReducedMotion } from 'motion/react'
 
 import { exerciseLabel } from '../../fitness/data'
 import { shortDateLabel } from '../../store'
@@ -56,6 +57,7 @@ function SilhouetteFill() {
   return (
     <g
       aria-hidden="true"
+      pointerEvents="none"
       fill="var(--surface-sunken)"
       stroke="var(--border)"
       strokeWidth="1"
@@ -113,6 +115,10 @@ function FullBodyOutline({
     strokeWidth: width,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
+    /* Fokus keyboard terlihat (WCAG 2.4.7, audit v2.47.1): warna aksen
+       kuat + penebalan garis — setara cincin fokus wilayah otot. */
+    className:
+      'transition-colors group-focus-visible:stroke-module-accent-strong group-focus-visible:stroke-[4.5]',
   }
   return (
     <g pointerEvents="stroke">
@@ -276,7 +282,58 @@ function RegionShapeNode({
       strokeOpacity={paint.opacity}
       strokeWidth={shape.width}
       strokeLinecap="round"
-      className="transition-colors group-focus-visible:stroke-module-accent-strong"
+      className="transition-colors group-focus-visible:stroke-module-accent-strong group-focus-visible:[stroke-dasharray:3_2.5]"
+    />
+  )
+}
+
+/* ===== Area sentuh (audit v2.47.1) ===== */
+
+/** Penebal area sentuh kotak/lingkaran per sisi (satuan viewBox;
+ *  render maks 220px → 5,5 unit ≈ 8,6px per sisi). */
+const HIT_PAD = 5.5
+/** Lebar garis sentuh kapsul (lengan/kaki) — ±11 unit ≈ ±17px pada
+ *  render 220px; target sentuh efektif ≥24px di sepanjang anggota. */
+const HIT_STROKE = 22
+
+/** Bentuk sentuh TAK TERLIHAT per wilayah — mengikuti geometri wilayah
+ *  (kapsul diperlebar garisnya, kotak/lingkaran diperluas bbox-nya)
+ *  sehingga tiap wilayah punya target ≥24px TANPA mencuri ketukan
+ *  wilayah lain; ujung kapsul sengaja rata (bukan round) agar garis
+ *  pinggul siluet tetap bisa diketuk. pointerEvents="all" membuat
+ *  garis/isian transparan tetap dapat diuji kursor. */
+function RegionHitShape({ shape }: { shape: RegionShape }) {
+  if (shape.kind === 'circle') {
+    return (
+      <circle
+        cx={shape.cx}
+        cy={shape.cy}
+        r={shape.r + HIT_PAD}
+        fill="transparent"
+        pointerEvents="all"
+      />
+    )
+  }
+  if (shape.kind === 'rect') {
+    return (
+      <rect
+        x={shape.x - HIT_PAD}
+        y={shape.y - HIT_PAD}
+        width={shape.w + HIT_PAD * 2}
+        height={shape.h + HIT_PAD * 2}
+        rx={shape.rx + HIT_PAD}
+        fill="transparent"
+        pointerEvents="all"
+      />
+    )
+  }
+  return (
+    <path
+      d={shape.d}
+      fill="none"
+      stroke="transparent"
+      strokeWidth={HIT_STROKE}
+      pointerEvents="all"
     />
   )
 }
@@ -300,7 +357,8 @@ export function AnatomyMap({
   windowLabel: string
 }) {
   const [view, setView] = useState<ViewId>('depan')
-  const playEntrance = useFirstVisit('bugar-anatomy')
+  const first = useFirstVisit('bugar-anatomy')
+  const reduced = useReducedMotion()
 
   const byGroup = new Map(stats.map((s) => [s.group, s] as const))
   const regions = view === 'depan' ? FRONT_REGIONS : BACK_REGIONS
@@ -336,7 +394,7 @@ export function AnatomyMap({
                 onClick={() => setView(v.id)}
                 aria-pressed={on}
                 className={
-                  'interactive h-6.5 cursor-pointer rounded-full px-2.5 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
+                  'interactive h-9 cursor-pointer rounded-full px-2.5 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
                   (on
                     ? 'bg-surface-inverse text-content-inverse shadow-soft'
                     : 'text-content-secondary hover:text-content-primary')
@@ -368,6 +426,45 @@ export function AnatomyMap({
           >
             <SilhouetteFill />
 
+            {/* "Seluruh badan" — garis luar siluet, bukan wilayah palsu.
+                Digambar SEBELUM wilayah otot (audit v2.47.1) supaya
+                wilayah menang pada area tumpang-tindih; garis kepala/
+                leher/torso/pinggul tetap dapat diketuk. Klik pada
+                garis; pengguna keyboard memakai chip legenda. */}
+            <m.g
+              role="button"
+              tabIndex={0}
+              aria-pressed={selected === 'Seluruh badan'}
+              aria-label={regionAria(
+                'Seluruh badan',
+                fullSets,
+                fullStat?.dates.length ?? 0,
+              )}
+              onClick={() => toggle('Seluruh badan')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  toggle('Seluruh badan')
+                }
+              }}
+              initial={first && !reduced ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: motionTokens.duration.normal,
+                delay: first && !reduced
+                  ? regions.length * motionTokens.stagger.tight
+                  : 0,
+                ease: motionTokens.easing.standard,
+              }}
+              className="group cursor-pointer outline-none"
+            >
+              <FullBodyOutline
+                color={fullPaint.color}
+                opacity={fullPaint.opacity}
+                width={fullPaint.width}
+              />
+            </m.g>
+
             {regions.map((reg, i) => {
               const stat = byGroup.get(reg.group)
               const sets = stat?.sets ?? 0
@@ -387,14 +484,14 @@ export function AnatomyMap({
                       toggle(reg.group)
                     }
                   }}
-                  initial={playEntrance ? { opacity: 0 } : false}
+                  initial={first && !reduced ? { opacity: 0 } : false}
                   animate={{ opacity: 1, scale: isSel ? 1.035 : 1 }}
                   transition={
                     isSel
                       ? motionTokens.spring.snappy
                       : {
                           duration: motionTokens.duration.normal,
-                          delay: playEntrance
+                          delay: first && !reduced
                             ? i * motionTokens.stagger.tight
                             : 0,
                           ease: motionTokens.easing.standard,
@@ -406,48 +503,18 @@ export function AnatomyMap({
                   }}
                   className="group cursor-pointer outline-none"
                 >
+                  {/* Area sentuh tak terlihat — target ≥24px per wilayah
+                      (audit v2.47.1); di dalam grup yang sama agar
+                      ketukan memilih wilayah ini juga. */}
+                  {reg.shapes.map((sh, si) => (
+                    <RegionHitShape key={`hit-${si}`} shape={sh} />
+                  ))}
                   {reg.shapes.map((sh, si) => (
                     <RegionShapeNode key={si} shape={sh} paint={paint} />
                   ))}
                 </m.g>
               )
             })}
-
-            {/* "Seluruh badan" — garis luar siluet, bukan wilayah palsu.
-                Klik pada garis; pengguna keyboard memakai chip legenda. */}
-            <m.g
-              role="button"
-              tabIndex={0}
-              aria-pressed={selected === 'Seluruh badan'}
-              aria-label={regionAria(
-                'Seluruh badan',
-                fullSets,
-                fullStat?.dates.length ?? 0,
-              )}
-              onClick={() => toggle('Seluruh badan')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  toggle('Seluruh badan')
-                }
-              }}
-              initial={playEntrance ? { opacity: 0 } : false}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: motionTokens.duration.normal,
-                delay: playEntrance
-                  ? regions.length * motionTokens.stagger.tight
-                  : 0,
-                ease: motionTokens.easing.standard,
-              }}
-              className="group cursor-pointer outline-none"
-            >
-              <FullBodyOutline
-                color={fullPaint.color}
-                opacity={fullPaint.opacity}
-                width={fullPaint.width}
-              />
-            </m.g>
           </m.g>
         </svg>
 
@@ -481,6 +548,11 @@ export function AnatomyMap({
                         {shortDateLabel(d)}
                       </span>
                     ))}
+                    {selStat.dates.length > 5 && (
+                      <span className="rounded-full px-2 py-0.5 text-chart-label font-medium text-content-muted tabular-nums">
+                        +{selStat.dates.length - 5} lainnya
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -543,7 +615,7 @@ export function AnatomyMap({
               aria-label={`${s.group}: ${s.sets} set`}
               onClick={() => toggle(s.group)}
               className={
-                'interactive flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-chart-label font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
+                'interactive flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-chart-label font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
                 (on
                   ? 'border-transparent bg-module-accent-strong text-content-inverse'
                   : s.sets > 0

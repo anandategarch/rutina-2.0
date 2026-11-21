@@ -1,6 +1,7 @@
 'use client'
 
 import * as m from 'motion/react-m'
+import { useReducedMotion } from 'motion/react'
 
 import { barFill } from '@/lib/motion/transitions'
 import { formatIDRShort } from '../../finance/utils'
@@ -30,6 +31,9 @@ export interface BudgetRunwayPace {
   idealPct: number
   daysLeft: number
   remainingTotal: number
+  /** Kelebihan batas (spent − limit, ≥ 0) — baris ringkasan menulis
+      “lewat Rp…” alih-alih “sisa Rp0” saat batas jebol (audit v2.47). */
+  overTotal: number
   daily: number
   diff: number
 }
@@ -48,6 +52,11 @@ export function BudgetRunway({
   /** Gerbang anti-replay pemanggil (kunci 'keuangan-anggaran-total'). */
   playEntrance: boolean
 }) {
+  /* Gerbang gerak eksplisit (pola cashflow-river: first && !reduced) —
+     koin & isian hanya diantar bila kunjungan pertama DAN pengguna
+     memperbolehkan gerak; selain itu initial={false}. */
+  const reduced = useReducedMotion()
+
   /* Skala landasan — dibulatkan ke atas ke 25% berikutnya. */
   const scaleMax = Math.max(100, Math.ceil(rawTotalPct / 25) * 25)
   const pctOf = (v: number) => (Math.min(v, scaleMax) / scaleMax) * 100
@@ -92,7 +101,7 @@ export function BudgetRunway({
           <div className="relative h-[18px]">
             <m.div
               aria-hidden="true"
-              initial={playEntrance ? { left: '0%' } : false}
+              initial={playEntrance && !reduced ? { left: '0%' } : false}
               animate={{ left: `${coinLeft}%` }}
               transition={barFill}
               className="absolute bottom-0 z-10 flex h-[18px] w-[18px] -translate-x-1/2 items-center justify-center rounded-full border-[1.5px] border-espresso/40 bg-gold"
@@ -115,7 +124,7 @@ export function BudgetRunway({
             )}
             <m.div
               aria-hidden="true"
-              initial={playEntrance ? { scaleX: 0 } : false}
+              initial={playEntrance && !reduced ? { scaleX: 0 } : false}
               animate={{ scaleX: pctOf(Math.min(100, totalPct)) / 100 }}
               transition={barFill}
               className={
@@ -191,7 +200,10 @@ export function BudgetRunway({
           Ideal {pace.idealPct}% · hari ke-{pace.elapsed} dari {pace.dim}
         </span>
         <span className="text-content-muted">
-          sisa {formatIDRShort(pace.remainingTotal)}
+          {/* v2.47 audit: jebol batas → “lewat Rp…”, bukan “sisa Rp0”. */}
+          {pace.overTotal > 0
+            ? `lewat ${formatIDRShort(pace.overTotal)}`
+            : `sisa ${formatIDRShort(pace.remainingTotal)}`}
         </span>
       </div>
 

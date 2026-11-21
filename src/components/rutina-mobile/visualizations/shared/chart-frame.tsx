@@ -19,6 +19,16 @@ import { RutinaCard } from '../../rutina-card'
  *
  * Gunakan hanya jika berguna — untuk redesis dalam kartu yang sudah
  * ada (chrome tersendiri), cukup pakai ChartSrSummary + ChartLegend.
+ * (v2.48: ChartFrame sendiri masih perancah — belum dipakai modul
+ * mana pun; konsumen langsung saat ini hanya ChartSrSummary +
+ * ChartLegend. Dipertahankan sebagai fondasi kartu grafik mandiri
+ * berikutnya.)
+ *
+ * Konvensi gerak standar (v2.48): komponen grafik ilustratif
+ * menggabungkan gerbang first-visit DENGAN reduced-motion secara
+ * eksplisit — `const play = useFirstVisit(k) && !useReducedMotion()`
+ * — jangan mengandalkan MotionConfig global saja (properti
+ * non-posisi seperti strokeDashoffset/pathLength tidak disentuhnya).
  */
 
 /** Ringkasan data untuk pembaca layar — selalu dipasang di grafik statis. */

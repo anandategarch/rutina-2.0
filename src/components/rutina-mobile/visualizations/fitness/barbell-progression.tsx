@@ -1,6 +1,7 @@
 'use client'
 
 import * as m from 'motion/react-m'
+import { useReducedMotion } from 'motion/react'
 
 import { shortDateLabel } from '../../store'
 import { useFirstVisit } from '@/lib/motion/first-visit'
@@ -63,13 +64,18 @@ export function BarbellProgression({
   selected,
   onSelect,
 }: {
-  /** Sesi kronologis (terlama → terbaru), maks 12. */
+  /** Sesi kronologis (terlama → terbaru), maks 10. */
   points: BarbellPoint[]
   /** Indeks sesi terpilih, atau null. */
   selected: number | null
   onSelect: (i: number | null) => void
 }) {
-  const playEntrance = useFirstVisit('bugar-barbell-progress')
+  const first = useFirstVisit('bugar-barbell-progress')
+  const reduced = useReducedMotion()
+
+  /* Deret kosong (audit v2.47.1) — komponen BERSAMA: pemanggil masa
+     depan bisa mengirim []; jangan render skala -Infinity/Infinity. */
+  if (points.length === 0) return null
 
   const n = points.length
   const vals = points.map((p) => p.bestE1)
@@ -129,11 +135,15 @@ export function BarbellProgression({
         >
           {/* Barbel — batang horizontal + dua kolar ujung (dekoratif).
               v2.47.1: opasitas dinaikkan agar identitas barbel terbaca
-              pada kartu 320–390px tanpa berteriak. */}
+              pada kartu 320–390px tanpa berteriak. v2.47.2 (audit):
+              geometri disimetriskan ke viewBox — kolar kanan 307..312
+              cermin kolar kiri 8..13, batang berakhir di 306 sejajar
+              ujung garis dasar (dulu kolar kanan terpotong di luar
+              viewBox 0 0 320 120). */}
           <g aria-hidden="true" fill="var(--content-muted)">
-            <rect x={LEFT - 18} y="7" width={AREA_W + 36} height="6" rx="3" fillOpacity="0.55" />
-            <rect x={LEFT - 24} y="3.5" width="5" height="13" rx="2" fillOpacity="0.85" />
-            <rect x={RIGHT + 19} y="3.5" width="5" height="13" rx="2" fillOpacity="0.85" />
+            <rect x="14" y="7" width="292" height="6" rx="3" fillOpacity="0.55" />
+            <rect x="8" y="3.5" width="5" height="13" rx="2" fillOpacity="0.85" />
+            <rect x="307" y="3.5" width="5" height="13" rx="2" fillOpacity="0.85" />
           </g>
 
           {/* Garis dasar + label skala min/maks (nilai di baris bacaan). */}
@@ -168,11 +178,13 @@ export function BarbellProgression({
           {cols.map((c, i) => (
             <m.g
               key={points[i]!.date + i}
-              initial={playEntrance ? { opacity: 0, scaleY: 0.85 } : false}
+              initial={
+                first && !reduced ? { opacity: 0, scaleY: 0.85 } : false
+              }
               animate={{ opacity: 1, scaleY: 1 }}
               transition={{
                 duration: motionTokens.preset.data.duration,
-                delay: playEntrance ? i * motionTokens.stagger.tight : 0,
+                delay: first && !reduced ? i * motionTokens.stagger.tight : 0,
                 ease: motionTokens.easing.standard,
               }}
               style={{

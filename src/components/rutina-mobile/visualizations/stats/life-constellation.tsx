@@ -8,10 +8,8 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { pressSnappy } from '@/lib/motion/transitions'
 import {
-  addDaysISO,
+  daySchedules,
   fromISO,
-  habitsOn,
-  isDoneOn,
   shortDateLabel,
   type Completions,
   type Habit,
@@ -44,29 +42,22 @@ export interface ConstellationDay {
   pct: number | null
 }
 
-/** Deret N hari berakhir hari ini — jadwal dihormati (createdAt, arsip,
- *  hari jeda diampuni keluar penyebut) — logika per-hari daySchedules. */
+/** Deret N hari berakhir hari ini — pemetaan tipis di atas daySchedules
+ *  (store.ts, test-covered): jadwal dihormati (createdAt, arsip, hari
+ *  jeda diampuni keluar penyebut) — SATU rumus per-hari untuk semua
+ *  permukaan (audit v2.47 #13). */
 export function constellationDays(
   habits: Habit[],
   c: Completions,
   today: string,
   days = 30,
 ): ConstellationDay[] {
-  const out: ConstellationDay[] = []
-  for (let i = days - 1; i >= 0; i--) {
-    const iso = addDaysISO(today, -i)
-    const pool = habitsOn(habits, iso).filter(
-      (h) => h.createdAt <= iso && !(h.restDays ?? []).includes(iso),
-    )
-    const done = pool.filter((h) => isDoneOn(c, iso, h.id)).length
-    out.push({
-      date: iso,
-      done,
-      due: pool.length,
-      pct: pool.length === 0 ? null : Math.round((done / pool.length) * 100),
-    })
-  }
-  return out
+  return daySchedules(habits, c, today, days).map((sd) => ({
+    date: sd.date,
+    done: sd.done,
+    due: sd.scheduled,
+    pct: sd.pct,
+  }))
 }
 
 export interface ConstellationStats {
@@ -193,203 +184,222 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
       animate={{ opacity: 1 }}
       transition={motionTokens.preset.data}
     >
-      <div ref={ref} className="relative">
-        <svg
-          viewBox={`0 0 ${w} ${PLOT_H}`}
-          width={w}
-          height={PLOT_H}
-          className="block h-[150px] w-full"
-          role="img"
-          aria-label={ariaSummary}
+      {/* Wadah geser (audit v2.47 #1) — 30 target ketuk ≥24px tidak muat
+          pada kartu sempit; deret melebar mengikuti jumlah bintang dan
+          ponsel menggeser horizontal (pola FinChart/CashflowRiver).
+          minWidth memuat margin plot (6 + 42) agar tiap target benar-benar
+          ≥24px, bukan 24px dikurangi margin. Pengukuran (ref) menempel pada
+          ISI GULIR — bukan induk terpotong viewport — sehingga bintang
+          merenggang benar saat isi lebih lebar dari layar. */}
+      <div className="overflow-x-auto no-scrollbar overscroll-x-contain">
+        <div
+          ref={ref}
+          className="relative"
+          style={{
+            minWidth: `max(100%, ${Math.max(1, stars.length) * 24 + 48}px)`,
+          }}
         >
-          {/* Garis bantu horizontal 25/50/75 + garis dasar. */}
-          <m.g
-            initial={play ? { opacity: 0 } : false}
-            animate={{ opacity: 1 }}
-            transition={motionTokens.preset.data}
+          <svg
+            viewBox={`0 0 ${w} ${PLOT_H}`}
+            width={w}
+            height={PLOT_H}
+            className="block h-[150px] w-full"
+            role="img"
+            aria-label={ariaSummary}
           >
-            {[25, 50, 75].map((v) => (
+            {/* Garis bantu horizontal 25/50/75 + garis dasar. */}
+            <m.g
+              initial={play ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={motionTokens.preset.data}
+            >
+              {[25, 50, 75].map((v) => (
+                <line
+                  key={v}
+                  x1={6}
+                  x2={w - 42}
+                  y1={yOf(v)}
+                  y2={yOf(v)}
+                  stroke="var(--border-default)"
+                  strokeWidth={1}
+                />
+              ))}
               <line
-                key={v}
                 x1={6}
                 x2={w - 42}
-                y1={yOf(v)}
-                y2={yOf(v)}
+                y1={Y_BASE}
+                y2={Y_BASE}
                 stroke="var(--border-default)"
                 strokeWidth={1}
               />
-            ))}
-            <line
-              x1={6}
-              x2={w - 42}
-              y1={Y_BASE}
-              y2={Y_BASE}
-              stroke="var(--border-default)"
-              strokeWidth={1}
-            />
-            {/* Label sumbu-x ~tiap 7 hari. */}
-            {TICK_IDX.map((i) => {
-              const s = stars[i]
-              if (!s) return null
-              const anchor =
-                i === TICK_IDX[0] ? 'start' : i === TICK_IDX[TICK_IDX.length - 1] ? 'end' : 'middle'
+              {/* Label sumbu-x ~tiap 7 hari. */}
+              {TICK_IDX.map((i) => {
+                const s = stars[i]
+                if (!s) return null
+                const anchor =
+                  i === TICK_IDX[0] ? 'start' : i === TICK_IDX[TICK_IDX.length - 1] ? 'end' : 'middle'
+                return (
+                  <text
+                    key={s.date}
+                    x={i === TICK_IDX[0] ? 4 : i === TICK_IDX[TICK_IDX.length - 1] ? w - 44 : s.x}
+                    y={141}
+                    textAnchor={anchor}
+                    fontSize={8.5}
+                    fontWeight={500}
+                    fill="var(--content-muted)"
+                  >
+                    {fmtDate(s.date)}
+                  </text>
+                )
+              })}
+            </m.g>
+
+            {/* Garis rasi — polyline antar bintang non-null, digambar pathLength. */}
+            {line && (
+              <m.path
+                d={line}
+                fill="none"
+                stroke="var(--chart-stroke-4)"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.55}
+                initial={play ? { pathLength: 0 } : false}
+                animate={{ pathLength: 1 }}
+                transition={{
+                  ...motionTokens.preset.data,
+                  delay: motionTokens.delay.tight,
+                }}
+              />
+            )}
+
+            {/* Titik redup — hari tanpa jadwal (null) di garis dasar. */}
+            {stars.map(
+              (s) =>
+                s.pct == null && (
+                  <m.circle
+                    key={s.date}
+                    cx={s.x}
+                    cy={Y_BASE}
+                    r={1.5}
+                    fill="var(--content-muted)"
+                    fillOpacity={0.4}
+                    initial={play ? { opacity: 0 } : false}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      ...motionTokens.preset.data,
+                      delay: motionTokens.delay.normal + s.idx * STAR_STAGGER,
+                    }}
+                  />
+                ),
+            )}
+
+            {/* Bintang — satu per hari terjadwal. */}
+            {rated.map((s) => {
+              const pct = s.pct ?? 0
+              const size = pct === 100 ? 4.1 : 3.3
+              const isSel = selIdx === s.idx
               return (
-                <text
-                  key={s.date}
-                  x={i === TICK_IDX[0] ? 4 : i === TICK_IDX[TICK_IDX.length - 1] ? w - 44 : s.x}
-                  y={141}
-                  textAnchor={anchor}
-                  fontSize={8.5}
-                  fontWeight={500}
-                  fill="var(--content-muted)"
-                >
-                  {fmtDate(s.date)}
-                </text>
-              )
-            })}
-          </m.g>
-
-          {/* Garis rasi — polyline antar bintang non-null, digambar pathLength. */}
-          {line && (
-            <m.path
-              d={line}
-              fill="none"
-              stroke="var(--chart-stroke-4)"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.55}
-              initial={play ? { pathLength: 0 } : false}
-              animate={{ pathLength: 1 }}
-              transition={{
-                ...motionTokens.preset.data,
-                delay: motionTokens.delay.tight,
-              }}
-            />
-          )}
-
-          {/* Titik redup — hari tanpa jadwal (null) di garis dasar. */}
-          {stars.map(
-            (s) =>
-              s.pct == null && (
-                <m.circle
-                  key={s.date}
-                  cx={s.x}
-                  cy={Y_BASE}
-                  r={1.5}
-                  fill="var(--content-muted)"
-                  fillOpacity={0.4}
-                  initial={play ? { opacity: 0 } : false}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    ...motionTokens.preset.data,
-                    delay: motionTokens.delay.normal + s.idx * STAR_STAGGER,
-                  }}
-                />
-              ),
-          )}
-
-          {/* Bintang — satu per hari terjadwal. */}
-          {rated.map((s) => {
-            const pct = s.pct ?? 0
-            const size = pct === 100 ? 4.1 : 3.3
-            const isSel = selIdx === s.idx
-            return (
-              <g key={s.date} transform={`translate(${s.x} ${s.y})`}>
-                <m.g
-                  initial={play ? { opacity: 0, scale: 0.85 } : false}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{
-                    ...motionTokens.preset.data,
-                    delay: motionTokens.delay.normal + s.idx * STAR_STAGGER,
-                  }}
-                  style={{
-                    transformBox: 'fill-box',
-                    transformOrigin: '50% 50%',
-                  }}
-                >
+                <g key={s.date} transform={`translate(${s.x} ${s.y})`}>
                   <m.g
-                    animate={{ scale: isSel ? 1.3 : 1 }}
-                    transition={pressSnappy}
+                    initial={play ? { opacity: 0, scale: 0.85 } : false}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{
+                      ...motionTokens.preset.data,
+                      delay: motionTokens.delay.normal + s.idx * STAR_STAGGER,
+                    }}
                     style={{
                       transformBox: 'fill-box',
                       transformOrigin: '50% 50%',
                     }}
                   >
-                    {isSel && (
-                      <circle
-                        r={6.5}
-                        fill="none"
-                        stroke="var(--chart-stroke-4)"
-                        strokeWidth={1.2}
-                        opacity={0.7}
-                      />
-                    )}
-                    <path d={starPath(size)} fill="var(--chart-stroke-4)" />
-                    <circle r={0.75} fill="var(--surface-primary)" />
+                    <m.g
+                      animate={{ scale: isSel ? 1.3 : 1 }}
+                      transition={pressSnappy}
+                      style={{
+                        transformBox: 'fill-box',
+                        transformOrigin: '50% 50%',
+                      }}
+                    >
+                      {isSel && (
+                        <circle
+                          r={6.5}
+                          fill="none"
+                          stroke="var(--chart-stroke-4)"
+                          strokeWidth={1.2}
+                          opacity={0.7}
+                        />
+                      )}
+                      <path d={starPath(size)} fill="var(--chart-stroke-4)" />
+                      <circle r={0.75} fill="var(--surface-primary)" />
+                    </m.g>
                   </m.g>
-                </m.g>
-              </g>
-            )
-          })}
+                </g>
+              )
+            })}
 
-          {/* Garis rata-rata non-null + label tepi kanan. */}
-          {avgY != null && stats.avg != null && (
-            <m.g
-              initial={play ? { opacity: 0 } : false}
-              animate={{ opacity: 1 }}
-              transition={{
-                ...motionTokens.preset.data,
-                delay: motionTokens.delay.relaxed,
-              }}
-            >
-              <line
-                x1={6}
-                x2={w - 42}
-                y1={avgY}
-                y2={avgY}
-                stroke="var(--chart-stroke-5)"
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
-              />
-              <text
-                x={w - 40}
-                y={avgY + 2.5}
-                fontSize={8}
-                fontWeight={600}
-                fill="var(--content-muted)"
+            {/* Garis rata-rata non-null + label tepi kanan. */}
+            {avgY != null && stats.avg != null && (
+              <m.g
+                initial={play ? { opacity: 0 } : false}
+                animate={{ opacity: 1 }}
+                transition={{
+                  ...motionTokens.preset.data,
+                  delay: motionTokens.delay.relaxed,
+                }}
               >
-                rata² {fmtAvg(stats.avg)}%
-              </text>
-            </m.g>
-          )}
-        </svg>
+                <line
+                  x1={6}
+                  x2={w - 42}
+                  y1={avgY}
+                  y2={avgY}
+                  stroke="var(--chart-stroke-5)"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={w - 40}
+                  y={avgY + 2.5}
+                  fontSize={8}
+                  fontWeight={600}
+                  fill="var(--content-muted)"
+                >
+                  rata² {fmtAvg(stats.avg)}%
+                </text>
+              </m.g>
+            )}
+          </svg>
 
-        {/* Overlay tombol — satu per hari terjadwal; sel null tetap
-            span inert agar kolom sejajar. Template kolom inline karena
-            jumlah titik ditentukan data (bukan kelas Tailwind statis). */}
-        <div
-          className="absolute inset-0 grid"
-          style={{
-            gridTemplateColumns: `repeat(${Math.max(1, stars.length)}, minmax(0,1fr))`,
-          }}
-        >
-          {stars.map((s) =>
-            s.pct == null ? (
-              <span key={s.date} aria-hidden="true" />
-            ) : (
+          {/* Overlay tombol — satu per hari terjadwal, DIPUSATKAN pada
+              sumbu-x bintangnya (audit v2.47 #1: kolom seragam selebar
+              kartu membuat ketukan jatuh ke hari yang salah). Lebar 24px
+              (WCAG 2.5.8) dijamin tak bertumpuk oleh minWidth di atas —
+              jarak antar bintang ≥ 24px pada lebar berapa pun — sehingga
+              ketukan PADA bintang i selalu membaca hari i; clamping tepi
+              menahan tombol pertama/terakhir tetap di dalam wadah. Sel
+              null (hari tanpa jadwal) memang tak punya tombol — titik
+              redupnya bukan pilihan. Urutan DOM = urutan hari → tab
+              papan tik berjalan kronologis. */}
+          {stars.map((s) => {
+            if (s.pct == null) return null
+            const label = `${shortDateLabel(s.date)} — ${s.done} dari ${s.due} selesai (${s.pct}%)`
+            return (
               <button
                 key={s.date}
                 type="button"
                 aria-pressed={selIdx === s.idx}
-                aria-label={`${shortDateLabel(s.date)} — ${s.done} dari ${s.due} selesai (${s.pct}%)`}
+                aria-label={label}
+                title={label}
                 onClick={() =>
                   setSelIdx((prev) => (prev === s.idx ? null : s.idx))
                 }
-                className="cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:[outline-offset:-2px] focus-visible:outline-primary"
+                className="absolute bottom-0 top-0 w-6 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:[outline-offset:-2px] focus-visible:outline-primary"
+                style={{
+                  left: `${Math.min(Math.max(s.x - 12, 0), w - 24)}px`,
+                }}
               />
-            ),
-          )}
+            )
+          })}
         </div>
       </div>
 

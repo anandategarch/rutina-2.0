@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { animate } from 'animejs'
 import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
@@ -354,7 +354,10 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   /* v2.45 (audit K14): target 0 (data tersinkron/impor) tak boleh
      membagi NaN pada isian/persen. */
   const safeTarget = Math.max(1, goal.target)
-  const pct = Math.min(100, Math.round((goal.saved / safeTarget) * 100))
+  /* v2.47 audit (kejujuran data): ANGKA persen TANPA clamp — tujuan
+     130% terkumpul terbaca 130%. Hanya ISIAN celengan yang boleh
+     berhenti di penuh (safeRatio di-clamp di 1, dipakai scaleY). */
+  const pct = Math.round((goal.saved / safeTarget) * 100)
   const safeRatio = Math.min(1, goal.saved / safeTarget)
   const nContrib = goal.contributions?.length ?? 0
   const complete = goal.saved >= goal.target
@@ -1392,9 +1395,9 @@ function SaldoCard({
      (audit motion anti-replay; keep-alive subtab menangani perpindahan
      antar-subtab, gerbang ini menangani perpindahan antar-ruang app). */
   const playCount = useFirstVisit('fin-saldo-count')
-  /* Id gradient isian sparkline — dibersihkan dari “:” useId agar aman
-     sebagai fragmen url(#…) SVG. */
-  const sparkId = `fin-saldo-spark-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
+  /* Id gradient isian sparkline — hook bersama useSvgId (sanitasi “:”
+     useId agar aman sebagai fragmen url(#…) SVG; pola jar clipPath). */
+  const sparkId = useSvgId('fin-saldo-spark')
 
   return (
     <m.div
@@ -2599,9 +2602,12 @@ export default function KeuanganScreen() {
     const idealPct = Math.round((elapsed / dim) * 100)
     const daysLeft = dim - elapsed + 1
     const remainingTotal = Math.max(0, totalLimit - spentTotal)
+    /* v2.47 audit: kelebihan batas TANPA clamp — baris ringkasan landasan
+       pacu menulis “lewat Rp…”, bukan “sisa Rp0”, saat batas jebol. */
+    const overTotal = Math.max(0, spentTotal - totalLimit)
     const daily = Math.round(remainingTotal / daysLeft)
     const diff = rawTotalPct - idealPct
-    return { elapsed, dim, idealPct, daysLeft, remainingTotal, daily, diff }
+    return { elapsed, dim, idealPct, daysLeft, remainingTotal, overTotal, daily, diff }
   }, [totalLimit, spentTotal, rawTotalPct])
   /* Ringkasan anggaran di Beranda: tiga kategori paling terbebani. */
   const topBudgets = useMemo(
@@ -3130,17 +3136,20 @@ export default function KeuanganScreen() {
                   {/* v2.29: lencana & batang total kini bersemantik tiga-warna
                        (over → destructive, waspada → warning, aman → primary)
                        — selaras baris per-kategori; bukan selalu hijau. */}
+                  {/* v2.47 audit: lencana memakai persen TANPA clamp
+                       (rawTotalPct) — panel landasan pacu menulis
+                       “Aktual 130%”, lencana pun harus 130%, bukan 100%. */}
                   <Badge
                     className={
                       'border-transparent hover:bg-secondary ' +
-                      (totalPct >= 100
+                      (rawTotalPct >= 100
                         ? 'bg-clay/20 text-content-danger'
-                        : totalPct >= 85
+                        : rawTotalPct >= 85
                           ? 'bg-gold/25 text-warning'
                           : 'bg-secondary text-success')
                     }
                   >
-                    Terpakai {totalPct}%
+                    Terpakai {rawTotalPct}%
                   </Badge>
                   <p className="text-eyebrow font-medium tabular-nums text-content-muted">
                     {formatIDRShort(spentTotal)} / {formatIDRShort(totalLimit)}
@@ -3153,9 +3162,9 @@ export default function KeuanganScreen() {
                     transition={barFill}
                     className={
                       'h-full origin-left rounded-full ' +
-                      (totalPct >= 100
+                      (rawTotalPct >= 100
                         ? 'bg-destructive'
-                        : totalPct >= 85
+                        : rawTotalPct >= 85
                           ? 'bg-warning'
                           : 'bg-primary')
                     }
@@ -3472,17 +3481,20 @@ export default function KeuanganScreen() {
                   Anggaran {currentMonthLabel()}
                 </h2>
                 <span className="flex items-center gap-2">
+                  {/* v2.47 audit: lencana memakai persen TANPA clamp
+                       (rawTotalPct) — panel landasan pacu menulis
+                       “Aktual 130%”, lencana pun harus 130%, bukan 100%. */}
                   <Badge
                     className={
                       'border-transparent hover:bg-secondary ' +
-                      (totalPct >= 100
+                      (rawTotalPct >= 100
                         ? 'bg-clay/20 text-content-danger'
-                        : totalPct >= 85
+                        : rawTotalPct >= 85
                           ? 'bg-gold/25 text-warning'
                           : 'bg-secondary text-success')
                     }
                   >
-                    Terpakai {totalPct}%
+                    Terpakai {rawTotalPct}%
                   </Badge>
                   <button
                     type="button"
@@ -3513,9 +3525,9 @@ export default function KeuanganScreen() {
                         transition={barFill}
                         className={
                           'h-full origin-left rounded-full ' +
-                          (totalPct >= 100
+                          (rawTotalPct >= 100
                             ? 'bg-destructive'
-                            : totalPct >= 85
+                            : rawTotalPct >= 85
                               ? 'bg-warning'
                               : 'bg-primary')
                         }
@@ -3524,7 +3536,13 @@ export default function KeuanganScreen() {
                     </div>
                     <div className="mt-1.5 flex justify-between text-eyebrow tabular-nums text-content-muted">
                       <span>{formatIDRShort(spentTotal)} terpakai</span>
-                      <span>sisa {formatIDRShort(Math.max(0, totalLimit - spentTotal))}</span>
+                      {/* v2.47 audit: jebol batas → “lewat Rp…”, bukan
+                          “sisa Rp0” yang menuntun salah baca. */}
+                      <span>
+                        {spentTotal > totalLimit
+                          ? `lewat ${formatIDRShort(spentTotal - totalLimit)}`
+                          : `sisa ${formatIDRShort(Math.max(0, totalLimit - spentTotal))}`}
+                      </span>
                     </div>
                   </div>
 

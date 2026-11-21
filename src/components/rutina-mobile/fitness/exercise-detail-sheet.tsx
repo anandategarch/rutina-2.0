@@ -110,8 +110,9 @@ export function ExerciseDetailSheet({
     [sessions],
   )
 
-  /* Grafik e1RM — maks 12 sesi terakhir agar kolom tetap terbaca. */
-  const chartPts = useMemo(() => sessions.slice(-12), [sessions])
+  /* Grafik e1RM — maks 10 sesi terakhir agar tombol sesi tetap ≥24px
+     pada layar 320px (audit v2.47.1); tabel riwayat tetap 10 terbaru. */
+  const chartPts = useMemo(() => sessions.slice(-10), [sessions])
 
   const label = name ? exerciseLabel(name) : ''
 
@@ -227,7 +228,7 @@ export function ExerciseDetailSheet({
                     ))}
                   </div>
 
-                  {/* 2 — Grafik e1RM per sesi (maks 12 terakhir) versi
+                  {/* 2 — Grafik e1RM per sesi (maks 10 terakhir) versi
                       barbel ilustratif; ketuk kolom untuk membaca sesinya. */}
                   {chartPts.length >= 2 && (
                     <div className="mt-4">

@@ -119,7 +119,14 @@ interface HabitRow {
 
 interface DayData {
   habitRows: HabitRow[]
+  /** Selesai dari baris TERJADWAL (non-jeda) — penyebut ringkasan
+   *  mengeluarkan hari jeda yang diampuni (audit v2.47 #7: 2 dari 2
+   *  selesai (100%), 1 jeda diampuni — bukan 2 dari 3 (67%)). */
   doneCount: number
+  /** Baris terjadwal (non-jeda) — penyebut ringkasan. */
+  dueCount: number
+  /** Baris jeda terjadwal (diampuni). */
+  restCount: number
   dayNotes: Note[]
   dayTxs: Tx[]
   masuk: number
@@ -165,7 +172,12 @@ function useDayData(shown: string): DayData | null {
       done: isDoneOn(completions, shown, h.id),
       rest: (h.restDays ?? []).includes(shown),
     }))
-    const doneCount = habitRows.filter((r) => r.done).length
+    /* Ringkasan kepala sepakat dengan sulur/heatmap: jeda diampuni
+       keluar dari pembilang & penyebut (dayCompliance di store.ts). */
+    const dueRows = habitRows.filter((r) => !r.rest)
+    const doneCount = dueRows.filter((r) => r.done).length
+    const dueCount = dueRows.length
+    const restCount = habitRows.length - dueRows.length
 
     const dayNotes = notesOnDate(notes, shown, today)
     const allDayTxs = txs.filter((t) => t.ts === shown)
@@ -205,6 +217,8 @@ function useDayData(shown: string): DayData | null {
     return {
       habitRows,
       doneCount,
+      dueCount,
+      restCount,
       dayNotes,
       dayTxs,
       masuk,
@@ -273,12 +287,15 @@ function DayDetailBody({
               {data.habitRows.length > 0 && (
                 <div>
                   <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-                    Kebiasaan — {data.doneCount} dari {data.habitRows.length} selesai
-                    {/* v2.36: persentase kepatuhan hari itu (denominator =
-                        kebiasaan terjadwal saja, hari jeda tetap terhitung
-                        sebagaimana daftar barisnya). */}
+                    Kebiasaan — {data.doneCount} dari {data.dueCount} selesai
+                    {/* v2.47 (audit #7): persentase kepatuhan hari itu —
+                        penyebut = kebiasaan terjadwal NON-JEDA saja (jeda
+                        diampuni keluar penyebut, selaras sulur & heatmap);
+                        info jeda disebut eksplisit, baris per-kebiasaan
+                        di bawah tetap memakai labelnya sendiri. */}
                     {data.doneCount > 0 &&
-                      ` (${Math.round((data.doneCount / data.habitRows.length) * 100)}%)`}
+                      ` (${Math.round((data.doneCount / data.dueCount) * 100)}%)`}
+                    {data.restCount > 0 && `, ${data.restCount} jeda diampuni`}
                   </p>
                   <ul className="mt-2 space-y-2">
                     {data.habitRows.map((row) => (

@@ -758,29 +758,6 @@ export function weekCounts(
   return out
 }
 
-/** Rasio penyelesaian harian (persen) N hari terakhir — dasar grafik tren.
- *  v = selesai / terjadwal × 100 (0 bila tidak ada kebiasaan terjadwal). */
-export function rateSeries(
-  habits: Habit[],
-  c: Completions,
-  today: string,
-  days: number,
-): { d: number; v: number }[] {
-  const out: { d: number; v: number }[] = []
-  for (let i = days - 1; i >= 0; i--) {
-    const iso = addDaysISO(today, -i)
-    const total = habitsOn(habits, iso).length
-    const done = habitsOn(habits, iso).filter((h) =>
-      isDoneOn(c, iso, h.id),
-    ).length
-    out.push({
-      d: days - i,
-      v: total === 0 ? 0 : Math.round((done / total) * 100),
-    })
-  }
-  return out
-}
-
 /* --- Metrik sadar-jadwal (audit visualisasi v2.36, Tahap 1) ---
    Jumlah kebiasaan selesai ≠ tingkat konsistensi: hari dengan 2/2
    kebiasaan selesai tidak boleh tampak lebih redup dari hari 4/6.
@@ -790,7 +767,8 @@ export function rateSeries(
 export interface DaySchedule {
   date: string
   label: string
-  /** Kebiasaan aktif terjadwal hari itu (hormati createdAt & arsip). */
+  /** Kebiasaan yang harus dikerjakan hari itu (hormati createdAt & arsip;
+   *  hari jeda diampuni — keluar dari penyebut). */
   scheduled: number
   /** Selesai dari yang terjadwal. */
   done: number
@@ -798,6 +776,44 @@ export interface DaySchedule {
   rest: number
   /** done/scheduled × 100 — NULL bila tak ada jadwal (bukan 0%!). */
   pct: number | null
+}
+
+/** Kepatuhan SATU hari — SATU sumber kebenaran untuk seluruh permukaan:
+ *  daySchedules (heatmap & KPI Statistik), konstelasi Statistik, dan
+ *  sulur pekan Kebiasaan (audit v2.47 #13: rumus per-hari yang sama
+ *  tidak boleh ditulis tiga kali). Pool = terjadwal (arsip dihormati)
+ *  ∧ sudah diciptakan (createdAt ≤ hari); hari jeda terjadwal diampuni
+ *  — keluar dari penyebut, bukan dihitung gagal. */
+export interface DayCompliance {
+  /** Kebiasaan yang harus dikerjakan hari itu (terjadwal, non-jeda). */
+  due: number
+  /** Selesai dari yang harus dikerjakan. */
+  done: number
+  /** Terjadwal tapi diampuni (hari jeda). */
+  rest: number
+  /** done/due × 100 — null bila tak ada yang terjadwal (bukan 0%!). */
+  pct: number | null
+}
+
+export function dayCompliance(
+  habits: Habit[],
+  c: Completions,
+  iso: string,
+): DayCompliance {
+  const pool = habits.filter(
+    (h) => scheduledOn(h, iso) && h.createdAt <= iso,
+  )
+  const forgiven = new Set(
+    pool.filter((h) => (h.restDays ?? []).includes(iso)).map((h) => h.id),
+  )
+  const due = pool.filter((h) => !forgiven.has(h.id))
+  const done = due.filter((h) => isDoneOn(c, iso, h.id)).length
+  return {
+    due: due.length,
+    done,
+    rest: forgiven.size,
+    pct: due.length === 0 ? null : Math.round((done / due.length) * 100),
+  }
 }
 
 /** Statistik jadwal per hari, N hari terakhir diakhiri hari ini. */
@@ -810,21 +826,14 @@ export function daySchedules(
   const out: DaySchedule[] = []
   for (let i = days - 1; i >= 0; i--) {
     const iso = addDaysISO(today, -i)
-    const pool = habits.filter(
-      (h) => scheduledOn(h, iso) && h.createdAt <= iso,
-    )
-    const forgiven = new Set(
-      pool.filter((h) => (h.restDays ?? []).includes(iso)).map((h) => h.id),
-    )
-    const due = pool.filter((h) => !forgiven.has(h.id))
-    const done = due.filter((h) => isDoneOn(c, iso, h.id)).length
+    const dc = dayCompliance(habits, c, iso)
     out.push({
       date: iso,
       label: WEEKDAY_MIN[fromISO(iso).getDay()],
-      scheduled: due.length,
-      done,
-      rest: forgiven.size,
-      pct: due.length === 0 ? null : Math.round((done / due.length) * 100),
+      scheduled: dc.due,
+      done: dc.done,
+      rest: dc.rest,
+      pct: dc.pct,
     })
   }
   return out

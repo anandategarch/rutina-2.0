@@ -3,7 +3,13 @@
 import { useMemo } from 'react'
 import * as m from 'motion/react-m'
 
-import { habitWeeklyRates, todayISO, useRutina, type Habit } from './store'
+import {
+  habitWeeklyRates,
+  shortDateLabel,
+  todayISO,
+  useRutina,
+  type Habit,
+} from './store'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
@@ -112,7 +118,9 @@ export function HabitComparisonMatrix({
                     key={start}
                     scope="col"
                     className="text-center text-chart-label font-semibold uppercase tracking-[0.08em] text-content-muted"
-                    aria-label={`Pekan mulai ${start}`}
+                    /* v2.47 (audit #8): label manusiawi ("Sen, 17 Nov"),
+                        bukan ISO mentah — selaras kalender & heatmap. */
+                    aria-label={`Pekan mulai ${shortDateLabel(start)}`}
                   >
                     {i === weekLabels.length - 1 ? 'ini' : `P${i + 1}`}
                   </th>

@@ -8,7 +8,7 @@ import { pressSnappy } from '@/lib/motion/transitions'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 
 import { EXPENSE, INCOME } from '../../finance/cats'
-import { formatIDRShort, type PeriodPoint } from '../../finance/utils'
+import { type PeriodPoint } from '../../finance/utils'
 import { ChartLegend, ChartSrSummary } from '../shared/chart-frame'
 
 /**
@@ -28,6 +28,11 @@ import { ChartLegend, ChartSrSummary } from '../shared/chart-frame'
  * transfer tidak pernah masuk deret (sudah difilter di buildSeries).
  * Gerbang anti-replay 'fin-river': pita terungkup kiri→kanan sekali
  * pada kunjungan pertama; kunjungan ulang mode langsung tampil utuh.
+ *
+ * Audit v2.47: baris baca "masuk/keluar/net" titik terpilih DILEPAS —
+ * kartu "Ringkasan titik terpilih" di layar Keuangan adalah satu-
+ * satunya sumber nilai (sebelumnya keduanya aria-live ganda). Pilihan
+ * kolom tetap hidup: aria-pressed + sorotan meluncur via onPick.
  */
 
 const TRACK_H = 118 // ruang pita (px) — selaras FinChart
@@ -119,9 +124,6 @@ export function CashflowRiver({
   const keluarBand = `M 0 ${midY} L ${smoothFrom(botPts)} L ${vbW} ${midY} Z`
   const masukEdge = `M ${smoothFrom(topPts)}`
   const keluarEdge = `M ${smoothFrom(botPts)}`
-
-  const pt = points[Math.min(active, n - 1)]
-  const net = pt.masuk - pt.keluar
 
   return (
     <div
@@ -216,7 +218,7 @@ export function CashflowRiver({
                   aria-label={`${p.label}: masuk ${p.masuk.toLocaleString(
                     'id-ID',
                   )}, keluar ${p.keluar.toLocaleString('id-ID')}`}
-                  className={`group relative flex min-w-[26px] flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                  className={`group relative flex min-w-[26px] flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     isOn
                       ? ''
                       : 'transition-colors duration-200 hover:bg-surface-sunken/70'
@@ -258,20 +260,6 @@ export function CashflowRiver({
           />
         </div>
       </div>
-
-      {/* Baris baca titik terpilih — nilai penuh mengikuti pilihan. */}
-      <p
-        aria-live="polite"
-        className="mt-1 px-0.5 text-eyebrow font-medium tabular-nums text-content-muted"
-      >
-        {pt.label}: masuk {formatIDRShort(pt.masuk)}, keluar{' '}
-        {formatIDRShort(pt.keluar)}, net{' '}
-        {net > 0
-          ? `+${formatIDRShort(net)}`
-          : net < 0
-            ? formatIDRShort(net)
-            : '0'}
-      </p>
     </div>
   )
 }

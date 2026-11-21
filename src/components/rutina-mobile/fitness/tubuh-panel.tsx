@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
   BatteryCharging,
@@ -34,6 +34,7 @@ import {
   readinessOf,
   weightSeries,
 } from './fit-utils'
+import { useSvgId } from '../visualizations/shared/svg-id'
 
 /* ===== Konstanta tubuh ===== */
 
@@ -74,10 +75,11 @@ function WeightSpark({ logs, weightGoal }: { logs: BodyLogs; weightGoal: number 
     return weightSeries(logs).filter((s) => s.date >= cutoff)
   }, [logs, win, today])
   const totalRecords = useMemo(() => weightSeries(logs).length, [logs])
-  /* Id gradient isian — dibersihkan dari “:” useId agar aman dipakai
-     sebagai fragmen url(#…) SVG di semua browser. Dipanggil di puncak
-     komponen (sebelum return awal) demi aturan urutan hook. */
-  const fillId = `tubuh-weight-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
+  /* Id gradient isian — hook bersama useSvgId (sanitasi “:” dari
+     useId, aman sebagai fragmen url(#…) SVG di semua browser).
+     Dipanggil di puncak komponen (sebelum return awal) demi aturan
+     urutan hook. */
+  const gradId = useSvgId('tubuh-weight')
 
   const fmtKg = (n: number) => n.toFixed(1).replace('.', ',')
   const dateShort = (iso: string) =>
@@ -193,7 +195,7 @@ function WeightSpark({ logs, weightGoal }: { logs: BodyLogs; weightGoal: number 
           aria-label={`Tren berat badan ${series.length} catatan dalam ${win === '365' ? 'setahun' : `${win} hari`}: dari ${fmtKg(first.kg)} kg menjadi ${fmtKg(last.kg)} kg, ${deltaText}. Rentang ${fmtKg(min)}–${fmtKg(max)} kg${hasGoal ? `, garis tujuan ${fmtKg(weightGoal)} kg` : ''}`}
         >
           <defs>
-            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop
                 offset="0%"
                 stopColor="var(--chart-stroke-1)"
@@ -206,7 +208,7 @@ function WeightSpark({ logs, weightGoal }: { logs: BodyLogs; weightGoal: number 
               />
             </linearGradient>
           </defs>
-          <path d={area} fill={`url(#${fillId})`} />
+          <path d={area} fill={`url(#${gradId})`} />
           {/* v2.45 (F4): garis tujuan — putus-putus, di belakang deret. */}
           {hasGoal && goalY != null && (
             <g>
@@ -652,8 +654,10 @@ function BodyHistory({
 
           {/* --- Hidrasi: menara gelas terhadap target (v2.47) ---
               Gelas terisi dari bawah; sisa menuju target tampil sebagai
-              gelas garis luar; total glyph dibatasi 8 — lebihnya jadi
-              label +N di puncak. */}
+              gelas garis luar. Slot terlihat dibatasi 8; label +N di
+              puncak HANYA saat nilai MELAMPAUI target (audit v2.47.1:
+              target > 8 tidak boleh terkesan terlampaui saat masih
+              kurang — angka jujur tetap di label/aria). */}
           {bodyCoverage(water) > 0 && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
@@ -667,12 +671,15 @@ function BodyHistory({
               </div>
               <div className="relative mt-2 flex h-16 gap-[3px]">
                 {water.map((p) => {
-                  /* total glyph = min(maks(nilai, target), 8) — gelas
-                     terisi + gelas kosong sasaran; lebih dari 8 → +N. */
-                  const total = Math.min(Math.max(p.value ?? 0, waterTarget), 8)
-                  const filled = Math.min(p.value ?? 0, total)
-                  const outline = total - filled
-                  const overflow = (p.value ?? 0) - total
+                  /* Menara 8 slot (audit v2.47.1): gelas terisi
+                     min(nilai, 8) + gelas garis luar menuju
+                     min(target, 8). Chip +N = nilai − target, hanya
+                     bila nilai MELAMPAUI target — tidak pernah
+                     mengesankan melebihi target saat masih kurang. */
+                  const value = p.value ?? 0
+                  const filled = Math.min(value, 8)
+                  const outline = Math.max(0, Math.min(waterTarget, 8) - filled)
+                  const overflow = value > waterTarget ? value - waterTarget : 0
                   return (
                     <button
                       key={p.date}

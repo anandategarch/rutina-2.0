@@ -11,9 +11,8 @@ import { DayDetailSheet } from '../../day-detail-sheet'
 import {
   WEEKDAY_MIN,
   addDaysISO,
+  dayCompliance,
   fromISO,
-  isDoneOn,
-  scheduledOn,
   todayISO,
   useRutina,
   weekStartISO,
@@ -35,10 +34,12 @@ import {
  *    kegagalan (hari tanpa jadwal ≠ 0%).
  *  - MASA DEPAN → simpul putus-putus redup.
  *
- * Sumber data: logika per-hari yang sama dengan daySchedules (store.ts) —
+ * Sumber data: dayCompliance (store.ts) — SATU rumus per-hari yang sama
+ * dengan daySchedules/heatmap & konstelasi Statistik (audit v2.47 #13):
  * hormati createdAt & arsip, jeda terjadwal diampuni (keluar penyebut),
- * pct null bila tak ada jadwal — dihitung LOKAL untuk jendela Senin-pekan
- * (daySchedules memakai jendela bergulir berakhir hari ini).
+ * pct null bila tak ada jadwal — dipanggil per-hari untuk jendela
+ * Senin..Minggu pekan berjalan (daySchedules memakai jendela bergulir
+ * berakhir hari ini).
  */
 
 /* ===== Derivasi murni — pekan Senin..Minggu berjalan ===== */
@@ -59,23 +60,16 @@ function vineWeek(habits: Habit[], c: Completions, today: string): VineDay[] {
   const start = weekStartISO(today)
   return Array.from({ length: 7 }, (_, i) => {
     const iso = addDaysISO(start, i)
-    const pool = habits.filter(
-      (h) => scheduledOn(h, iso) && h.createdAt <= iso,
-    )
-    const forgiven = new Set(
-      pool.filter((h) => (h.restDays ?? []).includes(iso)).map((h) => h.id),
-    )
-    const due = pool.filter((h) => !forgiven.has(h.id))
-    const done = due.filter((h) => isDoneOn(c, iso, h.id)).length
+    const dc = dayCompliance(habits, c, iso)
     const d = fromISO(iso)
     return {
       iso,
       label: WEEKDAY_MIN[d.getDay()],
       dateNum: d.getDate(),
-      due: due.length,
-      done,
-      rest: forgiven.size,
-      pct: due.length === 0 ? null : Math.round((done / due.length) * 100),
+      due: dc.due,
+      done: dc.done,
+      rest: dc.rest,
+      pct: dc.pct,
       future: iso > today,
       isToday: iso === today,
     }
@@ -254,6 +248,8 @@ function VineLeaf({
 const LEGEND: { key: LeafState; label: string }[] = [
   { key: 'full', label: 'Penuh' },
   { key: 'partial', label: 'Sebagian' },
+  /* v2.47 (audit #5): hari ini berjalan — daun garis luar + cincin sorot. */
+  { key: 'pending', label: 'Hari ini — berjalan' },
   { key: 'missed', label: 'Terlewat' },
   { key: 'rest', label: 'Tanpa jadwal' },
   { key: 'future', label: 'Belum berjalan' },
@@ -276,6 +272,24 @@ function LegendSwatch({ state }: { state: LeafState }) {
         <g transform="translate(0,2) scale(0.8)">
           <path d={LEAF_FULL} fill="none" stroke={accent} strokeWidth={2} />
           <path d={LEAF_LEFT} fill={accent} />
+        </g>
+      )}
+      {/* Hari ini berjalan: daun garis luar + cincin sorot — padanan
+          bentuk simpul "pending" di batang (0% hari ini, vonis menunggu). */}
+      {state === 'pending' && (
+        <g>
+          <circle
+            cx={0}
+            cy={-9}
+            r={8.5}
+            fill="none"
+            stroke="var(--module-accent-strong)"
+            strokeWidth={1.3}
+            opacity={0.7}
+          />
+          <g transform="translate(0,2) scale(0.78)">
+            <path d={LEAF_FULL} fill="none" stroke={accent} strokeWidth={2} />
+          </g>
         </g>
       )}
       {state === 'missed' && (
@@ -430,6 +444,7 @@ export function GrowthVine() {
                 type="button"
                 aria-pressed={selIso === d.iso}
                 aria-label={dayText(d)}
+                title={dayText(d)}
                 onClick={() => setSelIso((prev) => (prev === d.iso ? null : d.iso))}
                 className="cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:[outline-offset:-2px] focus-visible:outline-primary"
               />
@@ -446,7 +461,7 @@ export function GrowthVine() {
             <button
               type="button"
               onClick={() => setDetailDate(selDay.iso)}
-              className="interactive h-8 shrink-0 cursor-pointer rounded-full border border-border-strong px-3.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive h-11 shrink-0 cursor-pointer rounded-full border border-border-strong px-3.5 text-eyebrow font-semibold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Lihat detail hari
             </button>
