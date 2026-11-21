@@ -13,6 +13,8 @@ import { CONTENT_W } from '../layout-widths'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import {
   MEAL_SLOTS,
+  addDaysISO,
+  shortDateLabel,
   todayISO,
   useRutina,
   type MealSlot,
@@ -24,6 +26,9 @@ import { FOOD_DB, type FoodItem } from './food-db'
  * Lembar tambah asupan — pencarian master 179 makanan Indonesia
  * dengan skor kecocokan (awal-kata > awal-token > substring),
  * stepper porsi, dan pemilih waktu makan.
+ * v2.42: TANGGAL BISA DIPILIH — makan malam kemarin yang terlupa
+ * tetap bisa dicatat pagi ini (chip Hari ini/Kemarin + input tanggal,
+ * maks. hari ini).
  */
 
 /* Skor pencarian ala Rutina v3: awal-kata 3, awal-token 2, substring 1.
@@ -98,6 +103,8 @@ export function FoodSheet() {
   const [picked, setPicked] = useState<FoodItem | null>(null)
   const [portion, setPortion] = useState(1)
   const [meal, setMeal] = useState<MealSlot>('sarapan')
+  /* v2.42: tanggal asupan — default hari ini, bisa kemarin/lain. */
+  const [date, setDate] = useState<string>(todayISO())
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -112,6 +119,7 @@ export function FoodSheet() {
       setPicked(null)
       setPortion(1)
       setMeal(currentMealSlot())
+      setDate(todayISO())
     }
   }
 
@@ -153,7 +161,7 @@ export function FoodSheet() {
       return
     }
     addFoodEntry({
-      date: todayISO(),
+      date,
       name: picked.name,
       cat: picked.cat,
       unit: picked.unit,
@@ -165,7 +173,9 @@ export function FoodSheet() {
       fat: picked.fat == null ? null : Math.round(picked.fat * portion * 10) / 10,
     })
     toast.success(
-      `${picked.name} (${portionLabel(portion)}) ditambahkan ke ${MEAL_SLOTS.find((s) => s.key === meal)?.label.toLowerCase()}`,
+      `${picked.name} (${portionLabel(portion)}) ditambahkan ke ${
+        MEAL_SLOTS.find((s) => s.key === meal)?.label.toLowerCase()
+      }${date !== todayISO() ? ` · ${shortDateLabel(date)}` : ''}`,
     )
   }
 
@@ -421,6 +431,54 @@ export function FoodSheet() {
                           </button>
                         )
                       })}
+                    </div>
+                  </div>
+
+                  {/* Tanggal asupan (v2.42) — makan kemarin yang terlupa
+                      tetap bisa dicatat pagi ini; maks. hari ini. */}
+                  <div className="mt-3">
+                    <p className="text-eyebrow font-semibold uppercase tracking-wide text-content-muted">
+                      Tanggal
+                    </p>
+                    <div className="mt-1.5 flex gap-2">
+                      {[
+                        { key: 'today', label: 'Hari ini', iso: todayISO() },
+                        {
+                          key: 'yesterday',
+                          label: 'Kemarin',
+                          iso: addDaysISO(todayISO(), -1),
+                        },
+                      ].map((chip) => {
+                        const on = date === chip.iso
+                        return (
+                          <button
+                            key={chip.key}
+                            type="button"
+                            onClick={() => setDate(chip.iso)}
+                            aria-pressed={on}
+                            className={`h-10 flex-1 cursor-pointer rounded-xl text-body font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                              on
+                                ? 'bg-primary text-primary-foreground shadow-soft'
+                                : 'border border-border bg-surface-sunken text-content-secondary'
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        )
+                      })}
+                      <input
+                        id="food-date"
+                        type="date"
+                        value={date}
+                        min={addDaysISO(todayISO(), -365)}
+                        max={todayISO()}
+                        onChange={(e) => {
+                          /* Kosong jatuh kembali ke hari ini. */
+                          setDate(e.target.value || todayISO())
+                        }}
+                        aria-label="Pilih tanggal asupan lain, maksimal satu tahun ke belakang"
+                        className="h-10 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-note font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      />
                     </div>
                   </div>
                 </m.div>

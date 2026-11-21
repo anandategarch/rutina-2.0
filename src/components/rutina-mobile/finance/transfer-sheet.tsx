@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
-import { useRutina } from '../store'
+import { addDaysISO, shortDateLabel, todayISO, useRutina } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
 import { WalletPickerSheet } from './wallet-picker-sheet'
 import { formatIDR, walletBalance } from './utils'
@@ -18,6 +18,9 @@ import { formatIDR, walletBalance } from './utils'
  * Lembar transfer antar-dompet — uang berpindah antar sumber dana,
  * tercatat sebagai tipe 'transfer' yang tidak menggelembungkan
  * statistik pemasukan/pengeluaran.
+ * v2.42: tanggal transfer bisa dipilih (kemarin dst.) — selaras dengan
+ * lembar transaksi; saldo dompet dihitung dari seluruh mutasi sehingga
+ * transfer ber-tanggal lampau tetap konsisten.
  */
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'back']
@@ -33,6 +36,8 @@ export function TransferSheet() {
   const [toId, setToId] = useState('')
   const [digits, setDigits] = useState('')
   const [note, setNote] = useState('')
+  /* v2.42: tanggal transfer — default hari ini, bisa kemarin/lain. */
+  const [date, setDate] = useState<string>(todayISO())
   const [pickerFor, setPickerFor] = useState<'from' | 'to' | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
@@ -47,6 +52,7 @@ export function TransferSheet() {
       setToId(wallets[1]?.id ?? wallets[0]?.id ?? '')
       setDigits('')
       setNote('')
+      setDate(todayISO())
       setPickerFor(null)
     }
   }
@@ -95,9 +101,11 @@ export function TransferSheet() {
       )
       return
     }
-    addTransfer({ fromId: from.id, toId: to.id, amount, note })
+    addTransfer({ fromId: from.id, toId: to.id, amount, note, date })
     toast.success(
-      `${formatIDR(amount)} dipindah dari ${from.name} ke ${to.name}`,
+      `${formatIDR(amount)} dipindah dari ${from.name} ke ${to.name}${
+        date !== todayISO() ? ` · ${shortDateLabel(date)}` : ''
+      }`,
     )
   }
 
@@ -225,6 +233,53 @@ export function TransferSheet() {
               >
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
+            </div>
+
+            {/* Tanggal transfer (v2.42) — chip cepat + input tanggal,
+                pola sama dengan lembar transaksi. */}
+            <div className="mt-4 space-y-1.5" role="group" aria-label="Tanggal transfer">
+              <span className="text-note font-semibold text-content-secondary">
+                Tanggal{' '}
+                <span className="font-normal text-content-muted">
+                  (bisa pilih kemarin)
+                </span>
+              </span>
+              <div className="flex gap-2">
+                {[
+                  { key: 'today', label: 'Hari ini', iso: todayISO() },
+                  { key: 'yesterday', label: 'Kemarin', iso: addDaysISO(todayISO(), -1) },
+                ].map((chip) => {
+                  const on = date === chip.iso
+                  return (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      onClick={() => setDate(chip.iso)}
+                      aria-pressed={on}
+                      className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        on
+                          ? 'bg-primary text-primary-foreground shadow-soft'
+                          : 'border border-border bg-surface-sunken text-content-secondary'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  )
+                })}
+                <input
+                  id="tr-date"
+                  type="date"
+                  value={date}
+                  min={addDaysISO(todayISO(), -365)}
+                  max={todayISO()}
+                  onChange={(e) => {
+                    /* Kosong jatuh kembali ke hari ini. */
+                    setDate(e.target.value || todayISO())
+                  }}
+                  aria-label="Pilih tanggal transfer lain, maksimal satu tahun ke belakang"
+                  className="h-10 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-note font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                />
+              </div>
             </div>
 
             {/* Catatan */}

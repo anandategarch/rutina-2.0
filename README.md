@@ -6,8 +6,23 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.41.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.42.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.42 — Mencatat untuk Hari Kemarin: Tanggal Bisa Dipilih di Semua Pencatatan
+
+Lupa mencatat transaksi hari kemarin bukan lagi masalah: lembar transaksi,
+transfer, dan asupan kini punya pemilih tanggal (chip cepat Hari ini / Kemarin
++ input tanggal, maks. hari ini). Mode sunting bisa memindah tanggal transaksi
+lama yang salah catat; grafik 7 hari Asupan menyalakan jurnal makan hari yang
+diketuk (entri lampau bisa dilihat & dihapus); sesi gym lintas tengah malam
+tercatat di tanggal mulainya; perayaan Level 8 tidak lagi replay tiap reload.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Pemilih tanggal di tiga lembar** | AddTxSheet & TransferSheet: bagian "Tanggal" (chip + input native); FoodSheet: pemilih di kartu detail; `addTx`/`addTransfer` menerima `date`, `updateTx` menerima `ts` — transaksi kemarin masuk grup tanggal yang benar di Mutasi, grafik arus, dan Vault. |
+| **P1 — Jurnal makan per hari terpilih** | Batang grafik 7 hari menyalakan jurnal hari itu + chip kembali ke hari ini; entri lampau bisa dihapus. Sesi latihan tercatat di tanggal MULAINYA; pagar `materializeRecurring` per-templat. |
+| **Pembuktian mutu** | lint hijau; E2E: tx kemarin tergrup benar, sunting pindah 20→21 Nov, transfer & asupan ber-tanggal, mingguan backfill 14 & 21 Nov, input kustom 18 Nov, 390/1280px, nol error konsol; VLM konfirmasi. |
 
 ## v2.41 — Saran Coach Tanpa Repetisi: Satu Inti Saran, Satu Kartu
 

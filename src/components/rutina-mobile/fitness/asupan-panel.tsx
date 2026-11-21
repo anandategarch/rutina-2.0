@@ -211,6 +211,14 @@ export function AsupanPanel() {
     () => entriesOn(foodEntries, today),
     [foodEntries, today],
   )
+  /* Hari yang sedang ditinjau di grafik 7 hari (v2.42): jurnal makan
+     mengikuti pilihan batang — entri kemarin bisa dilihat & dihapus.
+     Ringkasan hero tetap HARI INI (jatah harian memang milik hari ini). */
+  const shownDay = selDay ?? today
+  const shownEntries = useMemo(
+    () => entriesOn(foodEntries, shownDay),
+    [foodEntries, shownDay],
+  )
   const sum = useMemo(() => summarize(todayEntries), [todayEntries])
 
   /* Energi terbakar hari ini (MET × berat × durasi) — jatah tambahan
@@ -563,26 +571,37 @@ export function AsupanPanel() {
         Tambah Asupan
       </m.button>
 
-      {/* Jurnal makan hari ini */}
-      <section className="mt-7" aria-label="Jurnal makan hari ini">
+      {/* Jurnal makan hari terpilih (v2.42) — mengikuti batang grafik
+          7 hari yang diketuk; default hari ini. */}
+      <section className="mt-7" aria-label="Jurnal makan hari terpilih">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
             <h2 className="text-note font-bold uppercase tracking-[0.16em] text-content-secondary">
               Jurnal Makan
             </h2>
             <span className="rounded-full bg-secondary px-2 py-0.5 text-eyebrow font-semibold text-success">
-              {todayEntries.length}
+              {shownEntries.length}
             </span>
           </div>
-          <span className="text-eyebrow font-medium text-content-muted">
-            {FOOD_DB.length} makanan di master
-          </span>
+          {selDay && selDay !== today ? (
+            <button
+              type="button"
+              onClick={() => setSelDay(null)}
+              className="interactive cursor-pointer rounded-full border border-primary/40 px-3 py-1 text-eyebrow font-semibold text-primary transition-colors hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {dayLongLabel(selDay)} · kembali ke hari ini
+            </button>
+          ) : (
+            <span className="text-eyebrow font-medium text-content-muted">
+              {FOOD_DB.length} makanan di master
+            </span>
+          )}
         </div>
 
         <div className="mt-3 space-y-4">
           {MEAL_SLOTS.map((slot) => {
-            const rows = todayEntries.filter((e) => e.meal === slot.key)
-            if (rows.length === 0 && todayEntries.length > 0) return null
+            const rows = shownEntries.filter((e) => e.meal === slot.key)
+            if (rows.length === 0 && shownEntries.length > 0) return null
             /* Pagar per kelompok (audit v2.37): 3 entri awal + expander. */
             const expanded = openMeals.has(slot.key)
             const shown = expanded ? rows : rows.slice(0, 3)
@@ -618,7 +637,7 @@ export function AsupanPanel() {
                       : `Lihat semua (${rows.length}) — ${hiddenCount} lainnya`}
                   </button>
                 )}
-                {rows.length === 0 && todayEntries.length === 0 && (
+                {rows.length === 0 && shownEntries.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-border px-4 py-3 text-center">
                     <p className="text-meta font-medium text-content-muted">
                       Belum ada catatan {slot.label.toLowerCase()}
@@ -629,7 +648,7 @@ export function AsupanPanel() {
             )
           })}
 
-          {todayEntries.length === 0 && (
+          {shownEntries.length === 0 && (
             <m.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -638,11 +657,14 @@ export function AsupanPanel() {
             >
               <Apple className="mx-auto h-6 w-6 text-content-muted" />
               <p className="mt-2 text-note font-semibold text-content-muted">
-                Jurnal makan masih kosong
+                {selDay && selDay !== today
+                  ? `Belum ada catatan untuk ${dayLongLabel(selDay)}`
+                  : 'Jurnal makan masih kosong'}
               </p>
               <p className="mt-0.5 text-meta text-content-muted">
-                Cari makanan Indonesia di master — kalori &amp; makro terisi
-                otomatis.
+                {selDay && selDay !== today
+                  ? 'Ketuk “Tambah Asupan” lalu pilih tanggal ini untuk menambal.'
+                  : 'Cari makanan Indonesia di master — kalori & makro terisi otomatis.'}
               </p>
             </m.div>
           )}
@@ -771,8 +793,9 @@ export function AsupanPanel() {
           })()}
         </div>
         <p className="mt-2 px-0.5 text-eyebrow leading-relaxed text-content-muted">
-          Batang pekat = hari ini · garis putus-putus = target asupan. Jatah
-          harian = target + energi terbakar ({fmt(allowance)} kkal hari ini).
+          Batang pekat = hari ini · garis putus-putus = target asupan. Ketuk
+          batang hari lain untuk meninjau jurnal makan hari itu. Jatah harian
+          = target + energi terbakar ({fmt(allowance)} kkal hari ini).
         </p>
       </section>
     </div>

@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { ChevronRight } from 'lucide-react'
 import { CONTENT_W } from '../layout-widths'
 import {
+  addDaysISO,
   shortDateLabel,
   todayISO,
   useRutina,
@@ -38,6 +39,9 @@ import { formatIDR } from './utils'
  * v2.18: subkategori dihapus — kategori saja cukup.
  * v2.22: MODE SUNTING — txEditId terisi → lembar terbuka membawa nilai
  * transaksi lama; simpan memperbarui baris yang sama (bukan menambah).
+ * v2.42: TANGGAL BISA DIPILIH — chip cepat Hari ini/Kemarin + input
+ * tanggal (maks. hari ini). Lupa mencatat kemarin bukan lagi halangan;
+ * mode sunting pun bisa memindah tanggal tx lama yang salah catat.
  */
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'back']
@@ -63,6 +67,9 @@ export function AddTxSheet() {
   const [note, setNote] = useState('')
   const [walletId, setWalletId] = useState('')
   const [recurrence, setRecurrence] = useState<Recurrence | null>(null)
+  /* v2.42: tanggal draf — default hari ini, bisa digeser ke kemarin
+     atau tanggal lain (maks. hari ini, tidak bisa mencatat masa depan). */
+  const [date, setDate] = useState<string>(todayISO())
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -81,6 +88,8 @@ export function AddTxSheet() {
         setDigits(editing.amount > 0 ? String(editing.amount) : '')
         setNote(editing.note)
         setWalletId(editing.walletId ?? '')
+        /* Tanggal tx lama dibawa ke draf — bisa dipindah bila salah. */
+        setDate(editing.ts)
         /* Berulang hanya bisa diubah pada templat asli — salinan otomatis
            mengikuti templatnya. */
         setRecurrence(editing.recurOf ? null : (editing.recurrence ?? null))
@@ -91,6 +100,7 @@ export function AddTxSheet() {
         setNote('')
         setWalletId(wallets[0]?.id ?? '')
         setRecurrence(null)
+        setDate(todayISO())
       }
       setPickerOpen(false)
       setWalletPickerOpen(false)
@@ -107,6 +117,8 @@ export function AddTxSheet() {
   }, [open, closeTxSheet])
 
   const amount = Number(digits || '0')
+  const today = todayISO()
+  const yesterday = addDaysISO(today, -1)
 
   const press = (k: string) => {
     if (k === 'back') {
@@ -130,7 +142,12 @@ export function AddTxSheet() {
       toast.warning('Masukkan nominal terlebih dahulu')
       return
     }
-    /* Mode sunting (v2.22): perbarui baris yang sama. */
+    /* Keterangan tanggal pada toast — hanya disebut bila BUKAN hari ini
+       agar tidak menambah derau pada alur paling umum. */
+    const whenNote =
+      date !== today ? ` · ${shortDateLabel(date)}` : ''
+    /* Mode sunting (v2.22): perbarui baris yang sama — tanggal ikut
+       bisa dipindah (v2.42). */
     if (editing) {
       updateTx(editing.id, {
         type,
@@ -140,9 +157,10 @@ export function AddTxSheet() {
         walletId: walletId || undefined,
         /* Salinan otomatis tidak menyimpan jadwal sendiri. */
         recurrence: editing.recurOf ? undefined : recurrence,
+        ts: date,
       })
       closeTxSheet()
-      toast.success(`Transaksi ${formatIDR(amount)} diperbarui`)
+      toast.success(`Transaksi ${formatIDR(amount)} diperbarui${whenNote}`)
       return
     }
     addTx({
@@ -152,6 +170,7 @@ export function AddTxSheet() {
       note,
       walletId: walletId || undefined,
       recurrence,
+      date,
     })
     if (recurrence) {
       useRutina.getState().materializeRecurring()
@@ -159,8 +178,8 @@ export function AddTxSheet() {
     closeTxSheet()
     toast.success(
       type === 'keluar'
-        ? `Pengeluaran ${formatIDR(amount)} dicatat`
-        : `Pemasukan ${formatIDR(amount)} dicatat`,
+        ? `Pengeluaran ${formatIDR(amount)} dicatat${whenNote}`
+        : `Pemasukan ${formatIDR(amount)} dicatat${whenNote}`,
     )
   }
 
@@ -218,8 +237,8 @@ export function AddTxSheet() {
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">
                   {editing
-                    ? `Perubahan langsung menggantikan catatan lama — ${shortDateLabel(editing.ts)}.`
-                    : `Catat arus uang — ${shortDateLabel(todayISO())}.`}
+                    ? `Perubahan menggantikan catatan lama — ${shortDateLabel(date)}.`
+                    : `Catat arus uang — ${shortDateLabel(date)}.`}
                 </p>
               </div>
             </div>
@@ -274,7 +293,7 @@ export function AddTxSheet() {
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
               <p className="mt-1 text-eyebrow text-content-muted">
-                {catMetaOf(cat, customCats).label} · {shortDateLabel(todayISO())}
+                {catMetaOf(cat, customCats).label} · {shortDateLabel(date)}
               </p>
             </div>
 
@@ -363,6 +382,55 @@ export function AddTxSheet() {
                 </button>
               </div>
             )}
+
+            {/* Tanggal transaksi (v2.42) — chip cepat Hari ini/Kemarin
+                + input tanggal untuk hari lain (maks. hari ini).
+                Tanggal aktif tercermin di subjudul & bawah nominal. */}
+            <div className="mt-4 space-y-1.5" role="group" aria-label="Tanggal transaksi">
+              <span className="text-note font-semibold text-content-secondary">
+                Tanggal{' '}
+                <span className="font-normal text-content-muted">
+                  (lupa mencatat kemarin? tinggal pilih)
+                </span>
+              </span>
+              <div className="flex gap-2">
+                {[
+                  { key: 'today', label: 'Hari ini', iso: today },
+                  { key: 'yesterday', label: 'Kemarin', iso: yesterday },
+                ].map((chip) => {
+                  const on = date === chip.iso
+                  return (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      onClick={() => setDate(chip.iso)}
+                      aria-pressed={on}
+                      className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        on
+                          ? 'bg-primary text-primary-foreground shadow-soft'
+                          : 'border border-border bg-surface-sunken text-content-secondary'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  )
+                })}
+                <input
+                  id="tx-date"
+                  type="date"
+                  value={date}
+                  min={addDaysISO(today, -365)}
+                  max={today}
+                  onChange={(e) => {
+                    /* Kosong (dibersihkan UI native) jatuh kembali ke
+                       hari ini — tidak pernah menyimpan tanggal kosong. */
+                    setDate(e.target.value || today)
+                  }}
+                  aria-label="Pilih tanggal lain, paling jauh satu tahun ke belakang"
+                  className="h-10 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-note font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                />
+              </div>
+            </div>
 
             {/* Transaksi berulang — tidak untuk salinan otomatis (recurOf). */}
             <div className="mt-4 space-y-1.5" role="group" aria-label="Transaksi berulang">

@@ -5,6 +5,27 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.42] — Mencatat untuk Hari Kemarin: Tanggal Bisa Dipilih di Semua Pencatatan
+
+Laporan "kenapa aku tidak bisa input transaksi hari kemarin?" — akar masalah
+bukan bug pada logika tanggal, melainkan FITUR YANG TIDAK ADA: `addTx` selalu
+menuliskan `ts: todayFinISO()` dan lembar transaksi tidak punya satu pun
+pemilih tanggal. Lupa mencatat kemarin = data selamanya salah hari (atau tidak
+dicatat sama sekali). Audit paralel menemukan pola yang sama di tiga titik
+lain. Semua jalur pencatatan finansial & kalori kini menghormati tanggal
+pilihan; deep audit 10 temuan turut memperbaiki lima di antaranya.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Transaksi: pemilih tanggal (Hari ini / Kemarin / input tanggal)** | Bagian "Tanggal" baru di AddTxSheet: dua chip cepat + input tanggal native (maks. hari ini, min. satu tahun ke belakang — masa depan ditolak). Tanggal aktif tercermin di subjudul, label bawah nominal, dan toast (tanggal hanya disebut bila BUKAN hari ini — alur paling umum tetap sunyi). `addTx` menerima `date`; transaksi kemarin masuk grup tanggal yang benar di Mutasi, grafik arus, dan Vault. |
+| **P0 — Mode sunting bisa memindah tanggal** | `updateTx` kini menerima patch `ts` — tx lama yang salah catat hari bisa dipindah tanpa hapus-tulis ulang; lembar sunting terbuka membawa tanggal tx dan menyimpan perubahannya. |
+| **P0 — Transfer & asupan ikut ber-tanggal** | TransferSheet: bagian "Tanggal" dengan pola sama (`addTransfer` menerima `date`); FoodSheet: pemilih tanggal di kartu detail makanan — makan malam kemarin yang terlupa tetap bisa dicatat pagi ini. |
+| **P1 — Jurnal makan mengikuti hari terpilih** | Grafik 7 hari Asupan kini benar-benar "jendela navigasi": batang yang diketuk menyalakan Jurnal Makan hari itu (entri lampau bisa dilihat DAN dihapus — dulu hanya hari ini), chip "Rab, 18 Nov · kembali ke hari ini" untuk reset, ringkasan hero tetap milik hari ini. |
+| **P1 — Sesi lintas tengah malam & berulang per-templat** | `endSession` mencatat tanggal MULAINYA sesi (sesi gym 23.30 yang usai pukul 00.30 tidak lagi lompat ke besok); pagar anti-runaway `materializeRecurring` menjadi per-templat (dulu satu kuota global — templat yang di-backdate berbulan-bulan bisa memakan jatah templat lain dalam run yang sama). |
+| **P2 — Perayaan Level 8 tak replay** | Penanda perayaan dipersist per tanggal (`uiPrefs.celebratedOn`) — dulu `useRef` yang reset tiap reload sehingga konfeti + toast "Naik ke Level 8" muncul lagi setiap buka aplikasi pada hari yang sama. |
+| **Sengaja tidak diubah (audit, keputusan sadar)** | Check-in tubuh/mood tetap harian (filosofi jatah hari ini); DayDetailSheet tetap baca-saja (dokumentasi, bukan isian); jurnal tidak di-backdate (refleksi tertulis saat itu); tarik dana tujuan tabungan & drill dari hasil pencarian Hub dicatat sebagai utang berikutnya. |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | lint hijau. E2E browser: tx "Kemarin" tersimpan `ts` kemarin & tergrup benar di Mutasi; sunting memindah 20→21 Nov (grup ikut pindah); transfer & nasi goreng ber-tanggal kemarin; input tanggal kustom 18 Nov via keyboard; batang grafik 20 Nov menyalakan jurnal + hapus + reset; transaksi mingguan ber-tanggal 7 Nov mem-backfill salinan 14 & 21 Nov; 390px & 1280px; nol error konsol & halaman; VLM konfirmasi layout chip rapi. |
+
 ## [2.41] — Saran Coach Tanpa Repetisi: Satu Inti Saran, Satu Kartu
 
 Laporan "Saran Coach kenapa tampil beberapa kali — 1 card isi 'perkecil dulu

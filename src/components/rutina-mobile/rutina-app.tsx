@@ -227,18 +227,24 @@ export function RutinaApp() {
 
   /* Momen naik level — konfeti + toast, dipusatkan di shell agar berlaku
      untuk semua layar (misi bisa dicentang dari Beranda maupun Statistik).
-     XP dihitung dari penyelesaian HARI INI yang nyata. */
+     XP dihitung dari penyelesaian HARI INI yang nyata.
+     v2.42: penanda perayaan DIPERSIST per tanggal (uiPrefs.celebratedOn)
+     — dulu sekadar useRef yang reset tiap reload, sehingga pengguna yang
+     sudah Level 8 mendapat konfeti replay setiap buka aplikasi. */
   const leveledRef = useRef(false)
+  const celebratedOn = useRutina((s) => s.uiPrefs.celebratedOn)
+  const setUiPref = useRutina((s) => s.setUiPref)
   const today = todayISO()
   const xp = computeXp(doneCountOn(completions, today), bonusClaimed)
   const level = computeLevel(xp)
   useEffect(() => {
-    if (level >= 8 && !leveledRef.current) {
+    if (level >= 8 && !leveledRef.current && celebratedOn !== today) {
       leveledRef.current = true
+      setUiPref({ celebratedOn: today })
       useRutina.getState().setCelebrating(true)
       toast.success('Naik ke Level 8 — petualang sejati!')
     }
-  }, [level])
+  }, [level, celebratedOn, today, setUiPref])
 
   /* `revealed` — gerbang koreografi ikon cangkang: nav & FAB menunggu
      momen splash benar-benar pergi sebelum menari (lihat bottom-nav &

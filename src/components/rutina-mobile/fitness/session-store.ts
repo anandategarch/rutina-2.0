@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import { exStatOf } from './fit-utils'
 import {
-  todayISO,
+  isoOf,
   type Workout,
   type WorkoutInput,
   type WorkoutKind,
@@ -215,7 +215,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     if (sets.length === 0) return null
     return {
       kind: 'beban' as const,
-      date: todayISO(),
+      /* v2.42: sesi tercatat pada tanggal MULAINYA — sesi gym 23.30 yang
+         selesai lewat tengah malam tidak lagi lompat ke tanggal besoknya. */
+      date: isoOf(new Date(s.startedAt)),
       duration,
       note: '',
       sets,

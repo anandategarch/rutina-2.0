@@ -994,6 +994,9 @@ export interface UiPrefs {
   woFilter: WoFilter
   /** Rentang tanggal riwayat aktivitas Bugar (v2.17). */
   woRange: WoRange
+  /** Tanggal terakhir perayaan "Naik ke Level 8" di-rayakan (v2.42) —
+   *  mencegah konfeti replay setiap reload pada hari yang sama. */
+  celebratedOn?: string
 }
 
 
@@ -1414,9 +1417,13 @@ interface RutinaState {
     note: string
     walletId?: string
     recurrence?: Recurrence | null
+    /** Tanggal transaksi (yyyy-mm-dd) — v2.42: lupa mencatat kemarin
+     *  tinggal pilih tanggalnya; kosong = hari ini. */
+    date?: string
   }) => void
   /** Perbarui transaksi yang sudah ada (v2.22) — sunting kategori,
-   *  nominal, catatan, dompet, arus, dan jadwal berulang. */
+   *  nominal, catatan, dompet, arus, jadwal berulang, dan tanggal
+   *  (v2.42 — tx lama yang salah tanggal bisa dipindah). */
   updateTx: (
     id: string,
     patch: {
@@ -1426,6 +1433,7 @@ interface RutinaState {
       note?: string
       walletId?: string
       recurrence?: Recurrence | null
+      ts?: string
     },
   ) => void
   deleteTx: (id: string) => void
@@ -1462,6 +1470,8 @@ interface RutinaState {
     toId: string
     amount: number
     note: string
+    /** Tanggal transfer (yyyy-mm-dd) — v2.42; kosong = hari ini. */
+    date?: string
   }) => void
   openWalletDialog: () => void
   openWalletEdit: (id: string) => void
@@ -1705,7 +1715,7 @@ export const useRutina = create<RutinaState>()(
   /* Mode sunting transaksi (v2.22) — lembar terisi nilai lama. */
   openTxEdit: (id) => set({ txSheetOpen: true, txEditId: id }),
 
-  addTx: ({ type, cat, amount, note, walletId, recurrence }) =>
+  addTx: ({ type, cat, amount, note, walletId, recurrence, date }) =>
     set((s) => ({
       txs: [
         {
@@ -1714,7 +1724,8 @@ export const useRutina = create<RutinaState>()(
           cat,
           amount,
           note: note.trim(),
-          ts: todayFinISO(),
+          /* v2.42: tanggal bisa dipilih (kemarin dst.) — default hari ini. */
+          ts: date || todayFinISO(),
           walletId,
           recurrence: recurrence ?? null,
         },
@@ -1868,7 +1879,7 @@ export const useRutina = create<RutinaState>()(
 
   /** Transfer antar-dompet — tercatat sebagai tipe 'transfer' yang
    *  TIDAK dihitung sebagai pemasukan/pengeluaran di statistik. */
-  addTransfer: ({ fromId, toId, amount, note }) =>
+  addTransfer: ({ fromId, toId, amount, note, date }) =>
     set((s) => ({
       txs: [
         {
@@ -1877,7 +1888,7 @@ export const useRutina = create<RutinaState>()(
           cat: 'transfer' as const,
           amount,
           note: note.trim(),
-          ts: todayFinISO(),
+          ts: date || todayFinISO(),
           walletId: fromId,
           toWalletId: toId,
           recurrence: null,
@@ -1939,7 +1950,11 @@ export const useRutina = create<RutinaState>()(
             : addMonthsISO(iso, 1)
         let due = step(cursor)
         let planned = cursor
-        while (due <= today && added < 200) {
+        /* Pagar anti-runaway PER TEMPLAT (v2.42, sebelumnya global): satu
+           templat yang menangkap banyak (mis. di-backdate berbulan-bulan)
+           tidak lagi memakan jatah templat lain dalam run yang sama. */
+        let tplAdded = 0
+        while (due <= today && tplAdded < 200) {
           next.unshift({
             ...tpl,
             id: `tx-${Date.now()}-${added}-${Math.floor(Math.random() * 1e4)}`,
@@ -1947,11 +1962,12 @@ export const useRutina = create<RutinaState>()(
             recurOf: tpl.id,
           })
           added++
+          tplAdded++
           planned = due
           cursor = due
           due = step(cursor)
         }
-        if (added > 0) {
+        if (tplAdded > 0) {
           /* Majukan templat itu sendiri ke due terakhir yang direncanakan
              sehingga penghapusan salinan tidak memundurkan kursor. */
           const i = next.findIndex((t) => t.id === tpl.id)
@@ -1979,6 +1995,10 @@ export const useRutina = create<RutinaState>()(
                 : {}),
               ...(patch.recurrence !== undefined
                 ? { recurrence: patch.recurrence }
+                : {}),
+              /* v2.42: tanggal tx lama bisa dipindah (salah catat hari). */
+              ...(patch.ts !== undefined && patch.ts
+                ? { ts: patch.ts }
                 : {}),
             }
           : t,
