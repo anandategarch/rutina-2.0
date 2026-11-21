@@ -19,6 +19,40 @@ sistemik yang diam-diam merusak ukuran huruf di SELURUH aplikasi.
 | **Komposisi Kebiasaan Aktif — responsif kontainer** | Bunga 128px + legenda berdampingan di bawah ±416px membuat label kategori terpotong ("Keseha…") dan bunga tampak melayang sendiri di kiri. Kini `useMinWidth` (container query JS) menumpuk: bunga terpusat di atas, legenda selebar kartu di bawah — label selalu utuh, terverifikasi di 320px. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E browser 320/390px: label grid mood terukur 10px & muat kolom (32,8px @320px), baris ikon sejajar header, legenda bunga tanpa pemotongan, mode gelap kontras baik, tidak ada regresi visual di 7 layar (Beranda/Bugar/Keuangan/Kebiasaan/Statistik/Jurnal/Profil). |
 
+## [2.54] — Lembar Transaksi & Kebiasaan Muat Satu Layar
+
+Laporan pengguna: "Pop up transaksi baru sangat tinggi sehingga aku harus
+scroll ke bawah, bisa nggak buat tanpa harus scroll ke bawah lagi. Dan coba
+cek popup lainnya juga." — terukur live di 390×844: konten lembar transaksi
+**930px** pada jatah 776px (92% viewport) = menggulir 154px; lembar
+kebiasaan **1.341px** = menggulir 598px. Audit seluruh lembar/pop-up lain
+ikut dijalankan.
+
+| Lembar | Sebelum | Sesudah | Catatan |
+|---|---|---|---|
+| **Transaksi Baru/Sunting** | 930px | **647px — tanpa gulir** | Judul + tombol × (subjudul digabung ke baris meta nominal: kategori · tanggal · mode); Kategori & Dompet jadi dua kolom berdampingan dengan label mikro di dalam tombol; Catatan jadi input ber-placeholder-jelas tanpa label seksi; baris Hari ini/Kemarin/tanggal & Sekali/Mingguan/Bulanan dipadatkan (h-11, text-meta); keypad 4 kolom × 3 baris (1-9 tetap posisi dialer, kolom kanan ⌫/000/0 — hemat satu baris penuh); Simpan jadi tombol lebar penuh (Batal digantikan ×, latar, Escape, dan pegangan seret). Target sentuh tetap ≥44px. |
+| **Kebiasaan Baru** | 1.341px | **640px — tanpa gulir** | Formulir inti (nama, kategori, jadwal, target pekanan) selalu terlihat; tujuh seksi opsional (deskripsi, kelompok, kebiasaan terukur, tautan aktivitas Bugar, pengingat, versi 2 menit, susun kebiasaan) diringkung di balik saklar "Opsi lanjutan" (aria-expanded/controls, chevron berputar). Mode sunting terbuka OTOMATIS bila kebiasaan lama punya nilai lanjutan — nilai yang sudah terisi tidak pernah disembunyikan. |
+| Catatan Baru | 475px | — | Sudah muat. |
+| Check-in hari ini | 693px | — | Muat kelas 844px (bilas max-height v2.49 menjaga layar pendek). |
+| Detail hari (Statistik) | 739px | — | Muat. |
+| Tujuan tabungan (baru/kelola) | 339/539px | — | Muat. |
+| Tambah asupan (Bugar) | 227px | — | Muat. |
+| Pemilih kategori transaksi | 726px | — | Muat. |
+
+`scripts/seed-preview.ts` ditambahkan — alat dev untuk mengisi database
+sandbox dengan dataset contoh realistis (11 kebiasaan 5 kategori, 209
+completions 35 hari, mood 14 hari dengan celah, 27 transaksi + transfer +
+anggaran, 11 sesi latihan, asupan & body log) demi peninjauan visual
+mobile yang bermakna; hanya menulis ke `localhost` (produksi Turso tak
+tersentuh).
+
+**Pembuktian mutu**: tsc & lint hijau; 156/156 test lulus. E2E live:
+ketik 2-5-000 → "Rp25.000" + Simpan aktif → tersimpan + toast; pemilih
+kategori menumpuk benar di atas lembar (Escape berlapis tetap bekerja);
+buat kebiasaan inti → toast + muncul di daftar; sunting kebiasaan
+terukur → opsi lanjutan terbuka otomatis; hapus → bersih; tinggi
+konten diukur langsung di DOM (bukan diklaim).
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

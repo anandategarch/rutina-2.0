@@ -1,19 +1,18 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   AnimatePresence,
   useDragControls,
 } from 'motion/react'
 import * as m from 'motion/react-m'
-import { Delete, Wallet } from 'lucide-react'
+import { Delete, Wallet, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { ChevronRight } from 'lucide-react'
 import { CONTENT_W } from '../layout-widths'
 import {
@@ -43,9 +42,23 @@ import { formatIDR } from './utils'
  * v2.42: TANGGAL BISA DIPILIH — chip cepat Hari ini/Kemarin + input
  * tanggal (maks. hari ini). Lupa mencatat kemarin bukan lagi halangan;
  * mode sunting pun bisa memindah tanggal tx lama yang salah catat.
+ * v2.53: TATA LETAK TANPA-GULIR — seluruh isi lembar dirampingkan agar
+ * muat dalam satu layar ponsel (dulu ±930px → harus menggulir 150px+):
+ * judul + tombol tutup di satu baris (subjudul digabung ke baris meta
+ * nominal), Kategori & Dompet jadi dua kolom berdampingan, label seksi
+ * dilipat ke dalam kontrol (placeholder/aria), keypad 4 kolom × 3 baris
+ * (1-9 + ⌫/000/0 di kolom kanan), dan Simpan jadi tombol lebar penuh.
+ * Semua target sentuh tetap ≥44px; penutupan tetap bisa lewat pegangan
+ * seret, latar, Escape, dan tombol × di kanan judul.
  */
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'back']
+/* Papan ketik 4 kolom × 3 baris — angka 1-9 tetap di posisi dialer,
+   kolom kanan memuat ⌫ / 000 / 0 (hemat satu baris penuh vs 3×4). */
+const KEYS = [
+  '1', '2', '3', 'back',
+  '4', '5', '6', '000',
+  '7', '8', '9', '0',
+]
 
 export function AddTxSheet() {
   const open = useRutina((s) => s.txSheetOpen)
@@ -215,35 +228,38 @@ export function AddTxSheet() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetSpring}
-            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
+            className={`absolute inset-x-0 bottom-0 z-50 mx-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
-              className="mx-auto flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+              className="mx-auto flex h-6 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
               aria-hidden="true"
             >
               <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-left">
-                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
-                  {editing ? 'Sunting Transaksi' : 'Transaksi Baru'}
-                </h2>
-                <p className="mt-0.5 text-note text-content-muted">
-                  {editing
-                    ? `Perubahan menggantikan catatan lama — ${shortDateLabel(date)}.`
-                    : `Catat arus uang — ${shortDateLabel(date)}.`}
-                </p>
-              </div>
+            {/* Judul + tombol tutup — subjudul (tanggal) kini terbaca di
+                baris meta bawah nominal, bukan baris tersendiri. */}
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-body font-bold tracking-tight text-content-primary">
+                {editing ? 'Sunting Transaksi' : 'Transaksi Baru'}
+              </h2>
+              <button
+                type="button"
+                onClick={closeTxSheet}
+                aria-label="Tutup lembar transaksi"
+                className="interactive -mr-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <X className="h-4.5 w-4.5" strokeWidth={2.4} aria-hidden="true" />
+              </button>
             </div>
 
             {/* Saklar tipe arus */}
             <div
               role="group"
               aria-label="Jenis transaksi"
-              className="relative mt-3 flex rounded-full bg-surface-secondary p-1"
+              className="relative mt-2 flex rounded-full bg-surface-secondary p-1"
             >
               {(['keluar', 'masuk'] as TxType[]).map((t) => {
                 const on = type === t
@@ -276,175 +292,137 @@ export function AddTxSheet() {
             </div>
 
             {/* Nominal besar — diumumkan ke pembaca layar (audit T5-d #2):
-                keypad tidak memberi umpan balik lain saat nilai diketik. */}
-            <div className="mt-4 text-center">
+                keypad tidak memberi umpan balik lain saat nilai diketik.
+                Baris meta memikul peran subjudul lama: kategori + tanggal. */}
+            <div className="mt-2.5 text-center">
               <span
                 role="status"
                 aria-live="polite"
                 aria-label={`Nominal saat ini: ${amount ? formatIDR(amount) : 'Rp0'}`}
-                className={`text-kpi-lg font-bold leading-none tabular-nums transition-colors duration-300 ${amountColor} ${
-                  amount ? '' : 'opacity-35'
+                className={`text-kpi font-bold leading-none tabular-nums transition-colors duration-300 ${amountColor} ${
+                  amount ? '' : 'opacity-50'
                 }`}
               >
                 {amount ? formatIDR(amount) : 'Rp0'}
               </span>
               <p className="mt-1 text-eyebrow text-content-muted">
                 {catMetaOf(cat, customCats).label} · {shortDateLabel(date)}
+                {editing ? ' · sunting' : ''}
               </p>
             </div>
 
-            {/* Kategori — DROPDOWN satu sistem (v2.17): form hanya
-                menampilkan kategori terpilih; daftar lengkap + pencarian
-                + sering dipakai + tambah ada di lembar pemilih.
-                v2.18: tanpa subkategori. Tanpa penanda asal kategori. */}
-            <div className="mt-4 space-y-1.5">
-              <span className="text-note font-semibold text-content-secondary">
-                Kategori
-              </span>
+            {/* Kategori + Dompet — dua kolom berdampingan (v2.53): keduanya
+                dropdown ke lembar pemilih; label mikro di dalam tombol
+                menggantikan label seksi di atasnya. */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
                 aria-haspopup="dialog"
                 aria-label={`Kategori terpilih: ${catMetaOf(cat, customCats).label}. Ketuk untuk mengganti.`}
-                className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex min-h-14 w-full cursor-pointer flex-col justify-center gap-0.5 rounded-xl border border-border bg-surface-sunken px-3 py-1.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
-                {(() => {
-                  const meta = catMetaOf(cat, customCats)
-                  const Icon = meta.icon
-                  return (
-                    <>
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
-                        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1 line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
-                        {meta.label}
-                      </span>
-                      <ChevronRight
-                        className="h-4.5 w-4.5 shrink-0 text-content-muted"
-                        aria-hidden="true"
-                      />
-                    </>
-                  )
-                })()}
+                <span className="text-chart-label font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Kategori
+                </span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {(() => {
+                    const Icon = catMetaOf(cat, customCats).icon
+                    return <Icon className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                  })()}
+                  <span className="min-w-0 flex-1 truncate text-meta font-semibold leading-tight text-content-primary">
+                    {catMetaOf(cat, customCats).label}
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-content-muted" aria-hidden="true" />
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWalletPickerOpen(true)}
+                aria-haspopup="dialog"
+                aria-label={`Dompet terpilih: ${
+                  wallets.find((w) => w.id === walletId)?.name ?? 'tanpa dompet'
+                }. Ketuk untuk mengganti.`}
+                className="flex min-h-14 w-full cursor-pointer flex-col justify-center gap-0.5 rounded-xl border border-border bg-surface-sunken px-3 py-1.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span className="text-chart-label font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  Dompet
+                </span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <Wallet className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-meta font-semibold leading-tight text-content-primary">
+                    {wallets.length > 0
+                      ? (wallets.find((w) => w.id === walletId)?.name ?? 'Tanpa dompet')
+                      : 'Tanpa dompet'}
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-content-muted" aria-hidden="true" />
+                </span>
               </button>
             </div>
 
-            {/* Catatan */}
-            <div className="mt-4 space-y-1.5">
-              <Label
-                htmlFor="tx-note"
-                className="text-note font-semibold text-content-secondary"
-              >
-                Catatan <span className="font-normal text-content-muted">(opsional)</span>
-              </Label>
-              <Input
-                id="tx-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="mis. Ngopi sama tim proyek"
-                maxLength={40}
-                className="h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
-              />
-            </div>
-
-            {/* Dompet sumber — hanya bila pengguna punya dompet.
-                Dropdown satu baris menggantikan deretan chip: daftar
-                lengkap + pencarian + tambah dompet ada di lembar
-                pemilih dompet. */}
-            {wallets.length > 0 && (
-              <div className="mt-4 space-y-1.5" role="group" aria-label="Dompet sumber">
-                <span className="text-note font-semibold text-content-secondary">
-                  Dompet
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setWalletPickerOpen(true)}
-                  aria-haspopup="dialog"
-                  aria-label={`Dompet terpilih: ${
-                    wallets.find((w) => w.id === walletId)?.name ?? 'tanpa dompet'
-                  }. Ketuk untuk mengganti.`}
-                  className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-success">
-                    <Wallet className="h-4.5 w-4.5" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1 line-clamp-2 break-words text-body font-semibold leading-snug text-content-primary">
-                    {wallets.find((w) => w.id === walletId)?.name ?? 'Tanpa dompet'}
-                  </span>
-                  <ChevronRight
-                    className="h-4.5 w-4.5 shrink-0 text-content-muted"
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-            )}
+            {/* Catatan — placeholder menjelaskan diri, tanpa label seksi. */}
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Catatan (opsional)…"
+              maxLength={40}
+              aria-label="Catatan transaksi, opsional"
+              className="mt-2.5 h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+            />
 
             {/* Tanggal transaksi (v2.42) — chip cepat Hari ini/Kemarin
                 + input tanggal untuk hari lain (maks. hari ini).
-                Tanggal aktif tercermin di subjudul & bawah nominal. */}
-            <div className="mt-4 space-y-1.5" role="group" aria-label="Tanggal transaksi">
-              <span className="text-note font-semibold text-content-secondary">
-                Tanggal{' '}
-                <span className="font-normal text-content-muted">
-                  (lupa mencatat kemarin? tinggal pilih)
-                </span>
-              </span>
-              <div className="flex gap-2">
-                {[
-                  { key: 'today', label: 'Hari ini', iso: today },
-                  { key: 'yesterday', label: 'Kemarin', iso: yesterday },
-                ].map((chip) => {
-                  const on = date === chip.iso
-                  return (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      onClick={() => setDate(chip.iso)}
-                      aria-pressed={on}
-                      className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                        on
-                          ? 'bg-primary text-primary-foreground shadow-soft'
-                          : 'border border-border bg-surface-sunken text-content-secondary'
-                      }`}
-                    >
-                      {chip.label}
-                    </button>
-                  )
-                })}
-                <input
-                  id="tx-date"
-                  type="date"
-                  value={date}
-                  min={addDaysISO(today, -365)}
-                  max={today}
-                  onChange={(e) => {
-                    /* Kosong (dibersihkan UI native) jatuh kembali ke
-                       hari ini — tidak pernah menyimpan tanggal kosong. */
-                    setDate(e.target.value || today)
-                  }}
-                  aria-label="Pilih tanggal lain, paling jauh satu tahun ke belakang"
-                  className="h-10 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-note font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                />
-              </div>
+                Tanggal aktif tercermin di baris meta nominal. */}
+            <div className="mt-2.5 flex gap-2" role="group" aria-label="Tanggal transaksi">
+              {[
+                { key: 'today', label: 'Hari ini', iso: today },
+                { key: 'yesterday', label: 'Kemarin', iso: yesterday },
+              ].map((chip) => {
+                const on = date === chip.iso
+                return (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={() => setDate(chip.iso)}
+                    aria-pressed={on}
+                    className={`h-11 flex-1 cursor-pointer rounded-xl text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      on
+                        ? 'bg-primary text-primary-foreground shadow-soft'
+                        : 'border border-border bg-surface-sunken text-content-secondary'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
+              <input
+                id="tx-date"
+                type="date"
+                value={date}
+                min={addDaysISO(today, -365)}
+                max={today}
+                onChange={(e) => {
+                  /* Kosong (dibersihkan UI native) jatuh kembali ke
+                     hari ini — tidak pernah menyimpan tanggal kosong. */
+                  setDate(e.target.value || today)
+                }}
+                aria-label="Pilih tanggal lain, paling jauh satu tahun ke belakang"
+                className="h-11 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-meta font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              />
             </div>
 
             {/* Transaksi berulang — tidak untuk salinan otomatis (recurOf). */}
-            <div className="mt-4 space-y-1.5" role="group" aria-label="Transaksi berulang">
-              <span className="text-note font-semibold text-content-secondary">
-                Berulang{' '}
-                <span className="font-normal text-content-muted">
-                  {editing?.recurOf
-                    ? '(salinan otomatis — ikut templatnya)'
-                    : '(tercatat otomatis tiap jadwal)'}
-                </span>
-              </span>
-              {editing?.recurOf ? (
-                <p className="rounded-xl bg-surface-sunken px-3.5 py-2.5 text-meta leading-relaxed text-content-muted">
-                  Ini salinan otomatis dari transaksi berulang. Ubah jadwalnya
-                  di templat asal (baris dengan ikon panah melingkar).
-                </p>
-              ) : (
-              <div className="flex gap-2">
+            {editing?.recurOf ? (
+              <p className="mt-2.5 rounded-xl bg-surface-sunken px-3.5 py-2 text-meta leading-relaxed text-content-muted">
+                Salinan otomatis dari transaksi berulang — jadwalnya diatur di
+                templat asal.
+              </p>
+            ) : (
+              <div
+                className="mt-2.5 flex gap-2"
+                role="group"
+                aria-label="Transaksi berulang"
+              >
                 {([null, 'mingguan', 'bulanan'] as const).map((r) => {
                   const on = recurrence === r
                   return (
@@ -453,7 +431,7 @@ export function AddTxSheet() {
                       type="button"
                       onClick={() => setRecurrence(r as Recurrence | null)}
                       aria-pressed={on}
-                      className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      className={`h-11 flex-1 cursor-pointer rounded-xl text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         on
                           ? 'bg-primary text-primary-foreground shadow-soft'
                           : 'border border-border bg-surface-sunken text-content-secondary'
@@ -464,11 +442,10 @@ export function AddTxSheet() {
                   )
                 })}
               </div>
-              )}
-            </div>
+            )}
 
-            {/* Keypad */}
-            <div className="mt-4 grid grid-cols-3 gap-2">
+            {/* Keypad 4×3 — kolom kanan: ⌫ / 000 / 0 */}
+            <div className="mt-3 grid grid-cols-4 gap-2">
               {KEYS.map((k) =>
                 k === 'back' ? (
                   <m.button
@@ -499,25 +476,16 @@ export function AddTxSheet() {
               )}
             </div>
 
-            {/* Aksi */}
-            <div className="mt-5 flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={closeTxSheet}
-                className="h-11 flex-1 rounded-full font-semibold text-content-secondary hover:bg-surface-secondary hover:text-content-primary"
-              >
-                Batal
-              </Button>
-              <Button
-                type="button"
-                onClick={submit}
-                disabled={!amount}
-                className="h-11 flex-1 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-action-hover disabled:opacity-45"
-              >
-                {editing ? 'Simpan Perubahan' : 'Simpan Transaksi'}
-              </Button>
-            </div>
+            {/* Aksi — Simpan lebar penuh; batal lewat ×, latar, Escape,
+                atau pegangan seret. */}
+            <Button
+              type="button"
+              onClick={submit}
+              disabled={!amount}
+              className="mt-2.5 h-12 w-full rounded-full bg-primary text-body font-semibold text-primary-foreground shadow-soft hover:bg-action-hover disabled:opacity-45"
+            >
+              {editing ? 'Simpan Perubahan' : 'Simpan Transaksi'}
+            </Button>
           </m.div>
 
           {/* Lembar pemilih kategori — overlay di atas lembar transaksi

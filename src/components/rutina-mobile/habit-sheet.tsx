@@ -123,6 +123,12 @@ export function HabitSheet() {
      "Ubah"; kueri cari menyaring daftar yang panjang. */
   const [pickTriggerOpen, setPickTriggerOpen] = useState(false)
   const [triggerQuery, setTriggerQuery] = useState('')
+  /* Opsi lanjutan diringkung (v2.53) — formulir inti (nama, kategori,
+     jadwal, target) muat satu layar ponsel tanpa menggulir ±600px;
+     bagian opsional (deskripsi, kelompok, terukur, tautan bugar,
+     pengingat, versi 2 menit, susunan) terbuka manual — atau otomatis
+     saat menyunting kebiasaan yang sudah punya nilai lanjutan. */
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -158,10 +164,25 @@ export function HabitSheet() {
         })
         setReminderOn(Boolean(editing.reminder))
         setMeasuredOn(Boolean(editing.target))
+        /* Buka otomatis bila kebiasaan lama punya nilai lanjutan —
+           menyembunyikan nilai yang sudah terisi lebih membingungkan
+           daripada lembar yang sedikit lebih panjang. */
+        setAdvancedOpen(
+          Boolean(
+            editing.desc ||
+              editing.groupId ||
+              editing.target ||
+              editing.linkedActivity ||
+              editing.reminder ||
+              editing.mini ||
+              editing.afterId,
+          ),
+        )
       } else {
         setDraft(EMPTY_DRAFT)
         setReminderOn(false)
         setMeasuredOn(false)
+        setAdvancedOpen(false)
       }
     }
   }
@@ -349,13 +370,14 @@ export function HabitSheet() {
                 />
               </div>
 
-              {/* Deskripsi */}
+              {/* Deskripsi — opsi lanjutan (v2.53) */}
+              {advancedOpen && (
               <div className="space-y-1.5">
                 <Label
                   htmlFor="habit-desc"
                   className="text-note font-semibold text-content-secondary"
                 >
-                  Deskripsi
+                  Deskripsi <span className="font-normal text-content-muted">(opsional)</span>
                 </Label>
                 <Textarea
                   id="habit-desc"
@@ -367,6 +389,7 @@ export function HabitSheet() {
                   className="min-h-[70px] resize-none rounded-xl border-border bg-surface-primary text-content-primary [field-sizing:content] placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
               </div>
+              )}
 
               {/* Kategori */}
               <div className="space-y-1.5">
@@ -393,7 +416,9 @@ export function HabitSheet() {
               </div>
 
               {/* Kelompok kebiasaan custom (v2.22) — bedeng kebunmu
-                  sendiri: "Pagi", "Gym", dsb. dengan warna chip. */}
+                  sendiri: "Pagi", "Gym", dsb. dengan warna chip.
+                  Opsi lanjutan (v2.53) — diringkung. */}
+              {advancedOpen && (
               <div className="space-y-1.5">
                 <span className="flex items-center gap-1.5 text-note font-semibold text-content-secondary">
                   <Layers
@@ -587,6 +612,7 @@ export function HabitSheet() {
                   )}
                 </div>
               </div>
+              )}
 
               {/* Jadwal berulang */}
               <div className="space-y-1.5">
@@ -680,6 +706,33 @@ export function HabitSheet() {
                 </div>
               </div>
 
+              {/* Saklar opsi lanjutan (v2.53): bagian opsional diringkung
+                  supaya formulir inti (nama, kategori, jadwal, target)
+                  muat satu layar; mode sunting terbuka otomatis bila ada
+                  nilai lanjutan yang terisi. */}
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((v) => !v)}
+                aria-expanded={advancedOpen}
+                aria-controls="habit-advanced"
+                className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-dashed border-border-strong px-3.5 text-left transition-colors hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span className="flex min-w-0 items-center gap-2 text-note font-semibold text-content-secondary">
+                  <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />
+                  Opsi lanjutan
+                  <span className="truncate font-normal text-content-muted">
+                    deskripsi, kelompok, pengingat, dst.
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`h-4 w-4 shrink-0 text-content-muted transition-transform duration-200 ${
+                    advancedOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {advancedOpen && (
+                <div id="habit-advanced" className="space-y-4">
               {/* Kebiasaan terukur (v2.22) — target jumlah + satuan per
                   hari: "8 gelas", "20 halaman". Centang biasa tetap bisa
                   menandai selesai penuh sekali ketuk. */}
@@ -1078,6 +1131,8 @@ export function HabitSheet() {
                   </p>
                 )}
               </div>
+                </div>
+              )}
 
               {/* Jeda Runtun Aman — butuh kebiasaan yang sudah ada */}
               {mode === 'edit' && editing && (
