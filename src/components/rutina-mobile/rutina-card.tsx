@@ -21,6 +21,20 @@ import { MODULE_SOFT_BG, type RutinaModule } from './rutina-module'
  * lewat UKURAN tile (RutinaBentoItem), bukan warna. Varian `module`
  * memakai latar bertint domain (token module-*-soft) — maksimal satu
  * dua tile per layar agar tidak ramai.
+ *
+ * v2.46 (Warm Editorial Productivity 2.0 — Tahap 1): varian surface
+ * ekspresif berdasarkan FUNGSI, bukan sekadar border + radius + latar
+ * yang sama untuk semua kartu —
+ *   - editorial : permukaan planner kertas (paper-surface) — garis
+ *                 margin kiri + sapuan aksen; untuk agenda & daftar
+ *                 linimasa (Beranda, Kebiasaan).
+ *   - botanical : permukaan kebun (garden-surface) — kabut aksen lembut;
+ *                 untuk area pertumbuhan (hero progres, streak).
+ *   - ledger    : buku kas — parchment dengan garis tebal atas aksen
+ *                 domain; untuk panel keuangan (mutasi, ringkasan).
+ *   - data      : panel analitik sunken — bingkai hairline tipis dan
+ *                 latar tenggelam; untuk grafik & observatorium.
+ *   Ink/espresso tetap dilayani varian `dark` (identitas global).
  */
 const cardVariants = cva('relative overflow-hidden', {
   variants: {
@@ -39,6 +53,17 @@ const cardVariants = cva('relative overflow-hidden', {
       module: '',
       /** Kartu rata tanpa bingkai — di atas permukaan sunken. */
       flat: 'bg-surface-sunken',
+      /** Kartu editorial — planner kertas: garis margin kiri aksen modul
+       * (paper-surface); pas di dalam wilayah data-module. */
+      editorial: 'paper-surface',
+      /** Kartu botanical — kebun: kabut aksen lembut dari kiri atas
+       * (garden-surface); untuk hero progres & area pertumbuhan. */
+      botanical: 'garden-surface',
+      /** Kartu ledger — buku kas: garis tebal atas aksen domain di atas
+       * parchment (hairline di sisi lain). */
+      ledger: 'border border-border-default border-t-2 border-t-module-accent bg-surface-primary',
+      /** Kartu data — panel analitik: latar sunken + hairline tipis. */
+      data: 'border border-border-default/60 bg-surface-sunken',
     },
     density: {
       compact: 'p-3',

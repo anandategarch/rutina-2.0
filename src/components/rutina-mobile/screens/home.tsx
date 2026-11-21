@@ -464,6 +464,38 @@ export default function HomeScreen() {
     [habits, completions, today],
   )
 
+  /* v2.46 (Warm Editorial P2.0): misi pekan berjalan untuk rel hero —
+     Senin..hari ini saja (hari berjalan), sadar-jadwal & sadar-createdAt
+     senada weekTarget Kebiasaan; "Misi pekan d/s" menemani Streak di
+     sisi kanan hero split. */
+  const weekMission = useMemo(() => {
+    const start = weekStartISO(today)
+    let sched = 0
+    let done = 0
+    for (let i = 0; i < 7; i++) {
+      const iso = addDaysISO(start, i)
+      if (iso > today) break
+      const scheduled = habitsOn(habits, iso).filter((h) => h.createdAt <= iso)
+      sched += scheduled.length
+      done += scheduled.filter((h) => isDoneOn(completions, iso, h.id)).length
+    }
+    return { sched, done }
+  }, [habits, completions, today])
+
+  /* Headline editorial kontekstual (audit Daily Almanac: "Hari ini,
+     pelan tapi pasti.") — satu kalimat serif yang mengikuti keadaan
+     misi hari ini; sapaan di kepala layar tetap menjadi pintu masuk. */
+  const heroHeadline =
+    todayHabits.length === 0
+      ? 'Hari yang tenang.'
+      : pct === 100
+        ? 'Hari yang sempurna.'
+        : pct >= 60
+          ? 'Pelan tapi pasti.'
+          : pct > 0
+            ? 'Sedang bertumbuh.'
+            : 'Waktunya memulai.'
+
   /* Arus kas bersih seluruh transaksi (transfer antar-dompet dilewati).
      v2.16 (audit T5-c #8): useMemo — O(txs) per render sebelumnya. */
   const netSaldo = useMemo(
@@ -698,12 +730,13 @@ export default function HomeScreen() {
         </m.header>
       </div>
 
-      {/* 1 — Komposisi bento hero: progres utama (tile lebar, garden-
-          surface, radius token hero) + insight pendamping FLAT editorial
+      {/* 1 — Komposisi bento hero: progres utama (tile lebar, permukaan
+          botanical, radius token hero) + insight pendamping FLAT editorial
           tanpa bingkai (v2.27 Daybook: bukan semua bagian adalah kartu).
-          Sorotan Hari Ini dipindah ke kolom samping agenda sebagai panel
-          sekunder — hero progres tak lagi berebut dengan kartu sorotan
-          di posisi teratas. Ponsel tetap satu kolom. */}
+          v2.46 Daily Almanac (audit Warm Editorial P2.0): hero SPLIT —
+          narasi editorial kiri, metrik besar + rel Streak/Misi pekan di
+          kanan pada kontainer lega; ponsel menumpuk dengan narasi di atas.
+          Sorotan Hari Ini tetap di kolom samping agenda. */}
       <m.div
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -723,27 +756,53 @@ export default function HomeScreen() {
               className="h-full"
             >
               <RutinaCard
-                variant="default"
+                /* v2.46: permukaan kebun (kabut matcha lembut) kini varian
+                   `botanical` resmi RutinaCard; radius token hero daybook
+                   tetap — lebih lapang dari kartu biasa. */
+                variant="botanical"
                 density="spacious"
                 radius="2xl"
-                /* Permukaan kebun untuk area pertumbuhan: kabut matcha
-                   lembut dari sudut kiri atas; radius mengikuti token
-                   hero tata letak daybook (lebih lapang dari kartu biasa). */
-                className="garden-surface h-full rounded-[var(--layout-hero-radius)] shadow-soft"
+                className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
-                <div className="sm:mx-auto sm:max-w-[600px]">
-                  {/* v2.39: petak misi menggantikan cincin lama yang
-                      menampak seperti roda gigi — model linear: angka misi
-                      di kiri, persen besar di kanan, lalu petak kebun
-                      memanjang selebar kartu di bawahnya (tiap misi
-                      terjadwal = satu petak; centang menumbuhkannya). */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
+                {/* Ilustrasi botanical tipis — HANYA pada hero (audit:
+                    jangan menanam ilustrasi di setiap kartu); garis daun
+                    halus beraksen matcha, dekoratif, disembunyikan di
+                    kontainer sempit agar narasi tak terganggu. */}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 120 160"
+                  className="pointer-events-none absolute -right-2 -top-2 hidden h-44 w-32 text-module-accent opacity-[0.10] @[34rem]:block"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M60 150 C 60 110, 58 80, 60 40" />
+                  <path d="M60 96 C 40 92, 26 78, 22 56 C 44 58, 58 72, 60 96 Z" />
+                  <path d="M60 70 C 80 66, 94 52, 98 30 C 76 32, 62 46, 60 70 Z" />
+                  <path d="M60 44 C 48 40, 40 30, 38 16 C 52 18, 60 28, 60 44 Z" />
+                  <path d="M60 40 C 60 28, 66 16, 76 8 C 78 22, 72 34, 60 40 Z" />
+                </svg>
+                <div className="relative z-[1]">
+                  <div className="flex flex-col gap-5 @[34rem]:flex-row @[34rem]:items-stretch @[34rem]:gap-7">
+                    {/* Kiri — narasi editorial almanac (audit: header
+                        tanggal & sapaan editorial, bukan dashboard). */}
+                    <div className="min-w-0 flex-1">
                       <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
                         Progres hari ini
                       </p>
-                      <p className="mt-1 text-lead font-bold leading-tight tabular-nums text-content-primary">
-                        {schedDoneToday} dari {todayHabits.length} misi
+                      <h2
+                        className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
+                      >
+                        {heroHeadline}
+                      </h2>
+                      <p className="mt-1.5 text-body font-medium text-content-secondary">
+                        Kamu sudah menyelesaikan{' '}
+                        <span className="font-bold tabular-nums text-content-primary">
+                          {schedDoneToday} dari {todayHabits.length}
+                        </span>{' '}
+                        misi.
                         {extraDoneToday > 0 && (
                           <span className="ml-1.5 align-middle text-meta font-semibold text-success">
                             +{extraDoneToday} bonus
@@ -766,30 +825,35 @@ export default function HomeScreen() {
                               ? `${missionRemaining} misi tersisa`
                               : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
+                      {/* v2.39: petak misi — tiap misi terjadwal = satu
+                          petak kebun; centang menumbuhkannya. */}
+                      <MissionSteps
+                        done={schedDoneToday}
+                        total={todayHabits.length}
+                        entrance={playEntrance}
+                        className="mt-4"
+                      />
                     </div>
-                    <p className="flex shrink-0 items-baseline pt-0.5 text-content-primary">
-                      <span className="text-kpi font-bold leading-none tracking-tight">
-                        <Counter to={pct} immediate={!playEntrance} />
-                      </span>
-                      <span className="ml-0.5 text-note font-bold text-content-muted">
-                        %
-                      </span>
-                    </p>
-                  </div>
-                  <MissionSteps
-                    done={schedDoneToday}
-                    total={todayHabits.length}
-                    entrance={playEntrance}
-                    className="mt-4"
-                  />
 
-                  {/* v2.27 Daybook: strip pendamping di bawah hairline —
-                      chip streak/level + mini-bar XP tidak lagi memadati
-                      ruang utama petak misi (pola sub-metri studio Bugar:
-                      informasi tetap lengkap, tenang, tak berebut). */}
-                  <div className="mt-5 border-t border-border-default pt-4">
-                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                    {/* Kanan — metrik utama + rel pekan (split desktop);
+                        ponsel: dua petak sejajar di bawah narasi. Streak
+                        pindah ke sini sehingga strip bawah hanya membawa
+                        Level/XP (audit: metrik sekunder jelas hierarkinya). */}
+                    <div className="flex shrink-0 flex-col gap-3 @[34rem]:w-40 @[34rem]:border-l @[34rem]:border-border-default @[34rem]:pl-6">
+                      <div>
+                        <p className="flex items-baseline @[34rem]:justify-end">
+                          <span className="text-kpi font-bold leading-none tracking-tight">
+                            <Counter to={pct} immediate={!playEntrance} />
+                          </span>
+                          <span className="ml-0.5 text-note font-bold text-content-muted">
+                            %
+                          </span>
+                        </p>
+                        <p className="mt-1 text-eyebrow font-medium text-content-muted @[34rem]:text-right">
+                          perjalanan hari ini
+                        </p>
+                      </div>
+                      <div className="mt-auto grid grid-cols-2 gap-3 border-t border-border-default pt-3 @[34rem]:grid-cols-1 @[34rem]:gap-2.5">
                         <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
                           {/* Api streak — denyut ambient identitas yang
                               diizinkan (preset ambientPulse, amplitudo
@@ -810,15 +874,33 @@ export default function HomeScreen() {
                             Streak {streak} hari
                           </span>
                         </span>
-                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
-                          <Zap
+                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary @[34rem]:justify-end">
+                          <CalendarDays
                             aria-hidden="true"
-                            className="h-3.5 w-3.5 text-success"
+                            className="h-3.5 w-3.5 text-module-accent-strong"
                             strokeWidth={2.2}
                           />
-                          <span className="tabular-nums">Level {level}</span>
+                          <span className="tabular-nums">
+                            Misi pekan {weekMission.done}/{weekMission.sched}
+                          </span>
                         </span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* v2.27 Daybook: strip pendamping di bawah hairline —
+                      Level + mini-bar XP (pola sub-metri studio Bugar:
+                      informasi tetap lengkap, tenang, tak berebut). */}
+                  <div className="mt-5 border-t border-border-default pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                      <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
+                        <Zap
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 text-success"
+                          strokeWidth={2.2}
+                        />
+                        <span className="tabular-nums">Level {level}</span>
+                      </span>
                       <div className="flex min-w-[200px] max-w-[260px] flex-1 items-center gap-2.5 sm:justify-end">
                         <span className="shrink-0 text-meta font-bold tabular-nums text-content-primary">
                           <Counter to={xp} immediate={!playEntrance} /> XP

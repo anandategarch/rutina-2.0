@@ -6,8 +6,29 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.45.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.46.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.46 — Warm Editorial Productivity 2.0: Split Hero & Identitas Tiap Ruang
+
+Audit visual ulang memvonis fondasi desain sudah tepat — yang berevolusi
+adalah karakter tiap tab: "7 ruang personal di dalam satu rumah visual".
+Satu sistem komposisi hero yang sama (split: narasi editorial kiri · metrik
+kanan; ponsel menumpuk dengan informasi utama di atas), isi dan karakter
+berbeda per modul. **Beranda** menjadi Daily Almanac: headline serif
+kontekstual ("Hari yang sempurna." / "Pelan tapi pasti." / …), persen besar
+berlabel "perjalanan hari ini", rel Streak + Misi pekan (metrik baru,
+sadar-jadwal & sadar-createdAt), ilustrasi garis botanical tipis hanya di
+hero. **Bugar** menjadi Performance Studio sejati: menit tetap dominan,
+rel kanan membawa Total sesi · Tonase barbel (kini angka jelas "2,4 t",
+bukan sebaris kaki) · Hari aktif. **Kebiasaan** menjadi Growth Garden:
+eyebrow "TAMANMU · PEKAN N" (ISO), headline "Terus tumbuh." kontekstual,
+angka besar M/N kebiasaan dirawat pekan ini (ambang ≥80% sejajar vonis
+"sehat"). Fondasi: empat varian surface RutinaCard berdasarkan fungsi
+(editorial · botanical · ledger · data). Kisi bento sadar-kontainer, warna
+domain, tabs Radix, dan motion governance dipertahankan penuh sesuai audit.
+157/157 test lulus + E2E browser 1440px & 390px nol error, diverifikasi
+visual.
 
 ## v2.45 — Deep Audit Menyeluruh: Kejujuran Data, Sinkronisasi Kokoh, dan Konsistensi
 

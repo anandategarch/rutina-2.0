@@ -114,6 +114,22 @@ const AGENDA_LIMIT = 5
 /** Perpustakaan: baris awal per grup sebelum "Tampilkan semua". */
 const LIBRARY_GROUP_PREVIEW = 3
 
+/** Nomor pekan ISO (1–53) dari tanggal iso — untuk eyebrow "Tamanmu ·
+ *  Pekan N" pada hero Growth Garden (v2.46; audit Warm Editorial P2.0). */
+function isoWeekOf(iso: string): number {
+  const d = new Date(`${iso}T00:00:00Z`)
+  const day = (d.getUTCDay() + 6) % 7 // Senin = 0
+  d.setUTCDate(d.getUTCDate() - day + 3) // Kamis pekan ini
+  const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4))
+  const fday = (firstThu.getUTCDay() + 6) % 7
+  firstThu.setUTCDate(firstThu.getUTCDate() - fday + 3)
+  return 1 + Math.round((d.getTime() - firstThu.getTime()) / 604800000)
+}
+
+/** Ambang "dirawat" pekan berjalan — sejajar dengan vonis "sehat"
+ * (≥ 80%) pada bedeng capaian pekan; dipakai hero Growth Garden. */
+const TENDED_WEEK_PCT = 80
+
 /** Jumlah selesai satu kebiasaan sepanjang pekan (sampai tanggal iso). */
 function weekDoneCount(c: Completions, habitId: string, iso: string): number {
   let cursor = weekStartISO(iso)
@@ -1133,6 +1149,29 @@ export default function KebiasaanScreen() {
     weekTarget.schedElapsed > 0
       ? Math.round((weekTarget.doneElapsed / weekTarget.schedElapsed) * 100)
       : null
+
+  /* v2.46 Growth Garden (audit Warm Editorial P2.0): kebiasaan "dirawat"
+     pekan ini — capaian pekan berjalan tiap kebiasaan ≥ 80% (sejajar vonis
+     "sehat" bedeng Konsistensi); angka besar M/N hero taman. Sadar-
+     createdAt & sadar-jadwal via habitWeeklyRates. */
+  const tendedCount = useMemo(
+    () =>
+      activeHabits.filter((h) => {
+        const rate = habitWeeklyRates(h, completions, today, 1)[0]
+        return (rate?.pct ?? 0) >= TENDED_WEEK_PCT
+      }).length,
+    [activeHabits, completions, today],
+  )
+  /* Headline editorial taman (audit: "Terus tumbuh.") — kontekstual
+     mengikuti keadaan kebun pekan ini. */
+  const gardenHeadline =
+    activeHabits.length === 0
+      ? 'Kebun menunggu.'
+      : tendedCount === activeHabits.length
+        ? 'Terus tumbuh.'
+        : tendedCount >= Math.ceil(activeHabits.length / 2)
+          ? 'Tumbuh pelan-pelan.'
+          : 'Waktunya menyiram.'
   const maturePlants = useMemo(
     () =>
       activeHabits.filter((h) => {
@@ -1395,36 +1434,73 @@ export default function KebiasaanScreen() {
       data-layout="garden"
       className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
-      {/* Kepala editorial tenang — tanggal panjang + ringkasan singkat.
-          Titik & eyebrow memakai aksen Rose Clay (identitas kebun kebiasaan). */}
+      {/* v2.46 Growth Garden hero (audit Warm Editorial P2.0) — kepala
+          taman: eyebrow "Tamanmu · Pekan N", headline editorial kontekstual,
+          ringkasan jumlah, dan angka besar "M/N dirawat" di sisi kanan
+          pada kontainer lega; ponsel menumpuk dengan narasi di atas.
+          Titik & eyebrow tetap aksen Rose Clay (identitas kebun). */}
       <m.header
         initial={playEntrance ? { opacity: 0, y: 12 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={motionTokens.preset.panelReveal}
       >
-        {/* Judul halaman editorial — Playfair Display sebagai aksen botanical
-            (Tipografi System v1: satu-satunya serif di luar sapaan Beranda;
-            nama kebiasaan & kontrol tetap Geist Sans demi kecepatan). */}
-        <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-module-accent-strong">
-          <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
-          />
-          {longDateLabel(today)}
-        </p>
-        <h1
-          className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
-        >
-          Kebiasaan<span className="text-module-accent">.</span>
-        </h1>
-        <p className="mt-2 text-body font-medium tabular-nums text-content-muted">
-          {activeHabits.length} kebiasaan aktif ·{' '}
-          {scheduledToday.length === 0
-            ? 'tidak ada jadwal hari ini'
-            : pendingToday.length > 0
-              ? `${pendingToday.length} menunggu hari ini`
-              : 'agenda hari ini tuntas'}
-        </p>
+        <div className="flex flex-col gap-4 @[34rem]:flex-row @[34rem]:items-end @[34rem]:justify-between @[34rem]:gap-7">
+          <div className="min-w-0">
+            {/* Eyebrow & judul editorial — Playfair Display sebagai aksen
+                botanical (Tipografi System v1: satu-satunya serif di luar
+                sapaan Beranda; nama kebiasaan & kontrol tetap Geist Sans
+                demi kecepatan). */}
+            <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.14em] text-module-accent-strong">
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
+              />
+              Tamanmu · Pekan {isoWeekOf(today)}
+            </p>
+            <h1
+              className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
+            >
+              {gardenHeadline}
+            </h1>
+            <p className="mt-2 text-body font-medium tabular-nums text-content-muted">
+              {activeHabits.length} kebiasaan aktif · {tendedCount} dirawat
+              pekan ini
+            </p>
+            <p className="mt-0.5 text-note font-medium text-content-muted">
+              {longDateLabel(today)} ·{' '}
+              {scheduledToday.length === 0
+                ? 'tidak ada jadwal hari ini'
+                : pendingToday.length > 0
+                  ? `${pendingToday.length} menunggu hari ini`
+                  : 'agenda hari ini tuntas'}
+            </p>
+          </div>
+
+          {/* Angka besar dirawat — hanya bila ada kebiasaan aktif; saat
+              kebun kosong, glif tunas menemani ajakan menanam. */}
+          {activeHabits.length > 0 ? (
+            <div className="shrink-0 @[34rem]:pl-6 @[34rem]:text-right">
+              <p className="flex items-baseline gap-1 @[34rem]:justify-end">
+                <span className="text-kpi font-bold leading-none tracking-tight tabular-nums text-content-primary">
+                  {tendedCount}
+                </span>
+                <span className="text-lead font-bold tabular-nums text-module-accent-strong">
+                  /{activeHabits.length}
+                </span>
+              </p>
+              <p className="mt-1 text-eyebrow font-medium text-content-muted">
+                kebiasaan dirawat pekan ini
+              </p>
+            </div>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong @[34rem]:flex"
+            >
+              <Sprout className="h-6 w-6" />
+            </span>
+          )}
+        </div>
       </m.header>
 
       {hasNoHabits ? (

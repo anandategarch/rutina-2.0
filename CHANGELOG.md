@@ -5,6 +5,30 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.46] — Warm Editorial Productivity 2.0: Split Hero & Identitas Tiap Ruang
+
+Audit visual ulang atas `main` tiba dengan arah yang jelas: fondasi desain
+(RutinaBentoGrid sadar-kontainer, warna domain modul, Radix tabs berpil
+animasi, motion governance) sudah tepat — JANGAN dibangun ulang. Yang perlu
+berevolusi adalah karakter tiap tab agar terasa seperti "7 ruang personal
+di dalam satu rumah visual": satu sistem komposisi hero yang SAMA (split:
+narasi editorial kiri · metrik kanan; ponsel menumpuk dengan informasi utama
+di atas), tapi isi dan karakter BERBEDA per modul. Rilis ini mengeksekusi
+Tahap 1 (fondasi varian surface) + seluruh P0 Tahap 2 (split hero tiga
+ruang yang belum punya karakter penuh — Keuangan vault espresso, Statistik
+observatorium analitik, dan Jurnal kanvas tulis telah mapan dari rilis
+sebelumnya, dipertahankan).
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Fondasi: varian surface RutinaCard berdasarkan FUNGSI** | Audit: "kartu perlu variasi surface yang lebih ekspresif, bukan hanya border + radius + background yang sama". Empat varian baru resmi di `rutina-card.tsx`: **editorial** (paper-surface — garis margin kiri aksen modul, untuk agenda/linimasa), **botanical** (garden-surface — kabut aksen lembut, untuk area pertumbuhan/hero progres), **ledger** (buku kas — parchment dengan garis tebal atas aksen domain, untuk panel keuangan), dan **data** (panel analitik sunken + hairline tipis, untuk grafik/observatorium). Permukaan ink/espresso tetap dilayani varian `dark`. Hero Beranda bermigrasi dari className manual `garden-surface` ke varian `botanical` — satu sumber kebenaran. |
+| **P0 — Beranda: hero split "Daily Almanac"** | Komposisi hero baru: kiri = eyebrow + **headline serif kontekstual** yang berubah mengikuti keadaan misi ("Hari yang sempurna." / "Pelan tapi pasti." / "Sedang bertumbuh." / "Waktunya memulai." / "Hari yang tenang.") + kalimat "Kamu sudah menyelesaikan X dari Y misi." + petak misi; kanan (kontainer ≥34rem) = persen besar berlabel "perjalanan hari ini" + rel **Streak** dan **Misi pekan d/s** — metrik pekan BARU (Senin..hari ini, sadar-jadwal & sadar-createdAt senada weekTarget Kebiasaan, bonus luar jadwal tidak menggelembungkan angka). Strip bawah kini hanya Level + XP (Streak pindah ke rel). Ilustrasi garis botanical tipis HANYA di hero (audit: jangan menanam ilustrasi di setiap kartu), disembunyikan di kontainer sempit. |
+| **P0 — Bugar: hero split "Performance Studio"** | Audit: "Total menit harus menjadi angka utama; tonase, sesi, jarak, dan hari aktif sebagai secondary metrics". Kiri tetap menit dominan + progres sasaran; KANAN kini rel vertikal tiga metrik sekunder: **Total sesi · Tonase barbel · Hari aktif**. Tonase naik kelas dari sebaris eyebrow kaki menjadi angka jelas dengan format pintar (≥1000 kg → "2,4 t"), sejajar sesi & hari aktif; strip bawah hairline membawa metrik mode (km lari & jalan · jam badminton · sesi barbel) — semua informasi lama tetap ada, tak ada yang hilang, hierarki kini tegas. |
+| **P0 — Kebiasaan: hero "Growth Garden"** | Kepala layar menjadi hero taman: eyebrow **"TAMANMU · PEKAN N"** (nomor pekan ISO dihitung lokal, tanpa dependensi baru) + **headline serif kontekstual** ("Terus tumbuh." saat semua terawat / "Tumbuh pelan-pelan." / "Waktunya menyiram." / "Kebun menunggu." saat kosong) + "N kebiasaan aktif · M dirawat pekan ini"; kanan angka besar **M/N "kebiasaan dirawat pekan ini"** (ambang dirawat ≥80% — sejajar vonis "sehat" bedeng Konsistensi, dihitung dari `habitWeeklyRates` sadar-jadwal). Tanggal panjang + status agenda hari ini dipertahankan; kebun kosong menampilkan glif tunas, bukan angka 0/0. |
+| **Aturan hero yang dipegang penuh (audit)** | Satu hero per tab; maksimal dua surface beraksen dalam hero; headline unik per modul; CTA primer tetap satu (Bugar: "Mulai Sesi Barbel"); hero tidak mengulang informasi yang sudah ada di bawah; desktop split horizontal, ponsel menumpuk dengan informasi utama selalu di atas; tanpa animasi loop baru — entrance tetap digerbangi firstVisit anti-replay dan hormat `prefers-reduced-motion`; warna tetap dari token domain (matcha Beranda, eucalyptus Bugar, Rose Clay Kebiasaan) — nol warna hardcoded. |
+| **Yang DIPERTAHANKAN sesuai audit (KEEP)** | `RutinaBentoGrid` container-aware tetap satu-satunya sistem kisi (2 kolom micro → 6 → 12 editorial; tanpa kisi kedua); peta identitas domain `rutina-module.tsx` utuh; `rutina-tabs.tsx` (Radix + pil layoutId Motion) tak disentuh; komposisi bento hero 8 / insight 4 / agenda 8 / coach 4 sudah sesuai rekomendasi — dipertahankan; Keuangan (vault espresso + gold), Statistik (observatorium analitik tanpa hero tinggi), Jurnal (kanvas tulis + indeks editorial), dan Profil (cocoa + gold) telah memancarkan identitasnya sejak rilis sebelumnya. |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | lint & tsc hijau; 157/157 test lulus. E2E browser 1440px & 390px atas data nyata: Beranda menampilkan split hero "Hari yang sempurna." + 100% + Streak 1 hari + Misi pekan 1/1 + ilustrasi botanical (diverifikasi visual); Bugar "84 mnt" dominan kiri + rel kanan "4 sesi · 600 kg tonase · 3 hari aktif" + strip mode "12,8 km · 0 jam · 1 sesi" (diverifikasi visual); Kebiasaan "TAMANMU · PEKAN 47" + "Terus tumbuh." + 1/1 dirawat (diverifikasi visual); ketujuh layar dinavigasi tanpa satu pun error konsol/halaman; nol overflow horizontal di 390px; tumpang-tindih FAB atas kartu Sorotan diverifikasi TRANSIEN (menggulir membersihkan — pb-28 > jangkauan FAB, bukan regresi). |
+
 ## [2.45] — Deep Audit Menyeluruh: Kejujuran Data, Sinkronisasi Kokoh, dan Konsistensi
 
 Audit mendalam atas SEMUA modul (Bugar F1–F14, Keuangan K1–K14, Jurnal J1–J8,

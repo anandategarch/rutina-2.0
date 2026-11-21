@@ -1835,6 +1835,12 @@ export default function BugarScreen() {
             className="relative overflow-hidden rounded-2xl bg-module-accent-strong p-5 text-module-accent-fg shadow-leaf @[24rem]:p-6"
           >
         <div className="relative z-10">
+          {/* v2.46 Performance Studio (audit Warm Editorial P2.0): hero
+              SPLIT — menit dominan kiri; rel metrik sekunder (sesi ·
+              tonase · hari aktif) di kanan pada kontainer lega; ponsel
+              menumpuk dengan menit tetap paling atas. */}
+          <div className="flex flex-col gap-5 @[40rem]:flex-row @[40rem]:gap-7">
+            <div className="min-w-0 flex-1">
           <p className="text-note font-medium text-module-accent-fg/80">
             Aktivitas minggu ini
           </p>
@@ -1909,10 +1915,66 @@ export default function BugarScreen() {
             </div>
           )}
 
-          {/* Empat metrik pendukung — baris kecil di bawah hairline;
-              angka dari histori nyata, bukan target (v2.17). Fade
-              digerbangi firstVisit hero agar tidak mengulang tiap
-              remount tab (anti-replay). */}
+            </div>
+
+            {/* Rel metrik studio — sesi · tonase · hari aktif (audit:
+                tonase/sesi/jarak/hari aktif = metrik SEKUNDER, jangan
+                sama besar dengan menit); tonase tampil sebagai angka
+                jelas, bukan sebaris eyebrow kaki. Ponsel: tiga petak
+                sejajar di bawah menit. */}
+            <m.div
+              initial={playEntrance ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={{
+                ...motionTokens.preset.chipReveal,
+                delay: motionTokens.delay.sweep,
+              }}
+              className="grid grid-cols-3 gap-3 @[40rem]:w-44 @[40rem]:grid-cols-1 @[40rem]:gap-4 @[40rem]:border-l @[40rem]:border-module-accent-fg/25 @[40rem]:pl-7"
+            >
+              <div className="min-w-0">
+                <p className="flex items-baseline">
+                  <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                    {weekSessions}
+                  </span>
+                  <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">sesi</span>
+                </p>
+                <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                  total sesi
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="flex items-baseline">
+                  <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                    {week.tonase >= 1000
+                      ? `${(week.tonase / 1000).toFixed(1).replace('.', ',')} t`
+                      : Math.round(week.tonase).toLocaleString('id-ID')}
+                  </span>
+                  {week.tonase < 1000 && (
+                    <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">kg</span>
+                  )}
+                </p>
+                <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                  tonase barbel
+                </p>
+              </div>
+              <div className="min-w-0">
+                <p className="flex items-baseline">
+                  <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
+                    {week.activeDays}
+                  </span>
+                  <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">hari</span>
+                </p>
+                <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
+                  hari aktif
+                </p>
+              </div>
+            </m.div>
+          </div>
+
+          {/* Tiga metrik mode — baris kecil di bawah hairline; angka dari
+              histori nyata, bukan target (v2.17). Sesi total & hari aktif
+              telah naik ke rel kanan hero. Fade digerbangi firstVisit
+              hero agar tidak mengulang tiap remount tab (anti-replay). */}
           <m.div
             initial={playEntrance ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
@@ -1920,7 +1982,7 @@ export default function BugarScreen() {
               ...motionTokens.preset.chipReveal,
               delay: motionTokens.delay.sweep,
             }}
-            className="mt-4 grid grid-cols-2 gap-3 border-t border-module-accent-fg/25 pt-4 @[24rem]:grid-cols-4"
+            className="mt-4 grid grid-cols-3 gap-3 border-t border-module-accent-fg/25 pt-4"
           >
             <div className="min-w-0">
               <p className="flex items-baseline">
@@ -1957,17 +2019,6 @@ export default function BugarScreen() {
                 latihan barbel
               </p>
             </div>
-            <div className="min-w-0">
-              <p className="flex items-baseline">
-                <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
-                  {week.activeDays}
-                </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">hari</span>
-              </p>
-              <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
-                hari aktif
-              </p>
-            </div>
           </m.div>
 
           {/* Keadaan kosong yang memandu (v2.19): empat angka nol tanpa
@@ -1996,18 +2047,14 @@ export default function BugarScreen() {
             </div>
           )}
 
-          {/* Footer angka pekan — tonase barbel + estimasi kkal terbakar
-              dalam satu baris eyebrow ringkas (menggantikan dua baris lama
-              yang tumpang-tindih dengan metrik utama). */}
-          {(week.tonase > 0 || weekKcal > 0) && (
+          {/* Footer angka pekan — estimasi kkal terbakar dalam satu baris
+              eyebrow ringkas; tonase barbel telah naik ke rel metrik hero
+              (v2.46) agar tidak tumpang-tindih dengan metrik utama. */}
+          {weekKcal > 0 && (
             <p className="mt-2.5 text-eyebrow font-medium leading-relaxed text-module-accent-fg/80">
-              {week.tonase > 0 &&
-                `${Math.round(week.tonase).toLocaleString('id-ID')} kg tonase barbel`}
-              {week.tonase > 0 && weekKcal > 0 && ' · '}
-              {weekKcal > 0 &&
-                `≈ ${weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini${
-                  weight == null ? ' (asumsi 60 kg — timbang dirimu di tab Tubuh)' : ''
-                }`}
+              {`≈ ${weekKcal.toLocaleString('id-ID')} kkal terbakar pekan ini${
+                weight == null ? ' (asumsi 60 kg — timbang dirimu di tab Tubuh)' : ''
+              }`}
             </p>
           )}
         </div>
