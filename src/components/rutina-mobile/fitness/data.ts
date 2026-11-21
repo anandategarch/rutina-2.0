@@ -580,6 +580,40 @@ export const EX_LEVELS: Record<1 | 2 | 3, string> = {
   3: 'Mahir',
 }
 
+/* ===== Klasifikasi alat (pustaka sesuai alat) ===== */
+
+/** Kelas alat sebuah gerakan. Pengguna nyata berlatih di rumah dengan
+ *  barbel 5 kg + matras — TANPA bangku, rak, atau bar gantung; kelas
+ *  ini menjadi dasar chip "alat rumah" di pemilih gerakan & pustaka. */
+export type EquipmentClass = 'barbel' | 'badan' | 'bangku' | 'gantung'
+
+/** Peta field `equipment` ke kelas alat. Nilai di luar empat peta
+ *  (mis. 'Barbel + Rak' pada Rack Pull/Back Squat/Front Squat) jatuh
+ *  ke fallback 'barbel' — gerakan barbel tetap bisa dimulai dari
+ *  lantai tanpa penyangga rak. */
+export function equipmentClass(e: Exercise): EquipmentClass {
+  switch (e.equipment) {
+    case 'Tanpa Alat':
+      return 'badan'
+    case 'Barbel + Bangku':
+      return 'bangku'
+    case 'Bar Gantung':
+      return 'gantung'
+    case 'Barbel':
+    default:
+      return 'barbel'
+  }
+}
+
+/** Meta chip per kelas alat — label singkat + kelas Tailwind lengkap
+ *  (latar chip + warna teks), dipakai pemilih gerakan & pustaka. */
+export const KIT_META: Record<EquipmentClass, { label: string; chip: string }> = {
+  barbel: { label: 'Cukup barbel', chip: 'bg-secondary text-success' },
+  badan: { label: 'Tanpa alat', chip: 'bg-surface-sunken text-content-secondary' },
+  bangku: { label: '+ Bangku', chip: 'bg-gold/20 text-warning' },
+  gantung: { label: '+ Bar gantung', chip: 'bg-clay/20 text-terracotta' },
+}
+
 /** Urutan kelompok otot untuk filter pustaka. */
 export const MUSCLE_GROUPS = [
   'Dada',

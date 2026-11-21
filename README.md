@@ -6,8 +6,29 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.42.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.43.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.43 — Audit Profesional Tahap 1: Fokus Harian, Training Log, dan Navigasi
+
+Audit eksternal tiga tahap tervalidasi terhadap kode nyata; seluruh Prioritas
+Tahap 1 dieksekusi. Beranda makin jadi command center: Sorotan Hari Ini kini
+punya kasus "Sedikit lagi — lanjutkan" (progres misi + misi berikutnya + target
+menit, persis contoh audit), insight saldo berarti (surplus/defisit arus kas
+7 hari), chip "Lanjutkan draft" jurnal, dan SATU peringatan anggaran terburuk
+memimpin kartu keuangan. Bugar resmi jadi training log: Kalender Latihan
+bulanan berindikator jenis (lari/jalan, badminton, barbel) dengan detail hari,
+pustaka gerakan menghormati alat rumah (filter "Barbel rumah" default + chip
+ketersediaan alat), dan Tren Kardio berjendela 30/90 hari/semua. Anggaran
+kini menyebut jatah aman harian per kategori ("±Rp40 rb/hari · 10 hari");
+Statistik naik ke header Beranda; Quick Hub mengingat 3 aksi terakhirmu.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Command center + Training Log** | `nearly-done` di `pickDailyHighlight` (tanpa melanggar dedup Agenda); `TrainingCalendar` baru (pola Strava: titik per jenis, detail hari, ringkasan bulan); `EquipmentClass` + filter "Barbel rumah/Tanpa alat/Semua" + chip alat di pemilih & Pustaka. |
+| **P1 — Keputusan & navigasi** | Insight kontekstual 7 hari; peringatan anggaran tunggal (ambang `BUDGET_WARN_PCT`); BudgetRow "±Rp/hari (N hari)"; CardioTrendCard periode 30/90/semua; tombol Statistik di header; Hub "Terakhir digunakan" (persist lokal). |
+| **Validasi & tunda** | "Safe to Spend" = Jatah Hari Ini v2.22 (tidak dibangun ulang); impor CSV smartwatch & Tahap 2/3 mengikuti peta jalan audit. |
+| **Pembuktian mutu** | lint & tsc hijau; uji logika nearly-done (3/4 → 75%, dedup aman); E2E 390/1280px: kalender "3 sesi · 1j 24m" + detail pace 6:40/km, filter alat bekerja dua arah, periode tren interaktif, laju anggaran akurat kalender, alur draf penuh (tulis → tombol → buka → hapus → hilang), chip recent Hub; nol error konsol. |
 
 ## v2.42 — Mencatat untuk Hari Kemarin: Tanggal Bisa Dipilih di Semua Pencatatan
 

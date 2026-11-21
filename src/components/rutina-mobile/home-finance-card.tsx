@@ -8,6 +8,7 @@ import {
   Scale,
   TrendingDown,
   TrendingUp,
+  TriangleAlert,
   Wallet,
 } from 'lucide-react'
 
@@ -15,7 +16,14 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { useCatMeta } from './finance/use-cat-meta'
-import { allowanceInfo, formatIDR, formatIDRShort, spendByDay } from './finance/utils'
+import {
+  allowanceInfo,
+  formatIDR,
+  formatIDRShort,
+  monthSpendByCat,
+  spendByDay,
+} from './finance/utils'
+import { BUDGET_WARN_PCT } from './daily-highlight'
 import { RutinaCard } from './rutina-card'
 import { RutinaSectionHeader } from './rutina-section-header'
 import { addDaysISO, fromISO, todayISO, useRutina, WEEKDAY_MIN } from './store'
@@ -31,6 +39,7 @@ export function HomeFinanceCard() {
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
   const setScreen = useRutina((s) => s.setScreen)
+  const setUiPref = useRutina((s) => s.setUiPref)
 
   /* v2.27 audit motion: gerbang anti-replay entrance. */
   const playEntrance = useFirstVisit('home-finance')
@@ -47,6 +56,28 @@ export function HomeFinanceCard() {
     () => txs.filter((t) => t.ts === today && t.type !== 'transfer'),
     [txs, today],
   )
+
+  /* SATU peringatan anggaran (Task 1 E): kategori terboros bulan
+     berjalan — rasio terpakai/batas tertinggi, hanya muncul bila
+     melewati ambang waspada (ambang yang sama dengan Sorotan
+     budget-warning). Strip informatif memindahkan pengguna ke tab
+     anggaran; tampil di kedua cabang kartu (empty-state maupun
+     normal) karena pemakaian anggaran adalah persoalan bulanan,
+     bukan harian. Sisa negatif (lewat batas) tampil apa adanya. */
+  const budgetAlert = useMemo(() => {
+    const spend = monthSpendByCat(txs, today.slice(0, 7))
+    let worst: { cat: string; spent: number; limit: number; pct: number } | null =
+      null
+    for (const [cat, limit] of Object.entries(budgets)) {
+      if (!(limit > 0)) continue
+      const spent = spend[cat] ?? 0
+      const pct = spent / limit
+      if (pct >= BUDGET_WARN_PCT && (!worst || pct > worst.pct)) {
+        worst = { cat, spent, limit, pct }
+      }
+    }
+    return worst
+  }, [txs, budgets, today])
 
   const keluar = todayTxs.reduce(
     (a, t) => a + (t.type === 'keluar' ? t.amount : 0),
@@ -114,6 +145,44 @@ export function HomeFinanceCard() {
            bukan lagi deretan kartu parchment seragam. */
         className="mt-4 border-module-finance/35 bg-module-finance-soft/65 shadow-soft"
       >
+        {/* Strip peringatan anggaran terburuk bulan ini — elemen PERTAMA
+            di dalam kartu, tampil baik pada empty-state maupun isi. */}
+        {budgetAlert && (
+          <button
+            type="button"
+            onClick={() => {
+              setScreen('keuangan')
+              setUiPref({ finTab: 'anggaran' })
+            }}
+            aria-label={`Peringatan anggaran: ${catMeta(budgetAlert.cat).label} terpakai ${Math.round(
+              budgetAlert.pct * 100,
+            )} persen dari batas ${formatIDRShort(budgetAlert.limit)}, sisa ${formatIDRShort(
+              budgetAlert.limit - budgetAlert.spent,
+            )} — buka tab anggaran di Keuangan`}
+            className={
+              'mb-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+              (budgetAlert.pct >= 1
+                ? 'border-clay/40 bg-clay/15 hover:bg-clay/20'
+                : 'border-gold/45 bg-gold/15 hover:bg-gold/20')
+            }
+          >
+            <TriangleAlert
+              aria-hidden="true"
+              className={
+                'mt-0.5 h-4 w-4 shrink-0 ' +
+                (budgetAlert.pct >= 1 ? 'text-content-danger' : 'text-warning')
+              }
+              strokeWidth={2.2}
+            />
+            <span className="min-w-0 text-note font-semibold text-content-primary">
+              Anggaran {catMeta(budgetAlert.cat).label} terpakai{' '}
+              {Math.round(budgetAlert.pct * 100)}%
+              <span className="text-meta font-medium text-content-muted">
+                {' '}— sisa {formatIDRShort(budgetAlert.limit - budgetAlert.spent)}
+              </span>
+            </span>
+          </button>
+        )}
         {empty ? (
           <div className="flex flex-col items-center gap-1.5 py-6 text-center">
             <span

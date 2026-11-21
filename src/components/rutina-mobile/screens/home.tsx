@@ -6,6 +6,7 @@ import * as m from 'motion/react-m'
 import {
   Archive,
   ArchiveRestore,
+  BarChart3,
   Bell,
   BookOpen,
   CalendarDays,
@@ -16,6 +17,7 @@ import {
   Gift,
   Heart,
   Lightbulb,
+  PenLine,
   Plus,
   Quote,
   RefreshCw,
@@ -49,6 +51,7 @@ import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
+import { isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
@@ -428,6 +431,26 @@ export default function HomeScreen() {
     [txs],
   )
 
+  /* Insight kontekstual: arus kas bersih 7 hari terakhir (non-transfer).
+     Bila pekan ini benar-benar bertransaksi, caption metrik "Saldo
+     bersih" memakai vonis Surplus/Defisit mingguan; tanpa aktivitas,
+     caption lama dipertahankan. Jendela [today−6, today] = 7 hari
+     kalender — konsisten dengan strip "Pengeluaran 7 hari" kartu
+     keuangan Beranda. */
+  const netCash7 = useMemo(() => {
+    const from = addDaysISO(today, -6)
+    let masuk = 0
+    let keluar = 0
+    let count = 0
+    for (const t of txs) {
+      if (t.type === 'transfer' || t.ts < from || t.ts > today) continue
+      count++
+      if (t.type === 'masuk') masuk += t.amount
+      else if (t.type === 'keluar') keluar += t.amount
+    }
+    return { net: masuk - keluar, count }
+  }, [txs, today])
+
   /* SATU SUMBER TUGAS (audit v2.37): agenda, kartu pemulihan, dan
      dedup Sorotan semuanya membaca derivasi homeAttention — tidak
      ada lagi tiga jalur yang masing-masing menghitung kandidat
@@ -467,6 +490,23 @@ export default function HomeScreen() {
     () => dayHabits.filter((h) => isDoneOn(completions, selectedDate, h.id)),
     [dayHabits, completions, selectedDate],
   )
+
+  /* Draf jurnal terbaru — catatan tanpa judul paling atas (store
+     menyimpan terbaru dulu). Satu pintu "lanjutkan menulis" yang
+     membuka kanvas menulis global (JournalCanvas terpasang di
+     ComposeSheet tingkat cangkang, aktif di semua layar). */
+  const latestDraft = useMemo(
+    () => notes.find((n) => isDraftNote(n)) ?? null,
+    [notes],
+  )
+  const draftLabel = useMemo(() => {
+    if (!latestDraft) return ''
+    const line = noteFirstLine(latestDraft)
+    if (!line) return 'Lanjutkan draft terakhir'
+    return `Lanjutkan draft: ${
+      line.length > 24 ? `${line.slice(0, 24)}…` : line
+    }`
+  }, [latestDraft])
 
   /* Refleksi hari ini — sadar offset "Ganti" (v2.14): kutipan harian
      bisa diganti-ganti dalam hari yang sama; hari baru kembali ke
@@ -556,6 +596,17 @@ export default function HomeScreen() {
               {dateBadge}
             </p>
             <div className="flex shrink-0 items-center gap-1.5">
+              {/* Statistik — pintu cepat ke ringkasan & perkembangan dari
+                  header Beranda (gaya identik tombol Jurnal di sebelahnya). */}
+              <m.button
+                type="button"
+                onClick={() => setScreen('statistik')}
+                aria-label="Buka Statistik — ringkasan dan perkembangan"
+                whileTap={{ scale: 0.92 }}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary/70 text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <BarChart3 className="h-4 w-4" strokeWidth={2} />
+              </m.button>
               {/* Pintu Jurnal yang selalu terlihat — review navigasi v2.13:
                   sebelumnya Jurnal hanya bisa dibuka lewat Quick Action Hub;
                   kini satu ketuk dari header Beranda (mobile & desktop). */}
@@ -748,7 +799,9 @@ export default function HomeScreen() {
               bingkai (v2.27 Daybook: direktif “bukan semua bagian adalah
               kartu”; hierarki lewat permukaan — hero terangkat, insight
               tenang di kanvas). Saldo bersih dipertahankan karena
-              informasinya tidak digambarkan grafik lain. */}
+              informasinya tidak digambarkan grafik lain; caption kini
+              kontekstual — vonis arus kas 7 hari terakhir bila ada
+              aktivitas pekan ini. */}
           <RutinaBentoItem span="feature">
             <section aria-label="Insight hari ini" className="h-full pt-1">
               <RutinaSectionHeader title="Insight hari ini" />
@@ -762,7 +815,13 @@ export default function HomeScreen() {
                   }
                   icon={Wallet}
                   iconClassName="bg-gold/25 text-warning"
-                  caption="seluruh transaksi — transfer antar-dompet dikecualikan"
+                  caption={
+                    netCash7.count > 0
+                      ? `${netCash7.net >= 0 ? 'Surplus' : 'Defisit'} ${formatIDRShort(
+                          Math.abs(netCash7.net),
+                        )} dari arus kas 7 hari — transfer antar-dompet dikecualikan`
+                      : 'seluruh transaksi — transfer antar-dompet dikecualikan'
+                  }
                 />
               </div>
             </section>
@@ -1409,6 +1468,24 @@ export default function HomeScreen() {
             )
           })}
         </div>
+        {/* Lanjutkan draf terakhir — draf (catatan tanpa judul) terbaru
+            dibuka langsung di kanvas menulis; baris tersendiri agar tidak
+            berebut lebar dengan chip folder. */}
+        {latestDraft && (
+          <button
+            type="button"
+            onClick={() => useJournalUi.getState().openCanvas(latestDraft)}
+            aria-label="Lanjutkan menulis draf jurnal terakhir"
+            className="mt-2 flex h-9 max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-module-journal/40 bg-surface-primary px-3.5 text-meta font-bold text-module-journal-strong transition-colors hover:border-module-journal/70 hover:bg-module-journal-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <PenLine
+              aria-hidden="true"
+              className="h-3.5 w-3.5 shrink-0"
+              strokeWidth={2.2}
+            />
+            <span className="min-w-0 truncate">{draftLabel}</span>
+          </button>
+        )}
       </m.section>
 
       {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap

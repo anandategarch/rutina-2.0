@@ -1474,6 +1474,16 @@ const catMeta = useCatMeta()
      suntingan limit tetap bermorf lewat animate. */
   const playEntrance = useFirstVisit('fin-budget-row')
 
+  /* Audit YNAB: baris "Sisa" harus bisa ditindaklanjuti — tampilkan
+     jatah aman per hari sampai akhir bulan (hari ini ikut dihitung). */
+  const now = fromISO(todayISO())
+  const daysLeft =
+    new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() -
+    now.getDate() +
+    1
+  const remaining = limit - used
+  const daily = Math.max(0, Math.round(remaining / daysLeft))
+
   return (
     <div className="flex items-center gap-3">
       <span
@@ -1526,13 +1536,15 @@ const catMeta = useCatMeta()
           </span>
         </div>
         <p
-          className={`mt-1 text-eyebrow ${
+          className={`mt-1 text-eyebrow leading-snug ${
             over ? 'font-semibold text-content-danger' : 'text-content-muted'
           }`}
         >
           {over
             ? `Lewat ${formatIDRShort(used - limit)} dari batas`
-            : `Sisa ${formatIDRShort(limit - used)} bulan ini`}
+            : remaining > 0
+              ? `Sisa ${formatIDRShort(remaining)} bulan ini · ±${formatIDRShort(daily)}/hari (${daysLeft} hari)`
+              : `Sisa ${formatIDRShort(remaining)} bulan ini`}
         </p>
       </div>
 

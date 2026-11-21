@@ -10,10 +10,13 @@
      2. budget-warning  — kategori anggaran terpakai ≥85% bulan ini
      3. workout-stale   — ≥3 hari tanpa latihan (punya histori latihan)
      4. goal-near       — tujuan tabungan terdanai ≥80% (positif)
-     5. bonus           — bonus harian belum diklaim
-     6. perfect         — semua misi hari ini selesai (rayakan)
-     7. quiet           — tidak ada misi terjadwal hari ini
-     8. welcome         — belum punya kebiasaan aktif sama sekali
+     5. nearly-done     — sebagian misi hari ini sudah selesai, sisa
+                          tinggal sedikit (informatif; cta open-stats —
+                          TIDAK membuat tombol centang kedua, audit v2.37)
+     6. bonus           — bonus harian belum diklaim
+     7. perfect         — semua misi hari ini selesai (rayakan)
+     8. quiet           — tidak ada misi terjadwal hari ini
+     9. welcome         — belum punya kebiasaan aktif sama sekali
    ============================================================ */
 
 import { CAT_META } from './finance/cats'
@@ -49,6 +52,7 @@ export type HighlightKey =
   | 'budget-warning'
   | 'workout-stale'
   | 'goal-near'
+  | 'nearly-done'
   | 'bonus'
   | 'perfect'
   | 'quiet'
@@ -92,6 +96,17 @@ export interface DailyHighlight {
         saved: number
         target: number
         pct: number
+      }
+    | {
+        /** nearly-done: progres misi hari ini + misi berikutnya. */
+        kind: 'progress'
+        done: number
+        total: number
+        pct: number
+        nextTitle: string
+        /** Target kebiasaan berikutnya dalam menit — hanya bila
+         *  satuannya memang "menit"; satuan lain tidak dikonversi. */
+        nextTargetMin: number | null
       }
     | { kind: 'bonus'; xp: number }
     | { kind: 'perfect'; missions: number }
@@ -257,7 +272,64 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 5 — Bonus harian menunggu (hanya bila pengguna benar-benar
+  /* 5 — Sedikit lagi (nearly-done): tidak ada yang mendesak, tapi
+         hari ini sudah bergerak — mayoritas misi selesai dan sisa
+         tinggal sedikit. Kartu INFORMATIF (cta open-stats): Sorotan
+         tidak pernah membuat tombol centang kedua — semua habit
+         pending sudah punya baris aksi di Agenda Beranda (invariant
+         dedup v2.37). Misi "berikutnya" = pending dengan jam pengingat
+         paling awal (tanpa pengingat ditaruh belakang; tie-break judul). */
+  const doneToday = todayHabits.filter((h) =>
+    isDoneOn(completions, today, h.id),
+  ).length
+  if (
+    todayHabits.length >= 2 &&
+    doneToday >= 1 &&
+    doneToday < todayHabits.length
+  ) {
+    const next = todayHabits
+      .filter((h) => !isDoneOn(completions, today, h.id))
+      .sort((a, b) => {
+        const ra = a.reminder
+        const rb = b.reminder
+        if (ra != null && rb != null) {
+          if (ra !== rb) return ra < rb ? -1 : 1
+          return a.title.localeCompare(b.title)
+        }
+        if (ra != null) return -1
+        if (rb != null) return 1
+        return a.title.localeCompare(b.title)
+      })[0]
+    if (next) {
+      /* Target terukur Habit = JUMLAH per hari + SATUAN terpisah
+         (mis. 8 gelas, 15 menit) — angka hanya bermakna menit bila
+         satuannya "menit"; satuan lain (gelas, halaman, langkah,
+         km) tidak dikonversi paksa → null. */
+      const nextTargetMin =
+        next.target != null &&
+        next.target > 0 &&
+        (next.unit ?? '').trim().toLowerCase() === 'menit'
+          ? next.target
+          : null
+      return {
+        key: 'nearly-done',
+        module: 'kebiasaan',
+        title: 'Sedikit lagi — lanjutkan',
+        text: `Kamu sudah menyelesaikan ${doneToday} dari ${todayHabits.length} misi hari ini. Tinggal "${next.title}".`,
+        cta: 'open-stats',
+        visual: {
+          kind: 'progress',
+          done: doneToday,
+          total: todayHabits.length,
+          pct: doneToday / todayHabits.length,
+          nextTitle: next.title,
+          nextTargetMin,
+        },
+      }
+    }
+  }
+
+  /* 6 — Bonus harian menunggu (hanya bila pengguna benar-benar
      menjalani ekonomi misi — pengguna baru tanpa kebiasaan lebih
      tepat disambut dulu lewat welcome). */
   if (!bonusClaimed && active.length > 0) {
@@ -271,10 +343,7 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 6 — Hari sempurna: semua misi terjadwal hari ini selesai. */
-  const doneToday = todayHabits.filter((h) =>
-    isDoneOn(completions, today, h.id),
-  ).length
+  /* 7 — Hari sempurna: semua misi terjadwal hari ini selesai. */
   if (todayHabits.length > 0 && doneToday === todayHabits.length) {
     return {
       key: 'perfect',
@@ -286,7 +355,7 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 7 — Jadwal kosong: ada kebiasaan aktif tapi tidak terjadwal hari ini. */
+  /* 8 — Jadwal kosong: ada kebiasaan aktif tapi tidak terjadwal hari ini. */
   if (active.length > 0 && todayHabits.length === 0) {
     return {
       key: 'quiet',
@@ -298,7 +367,7 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 8 — Selamat datang: belum ada kebiasaan aktif sama sekali. */
+  /* 9 — Selamat datang: belum ada kebiasaan aktif sama sekali. */
   return {
     key: 'welcome',
     module: 'kebiasaan',

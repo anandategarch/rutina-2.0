@@ -10,7 +10,14 @@ import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type Workout } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
-import { EX_LIB, MUSCLE_GROUPS, exerciseLabel } from './data'
+import {
+  EX_LIB,
+  KIT_META,
+  MUSCLE_GROUPS,
+  equipmentClass,
+  exerciseLabel,
+  type EquipmentClass,
+} from './data'
 
 /**
  * Pemilih gerakan barbel (v2.20) — menggantikan <select> native di tiga
@@ -49,6 +56,15 @@ function recentGerakan(workouts: Workout[]): RecentGerakan[] {
 const fmtKg = (n: number): string =>
   Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ',')
 
+/* Filter alat pemilih — default 'barbel': alat rumah pengguna nyata
+   cukup barbel 5 kg + matras (tanpa bangku, rak, atau bar gantung),
+   jadi katalog terbuka langsung pada gerakan yang bisa dilakukan. */
+const KIT_FILTERS: { id: EquipmentClass | 'semua'; label: string }[] = [
+  { id: 'barbel', label: 'Barbel rumah' },
+  { id: 'badan', label: 'Tanpa alat' },
+  { id: 'semua', label: 'Semua' },
+]
+
 export function GerakanPickerSheet({
   open,
   onClose,
@@ -65,6 +81,7 @@ export function GerakanPickerSheet({
   const workouts = useRutina((s) => s.workouts)
 
   const [query, setQuery] = useState('')
+  const [kit, setKit] = useState<EquipmentClass | 'semua'>('barbel')
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -104,7 +121,12 @@ export function GerakanPickerSheet({
   )
 
   /* Daftar lengkap per kelompok otot — pencarian mencocokkan nama
-     Indonesia (idName), nama Inggris, dan kelompok otot. */
+     Indonesia (idName), nama Inggris, dan kelompok otot.
+
+     Keputusan filter: PENCARIAN (q non-kosong) MENGABAIKAN filter kit —
+     pengguna yang mengetik "Bench" jelas mencari gerakan spesifik lintas
+     alat; menyaring hasilnya dengan kit justru membuat gerakan "hilang"
+     misterius. Filter kit hanya berlaku saat menjelajah tanpa kueri. */
   const groups = useMemo(
     () =>
       MUSCLE_GROUPS.map((g) => ({
@@ -112,13 +134,14 @@ export function GerakanPickerSheet({
         items: EX_LIB.filter(
           (e) =>
             e.muscle === g &&
-            (q === '' ||
-              e.idName.toLowerCase().includes(q) ||
-              e.name.toLowerCase().includes(q) ||
-              e.muscle.toLowerCase().includes(q)),
+            (q !== ''
+              ? e.idName.toLowerCase().includes(q) ||
+                e.name.toLowerCase().includes(q) ||
+                e.muscle.toLowerCase().includes(q)
+              : kit === 'semua' || equipmentClass(e) === kit),
         ),
       })).filter((g) => g.items.length > 0),
-    [q],
+    [q, kit],
   )
 
   const pick = (name: string) => {
@@ -176,8 +199,8 @@ export function GerakanPickerSheet({
                   Pilih Gerakan
                 </h2>
                 <p className="mt-0.5 text-note text-content-muted">
-                  Katalog {EX_LIB.length} gerakan barbel — cari nama atau
-                  kelompok otot.
+                  Katalog {EX_LIB.length} gerakan — saring sesuai alat
+                  yang kamu punya.
                 </p>
               </div>
               <button
@@ -201,6 +224,34 @@ export function GerakanPickerSheet({
                   placeholder="Cari gerakan atau otot…"
                   className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
                 />
+              </div>
+
+              {/* 1b — Filter alat: barbel rumah (default) / tanpa alat /
+                  seluruh katalog. Pencarian aktif mengabaikan filter ini. */}
+              <div
+                role="group"
+                aria-label="Filter alat gerakan"
+                className="mt-2.5 flex gap-1 rounded-full bg-surface-sunken p-0.5"
+              >
+                {KIT_FILTERS.map((f) => {
+                  const on = kit === f.id
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setKit(f.id)}
+                      aria-pressed={on}
+                      className={
+                        'interactive h-7 cursor-pointer rounded-full px-3 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                        (on
+                          ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                          : 'text-content-secondary hover:text-content-primary')
+                      }
+                    >
+                      {f.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
@@ -275,6 +326,16 @@ export function GerakanPickerSheet({
                                   <span className="mt-0.5 block truncate text-note font-medium text-content-muted">
                                     {e.name}
                                   </span>
+                                </span>
+                                {/* Chip kelas alat — kebutuhan alat terlihat
+                                    sebelum memilih; shrink-0 agar chip tidak
+                                    tergencet nama di layar sempit. */}
+                                <span
+                                  className={`h-6 shrink-0 rounded-full px-2 text-[10px] font-bold leading-6 ${
+                                    KIT_META[equipmentClass(e)].chip
+                                  }`}
+                                >
+                                  {KIT_META[equipmentClass(e)].label}
                                 </span>
                                 {on && (
                                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-success">

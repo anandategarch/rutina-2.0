@@ -77,8 +77,10 @@ import {
 import {
   EX_LEVELS,
   EX_LIB,
+  KIT_META,
   MUSCLE_GROUPS,
   PROG_DB,
+  equipmentClass,
   exerciseLabel,
   type Program,
 } from '../fitness/data'
@@ -90,6 +92,7 @@ import {
   startSeededSession,
 } from '../fitness/workout-session'
 import { BarbellToolsSheet } from '../fitness/barbell-tools'
+import { TrainingCalendar } from '../fitness/training-calendar'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -549,12 +552,22 @@ function ExerciseCard({ name }: { name: string }) {
         className="interactive flex w-full cursor-pointer items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-body font-semibold text-content-primary">
+          <span className="block truncate text-body font-semibold text-content-primary">
             {ex.idName}
           </span>
           <span className="mt-0.5 block truncate text-eyebrow font-medium text-content-muted">
             {ex.name} · {ex.muscle} · {EX_LEVELS[ex.level]}
           </span>
+        </span>
+        {/* Chip kelas alat — kebutuhan alat terlihat tanpa expand
+            (alat rumah pengguna: barbel saja, tanpa bangku/rak/bar
+            gantung); shrink-0 agar chip tidak tergencet nama. */}
+        <span
+          className={`h-6 shrink-0 rounded-full px-2 text-[10px] font-bold leading-6 ${
+            KIT_META[equipmentClass(ex)].chip
+          }`}
+        >
+          {KIT_META[equipmentClass(ex)].label}
         </span>
         <m.span
           aria-hidden="true"
@@ -1037,29 +1050,43 @@ function WeekActivityCard() {
 /* ===== Tren kardio — SATU ruang, dua metrik (audit UX density v2.37:
    Perkembangan Jarak + PaceStrip digabung; dua unit tidak pernah
    berbagi satu sumbu — pengguna memilih metriknya).
-   Jarak: batang km per sesi (mengikuti rentang riwayat aktif).
+   Jarak: batang km per sesi dalam jendela periode 30/90 hari / semua
+   (di dalam rentang riwayat aktif).
    Pace: garis menit/km, hanya sesi dengan jarak & durasi valid,
    garis menurun = makin cepat; tanpa warna baik/buruk otomatis. */
 function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
   const playEntrance = useFirstVisit('bugar-studio-tren')
   const [metric, setMetric] = useState<'jarak' | 'pace'>('jarak')
   const [selIdx, setSelIdx] = useState<number | null>(null)
+  /* Periode deret (pola riwayat): jendela 30/90 hari — 'semua' tanpa
+     jendela tetapi dibatasi 14 sesi terakhir agar batang/garis tetap
+     terbaca. Menggunakan kembali WO_RANGES (label & id sama). */
+  const [period, setPeriod] = useState<WoRange>('90')
 
-  /* Deret jarak — sesi kardio terakhir (mengikuti rentang riwayat). */
+  /* Jendela periode — hanya sesi dalam N hari terakhir (inklusif hari
+     ini, konvensi filterWorkouts di fit-utils). */
+  const windowed = useMemo(() => {
+    if (period === 'semua') return sessions
+    const from = addDaysISO(todayISO(), -(Number(period) - 1))
+    return sessions.filter((w) => w.date >= from)
+  }, [sessions, period])
+
+  /* Deret jarak — sesi kardio dalam jendela periode, maks 8 sesi
+     ('semua' dilonggarkan ke 14). */
   const distSeries = useMemo(
-    () => [...cardioSeries(sessions, 8)].reverse(),
-    [sessions],
+    () => [...cardioSeries(windowed, period === 'semua' ? 14 : 8)].reverse(),
+    [windowed, period],
   )
   /* Deret pace — sesi kardio dengan jarak & durasi valid, urut waktu. */
   const paceSeries = useMemo(
     () =>
-      sessions
+      windowed
         .filter(
           (w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0 && w.duration > 0,
         )
         .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-8),
-    [sessions],
+        .slice(period === 'semua' ? -14 : -8),
+    [windowed, period],
   )
 
   /* Kartu hanya hidup bila ada cukup sesi jarak; opsi Pace tampil
@@ -1140,6 +1167,40 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
                 }
               >
                 {mk === 'jarak' ? 'Jarak' : 'Pace'}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Periode deret — 30/90 hari / semua; baris kedua kepala karena
+          di 390px tidak muat sebaris dengan toggle Jarak|Pace. Ganti
+          periode melepas pilihan batang/titik (indeks tak lagi valid). */}
+      <div className="mt-2 flex items-center justify-end">
+        <div
+          role="group"
+          aria-label="Periode tren kardio"
+          className="flex gap-1 rounded-full bg-surface-sunken p-0.5"
+        >
+          {WO_RANGES.map((p) => {
+            const on = period === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setPeriod(p.id)
+                  setSelIdx(null)
+                }}
+                aria-pressed={on}
+                className={
+                  'interactive h-7 cursor-pointer rounded-full px-3 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
+                  (on
+                    ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                    : 'text-content-secondary hover:text-content-primary')
+                }
+              >
+                {p.label}
               </button>
             )
           })}
@@ -1970,6 +2031,11 @@ export default function BugarScreen() {
               jenis aktivitas + tonase pada sumbu hari yang sama. */}
           <WeekActivityCard />
 
+          {/* Kalender Latihan — Training Log pola Strava: konsistensi
+              bulanan lintas jenis aktivitas (titik kardio/badminton/
+              barbel); ketuk tanggal untuk detail sesi hari itu. */}
+          <TrainingCalendar />
+
           {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
               (ritme --layout-gap performance); begitu kontainer ≥52rem,
               seksi berpasangan 7:5 lalu 5:7 sehingga studio performa
@@ -2069,9 +2135,11 @@ export default function BugarScreen() {
         </RutinaTabs>
 
         {/* Tren kardio — SATU ruang dua metrik (audit v2.37): batang
-            jarak / garis pace per pilihan; mengikuti rentang riwayat
-            aktif; batang MORPH spring.chart saat rentang berganti — bukan
-            entrance ulang (perubahan data ≠ pengulangan entrance). */}
+            jarak / garis pace per pilihan; periode deret dikendalikan
+            sendiri oleh kartu (30/90 hari / semua) di dalam rentang
+            riwayat aktif; batang MORPH spring.chart saat rentang
+            berganti — bukan entrance ulang (perubahan data ≠
+            pengulangan entrance). */}
         {(woFilter === 'semua' || woFilter === 'kardio') && (
           <CardioTrendCard sessions={filteredWorkouts} />
         )}

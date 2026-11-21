@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import { Command as CommandPrimitive } from 'cmdk'
 import {
   ArrowDownRight,
@@ -51,21 +52,49 @@ import {
 /* ===== Toko state hub (module-level zustand) =====
    Dipakai bersama oleh FAB, pintasan keyboard (Cmd/Ctrl+K, "/"), dan calon
    pemicu lain (mis. tombol di bilah sisi desktop) — pola toko modul-level
-   yang sama dengan journal-ui, tanpa menyentuh store utama. */
+   yang sama dengan journal-ui, tanpa menyentuh store utama.
+
+   `recent` (key tiga aksi terakhir) adalah SATU-SATUNYA slice yang
+   dipersist — `open` dkk selalu segar setiap sesi. */
 
 interface QuickHubState {
   open: boolean
+  /** Key tiga aksi terakhir, terbaru di depan — dasar chip "Terakhir digunakan". */
+  recent: string[]
   openHub: () => void
   closeHub: () => void
   toggleHub: () => void
+  /** Catat aksi terpakai: pindah ke depan bila sudah ada, maksimal tiga. */
+  pushRecent: (key: string) => void
 }
 
-export const useQuickHub = create<QuickHubState>()((set) => ({
-  open: false,
-  openHub: () => set({ open: true }),
-  closeHub: () => set({ open: false }),
-  toggleHub: () => set((s) => ({ open: !s.open })),
-}))
+export const useQuickHub = create<QuickHubState>()(
+  persist(
+    (set) => ({
+      open: false,
+      recent: [],
+      openHub: () => set({ open: true }),
+      closeHub: () => set({ open: false }),
+      toggleHub: () => set((s) => ({ open: !s.open })),
+      pushRecent: (key) =>
+        set((s) => ({
+          /* Key dipindah ke depan (kemunculan lama disaring) lalu
+             dipangkas ke tiga — urutan terbaru-di-depan terjaga. */
+          recent: [key, ...s.recent.filter((k) => k !== key)].slice(0, 3),
+        })),
+    }),
+    {
+      name: 'rutina-2.0-quick-recent',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      /* Rehidrasi manual pasca-mount (pola journal-ui & store utama)
+         agar render SSR tidak mismatch; dipanggil dari QuickActionHub. */
+      skipHydration: true,
+      /* Hanya daftar terakhir yang dipersist — open/close tetap segar. */
+      partialize: (s) => ({ recent: s.recent }),
+    },
+  ),
+)
 
 /* ===== Enam aksi utama — dipakai bersama oleh kisi kartu (kueri kosong)
    dan grup hasil pencarian "Aksi". run() membaca store saat klik sehingga
@@ -236,6 +265,7 @@ function useIsDesktop() {
 export function QuickActionHub() {
   const open = useQuickHub((s) => s.open)
   const closeHub = useQuickHub((s) => s.closeHub)
+  const recent = useQuickHub((s) => s.recent)
   const habits = useRutina((s) => s.habits)
   const notes = useRutina((s) => s.notes)
   const txs = useRutina((s) => s.txs)
@@ -253,6 +283,12 @@ export function QuickActionHub() {
     setPrevOpen(open)
     if (open) setQuery('')
   }
+
+  /* Pulihkan daftar aksi terakhir dari localStorage — sekali pasca-mount
+     (pola skipHydration, sama dengan journal-ui: bebas hydration mismatch). */
+  useEffect(() => {
+    void useQuickHub.persist.rehydrate()
+  }, [])
 
   /* Pintasan global: Cmd/Ctrl+K toggle, "/" buka (saat tidak mengetik). */
   useEffect(() => {
@@ -326,10 +362,26 @@ export function QuickActionHub() {
       .slice(0, 6)
   }, [q, txs])
 
+  /* Tiga aksi terakhir yang key-nya masih dikenal — data lama di
+     penyimpanan lokal bisa memuat key yang sudah tidak ada (chip mati);
+     dedup jaga-jaga agar React key selalu unik. */
+  const recentActions = Array.from(new Set(recent))
+    .map((k) => PRIMARY_ACTIONS.find((a) => a.key === k))
+    .filter((a): a is HubAction => a !== undefined)
+
   /* Pola onSelect: tutup hub dulu, jalankan aksi sesudahnya. */
   const run = (fn: () => void) => {
     closeHub()
     fn()
+  }
+
+  /* Jalankan aksi utama + catat sebagai terakhir dipakai: run() dulu
+     (membuka sheet target), pushRecent menyusul sehingga hanya aksi
+     yang benar-benar terpicu yang tercatat. Dipakai kisi, chip
+     "Terakhir digunakan", dan grup "Aksi" hasil pencarian. */
+  const runAction = (a: HubAction) => {
+    a.run()
+    useQuickHub.getState().pushRecent(a.key)
   }
 
   const openHabit = (id: string) =>
@@ -429,7 +481,8 @@ export function QuickActionHub() {
                   />
                 </div>
 
-                {/* Kisi enam aksi utama — hanya saat kueri kosong. */}
+                {/* Kisi enam aksi utama (+ pintasan "Terakhir digunakan")
+                    — hanya saat kueri kosong. */}
                 <AnimatePresence initial={false}>
                   {q === '' && (
                     <m.div
@@ -443,12 +496,50 @@ export function QuickActionHub() {
                       }}
                       className="overflow-hidden"
                     >
+                      {/* Terakhir digunakan — pintasan tiga aksi terakhir
+                          (permintaan audit pengguna): tak perlu mencari
+                          ulang aksi yang baru saja dipakai. Ringkas — satu
+                          baris label + satu baris chip, kisi tak tersentuh. */}
+                      {recentActions.length > 0 && (
+                        <section
+                          role="group"
+                          aria-label="Aksi terakhir digunakan"
+                          className="px-5 pt-4"
+                        >
+                          <p className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
+                            Terakhir digunakan
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {recentActions.map((a) => (
+                              <m.button
+                                key={a.key}
+                                type="button"
+                                onClick={() => run(() => runAction(a))}
+                                aria-label={`Jalankan lagi: ${a.listLabel}`}
+                                whileTap={{
+                                  scale: 0.94,
+                                  transition: pressSnappy,
+                                }}
+                                className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3.5 text-meta font-bold text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                              >
+                                <a.icon
+                                  className="h-3.5 w-3.5"
+                                  strokeWidth={2}
+                                  aria-hidden="true"
+                                />
+                                {a.label}
+                              </m.button>
+                            ))}
+                          </div>
+                        </section>
+                      )}
+
                       <div className="grid grid-cols-3 gap-2.5 px-5 pb-2 pt-4">
                         {PRIMARY_ACTIONS.map((a, i) => (
                           <m.button
                             key={a.key}
                             type="button"
-                            onClick={() => run(a.run)}
+                            onClick={() => run(() => runAction(a))}
                             initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{
@@ -525,7 +616,7 @@ export function QuickActionHub() {
                         <CommandItem
                           key={a.key}
                           value={a.value}
-                          onSelect={() => run(a.run)}
+                          onSelect={() => run(() => runAction(a))}
                           className="rounded-lg py-2.5 text-body"
                         >
                           <a.icon aria-hidden="true" />

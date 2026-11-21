@@ -5,6 +5,7 @@ import {
   Dumbbell,
   Flame,
   Gift,
+  ListChecks,
   PartyPopper,
   Sprout,
   Wallet,
@@ -58,6 +59,7 @@ const KEY_ICON: Record<DailyHighlight['key'], LucideIcon> = {
   'budget-warning': Wallet,
   'workout-stale': Dumbbell,
   'goal-near': Gift,
+  'nearly-done': ListChecks,
   bonus: Gift,
   perfect: PartyPopper,
   quiet: Sprout,
@@ -283,6 +285,36 @@ export function DailyHighlightCard({
                   initial={false}
                   className="h-full rounded-full bg-gold"
                   animate={{ width: `${Math.min(hl.visual.pct, 1) * 100}%` }}
+                  transition={motionTokens.spring.bar}
+                />
+              </div>
+            </div>
+          )}
+
+          {hl.visual.kind === 'progress' && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-eyebrow font-semibold tabular-nums text-content-secondary">
+                <span>
+                  {hl.visual.done} dari {hl.visual.total} misi
+                </span>
+                {hl.visual.nextTargetMin != null && (
+                  <span className="text-content-muted">
+                    Target {hl.visual.nextTargetMin} mnt
+                  </span>
+                )}
+              </div>
+              <div
+                className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-sunken"
+                role="progressbar"
+                aria-label={`Progres misi hari ini ${Math.round(hl.visual.pct * 100)} persen`}
+                aria-valuenow={Math.round(hl.visual.pct * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <m.div
+                  initial={false}
+                  className="h-full w-full origin-left rounded-full bg-primary"
+                  animate={{ scaleX: Math.min(hl.visual.pct, 1) }}
                   transition={motionTokens.spring.bar}
                 />
               </div>
