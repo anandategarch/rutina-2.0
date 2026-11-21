@@ -934,7 +934,11 @@ export default function ProfileScreen() {
                 <>
                   {`${reminderCount} dari ${activeHabitCount} kebiasaan memakai jam pengingat`}
                   {/* v2.39 (audit visual data): bar rasio pengingat —
-                      teks tetap membawa angka persis. */}
+                      teks tetap membawa angka persis. v2.50 (audit
+                      konsistensi): penyebut kini activeHabitCount —
+                      sama dengan teks "N dari M kebiasaan"; dulu
+                      habits.length masih menghitung kebiasaan terarsip
+                      sehingga bar tak sepadan dengan labelnya. */}
                   {activeHabitCount > 0 && (
                     <span
                       aria-hidden="true"
@@ -944,7 +948,7 @@ export default function ProfileScreen() {
                         className="block h-full w-full origin-left rounded-full bg-primary"
                         initial={false}
                         animate={{
-                          scaleX: Math.min(reminderCount / habits.length, 1),
+                          scaleX: Math.min(reminderCount / activeHabitCount, 1),
                         }}
                         transition={barFill}
                       />

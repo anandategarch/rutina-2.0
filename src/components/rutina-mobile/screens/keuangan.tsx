@@ -1362,6 +1362,21 @@ const catMeta = useCatMeta()
    tanpa kilau berulang. Baris perubahan periode (delta net vs periode
    sebelumnya) berada tepat di bawah angka saldo. */
 
+/** Landmark transaksi pada sparkline saldo (v2.50 Balance Pulse) —
+ *  2–3 transaksi terbesar jendela 30 hari (non-transfer, filter yang
+ *  sama dengan deret saldo) ditandai di posisi tanggalnya. */
+interface SaldoSparkMark {
+  id: string
+  /** Indeks titik deret tempat transaksi jatuh (31 = hari ini). */
+  i: number
+  dir: 'masuk' | 'keluar'
+  amount: number
+  /** Label kategori — tooltip & ringkasan aria. */
+  catLabel: string
+  /** Tanggal singkat id-ID, mis. "5 Des". */
+  dateLabel: string
+}
+
 function SaldoCard({
   saldo,
   txCount,
@@ -1380,8 +1395,9 @@ function SaldoCard({
   /** Perubahan net arus kas vs periode sebelumnya — null bila tak berlaku. */
   delta: number | null
   deltaSuffix: string | null
-  /** Deret saldo kumulatif 31 hari (v2.39) — null bila datar. */
-  spark: { pts: number[]; lo: number; hi: number } | null
+  /** Deret saldo kumulatif 31 hari (v2.39) + landmark transaksi
+   *  terbesar (v2.50) — null bila datar (tanpa gerak, tanpa landmark). */
+  spark: { pts: number[]; lo: number; hi: number; marks: SaldoSparkMark[] } | null
   saldoRef: React.RefObject<HTMLSpanElement | null>
   onAdd: () => void
 }) {
@@ -1399,6 +1415,25 @@ function SaldoCard({
   /* Id gradient isian sparkline — hook bersama useSvgId (sanitasi “:”
      useId agar aman sebagai fragmen url(#…) SVG; pola jar clipPath). */
   const sparkId = useSvgId('fin-saldo-spark')
+  /* v2.50 (Balance Pulse): geometri landmark — indeks titik deret →
+     koordinat viewBox 260×40 (rumus identik polyline di bawah, satu
+     sumber deret). marks[0] = terbesar (sudah urut nominal) — satu-
+     satunya yang membawa label terlihat; arah tidak bersandar warna:
+     glif ↑/↓ + tooltip <title> + ringkasan aria. */
+  const markGeom =
+    spark && spark.marks.length > 0
+      ? spark.marks.map((mk) => {
+          const n = spark.pts.length
+          const span = Math.max(spark.hi - spark.lo, 1)
+          const v = spark.pts[mk.i] ?? spark.pts[n - 1] ?? 0
+          return {
+            mk,
+            cx: (mk.i / (n - 1)) * 260,
+            cy: 3 + (1 - (v - spark.lo) / span) * 34,
+          }
+        })
+      : []
+  const topGeom = markGeom[0] ?? null
 
   return (
     <m.div
@@ -1490,78 +1525,147 @@ function SaldoCard({
         {/* Perkembangan saldo 30 hari (v2.39 audit visual data) — garis
             emas lembut di permukaan espresso; min/max label menjelaskan
             skala. Garis bergerak mengikuti arah saldo, bukan vonis baik/
-            buruk (turun bisa jadi tabungan/sesuai rencana). */}
+            buruk (turun bisa jadi tabungan/sesuai rencana). v2.50
+            (Balance Pulse): landmark transaksi terbesar + label jendela
+            eksplisit di samping skala hi/lo. */}
         {spark && (
           <div className="mt-3">
             <div className="flex items-stretch gap-1.5">
+              {/* Kolom skala: hi/lo tetap sejajar puncak/lembah kurva
+                  (kolom dalam h-10, layout lama utuh); label jendela
+                  "30 hari" di bawah nilai lo — rentang deret dinyatakan
+                  eksplisit, tidak mengubah logika jendela. */}
               <div
-                className="flex w-11 shrink-0 flex-col justify-between py-0.5 text-chart-label font-semibold tabular-nums text-hero-content-muted"
+                className="flex w-11 shrink-0 flex-col gap-0.5"
                 aria-hidden="true"
               >
-                <span className="text-right leading-none">
-                  {formatIDRShort(spark.hi)}
-                </span>
-                <span className="text-right leading-none">
-                  {formatIDRShort(spark.lo)}
+                <div className="flex h-10 flex-col justify-between py-0.5 text-chart-label font-semibold tabular-nums text-hero-content-muted">
+                  <span className="text-right leading-none">
+                    {formatIDRShort(spark.hi)}
+                  </span>
+                  <span className="text-right leading-none">
+                    {formatIDRShort(spark.lo)}
+                  </span>
+                </div>
+                <span className="text-right text-chart-label font-semibold leading-none text-hero-content-muted/80">
+                  30 hari
                 </span>
               </div>
-              <svg
-                viewBox="0 0 260 40"
-                preserveAspectRatio="none"
-                className="h-10 min-w-0 flex-1"
-                role="img"
-                aria-label={`Perkembangan saldo 30 hari terakhir dari ${formatIDR(
-                  spark.pts[0] ?? 0,
-                )} menjadi ${formatIDR(saldo)}`}
-              >
-                <defs>
-                  <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="0%"
-                      stopColor="var(--hero-accent)"
-                      stopOpacity="0.22"
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor="var(--hero-accent)"
-                      stopOpacity="0"
-                    />
-                  </linearGradient>
-                </defs>
-                {(() => {
-                  const { pts, lo, hi } = spark
-                  const span = Math.max(hi - lo, 1)
-                  const n = pts.length
-                  const xy = pts.map((v, i) => {
-                    const x = (i / (n - 1)) * 260
-                    const y = 3 + (1 - (v - lo) / span) * 34
-                    return `${x.toFixed(1)},${y.toFixed(1)}`
-                  })
-                  const last = xy[n - 1]!.split(',')
-                  return (
-                    <>
-                      <polygon
-                        points={`0,40 ${xy.join(' ')} 260,40`}
-                        fill={`url(#${sparkId})`}
+              <div className="relative h-10 min-w-0 flex-1">
+                <svg
+                  viewBox="0 0 260 40"
+                  preserveAspectRatio="none"
+                  className="h-full w-full"
+                  role="img"
+                  aria-label={`Perkembangan saldo 30 hari terakhir dari ${formatIDR(
+                    spark.pts[0] ?? 0,
+                  )} menjadi ${formatIDR(saldo)}${
+                    topGeom
+                      ? `. Transaksi terbesar: ${topGeom.mk.catLabel} ${
+                          topGeom.mk.dir === 'masuk' ? 'pemasukan' : 'pengeluaran'
+                        } ${formatIDR(topGeom.mk.amount)} pada ${topGeom.mk.dateLabel}`
+                      : ''
+                  }`}
+                >
+                  <defs>
+                    <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stopColor="var(--hero-accent)"
+                        stopOpacity="0.22"
                       />
-                      <polyline
-                        points={xy.join(' ')}
-                        fill="none"
-                        stroke="var(--hero-accent)"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <stop
+                        offset="100%"
+                        stopColor="var(--hero-accent)"
+                        stopOpacity="0"
                       />
-                      <circle
-                        cx={last[0]}
-                        cy={last[1]}
-                        r="2.6"
-                        fill="var(--hero-accent)"
-                      />
-                    </>
-                  )
-                })()}
-              </svg>
+                    </linearGradient>
+                  </defs>
+                  {(() => {
+                    const { pts, lo, hi } = spark
+                    const span = Math.max(hi - lo, 1)
+                    const n = pts.length
+                    const xy = pts.map((v, i) => {
+                      const x = (i / (n - 1)) * 260
+                      const y = 3 + (1 - (v - lo) / span) * 34
+                      return `${x.toFixed(1)},${y.toFixed(1)}`
+                    })
+                    const last = xy[n - 1]!.split(',')
+                    return (
+                      <>
+                        <polygon
+                          points={`0,40 ${xy.join(' ')} 260,40`}
+                          fill={`url(#${sparkId})`}
+                        />
+                        <polyline
+                          points={xy.join(' ')}
+                          fill="none"
+                          stroke="var(--hero-accent)"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <circle
+                          cx={last[0]}
+                          cy={last[1]}
+                          r="2.6"
+                          fill="var(--hero-accent)"
+                        />
+                        {/* Landmark: manik di posisi tanggal transaksi —
+                            masuk = keluarga emas, keluar = clay; cincin
+                            espresso memisahkan dari garis. Non-interaktif
+                            (tooltip <title> saja — kartu ini sendiri
+                            tombol "tambah transaksi", target ketuk ganda
+                            justru membingungkan). */}
+                        {markGeom.map(({ mk, cx, cy }) => (
+                          <circle
+                            key={mk.id}
+                            cx={cx.toFixed(1)}
+                            cy={cy.toFixed(1)}
+                            r="3"
+                            fill={
+                              mk.dir === 'masuk'
+                                ? 'var(--hero-accent)'
+                                : 'var(--palette-clay)'
+                            }
+                            stroke="var(--hero-surface)"
+                            strokeWidth="1.5"
+                          >
+                            <title>
+                              {`${
+                                mk.dir === 'masuk' ? 'Pemasukan' : 'Pengeluaran'
+                              } ${mk.catLabel} ${formatIDR(mk.amount)} · ${mk.dateLabel}`}
+                            </title>
+                          </circle>
+                        ))}
+                      </>
+                    )
+                  })()}
+                </svg>
+                {/* Label singkat HANYA untuk transaksi terbesar — glif
+                    arah + nominal ringkas; chip espresso agar terbaca
+                    di atas kurus, tidak menghalangi ketukan kartu. */}
+                {topGeom && (
+                  <span
+                    aria-hidden="true"
+                    className={
+                      'pointer-events-none absolute z-[1] -translate-x-1/2 whitespace-nowrap rounded-full bg-hero-surface/90 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums ' +
+                      (topGeom.mk.dir === 'masuk' ? 'text-hero-accent' : 'text-clay')
+                    }
+                    style={{
+                      left: `${Math.min(Math.max((topGeom.cx / 260) * 100, 12), 88)}%`,
+                      top: `${
+                        topGeom.cy <= 20
+                          ? Math.min(topGeom.cy + 6, 26)
+                          : Math.max(topGeom.cy - 16, 0)
+                      }px`,
+                    }}
+                  >
+                    {topGeom.mk.dir === 'masuk' ? '↑' : '↓'} Rp
+                    {formatIDRShort(topGeom.mk.amount)}
+                  </span>
+                )}
+              </div>
             </div>
             <p className="mt-1 text-eyebrow font-medium text-hero-content-muted">
               perkembangan 30 hari terakhir
@@ -2560,8 +2664,32 @@ export default function KeuanganScreen() {
     out.reverse()
     const lo = Math.min(...out)
     const hi = Math.max(...out)
-    return hi - lo > 0 ? { pts: out, lo, hi } : null
-  }, [txs, saldo])
+    if (hi - lo <= 0) return null
+    /* v2.50 (Balance Pulse): landmark 2–3 transaksi TERBESAR pada
+       jendela yang sama dengan gerak deret — non-transfer ([today−30,
+       today], filter identik netByDay di atas), urut nominal mutlak.
+       Titik deret i = saldo akhir hari (today−31+i); transaksi hari
+       ke-d jatuh pada i = 31−d. Deret datar → null → tanpa landmark. */
+    const from = addDaysISO(today, -30)
+    const marks: SaldoSparkMark[] = txs
+      .filter((t) => t.type !== 'transfer' && t.ts >= from && t.ts <= today)
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3)
+      .map((t) => {
+        const daysAgo = Math.round(
+          (fromISO(today).getTime() - fromISO(t.ts).getTime()) / 86_400_000,
+        )
+        return {
+          id: t.id,
+          i: 31 - daysAgo,
+          dir: t.type as 'masuk' | 'keluar',
+          amount: t.amount,
+          catLabel: catMeta(t.cat).label,
+          dateLabel: fmtDate(t.ts),
+        }
+      })
+    return { pts: out, lo, hi, marks }
+  }, [txs, saldo, catMeta])
   /* Jumlah transaksi bulan BERJALAN — kunci bulan dari hari nyata. */
   const txCount = useMemo(
     () => txs.filter((t) => t.ts.startsWith(currentMonthKey())).length,

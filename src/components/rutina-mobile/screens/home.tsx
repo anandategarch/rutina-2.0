@@ -37,6 +37,7 @@ import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { TaskRow } from '../task-row'
 import { MissionSteps } from '../mission-steps'
+import { MissionTrail } from '../mission-trail'
 import { GardenTree } from '../garden-tree'
 import { HomeFinanceCard } from '../home-finance-card'
 import { DailyHighlightCard } from '../daily-highlight-card'
@@ -598,6 +599,24 @@ export default function HomeScreen() {
     [dayHabits, completions, selectedDate],
   )
 
+  /* v2.50 (Daily Almanac · Mission Trail): jalur checkpoint agenda —
+     misi selesai dulu (urutan bagian "Selesai"), lalu yang tertunda
+     mengikuti urutan attention (SATU sumber urutan agenda, tanpa
+     sortir ulang); misi tertunda pertama = checkpoint aktif. Kosong
+     bila hari tanpa misi (state kosong agenda tetap sebagaimana
+     adanya). */
+  const trailMissions = useMemo(
+    () => [
+      ...doneHabits.map((h) => ({ id: h.id, title: h.title, done: true })),
+      ...attention.items.map(({ habit }) => ({
+        id: habit.id,
+        title: habit.title,
+        done: false,
+      })),
+    ],
+    [doneHabits, attention],
+  )
+
   /* Draf jurnal terbaru — catatan tanpa judul paling atas (store
      menyimpan terbaru dulu). Satu pintu "lanjutkan menulis" yang
      membuka kanvas menulis global (JournalCanvas terpasang di
@@ -842,7 +861,12 @@ export default function HomeScreen() {
                       <p className="mt-1.5 text-body font-medium text-content-secondary">
                         Kamu sudah menyelesaikan{' '}
                         <span className="font-bold tabular-nums text-content-primary">
-                          {schedDoneToday} dari {todayHabits.length}
+                          {/* v2.50 (audit konsistensi): penyebut kini
+                              dcToday.due — sama dengan persen di kanan;
+                              dulu todayHabits.length menghitung misi
+                              hari-jeda sehingga "3 dari 5 misi" bisa
+                              bersebelahan dengan "100%". */}
+                          {schedDoneToday} dari {scheduledToday}
                         </span>{' '}
                         misi.
                         {extraDoneToday > 0 && (
@@ -854,13 +878,15 @@ export default function HomeScreen() {
                       <p
                         className={
                           'mt-0.5 text-note font-medium ' +
-                          (todayHabits.length > 0 && missionRemaining === 0
+                          (scheduledToday > 0 && missionRemaining === 0
                             ? 'text-success'
                             : 'text-content-muted')
                         }
                       >
-                        {todayHabits.length === 0
-                          ? 'Belum ada misi terjadwal.'
+                        {scheduledToday === 0
+                          ? todayHabits.length > 0
+                            ? 'Hari jeda — tidak ada misi jatuh tempo.'
+                            : 'Belum ada misi terjadwal.'
                           : missionRemaining === 1
                             ? 'Satu langkah lagi menuju hari sempurna.'
                             : missionRemaining > 0
@@ -868,10 +894,13 @@ export default function HomeScreen() {
                               : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
                       {/* v2.39: petak misi — tiap misi terjadwal = satu
-                          petak kebun; centang menumbuhkannya. */}
+                          petak kebun; centang menumbuhkannya. v2.50:
+                          jumlah petak mengikuti penyebut dcToday.due
+                          (sadur-jadwal) agar sepadan dengan persen &
+                          teks "X dari Y misi" di atasnya. */}
                       <MissionSteps
                         done={schedDoneToday}
-                        total={todayHabits.length}
+                        total={scheduledToday}
                         entrance={playEntrance}
                         className="mt-4"
                       />
@@ -1080,6 +1109,22 @@ export default function HomeScreen() {
                   />
                 ) : (
                   <>
+                    {/* v2.50 (Mission Trail): "Jalur Misi" — strip
+                        checkpoint perjalanan misi di kepala halaman
+                        planner, tampil di mode ringkas MAUPUN rel waktu
+                        penuh: selesai (penuh) → aktif (cincin) → akan
+                        datang (putus-putus); jalur padat sejauh misi
+                        benar-benar selesai. Dekoratif-informatif —
+                        interaksi tetap di baris TaskRow di bawahnya.
+                        key=tanggal: pergantian tanggal memasang ulang
+                        rel tanpa memutar pop (anti-replay). */}
+                    <MissionTrail
+                      key={selectedDate}
+                      missions={trailMissions}
+                      upcomingOnly={selectedDate > today}
+                      className="mb-5"
+                    />
+
                     {/* Pagar agenda (audit v2.37): kondisi awal hanya 4
                         tugas prioritas — baris cepat tanpa kartu bertumpuk.
                         Tugas tersembunyi TIDAK dianggap selesai; lengkapnya
