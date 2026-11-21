@@ -499,15 +499,6 @@ export function reevaluateHabitAutoAfterDelete(
   return { completions: nextCompletions, habitAuto: nextAuto, reverted }
 }
 
-/** Nilai mentah sebuah kebiasaan pada tanggal tertentu. */
-export function habitValueOn(
-  c: Completions,
-  dateISO: string,
-  habitId: string,
-): boolean | number | undefined {
-  return c[dateISO]?.[habitId]
-}
-
 /** Progres terukur sebuah kebiasaan pada tanggal tertentu — angka murni
  *  untuk stepper/bar: true dianggap target penuh, angka dipakai apa adanya,
  *  tanpa catatan = 0. */
@@ -960,18 +951,6 @@ export function habitWeeklyRates(
 export function activeSinceISO(c: Completions): string | null {
   const dates = Object.keys(c).sort()
   return dates[0] ?? null
-}
-
-/** Ringkasan jadwal untuk ditampilkan: "Setiap hari", "Sen, Rab, Jum", dst. */
-export function scheduleLabel(h: Habit): string {
-  const sorted = [...h.schedule].sort((a, b) => a - b)
-  const all = [0, 1, 2, 3, 4, 5, 6]
-  const same = (a: number[], b: number[]) =>
-    a.length === b.length && a.every((v, i) => v === b[i])
-  if (sorted.length === 0 || same(sorted, all)) return 'Setiap hari'
-  if (same(sorted, [1, 2, 3, 4, 5])) return 'Hari kerja'
-  if (same(sorted, [0, 6])) return 'Akhir pekan'
-  return sorted.map((d) => WEEKDAY_MIN[d]).join(', ')
 }
 
 /* ===== Domain Keuangan ===== */

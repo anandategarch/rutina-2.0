@@ -174,15 +174,6 @@ export function buildSeries(txs: Tx[], period: FinPeriod): PeriodPoint[] {
   return pts
 }
 
-/** Transaksi yang tampil pada daftar, mengikuti periode terpilih.
-    Transfer tetap tampil di daftar mutasi (uang memang berpindah). */
-export function filterByPeriod(txs: Tx[], period: FinPeriod): Tx[] {
-  if (period === 'tahun') return txs
-  return txs.filter((t) =>
-    inRange(t.ts, period === 'minggu' ? currentWeek() : currentMonth()),
-  )
-}
-
 /** Total belanja bulan berjalan per kategori — pemakaian anggaran.
     Transfer dikecualikan (bukan pengeluaran). */
 export function spentByCat(txs: Tx[]): Record<string, number> {
@@ -328,12 +319,6 @@ export function monthFlow(txs: Tx[], ym: string): { masuk: number; keluar: numbe
     else keluar += t.amount
   }
   return { masuk, keluar }
-}
-
-/** Total pengeluaran (keluar, tanpa transfer) satu bulan — versi umum
- *  dari spentByCat: menerima kunci bulan apa pun, bukan hanya berjalan. */
-export function monthSpend(txs: Tx[], ym: string): number {
-  return monthFlow(txs, ym).keluar
 }
 
 /** Pengeluaran per kategori (keluar, tanpa transfer) pada bulan tertentu. */

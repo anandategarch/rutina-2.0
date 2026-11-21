@@ -174,6 +174,28 @@ yang membuat kelas kegagalan ini mudah terjadi dan sulit didiagnosis.
 | **Sapu bersih dead code (permintaan audit)** | Sisa lapisan REST v2.45 yang tak pernah dibersihkan: 13 skema input/patch (`habitInputSchema`…`foodEntryPatchSchema`) + 5 alias tipe wire (`HabitGroupWire` dll.) di `sync-schema.ts`; helper route `todayJakartaISO`/`newId`/`guard` di `lib/api.ts`; `FOOD_CATS` (food-db); `ChartFrame`+`ChartFrameProps` (perancah v2.48 tak pernah diadopsi); `RutinaTabsContent` + re-ekspor varian (rutina-tabs); berkas `src/hooks/use-mobile.ts` (nol pengimpor). Semua terverifikasi nol referensi lintas src/tests/scripts sebelum dihapus; riwayat utuh di git. DEPLOY.md: tabel 17 endpoint fiktif diganti dua route nyata + panduan token satu-variabel. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. Uji runtime sandbox: alur tanpa token (dev) tetap lolos; alur dengan `SYNC_TOKEN` terpasang — header salah → 401 `sync_token_mismatch` + kartu status "Ditolak server"; header benar → 200 penuh. E2E browser: boot, toast diagnosis, tombol Coba lagi, pulih setelah token dicabut. |
 
+## [2.63] — Deep Audit Finale: Aplikasi Bisa Boot Lagi + Sapuan Dead Code Sisa Migrasi
+
+Deep audit menyeluruh atas seluruh gelombang v2.53–v2.62 menemukan
+**P0 fatal**: migrasi `middleware.ts` → `proxy.ts` (klaim v2.62) TIDAK
+tuntas — berkas lama tertinggal, dan Next.js 16.1.3 menolak hidup bila
+kedua berkas ada bersamaan:
+
+```
+Unhandled Rejection: Error: Both middleware file "./src/middleware.ts"
+and proxy file "./src/proxy.ts" are detected. Please use "./src/proxy.ts" only.
+```
+
+Server dev mati saat start (halaman tak pernah termuat); produksi
+dipastikan mengalami kegagalan serupa. Audit juga menemukan bahwa
+sebagian klaim penghapusan dead code v2.62 tidak benar-benar dieksekusi.
+
+| Perbaikan | Rincian |
+|---|---|
+| **P0 — Sisa `middleware.ts` dihapus** | Logika proteksi token sudah 100% pindah ke `proxy.ts` (implementasi v2.62 utuh: token satu-variabel + fallback, trim whitespace, perbandingan konstan-waktu, kode 401 terbaca-mesin, fail-closed produksi) — berkas lama `src/middleware.ts` murni duplikat yang tertinggal. Dihapus; server dev boot bersih dan log permintaan kini menunjukkan `proxy.ts: Xms` menangani `/api/*`. Sinkronisasi end-to-end terverifikasi hidup kembali: GET + PUT `/api/state` 200, kartu sinkronisasi Profil "Tersinkron". |
+| **Sapuan dead code sisa (lanjutan v2.62)** | Berkas utuh: `mission-steps.tsx` (petak misi v2.39 — digantikan `mission-trail.tsx`, hanya tersisa rujukan komentar), `hooks/use-mobile.ts` (dikutip "terhapus" di v2.62 namun masih ada; nol pengimpor). Fungsi/ekspor yatim terverifikasi nol referensi lintas src/scripts: `habitValueOn` + `scheduleLabel` (store — layar Kebiasaan memakai `scheduleLabelOf` miliknya sendiri), `resetAllData` (sync-server), `fadeUp`/`sheetPanel`/`sheetBackdrop` (variants — gerakan sheet kini via spring token), `riseIn`/`slideTab` (transitions), `filterByPeriod`/`monthSpend` (finance/utils), re-ekspor `SESSION_REST_MS` (workout-session) & `cardVariants` (rutina-card). tsc + lint hijau setelah penghapusan. |
+| **Pembuktian mutu (dijalankan, bukan diklaim)** | tsc & lint hijau. E2E browser 390px + 320px: boot tanpa error konsol; sinkronisasi GET+PUT 200 dengan `proxy.ts` aktif; kartu sinkronisasi Profil "Tersinkron pukul 18.34"; alur transaksi utuh — ketik 25-000 di keypad → tombol Simpan aktif → toast "Pengeluaran Rp25.000 dicatat" + PUT 200; lembar transaksi 647px & lembar kebiasaan 640px TANPA gulir (scrollHeight = clientHeight terukur di DOM); saklar "Opsi lanjutan" aria-expanded benar; Ruang Suasana grid 2×7 rapi di 390px & 320px (label hari sejajar kolom ikon); Komposisi bunga + legenda utuh; tujuh modul (Beranda/Bugar/Keuangan/Kebiasaan/Statistik/Jurnal/Profil) render bersih. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

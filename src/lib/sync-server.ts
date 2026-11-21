@@ -651,24 +651,3 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
     customCats: state.customCats.length,
   }
 }
-
-/** Kosongkan seluruh tabel rutina_* (termasuk penanda initialized) —
- *  dipakai skrip reset, bukan endpoint publik. */
-export async function resetAllData(): Promise<void> {
-  await db.$transaction([
-    db.habitLog.deleteMany(),
-    db.habit.deleteMany(),
-    db.habitGroup.deleteMany(),
-    db.journalNote.deleteMany(),
-    db.wallet.deleteMany(),
-    db.transaction.deleteMany(),
-    db.budget.deleteMany(),
-    db.goal.deleteMany(),
-    db.workoutSession.deleteMany(),
-    db.foodEntry.deleteMany(),
-    db.bodyLog.deleteMany(),
-    db.moodLog.deleteMany(),
-    db.finCategory.deleteMany(),
-    db.appSetting.deleteMany(),
-  ])
-}

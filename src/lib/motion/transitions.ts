@@ -12,18 +12,6 @@ const { duration, easing, spring } = motionTokens
 /** Fade sederhana — overlay, backdrop. */
 export const fade: Transition = { duration: duration.fast }
 
-/** Masuk dari bawah — kartu, baris daftar. */
-export const riseIn: Transition = {
-  duration: duration.enter,
-  ease: easing.standard,
-}
-
-/** Geser berarah antar tab layar. */
-export const slideTab: Transition = {
-  duration: duration.normal,
-  ease: easing.standard,
-}
-
 /** Panel bottom sheet naik/turun. */
 export const sheetSpring: Transition = spring.sheet
 

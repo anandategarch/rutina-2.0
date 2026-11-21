@@ -115,5 +115,3 @@ export function RutinaCard({
     />
   )
 }
-
-export { cardVariants }

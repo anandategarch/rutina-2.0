@@ -1683,4 +1683,4 @@ export function WorkoutSessionOverlay() {
 }
 
 /* Re-export agar layar Bugar bisa memulai sesi dari praisai program. */
-export { SESSION_REST_MS, startSeededSession } from './session-store'
+export { startSeededSession } from './session-store'
