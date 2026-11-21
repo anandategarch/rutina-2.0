@@ -26,7 +26,6 @@ import {
   ScrollText,
   Search,
   ShieldCheck,
-  Sparkles,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -83,7 +82,8 @@ import { FinChart } from '../finance/fin-chart'
 import { BudgetRunway } from '../visualizations/finance/budget-runway'
 import { ChartSrSummary } from '../visualizations/shared/chart-frame'
 import { useSvgId } from '../visualizations/shared/svg-id'
-import { BUDGETABLE_CATS, catMetaOf } from '../finance/cats'
+import { BUDGET_WARN_PCT } from '../daily-highlight'
+import { BUDGETABLE_CATS, budgetableCatIds, catMetaOf } from '../finance/cats'
 import { useCatMeta } from '../finance/use-cat-meta'
 import { AllowanceCard } from '../finance/allowance-card'
 import { ManageCatsSheet } from '../finance/manage-cats-sheet'
@@ -295,8 +295,9 @@ function buildPeriodDetails(period: ChartPeriod, txs: Tx[]): string[] {
 /* ===== Kelengkapan antarmuka kecil ===== */
 
 /** Pil aksi kepala bagian — satu gaya untuk seluruh layar. */
+/* v2.49 (audit): 32px → 36px (pembanding FinChart h-9/LedgerRow 44px). */
 const PILL_CLS =
-  'h-8 shrink-0 cursor-pointer rounded-full border border-border-strong px-3.5 text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold'
+  'h-9 shrink-0 cursor-pointer rounded-full border border-border-strong px-3.5 text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
 
 function PillAction({
   children,
@@ -645,7 +646,7 @@ const catMeta = useCatMeta()
         aria-expanded={expanded}
         aria-label={`${tx.note || catMeta(tx.cat).label}, ${isTransfer ? 'transfer' : income ? 'pemasukan' : 'pengeluaran'} ${formatIDR(tx.amount)}`}
         className={
-          'relative z-10 flex w-full cursor-pointer items-center gap-3 text-left transition-colors duration-200 hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ' +
+          'relative z-10 flex w-full cursor-pointer items-center gap-3 text-left transition-colors duration-200 hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
           (flat ? 'px-2.5 py-2.5' : 'p-3')
         }
       >
@@ -881,7 +882,7 @@ const catMeta = useCatMeta()
       type="button"
       onClick={() => onSelect(tx.id)}
       aria-current={selected ? 'true' : undefined}
-      className={`ledger-row flex min-h-11 w-full cursor-pointer items-center gap-3 px-2 py-2 text-left transition-[background-color,box-shadow] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+      className={`ledger-row flex min-h-11 w-full cursor-pointer items-center gap-3 px-2 py-2 text-left transition-[background-color,box-shadow] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
         selected
           ? 'bg-module-accent-soft/50 [box-shadow:inset_2px_0_0_var(--module-accent)] hover:bg-module-accent-soft/70'
           : '[box-shadow:inset_2px_0_0_transparent] hover:bg-surface-sunken'
@@ -1228,7 +1229,7 @@ const catMeta = useCatMeta()
                     type="button"
                     onClick={() => setQuery('')}
                     aria-label="Hapus pencarian"
-                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <X className="h-3.5 w-3.5" strokeWidth={2.4} />
                   </button>
@@ -1243,7 +1244,7 @@ const catMeta = useCatMeta()
                       type="button"
                       aria-pressed={active}
                       onClick={() => setFilter({ mutasiFilter: f.id })}
-                      className={`h-8 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                      className={`h-9 cursor-pointer rounded-full border px-3.5 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         active
                           ? 'border-module-accent/40 bg-module-accent/15 text-module-accent-strong'
                           : 'border-border text-content-secondary hover:bg-surface-sunken hover:text-content-primary'
@@ -1312,7 +1313,7 @@ const catMeta = useCatMeta()
                     <button
                       type="button"
                       onClick={() => setLedgerBudget((n) => n + 60)}
-                      className="mt-2 w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      className="mt-2 w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Tampilkan {Math.min(60, ledgerHiddenCount)} transaksi lagi
                       {ledgerHiddenCount > 60
@@ -1416,7 +1417,7 @@ function SaldoCard({
         }
       }}
       whileTap={{ scale: 0.97 }}
-      className="relative cursor-pointer overflow-hidden rounded-[var(--layout-hero-radius)] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+      className="relative cursor-pointer overflow-hidden rounded-[var(--layout-hero-radius)] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       {/* Cahaya emas lembut STATIS dari sudut kiri atas — sapuan radial
           halus (premium detail), bukan glow berulang. */}
@@ -1438,7 +1439,7 @@ function SaldoCard({
             onAdd()
           }}
           aria-label="Tambah transaksi baru"
-          className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-hero-accent/20 px-4 text-note font-bold text-hero-accent transition-colors hover:bg-hero-accent/30 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+          className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-hero-accent/20 px-4 text-note font-bold text-hero-accent transition-colors hover:bg-hero-accent/30 active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <Plus className="h-4 w-4" strokeWidth={2.6} />
           Transaksi
@@ -1742,7 +1743,7 @@ const catMeta = useCatMeta()
         type="button"
         aria-label={`Sunting anggaran ${catMeta(cat).label}`}
         onClick={openEditor}
-        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -1940,9 +1941,13 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
      pertama; mutasi baru tetap bermorf lewat animate. */
   const playEntrance = useFirstVisit('keuangan-wallet-flow')
   const balance = walletBalance(txs, wallet)
+  /* v2.49 (audit): dep currentMonthKey() — ganti bulan tengah malam
+     membuat memo bulan-berjalan ini basi (angka bulan lalu di bawah
+     label bulan baru sampai ada transaksi/remount). */
+  const monthKey = currentMonthKey()
   const flow = useMemo(
-    () => walletFlow(txs, wallet.id, currentMonthKey()),
-    [txs, wallet.id],
+    () => walletFlow(txs, wallet.id, monthKey),
+    [txs, wallet.id, monthKey],
   )
   const maxFlow = Math.max(flow.masuk, flow.keluar, 1)
   const linkedCount = txs.filter(
@@ -1963,7 +1968,7 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
         type="button"
         onClick={() => openFinDrill('wallet', wallet.id)}
         aria-label={`Bedah dompet ${wallet.name} — arus bulan ini & riwayat`}
-        className="flex w-full cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        className="flex w-full cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
           <Wallet className="h-5 w-5" />
@@ -2040,7 +2045,7 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
                 type="button"
                 aria-label={`Hapus dompet ${wallet.name}`}
                 title="Hapus dompet"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -2103,8 +2108,9 @@ function CompositionReceipt() {
   const openFinDrill = useRutina((s) => s.openFinDrill)
   const playEntrance = useFirstVisit('fin-receipt')
 
+  const monthKey = currentMonthKey()
   const { slices, total } = useMemo(() => {
-    const byCat = monthSpendByCat(txs, currentMonthKey())
+    const byCat = monthSpendByCat(txs, monthKey)
     const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1])
     const top = entries.slice(0, 6)
     const rest = entries.slice(6).reduce((a, [, v]) => a + v, 0)
@@ -2126,7 +2132,7 @@ function CompositionReceipt() {
       slices,
       total: entries.reduce((a, [, v]) => a + v, 0),
     }
-  }, [txs])
+  }, [txs, monthKey])
 
   if (slices.length === 0)
     return (
@@ -2251,7 +2257,7 @@ function CompositionReceipt() {
                     type="button"
                     aria-label={rowAria}
                     onClick={() => openFinDrill('cat', s.cat)}
-                    className="-mx-1.5 flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-surface-sunken/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    className="-mx-1.5 flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface-sunken/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {line}
                   </button>
@@ -2396,7 +2402,10 @@ function budgetRowProps(
   const used = spent[b.cat] ?? 0
   const pct = b.limit > 0 ? Math.round((used / b.limit) * 100) : 0
   const over = used > b.limit
-  const warn = !over && pct >= 80
+  /* v2.49 (audit): ambang waspada SATU sumber — BUDGET_WARN_PCT (85%),
+     sama dengan Sorotan & kartu keuangan Beranda (dulu 80% di sini
+     vs 85% di Beranda untuk konsep yang sama). */
+  const warn = !over && pct >= BUDGET_WARN_PCT * 100
   const barColor = over
     ? 'var(--destructive)'
     : warn
@@ -2520,7 +2529,11 @@ export default function KeuanganScreen() {
     return netInRange(txs, cur) - netInRange(txs, prev)
   }, [period, txs])
 
-  const spent = useMemo(() => spentByCat(txs), [txs])
+  /* v2.49 (audit): dep currentMonthKey() — tab terbuka lintas ganti
+     bulan (tengah malam tgl 1) membuat memo ini basi memakai bulan lalu
+     di bawah label bulan baru. */
+  const monthKey = currentMonthKey()
+  const spent = useMemo(() => spentByCat(txs), [txs, monthKey])
   /* Saldo keseluruhan: penjumlahan seluruh dompet (mode multi-dompet),
      atau arus masuk-keluar bila belum ada dompet. Transfer tidak
      menggelembungkan saldo karena keluar dari satu & masuk ke lainnya. */
@@ -2559,13 +2572,10 @@ export default function KeuanganScreen() {
      chip "tambah kategori" (dulu kategori kustom bisa diberi anggaran
      dari chip lalu LENYAP dari daftar — dua total bertentangan di satu
      layar). */
-  const budgetableIds = useMemo(() => {
-    const ids = new Set<string>(BUDGETABLE_CATS)
-    for (const cc of customCats) {
-      if (cc.type === 'keluar') ids.add(cc.id)
-    }
-    return ids
-  }, [customCats])
+  const budgetableIds = useMemo(
+    () => budgetableCatIds(customCats),
+    [customCats],
+  )
   const budgetRows = useMemo(
     () =>
       Object.entries(budgets)
@@ -2653,7 +2663,7 @@ export default function KeuanganScreen() {
      kepentingan: over-anggaran > dominan > naik > berulang > surplus. */
   const findings = useMemo<FinFinding[]>(() => {
     const out: FinFinding[] = []
-    const ym = currentMonthKey()
+    const ym = monthKey
     const flow = monthFlow(txs, ym)
     const prevFlow = monthFlow(txs, shiftMonthKey(ym, -1))
     const byCat = monthSpendByCat(txs, ym)
@@ -2749,7 +2759,7 @@ export default function KeuanganScreen() {
     return out.sort((a, b) => a.weight - b.weight).slice(0, 4)
     /* budgetableIds ikut deps: penyaring kategori anggaran dibaca langsung
        di dalam (turunan customCats) — compiler mensyaratkannya eksplisit. */
-  }, [txs, budgets, catMeta, budgetableIds])
+  }, [txs, budgets, catMeta, budgetableIds, monthKey])
 
   /* Subjudul pemicu "Analisis Pengeluaran" (audit UX density v2.37 P1) —
      hitungan murah dari data bulan berjalan: jumlah kategori terpakai +
@@ -2945,13 +2955,15 @@ export default function KeuanganScreen() {
             <RutinaTabsList
               variant="segment"
               aria-label="Pilih periode arus kas"
-              className="mt-3 h-10 w-full rounded-full border-transparent bg-surface-sunken p-1"
+              /* v2.49 (audit): 32px → 36px area ketuk (papan tombal penuh
+                  dipakai jari di sini — pemilih periode utama). */
+              className="mt-3 h-11 w-full rounded-full border-transparent bg-surface-sunken p-1"
             >
               {PERIODS.map((p) => (
                 <RutinaTabsTrigger
                   key={p.id}
                   value={p.id}
-                  className="h-8 flex-1 px-2 text-meta"
+                  className="h-9 flex-1 px-2 text-meta"
                 >
                   {p.label}
                 </RutinaTabsTrigger>
@@ -3180,7 +3192,7 @@ export default function KeuanganScreen() {
                   <button
                     type="button"
                     onClick={() => setUiPref({ finTab: 'anggaran' })}
-                    className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     +{budgetRows.length - topBudgets.length} kategori lagi
                   </button>
@@ -3225,9 +3237,12 @@ export default function KeuanganScreen() {
                   <div
                     className="mt-1.5 px-0.5"
                     role="img"
-                    aria-label={`Progres tabungan agregat: ${Math.min(
-                      100,
-                      Math.round((totalSaved / totalTarget) * 100),
+                    /* v2.49 (audit): persen AGREGAT tanpa clamp — hukum
+                       "angka jujur sampai ujung" (stoples per-target boleh
+                       250%, bar agregat berdampingan dengannya ikut jujur;
+                       clamp hanya untuk lebar segmen visual). */
+                    aria-label={`Progres tabungan agregat: ${Math.round(
+                      (totalSaved / totalTarget) * 100,
                     )} persen dari total target, terkumpul ${formatIDRShort(
                       totalSaved,
                     )} dari ${formatIDRShort(totalTarget)}`}
@@ -3256,11 +3271,8 @@ export default function KeuanganScreen() {
                       })}
                     </div>
                     <p className="mt-1 text-right text-eyebrow font-medium tabular-nums text-content-muted">
-                      {Math.min(
-                        100,
-                        Math.round((totalSaved / totalTarget) * 100),
-                      )}
-                      % dari total target
+                      {Math.round((totalSaved / totalTarget) * 100)}% dari
+                      total target
                     </p>
                   </div>
                 )}
@@ -3274,7 +3286,7 @@ export default function KeuanganScreen() {
                     <button
                       type="button"
                       onClick={openGoalDialog}
-                      className="flex min-h-[200px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border-strong px-3 py-4 text-content-muted transition-all hover:border-gold hover:text-content-primary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold sm:w-full"
+                      className="flex min-h-[200px] w-[150px] shrink-0 snap-center cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border-strong px-3 py-4 text-content-muted transition-all hover:border-gold hover:text-content-primary active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-full"
                     >
                       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-sunken">
                         <Plus className="h-5 w-5" />
@@ -3500,7 +3512,7 @@ export default function KeuanganScreen() {
                     type="button"
                     onClick={openCatManage}
                     aria-label="Kelola kategori — ganti nama, sembunyikan, atau hapus"
-                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-sunken text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -3591,7 +3603,7 @@ export default function KeuanganScreen() {
                         setBudget(c, 300_000)
                         toast(`${catMeta(c).label} ditambahkan — ubah batasnya sesukamu.`)
                       }}
-                      className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 text-meta font-semibold text-content-muted transition-all hover:bg-surface-sunken active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 text-meta font-semibold text-content-muted transition-all hover:bg-surface-sunken active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       {catMeta(c).label}
@@ -3620,7 +3632,7 @@ export default function KeuanganScreen() {
                       type="button"
                       onClick={openTransferSheet}
                       disabled={wallets.length < 2}
-                      className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-surface-inverse px-3.5 text-meta font-semibold text-content-inverse transition-all hover:bg-surface-inverse-raised active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-11 cursor-pointer items-center gap-1.5 rounded-full bg-surface-inverse px-3.5 text-meta font-semibold text-content-inverse transition-all hover:bg-surface-inverse-raised active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ArrowLeftRight className="h-3.5 w-3.5" />
                       Transfer
@@ -3642,7 +3654,7 @@ export default function KeuanganScreen() {
                     <button
                       type="button"
                       onClick={openWalletDialog}
-                      className="h-10 cursor-pointer rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      className="h-10 cursor-pointer rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       Buat Dompet
                     </button>

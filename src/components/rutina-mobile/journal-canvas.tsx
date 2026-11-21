@@ -26,6 +26,7 @@ import {
 } from './store'
 import { playfair } from './serif'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 
 /** Ikon suasana hati — padanan MOODS di store (selaras panel Statistik). */
 const MOOD_ICONS: Record<string, typeof Laugh> = {
@@ -285,14 +286,10 @@ function CanvasPanel() {
     /* 'discarded' → hening: tidak ada catatan kosong yang dibuat. */
   }, [performSave, closeCanvas])
 
-  /* Tutup dengan Escape. */
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [handleClose])
+  /* Tutup dengan Escape — v2.49 (audit): lewat tumpukan lapisan
+     (overlay-escape); CanvasPanel hanya terpasang saat kanvas terbuka,
+     jadi lapisannya selalu aktif seumur hidup panel. */
+  useEscapeLayer(true, handleClose)
 
   /* Jaring pengaman: flush saat lepas pasang tanpa lewat tombol tutup.
      Idempoten — tidak menduplikasi simpanan handleClose. */
@@ -564,7 +561,9 @@ function CanvasPanel() {
           aria-live="off"
           className="shrink-0 pr-1 text-eyebrow font-semibold uppercase tracking-[0.12em] tabular-nums text-content-muted"
         >
-          {wordCount} kata
+          {/* v2.49 (audit): format id-ID — seluruh permukaan kata lain
+              memakai "1.234", penghitung kanvas satu-satunya yang polos. */}
+          {wordCount.toLocaleString('id-ID')} kata
         </span>
       </footer>
     </m.div>

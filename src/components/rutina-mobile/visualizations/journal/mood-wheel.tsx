@@ -128,6 +128,12 @@ export function MoodWheel({
     })
   }, [counts, total])
 
+  /* v2.49 (audit): guard input degenerate — counts kosong / total 0
+     menghasilkan arc NaN (0/0). Pemanggil saat ini sudah menjaga
+     (moodCounts.length > 0), guard komponen melindungi pemanggil masa
+     depan (pola chart-frame). Diletakkan SETELAH seluruh hook. */
+  if (counts.length === 0 || total <= 0) return null
+
   return (
     <div className="relative h-24 w-24 shrink-0">
       <svg

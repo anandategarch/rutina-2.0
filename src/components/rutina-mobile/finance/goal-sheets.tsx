@@ -27,6 +27,7 @@ import { CONTENT_W } from '../layout-widths'
 import { RutinaDialog } from '../rutina-dialog'
 import { useRutina } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { formatIDR, formatIDRShort } from './utils'
 
 /* ================================================================= */
@@ -61,28 +62,22 @@ export function ContributeGoalSheet() {
     if (goalSheetId) setAmount(100_000)
   }
 
-  useEffect(() => {
-    if (!goalSheetId) return
-    const onKey = (e: KeyboardEvent) => {
-      /* Radix 1.1.x tidak menahan Escape pada AlertDialog — saat handler
-         ini berjalan dialog konfirmasi hapus sudah menutup namun
-         elemennya masih ada; Escape pertama untuk dialog, kedua untuk
-         sheet. */
-      if (e.key === 'Escape' && !document.querySelector('[role="alertdialog"]'))
-        closeGoalSheet()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [goalSheetId, closeGoalSheet])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — guard AlertDialog
+     (dialog konfirmasi hapus) kini terpusat di dispatcher overlay-escape. */
+  useEscapeLayer(Boolean(goalSheetId), closeGoalSheet)
 
   const open = Boolean(goal)
   const complete = goal ? goal.saved >= goal.target : false
-  const after = goal ? Math.min(goal.target, goal.saved + amount) : 0
+  /* v2.49 (audit): pratinjau TANPA clamp — store.contributeGoal tidak
+     meng-clamp (setor 250 rb ke target 100 rb = saved 250 rb = 250% di
+     stoples); pratinjau yang di-clamp membohongi hasil tombol yang
+     hendak ditekan. Clamp hanya untuk lebar bar visual (scaleX). */
+  const after = goal ? goal.saved + amount : 0
   /* v2.45 (audit K14): target 0 (data tersinkron/impor) tak boleh
      membagi NaN — guard sekali di sini. */
   const safeTarget = goal ? Math.max(1, goal.target) : 1
-  const afterPct = goal ? Math.min(100, Math.round((after / safeTarget) * 100)) : 0
-  const beforePct = goal ? Math.min(100, Math.round((goal.saved / safeTarget) * 100)) : 0
+  const afterPct = goal ? Math.round((after / safeTarget) * 100) : 0
+  const beforePct = goal ? Math.round((goal.saved / safeTarget) * 100) : 0
 
   /* v2.45 (review Tahap 2): agregasi kontribusi per bulan dari LOG
      NYATA {ts, amount} — tanpa prediksi tanggal penyelesaian; data lama
@@ -240,7 +235,8 @@ export function ContributeGoalSheet() {
                       className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
                       style={{ width: '100%' }}
                       initial={false}
-                      animate={{ scaleX: afterPct / 100 }}
+                      /* Clamp visual saja — angka di atas bar tetap jujur. */
+                      animate={{ scaleX: Math.min(1, afterPct / 100) }}
                       transition={barFill}
                     />
                   </div>

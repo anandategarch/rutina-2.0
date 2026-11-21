@@ -246,6 +246,21 @@ export const BUDGETABLE_CATS: FinCat[] = [
   'pulsa-data',
 ]
 
+/** v2.49 (audit): SATU definisi "dapat-dianggarkan" — dipindah ke sini
+ *  dari keuangan.tsx agar AllowanceCard & HomeFinanceCard memakai set
+ *  yang SAMA dengan tab Anggaran (anggaran kategori non-budgetable dari
+ *  impor/sync 1.0 tak lagi menggembungkan jatah aman di luar layar
+ *  Anggaran yang justru tak menampilkannya). */
+export function budgetableCatIds(
+  customCats: ReadonlyArray<{ id: string; type: string }>,
+): Set<string> {
+  const ids = new Set<string>(BUDGETABLE_CATS)
+  for (const cc of customCats) {
+    if (cc.type === 'keluar') ids.add(cc.id)
+  }
+  return ids
+}
+
 /** Warna semantik arus uang (dipakai di seluruh tab Keuangan).
  *  Nilai var() mengikuti token semantic agar siap mode gelap. */
 export const INCOME = 'var(--success)'

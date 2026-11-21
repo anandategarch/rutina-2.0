@@ -13,7 +13,6 @@ import {
   paceOf,
   exStatOf,
   prBoard,
-  weekSummary,
   cardioSummary,
   latestWeight,
   weightSeries,
@@ -130,22 +129,9 @@ describe('rekap lintas sesi', () => {
   })
 })
 
-describe('weekSummary (relatif hari ini)', () => {
-  const today = todayISO()
-
-  test('hanya sesi pekan berjalan (Sen–Min) yang dihitung', () => {
-    const workouts = [
-      beban(today, [set('Squat', 100, 5)], 50),
-      beban(addDaysISO(today, -1), [set('Squat', 90, 5)], 40),
-      /* Di luar pekan (≥ 7 hari lalu relatif Senin). */
-      beban(addDaysISO(today, -9), [set('Squat', 140, 5)], 60),
-    ]
-    const sum = weekSummary(workouts)
-    expect(sum.sessions).toBe(2)
-    expect(sum.minutes).toBe(90)
-    expect(sum.tonase).toBe(100 * 5 + 90 * 5)
-  })
-})
+/* (v2.49 audit: weekSummary dihapus dari fit-utils — tersuperseedi
+   activitySummary (teruji di "Ringkasan Aktivitas pekan berjalan");
+   blok ujinya ikut dipensiunkan.) */
 
 describe('tubuh & energi', () => {
   test('latestWeight mengambil berat tercatat terbaru', () => {

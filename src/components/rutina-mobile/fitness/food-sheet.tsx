@@ -20,6 +20,7 @@ import {
   type MealSlot,
 } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { FOOD_DB, type FoodItem } from './food-db'
 
 /**
@@ -123,14 +124,8 @@ export function FoodSheet() {
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeFoodSheet()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeFoodSheet])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan (overlay-escape). */
+  useEscapeLayer(open, () => closeFoodSheet())
 
   const results = searchFoods(query)
 

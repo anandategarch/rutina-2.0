@@ -25,6 +25,7 @@ import {
   type TxType,
 } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { CatPickerSheet } from './cat-picker-sheet'
 import { WalletPickerSheet } from './wallet-picker-sheet'
 import { catMetaOf, PRIMARY_CATS_BY_TYPE } from './cats'
@@ -107,14 +108,9 @@ export function AddTxSheet() {
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeTxSheet()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeTxSheet])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — pemilih kategori /
+     dompet di atas lembar ini ditutup berlapis, draf transaksi aman. */
+  useEscapeLayer(open, () => closeTxSheet())
 
   const amount = Number(digits || '0')
   const today = todayISO()

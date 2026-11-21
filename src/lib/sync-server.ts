@@ -30,6 +30,14 @@ export interface FullStateResult {
   syncedAt: string | null
 }
 
+/** v2.49 (audit): pecah array jadi batch N — createMany raksasa (10 rb
+ *  baris × ~10 kolom) bisa melampaui batas parameter bind driver SQL. */
+function chunked<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
 function parseSchedule(json: string): number[] {
   try {
     const parsed = JSON.parse(json)
@@ -315,9 +323,19 @@ export async function readFullState(): Promise<FullStateResult> {
     customCats: customCatWires,
     workouts: workoutWires,
     foodEntries: foodWires,
-    calorieTarget: Number(settingsMap.get(SYNC_SETTING_KEYS.calorieTarget) ?? 2000),
+    /* v2.49 (audit): baris settings yang cacat (mis. tulis sebagian)
+       tidak boleh menghasilkan NaN — guard Number.isFinite dengan
+       fallback default (kalau tidak, GET melayani NaN → validasi boot
+       klien gagal → status error sampai push sehat berikutnya). */
+    calorieTarget: (() => {
+      const v = Number(settingsMap.get(SYNC_SETTING_KEYS.calorieTarget) ?? 2000)
+      return Number.isFinite(v) ? v : 2000
+    })(),
     bodyLogs: bodyLogMap,
-    dailyGoal: Number(settingsMap.get(SYNC_SETTING_KEYS.dailyGoal) ?? 4),
+    dailyGoal: (() => {
+      const v = Number(settingsMap.get(SYNC_SETTING_KEYS.dailyGoal) ?? 4)
+      return Number.isFinite(v) ? v : 4
+    })(),
     mood: moodRaw && moodRaw.length > 0 ? moodRaw : null,
     moodLogs: moodLogMap,
     identityText: settingsMap.get(SYNC_SETTING_KEYS.identityText) ?? '',
@@ -524,20 +542,25 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
       : []),
     ...(state.txs.length
       ? [
-          db.transaction.createMany({
-            data: state.txs.map((t) => ({
-              id: t.id,
-              type: t.type,
-              cat: t.cat,
-              amount: t.amount,
-              note: t.note,
-              ts: t.ts,
-              walletId: t.walletId ?? null,
-              toWalletId: t.toWalletId ?? null,
-              recurrence: t.recurrence ?? null,
-              recurOf: t.recurOf ?? null,
-            })),
-          }),
+          /* v2.49 (audit): chunk createMany — 10.000 baris × ~10 kolom
+             bisa melampaui batas parameter bind SQLite/libsql (~32 rb).
+             Batch 500 baris aman di semua driver. */
+          ...chunked(state.txs, 500).map((batch) =>
+            db.transaction.createMany({
+              data: batch.map((t) => ({
+                id: t.id,
+                type: t.type,
+                cat: t.cat,
+                amount: t.amount,
+                note: t.note,
+                ts: t.ts,
+                walletId: t.walletId ?? null,
+                toWalletId: t.toWalletId ?? null,
+                recurrence: t.recurrence ?? null,
+                recurOf: t.recurOf ?? null,
+              })),
+            }),
+          ),
         ]
       : []),
     ...(budgetRows.length ? [db.budget.createMany({ data: budgetRows })] : []),

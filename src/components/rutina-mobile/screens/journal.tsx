@@ -12,7 +12,7 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { playfair } from '../serif'
-import { MOOD_DOT, countWords, isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
+import { MOOD_DOT, countWords, isDraftNote, liveMoodCounts, noteFirstLine, useJournalUi } from '../journal-ui'
 import {
   FOLDERS,
   FOLDER_SHORT,
@@ -141,16 +141,13 @@ function WritingActivityCard({
   }))
   const totalNotes = notes.length
 
-  /* Ringkasan mood — hanya mood yang benar-benar tercatat. */
-  const moodCounts = useMemo(() => {
-    const live = new Set(notes.map((n) => n.id))
-    const m = new Map<string, number>()
-    for (const [id, mood] of Object.entries(noteMoods)) {
-      if (!live.has(id)) continue
-      m.set(mood, (m.get(mood) ?? 0) + 1)
-    }
-    return [...m.entries()].sort((a, b) => b[1] - a[1])
-  }, [notes, noteMoods])
+  /* Ringkasan mood — hanya mood yang benar-benar tercatat.
+     v2.49 (audit): helper bersama liveMoodCounts (satu implementasi
+     bersama JournalScreen — sebelumnya dua salinan identik). */
+  const moodCounts = useMemo(
+    () => liveMoodCounts(notes, noteMoods),
+    [notes, noteMoods],
+  )
 
   /* Streak menulis — hari berturut-turut yang punya catatan, berakhir
      hari ini atau kemarin (hari berjalan belum memutus streak). Bahan
@@ -249,7 +246,13 @@ function WritingActivityCard({
           distribusi folder, dan mood dibuka hanya bila dibutuhkan.
           Dipaksa tetap terbuka selama filter tanggal aktif supaya chip
           penghapus filter tidak tersembunyi. */}
-      <Collapsible open={activityOpen || dayFilter !== null} onOpenChange={setActivityOpen}>
+      {/* v2.49 (audit): dipaksa terbuka juga saat filter PEKAN aktif —
+          tanpa ini chip penghapus filter pekan bisa tersembunyi sementara
+          daftar catatan tetap terfilter (indikator tak terlihat). */}
+      <Collapsible
+        open={activityOpen || dayFilter !== null || weekFilter !== null}
+        onOpenChange={setActivityOpen}
+      >
         <CollapsibleTrigger asChild>
           <button
             type="button"
@@ -569,7 +572,7 @@ function WritingActivityCard({
             <button
               type="button"
               onClick={() => onPickDay(null)}
-              className="interactive mt-3 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive mt-3 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Filter aktif: {noteDateLabel({ id: 'x', date: dayFilter } as Note, today)}
               <span aria-hidden="true">✕</span>
@@ -583,7 +586,7 @@ function WritingActivityCard({
             <button
               type="button"
               onClick={() => onPickWeek(null)}
-              className="interactive mt-3 ml-2 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive mt-3 ml-2 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Filter pekan: {shortDateLabel(weekFilter)}–
               {shortDateLabel(addDaysISO(weekFilter, 6))} ·{' '}
@@ -636,16 +639,12 @@ export default function JournalScreen() {
   const noteMoods = useJournalUi((s) => s.noteMoods)
   const openCanvas = useJournalUi((s) => s.openCanvas)
 
-  /* Opsi mood dari catatan yang masih hidup — pasangan [mood, jumlah]. */
-  const moodOptions = useMemo(() => {
-    const live = new Set(notes.map((n) => n.id))
-    const m = new Map<string, number>()
-    for (const [id, mood] of Object.entries(noteMoods)) {
-      if (!live.has(id)) continue
-      m.set(mood, (m.get(mood) ?? 0) + 1)
-    }
-    return [...m.entries()].sort((a, b) => b[1] - a[1])
-  }, [notes, noteMoods])
+  /* Opsi mood dari catatan yang masih hidup — pasangan [mood, jumlah]
+     (helper bersama liveMoodCounts, audit v2.49). */
+  const moodOptions = useMemo(
+    () => liveMoodCounts(notes, noteMoods),
+    [notes, noteMoods],
+  )
 
   /* Pulihkan metadata suasana hati tersimpan (pola skipHydration —
      dipanggil pasca-mount agar tidak ada hydration mismatch). */
@@ -846,7 +845,7 @@ export default function JournalScreen() {
                   aria-pressed={active}
                   onClick={() => setMoodFilter(active ? null : mood)}
                   className={
-                    'interactive h-8 shrink-0 cursor-pointer rounded-full px-3 text-chart-label font-bold ' +
+                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3 text-chart-label font-bold ' +
                     (active
                       ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
                       : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')

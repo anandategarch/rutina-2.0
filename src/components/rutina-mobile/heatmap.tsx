@@ -198,7 +198,12 @@ export default function Heatmap({
         sd && sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''
       }`
     }
-    return `${sd.label}, ${fmtDate(iso)} — kepatuhan ${sd.pct}% (${sd.done} dari ${sd.scheduled} terjadwal)${sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''}`
+    return `${sd.label}, ${fmtDate(iso)} — kepatuhan ${sd.pct}% (${sd.done} dari ${sd.scheduled} terjadwal)${
+      /* v2.49 (audit): hari berjalan belum punya vonis — sulur menahan
+         penilaian sampai tengah malam, heatmap ikut; tanpa ini sel hari
+         ini 0% terbaca identik dengan hari yang benar-benar gagal. */
+      iso === today && sd.pct < 100 ? ' — hari masih berjalan' : ''
+    }${sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''}`
   }
 
   return (
@@ -263,10 +268,15 @@ export default function Heatmap({
       {/* Baris = hari (Senin–Minggu), kolom = pekan (kolom terakhir =
           pekan berjalan); auto-placement row-major — sel = tanggal nyata
           (v2.45: kolom kini benar-benar pekan, bukan 12 hari berurutan).
-          Sel masa depan = span inert (belum terjadi, tak bisa dibuka). */}
-      <div
-        className="mt-3 grid grid-cols-[repeat(12,minmax(0,1fr))] gap-1"
-      >
+          Sel masa depan = span inert (belum terjadi, tak bisa dibuka).
+          v2.49 (audit): wadah gulir + min-width — di 320px kolom grid
+          menyusut ke ±15px, di bawah lantai 24px untuk target ketuk
+          utama kartu ini. 336px = 12×24 + 11 celah 4px (terverifikasi
+          live 24,3px/sel, halaman tetap 320 tanpa luber). */}
+      <div className="mt-3 overflow-x-auto no-scrollbar overscroll-x-contain">
+        <div
+          className="grid min-w-[336px] grid-cols-[repeat(12,minmax(0,1fr))] gap-1"
+        >
         {Array.from({ length: 7 }, (_, d) =>
           Array.from({ length: WEEKS }, (_, w) => {
             const iso = addDaysISO(mondays[w]!, d)
@@ -312,6 +322,7 @@ export default function Heatmap({
             )
           }),
         )}
+        </div>
       </div>
 
       {/* v2.16 (audit T5-d #5): umumkan pilihan sel ke pembaca layar —

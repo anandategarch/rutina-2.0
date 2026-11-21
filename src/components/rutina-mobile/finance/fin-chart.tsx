@@ -178,8 +178,16 @@ export function FinChart({
       {/* Wadah geser — histori panjang (mode "Semua") melebar mengikuti
           jumlah kolom, bukan mengecilkan batang; ponsel menggeser
           horizontal. Garis bantu & garis dasar ikut melebar bersama
-          konten agar tetap sejajar batang. */}
-      <div className="h-full overflow-x-auto no-scrollbar overscroll-x-contain">
+          konten agar tetap sejajar batang.
+          v2.49 (audit): tinggi EKSLISIT TRACK_H+LABEL_H — `h-full` lama
+          mengambil 100% dari akar (MODE_H+TRACK_H+LABEL_H) sehingga
+          badan grafik meluber 42px: label periode menimpa kartu
+          "Ringkasan titik terpilih" & ada celah mati di bawah pemilih
+          mode (v2.45 menambah pemilih tanpa menyesuaikan h-full). */}
+      <div
+        className="overflow-x-auto no-scrollbar overscroll-x-contain"
+        style={{ height: TRACK_H + LABEL_H }}
+      >
         <div
           className="relative h-full"
           style={{ minWidth: `max(100%, ${points.length * COL_MIN_W}px)` }}

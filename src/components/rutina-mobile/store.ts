@@ -473,9 +473,12 @@ export function reevaluateHabitAutoAfterDelete(
           [habitId]: { ...nextAuto[habitId], [date]: keepEntry },
         }
         if (habit) {
-          /* Hitung ulang nilai dari base + sisa sumber yang masih ada. */
+          /* Hitung ulang nilai dari base + sisa sumber yang masih ada.
+           *  v2.49 (audit): base === true berarti pengguna menuntaskan
+           *  SECARA MANUAL setelah kontribusi otomatis — completion
+           *  manual penuh tidak pernah diturunkan jadi parsial. */
           let nextValue: boolean | number = true
-          if (habit.target != null) {
+          if (habit.target != null && entry.base !== true) {
             let sum = typeof entry.base === 'number' ? entry.base : 0
             for (const wid of remaining) {
               const w = workouts.find((x) => x.id === wid)
@@ -569,6 +572,50 @@ export function todayISO(): string {
  *  `createMany` di snapshot sync. Tambahan acak pendek menuntaskannya. */
 export function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** v2.49 (audit): cermin nilai manual terbaru ke provenance habitAuto.
+ *  Tanpa ini, centang manual yang dibuat SETELAH kontribusi otomatis
+ *  kembali ke nilai basi saat workout penyumbang dihapus
+ *  (reevaluateHabitAutoAfterDelete memulihkan `base` lama). Aturan:
+ *  manual selalu menang — `true` → base=true (tak pernah diturunkan),
+ *  angka N → base = N − Σ kontribusi workout yang masih hidup (model
+ *  nilai hari = base + Σ sumber hidup), hapus → base=undefined. */
+function mirrorManualToAuto(
+  habitAuto: HabitAuto,
+  habitId: string,
+  dateISO: string,
+  value: boolean | number | undefined,
+  liveContribution: number,
+): HabitAuto {
+  const entry = habitAuto[habitId]?.[dateISO]
+  if (!entry) return habitAuto
+  let base: boolean | number | undefined
+  if (value === undefined) base = undefined
+  else if (value === true) base = true
+  else if (typeof value === 'number')
+    base = Math.max(0, Math.round((value - liveContribution) * 10) / 10)
+  return {
+    ...habitAuto,
+    [habitId]: { ...habitAuto[habitId], [dateISO]: { ...entry, base } },
+  }
+}
+
+/** Σ kontribusi workout yang MASIH ADA untuk satu entri habitAuto. */
+function liveAutoContribution(
+  habit: Habit | undefined,
+  workouts: Workout[],
+  entry: { wo: string[] } | undefined,
+): number {
+  if (!habit || !entry) return 0
+  let sum = 0
+  for (const wid of entry.wo) {
+    const w = workouts.find((x) => x.id === wid)
+    if (!w) continue
+    const c = workoutContribution(habit, w)
+    if (typeof c === 'number') sum += c
+  }
+  return sum
 }
 
 export function fromISO(iso: string): Date {
@@ -1014,6 +1061,11 @@ export interface UiPrefs {
   /** Tanggal terakhir perayaan "Naik ke Level 8" di-rayakan (v2.42) —
    *  mencegah konfeti replay setiap reload pada hari yang sama. */
   celebratedOn?: string
+  /** v2.49 (audit): tanggal terakhir perayaan "Semua misi selesai" —
+   *  HomeScreen unmount tiap ganti tab, jadi ref instance BUKAN tempat
+   *  menyimpan penanda (perayaan + toast replay tiap kunjungan ulang
+   *  Beranda pada hari sempurna; pola celebratedOn level-8). */
+  missionCelebratedOn?: string
 }
 
 
@@ -1744,11 +1796,14 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({
       txs: [
         {
-          id: `tx-${Date.now()}-${Math.floor(Math.random() * 1e4)}`,
+          id: `tx-${uid()}`,
           type,
           cat,
-          amount,
-          note: note.trim(),
+          /* v2.49 (audit): clamp di batas domain — selaras cap skema
+           *  sinkronisasi (Zod) agar push tidak pernah 422 (pola
+           *  addHabit v2.45). */
+          amount: Math.max(0, Math.min(1_000_000_000_000, Math.round(amount))),
+          note: note.trim().slice(0, 500),
           /* v2.42: tanggal bisa dipilih (kemarin dst.) — default hari ini. */
           ts: date || todayFinISO(),
           walletId,
@@ -1775,7 +1830,7 @@ export const useRutina = create<RutinaState>()(
     )
     if (taken.has(clean.toLowerCase())) return null
     const cat: CustomCat = {
-      id: `fcat-${Date.now()}`,
+      id: `fcat-${uid()}`,
       name: clean,
       type,
     }
@@ -1939,11 +1994,12 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({
       txs: [
         {
-          id: `tx-${Date.now()}-${Math.floor(Math.random() * 1e4)}`,
+          id: `tx-${uid()}`,
           type: 'transfer' as const,
           cat: 'transfer' as const,
-          amount,
-          note: note.trim(),
+          /* v2.49 (audit): clamp di batas domain (pola addTx). */
+          amount: Math.max(0, Math.min(1_000_000_000_000, Math.round(amount))),
+          note: note.trim().slice(0, 500),
           ts: date || todayFinISO(),
           walletId: fromId,
           toWalletId: toId,
@@ -2170,12 +2226,14 @@ export const useRutina = create<RutinaState>()(
 
   addWorkout: ({ kind, date, duration, note, sets, distance, kcal }) => {
     const wo: Workout = {
-      id: `wo-${Date.now()}`,
+      id: `wo-${uid()}`,
       kind,
       date,
-      duration,
-      note: note.trim(),
-      sets: sets.map((x) => ({ ...x })),
+      /* v2.49 (audit): clamp di batas domain — selaras cap skema
+       *  sinkronisasi (Zod) agar push tidak pernah 422. */
+      duration: Math.max(0, Math.min(1440, Math.round(duration))),
+      note: note.trim().slice(0, 500),
+      sets: sets.map((x) => ({ ...x })).slice(0, 60),
       distance,
       ...(kcal && kcal > 0 ? { kcal: Math.round(kcal) } : {}),
     }
@@ -2236,7 +2294,13 @@ export const useRutina = create<RutinaState>()(
   addFoodEntry: (input) =>
     set((s) => ({
       foodEntries: [
-        { id: `fd-${Date.now()}-${Math.floor(Math.random() * 1e4)}`, ...input },
+        {
+          id: `fd-${uid()}`,
+          ...input,
+          /* v2.49 (audit): clamp di batas domain (pola addTx). */
+          name: input.name.trim().slice(0, 120),
+          kcal: Math.max(0, Math.min(100_000, Math.round(input.kcal))),
+        },
         ...s.foodEntries,
       ],
       foodSheetOpen: false,
@@ -2309,7 +2373,8 @@ export const useRutina = create<RutinaState>()(
       /* v2.45 (audit): ketuk pada progres PARSIAL (angka) menuntaskan
        *  menjadi selesai — BUKAN menghapus progresnya. Hanya `true`
        *  (selesai penuh) yang bisa dibatalkan. */
-      if (day[id] === true) {
+      const unchecked = day[id] === true
+      if (unchecked) {
         delete day[id]
       } else {
         day[id] = true
@@ -2317,7 +2382,18 @@ export const useRutina = create<RutinaState>()(
       const completions = { ...s.completions, [dateISO]: day }
       /* Buang objek hari yang kosong agar histori tetap bersih. */
       if (Object.keys(day).length === 0) delete completions[dateISO]
-      return { completions }
+      /* v2.49 (audit): cermin aksi manual ke provenance habitAuto agar
+       *  nilai ini tak pernah tertimpa base basi saat workout
+       *  penyumbang dihapus (audit v2.37 §4D "centang manual tidak
+       *  pernah tersentuh" — kini berlaku dua arah, set & batal). */
+      const habitAuto = mirrorManualToAuto(
+        s.habitAuto,
+        id,
+        dateISO,
+        unchecked ? undefined : true,
+        0,
+      )
+      return { completions, habitAuto }
     })
   },
 
@@ -2330,16 +2406,30 @@ export const useRutina = create<RutinaState>()(
     const target = h?.target ?? 1
     set((s) => {
       const day = { ...(s.completions[dateISO] ?? {}) }
+      let manual: boolean | number | undefined
       if (value <= 0) {
         delete day[id]
+        manual = undefined
       } else if (value >= target) {
         day[id] = true
+        manual = true
       } else {
         day[id] = Math.round(value * 10) / 10
+        manual = day[id] as number
       }
       const completions = { ...s.completions, [dateISO]: day }
       if (Object.keys(day).length === 0) delete completions[dateISO]
-      return { completions }
+      /* v2.49 (audit): cermin progres manual ke provenance habitAuto —
+       *  nilai baru menggantikan base basi; bagian manual = nilai total
+       *  − Σ kontribusi workout yang masih hidup. */
+      const habitAuto = mirrorManualToAuto(
+        s.habitAuto,
+        id,
+        dateISO,
+        manual,
+        liveAutoContribution(h, s.workouts, s.habitAuto[id]?.[dateISO]),
+      )
+      return { completions, habitAuto }
     })
   },
 
@@ -2377,6 +2467,11 @@ export const useRutina = create<RutinaState>()(
         const next = { ...h, ...patch }
         if (patch.schedule) {
           next.schedule = [...patch.schedule].sort((a, b) => a - b)
+        }
+        /* v2.49 (audit): normalisasi restDays juga (pola addHabit) agar
+         *  data tersimpan tetap terurut & bebas duplikat. */
+        if (patch.restDays) {
+          next.restDays = [...new Set(patch.restDays)].sort()
         }
         /* v2.45: clamp suntingan juga (pola addHabit). */
         if (patch.title !== undefined)
@@ -2447,7 +2542,7 @@ export const useRutina = create<RutinaState>()(
     if (s.habitGroups.some((g) => g.name.toLowerCase() === clean.toLowerCase()))
       return null
     const group: HabitGroup = {
-      id: `hg-${Date.now()}`,
+      id: `hg-${uid()}`,
       name: clean,
       color,
     }
@@ -2571,7 +2666,7 @@ export const useRutina = create<RutinaState>()(
       quoteSavedDate: today,
       notes: [
         {
-          id: `quote-${Date.now()}`,
+          id: `quote-${uid()}`,
           title: 'Kutipan Hari Ini',
           body: `"${q.text}" — ${q.author}`,
           /* v2.36: ISO — selaras addNote & skema JournalNote. */

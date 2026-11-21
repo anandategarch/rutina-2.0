@@ -5,11 +5,12 @@ import * as m from 'motion/react-m'
 import { CalendarClock, Gauge, Target, TrendingUp } from 'lucide-react'
 
 import { Counter } from '../counter'
-import { useRutina } from '../store'
+import { todayISO, useRutina } from '../store'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { allowanceInfo } from './utils'
+import { budgetableCatIds } from './cats'
 import { formatIDR, formatIDRShort } from './utils'
 
 /**
@@ -40,11 +41,15 @@ const VERDICT_META = {
 export function AllowanceCard() {
   const budgets = useRutina((s) => s.budgets)
   const txs = useRutina((s) => s.txs)
+  const customCats = useRutina((s) => s.customCats)
   const setUiPref = useRutina((s) => s.setUiPref)
 
+  /* v2.49 (audit): set budgetable yang sama dengan tab Anggaran —
+     anggaran kategori non-budgetable (impor 1.0) tak lagi menghitung
+     jatah aman di luar layar yang menampilkannya. */
   const info = useMemo(
-    () => allowanceInfo(budgets, txs),
-    [budgets, txs],
+    () => allowanceInfo(budgets, txs, todayISO(), budgetableCatIds(customCats)),
+    [budgets, txs, customCats],
   )
 
   /* v2.29 Vault: angka jatah didudukkan ke kpi-sm — TIDAK lagi bersaing
@@ -109,10 +114,12 @@ export function AllowanceCard() {
               style={{ width: '100%' }}
             />
           </div>
-          {/* Penanda posisi ideal — hari ini ÷ panjang bulan */}
+          {/* Penanda posisi ideal — hari ini ÷ panjang bulan.
+              v2.49 (audit): token berbalik-tema (espresso tak terlihat
+              di permukaan gelap). */}
           <span
             aria-hidden="true"
-            className="absolute top-[-3px] bottom-[-3px] w-0.5 rounded-full bg-espresso/70"
+            className="absolute top-[-3px] bottom-[-3px] w-0.5 rounded-full bg-content-primary/70"
             style={{ left: `${Math.min(100, info.idealPct)}%` }}
           />
         </div>
@@ -161,7 +168,7 @@ export function AllowanceCard() {
       <button
         type="button"
         onClick={() => setUiPref({ finTab: 'anggaran' })}
-        className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         Kelola anggaran — total {formatIDR(info.budgetTotal)} bulan ini
       </button>

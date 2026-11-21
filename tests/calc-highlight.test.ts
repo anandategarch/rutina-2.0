@@ -309,9 +309,12 @@ describe('Rekap Pekan — perjalanan & pembanding', () => {
     // Rab: 0
     done(c, '2025-03-13', 'a', 'b') // Kam: 2
     done(c, '2025-03-14', 'a') // Jum (hari ini): 1
+    /* v2.49: id kebiasaan kini harus NYATA — penyelesaian ber-id yatim
+       (kebiasaan terhapus) tidak lagi dihitung sebagai misi (satu sumber
+       dayCompliance, audit v2.49). */
     const r = weeklyRecapOf({
       today: TODAY,
-      habits: [habit()],
+      habits: [habit({ id: 'a' }), habit({ id: 'b' })],
       completions: c,
       dailyGoal: 2,
       workouts: [workout({ date: '2025-03-11' })],
@@ -333,7 +336,8 @@ describe('Rekap Pekan — perjalanan & pembanding', () => {
   test('pembanding pekan lalu pada rentang hari yang sama + delta', () => {
     const c: Completions = {}
     // Pekan lalu (Sen 3 – Jum 7 Maret): 4 misi
-    done(c, '2025-03-03', 'a', 'a2')
+    // (v2.49: id 'a2' yatim diganti 'b' — penyelesaian yatim tak dihitung)
+    done(c, '2025-03-03', 'a', 'b')
     done(c, '2025-03-05', 'a')
     done(c, '2025-03-07', 'a')
     // Pekan ini (Sen 10 – Jum 14): 6 misi
@@ -343,7 +347,7 @@ describe('Rekap Pekan — perjalanan & pembanding', () => {
     done(c, '2025-03-14', 'a')
     const r = weeklyRecapOf({
       today: TODAY,
-      habits: [habit()],
+      habits: [habit({ id: 'a' }), habit({ id: 'b' })],
       completions: c,
       dailyGoal: 2,
       workouts: [],

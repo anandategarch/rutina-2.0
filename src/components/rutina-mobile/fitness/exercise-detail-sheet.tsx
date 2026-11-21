@@ -9,6 +9,7 @@ import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
 import { shortDateLabel, useRutina, type Workout, type WorkoutSet } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { e1rmOf, exStatOf } from './fit-utils'
 import { exerciseLabel } from './data'
 import { BarbellProgression } from '../visualizations/fitness/barbell-progression'
@@ -89,14 +90,8 @@ export function ExerciseDetailSheet({
     if (!open) setSelIdx(null)
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan (overlay-escape). */
+  useEscapeLayer(open, onClose)
   const stat = useMemo(
     () => (name ? exStatOf(workouts, name) : null),
     [workouts, name],

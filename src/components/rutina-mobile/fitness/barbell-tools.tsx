@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { useAnimePop } from '../anime-kit'
 import { CONTENT_W } from '../layout-widths'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import {
   e1rmOf,
   plateLoader,
@@ -228,7 +229,11 @@ function PlateLoaderTab() {
       >
         {load ? (
           <>
-            <div className="flex min-h-14 items-center justify-center">
+            {/* v2.49 (audit): flex-wrap — beban ≥ ~100 kg membutuhkan
+                >250px lebar piringan dan meluber keluar kartu di 320px
+                (deadlift 140 kg ≈ 330px). Piringan melipat ke baris kedua
+                alih-alih memicu gulir/overflow horizontal. */}
+            <div className="flex min-h-14 flex-wrap items-center justify-center gap-y-1.5">
               {/* Sisi kiri — piring terkecil di ujung luar (cermin kanan) */}
               <div className="flex items-center">
                 {[...load.plates].reverse().map((p) => (
@@ -569,14 +574,8 @@ export function BarbellToolsSheet({
     if (open) setTab('piring')
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan (overlay-escape). */
+  useEscapeLayer(open, onClose)
 
   return (
     <AnimatePresence>

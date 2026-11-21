@@ -93,11 +93,18 @@ export const habitGroupSchema = z.object({
 })
 
 /** completions[tanggalISO][habitId] = true (selesai) | number (progres
- *  parsial kebiasaan terukur, mis. 5 dari 8 gelas — v2.22). */
-export const completionsSchema = z.record(
-  isoDate,
-  z.record(z.string().min(1).max(64), z.union([z.boolean(), z.number().min(0).max(100_000)])),
-)
+ *  parsial kebiasaan terukur, mis. 5 dari 8 gelas — v2.22).
+ *  v2.49 (audit): batasi jumlah kunci — selaras budgets/moodLogs agar
+ *  validasi klien (boot/negosiasi) menolak muatan raksasa SEAWAL
+ *  server PUT (pertahanan simetris). */
+export const completionsSchema = z
+  .record(
+    isoDate,
+    z.record(z.string().min(1).max(64), z.union([z.boolean(), z.number().min(0).max(100_000)])),
+  )
+  .refine((rec) => Object.keys(rec).length <= MAX_TRACKED_DAYS, {
+    message: 'Jumlah tanggal completions melebihi batas',
+  })
 
 /* ===== Provenance penyelesaian otomatis (audit v2.37 §4D) ===== */
 
@@ -251,7 +258,11 @@ export const bodyLogSchema = z.object({
   /** Stres 1–5. */
   stress: z.number().int().min(1).max(5).nullable().optional(),
 })
-export const bodyLogsSchema = z.record(isoDate, bodyLogSchema)
+export const bodyLogsSchema = z
+  .record(isoDate, bodyLogSchema)
+  .refine((rec) => Object.keys(rec).length <= MAX_TRACKED_DAYS, {
+    message: 'Jumlah tanggal bodyLogs melebihi batas',
+  })
 
 /** moodLogs[tanggalISO] = nama mood — histori wellness per tanggal.
  *  v2.16 (audit T5-b #3): batasi jumlah kunci (selaras completions). */

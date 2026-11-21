@@ -61,6 +61,7 @@ import {
   bestStreak,
   computeLevel,
   computeXp,
+  dayCompliance,
   doneCountOn,
   FOLDERS,
   folderCount,
@@ -149,16 +150,19 @@ interface DayChip {
   dateNum: number
   isToday: boolean
   isFuture: boolean
-  /** Jumlah kebiasaan selesai NYATA pada tanggal itu. */
+  /** Kebiasaan selesai di antara yang TERJADWAL (sadar-createdAt &
+   *  jeda — v2.49 audit: satu sumber dayCompliance, sepakat dengan
+   *  lembar detail/heatmap/konstelasi; dulu doneCountOn mentah bisa
+   *  membaca "5 dari 3 selesai (166%)" dari centang bonus). */
   done: number
-  /** Kebiasaan terjadwal hari itu (v2.36 — intensitas sadar-jadwal). */
+  /** Kebiasaan TERJADWAL hari itu (jeda diampuni, belum-dibuat tak
+   *  dihitung — penyebut jujur). */
   scheduled: number
 }
 
 function DateStrip() {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
-  const dailyGoal = useRutina((s) => s.dailyGoal)
   const selectedDate = useRutina((s) => s.selectedDate)
   const setSelectedDate = useRutina((s) => s.setSelectedDate)
 
@@ -171,14 +175,17 @@ function DateStrip() {
     for (let i = -7; i <= 6; i++) {
       const iso = addDaysISO(today, i)
       const d = fromISO(iso)
+      /* v2.49 (audit): dayCompliance = SATU sumber — hari-jeda
+         diampuni & kebiasaan yang belum dibuat tak masuk penyebut. */
+      const dc = dayCompliance(habits, completions, iso)
       chips.push({
         iso,
         label: WEEKDAY_MIN[d.getDay()],
         dateNum: d.getDate(),
         isToday: i === 0,
         isFuture: i > 0,
-        done: doneCountOn(completions, iso),
-        scheduled: habitsOn(habits, iso).length,
+        done: dc.done,
+        scheduled: dc.due,
       })
     }
     return chips
@@ -204,7 +211,6 @@ function DateStrip() {
     strip.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
   }, [])
 
-  const goal = Math.max(dailyGoal, 1)
   const selected = days.find((d) => d.iso === selectedDate) ?? null
 
   return (
@@ -215,15 +221,16 @@ function DateStrip() {
         aria-label="Kalender dua pekan"
         className="flex snap-x snap-mandatory gap-2 overflow-x-auto no-scrollbar"
       >
-        {days.map((d) => {
+          {days.map((d) => {
           const isSelected = d.iso === selectedDate
           const done = d.done
           /* v2.36 (audit visualisasi): caption sadar-jadwal — hari tanpa
-             jadwal TIDAK dibaca sebagai 0/0 misi. */
+             jadwal TIDAK dibaca sebagai 0/0 misi. done ≤ scheduled sejak
+             v2.49 (numerator dayCompliance) — tak ada lagi "3/3 (166%)". */
           const caption = d.isFuture
             ? 'belum terjadi'
             : d.scheduled > 0
-              ? `${Math.min(done, d.scheduled)}/${d.scheduled} jadwal (${Math.round(
+              ? `${done}/${d.scheduled} jadwal (${Math.round(
                   (done / d.scheduled) * 100,
                 )}%)`
               : 'tanpa kebiasaan terjadwal'
@@ -335,15 +342,19 @@ function DateStrip() {
             <button
               type="button"
               onClick={() => setSelectedDate(today)}
-              className="interactive h-7 shrink-0 cursor-pointer rounded-full bg-surface-primary px-3 text-chart-label font-bold text-module-accent-strong shadow-soft transition-colors hover:bg-module-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive h-9 shrink-0 cursor-pointer rounded-full bg-surface-primary px-3 text-chart-label font-bold text-module-accent-strong shadow-soft transition-colors hover:bg-module-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Kembali ke hari ini
             </button>
           </m.div>
         )
       ) : (
-        <p className="mt-2 px-0.5 text-meta font-medium text-content-muted">
-          Memuat kalender…
+        /* v2.49 (audit): "Memuat kalender…" adalah kebohongan — cabang ini
+           tercapai hanya bila selectedDate jatuh DI LUAR jendela ±7 hari
+           (mis. pergantian tengah malam); jendela berisi hari ini, jadi
+           ini murni kosmetik. Tanpa teks — pengguna tidak menunggu apa pun. */
+        <p className="mt-2 px-0.5 text-meta font-medium text-content-muted" aria-hidden="true">
+          ·
         </p>
       )}
     </div>
@@ -410,7 +421,6 @@ export default function HomeScreen() {
   const [showAllAgenda, setShowAllAgenda] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  const firedRef = useRef(false)
   /* Ledakan elastis ikon hadiah saat bonus diklaim — useAnimePop melewati
      render pertama & menghormati reduced-motion (klaim tetap tercatat
      tanpa ledakan). */
@@ -436,22 +446,22 @@ export default function HomeScreen() {
 
   /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
   const todayHabits = useMemo(() => habitsOn(habits, today), [habits, today])
-  /* v2.45 (audit P0): pembilang SADAR-JADWAL — kebiasaan yang selesai di
-     luar jadwal (kartu pemulihan, Sorotan risiko runtun) tidak lagi
-     membuat "4 dari 3 misi" + "hari yang sempurna" palsu saat masih ada
-     misi terjadwal yang menunggu; bonus luar jadwal tampil sebagai
-     chip "+N" terpisah. */
-  const schedDoneToday = useMemo(
-    () => todayHabits.filter((h) => isDoneOn(completions, today, h.id)).length,
-    [todayHabits, completions, today],
-  )
+  /* v2.49 (audit): hero ikut SATU sumber dayCompliance — penyebut
+     mengampuni hari-jeda & kebiasaan yang belum dibuat, sepakat dengan
+     chip tanggal, lembar detail hari, dan konstelasi (dulu habitsOn
+     mentah membuat hero "2 dari 4 (50%)" berdampingan dengan lembar
+     detail "2 dari 2 selesai (100%), 2 jeda diampuni"). Pembilang v2.45
+     (sadur-jadwal, bonus luar jadwal tampil sebagai chip "+N") dipertahankan. */
+  const dcToday = dayCompliance(habits, completions, today)
+  const scheduledToday = dcToday.due
+  const schedDoneToday = dcToday.done
   const doneToday = doneCountOn(completions, today)
   const extraDoneToday = Math.max(doneToday - schedDoneToday, 0)
   const pct =
-    todayHabits.length > 0
-      ? Math.min(Math.round((schedDoneToday / todayHabits.length) * 100), 100)
+    scheduledToday > 0
+      ? Math.min(Math.round((schedDoneToday / scheduledToday) * 100), 100)
       : 0
-  const missionRemaining = Math.max(todayHabits.length - schedDoneToday, 0)
+  const missionRemaining = Math.max(scheduledToday - schedDoneToday, 0)
   const xp = computeXp(doneToday, bonusClaimed)
   const level = computeLevel(xp)
   const xpProgress = Math.min(xp / XP_TARGET, 1)
@@ -475,9 +485,13 @@ export default function HomeScreen() {
     for (let i = 0; i < 7; i++) {
       const iso = addDaysISO(start, i)
       if (iso > today) break
-      const scheduled = habitsOn(habits, iso).filter((h) => h.createdAt <= iso)
-      sched += scheduled.length
-      done += scheduled.filter((h) => isDoneOn(completions, iso, h.id)).length
+      /* v2.49 (audit): dayCompliance = SATU sumber — hari-jeda diampuni,
+         sepakat dengan rekap pekan, konstelasi, dan target pekan Kebiasaan
+         (dulu habitsOn+createdAt mentah menghitung hari-jeda sebagai
+         misi yang "tersisa", membingkai jeda sebagai kegagalan). */
+      const dc = dayCompliance(habits, completions, iso)
+      sched += dc.due
+      done += dc.done
     }
     return { sched, done }
   }, [habits, completions, today])
@@ -486,7 +500,7 @@ export default function HomeScreen() {
      pelan tapi pasti.") — satu kalimat serif yang mengikuti keadaan
      misi hari ini; sapaan di kepala layar tetap menjadi pintu masuk. */
   const heroHeadline =
-    todayHabits.length === 0
+    scheduledToday === 0
       ? 'Hari yang tenang.'
       : pct === 100
         ? 'Hari yang sempurna.'
@@ -653,23 +667,33 @@ export default function HomeScreen() {
      instan (direktif: jangan animasikan seluruh layout tiap ganti tab). */
   const playEntrance = useFirstVisit('home-daybook')
 
-  /* Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali.
-     v2.45 (audit): reset saat ganti hari — sesi panjang lintas tengah
-     malam tetap merayakan hari kedua. */
-  useEffect(() => {
-    firedRef.current = false
-  }, [today])
+  /* Perayaan + toast saat SEMUA misi terjadwal hari ini selesai —
+     hanya sekali per hari. v2.49 (audit): penanda kini PERSISTENT
+     (uiPrefs.missionCelebratedOn, pola celebratedOn level-8) — ref
+     instance kehilangan nilainya setiap HomeScreen unmount (tiap ganti
+     tab), membuat perayaan 2,5 dtk + toast replay pada setiap kunjungan
+     ulang Beranda di hari sempurna. Sykat juga kini sadar-jeda: semua
+     misi YANG TERJADWAL selesai = hari sempurna (sepakat dengan hero). */
+  const missionCelebratedOn = useRutina((s) => s.uiPrefs.missionCelebratedOn)
+  const setUiPref = useRutina((s) => s.setUiPref)
   useEffect(() => {
     if (
-      todayHabits.length > 0 &&
-      todayHabits.every((h) => isDoneOn(completions, today, h.id)) &&
-      !firedRef.current
+      scheduledToday > 0 &&
+      schedDoneToday >= scheduledToday &&
+      missionCelebratedOn !== today
     ) {
-      firedRef.current = true
+      setUiPref({ missionCelebratedOn: today })
       setCelebrating(true)
       toast.success('Semua misi selesai — hari yang produktif!')
     }
-  }, [completions, todayHabits, today, setCelebrating])
+  }, [
+    scheduledToday,
+    schedDoneToday,
+    missionCelebratedOn,
+    today,
+    setUiPref,
+    setCelebrating,
+  ])
 
   return (
     <div
@@ -701,7 +725,7 @@ export default function HomeScreen() {
                 onClick={() => setScreen('statistik')}
                 aria-label="Buka Statistik — ringkasan dan perkembangan"
                 whileTap={{ scale: 0.92 }}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary/70 text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary/70 text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <BarChart3 className="h-4 w-4" strokeWidth={2} />
               </m.button>
@@ -713,7 +737,7 @@ export default function HomeScreen() {
                 onClick={() => setScreen('jurnal')}
                 aria-label="Buka Jurnal — catatan dan tulisan"
                 whileTap={{ scale: 0.92 }}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary/70 text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary/70 text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <BookOpen className="h-4 w-4" strokeWidth={2} />
               </m.button>
@@ -722,7 +746,9 @@ export default function HomeScreen() {
                 onClick={() => setScreen('profil')}
                 aria-label="Buka profil dan pengaturan"
                 whileTap={{ scale: 0.92 }}
-                className="cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                /* v2.49 (audit): avatar = pintu utama Profil di ponsel —
+                   bidang ketuk 44px (visual 36px + bantalan transparan). */
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
                   <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
@@ -925,7 +951,10 @@ export default function HomeScreen() {
                           className="h-1.5 min-w-14 flex-1 overflow-hidden rounded-full bg-surface-sunken"
                           role="progressbar"
                           aria-label={`Progres XP menuju ${XP_TARGET}`}
-                          aria-valuenow={xp}
+                          /* v2.49 (audit): xp bisa melampaui target (bonus) —
+                             visual memangkas & label bilang MAX, ARIA ikut
+                             jujur tanpa melampaui valuemax-nya sendiri. */
+                          aria-valuenow={Math.min(xp, XP_TARGET)}
                           aria-valuemin={0}
                           aria-valuemax={XP_TARGET}
                         >

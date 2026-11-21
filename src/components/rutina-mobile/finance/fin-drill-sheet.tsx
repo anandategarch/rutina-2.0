@@ -16,7 +16,9 @@ import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { barFill } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type Tx } from '../store'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { useCatMeta } from './use-cat-meta'
 import {
   catMetaOf,
@@ -54,14 +56,13 @@ export function FinDrillSheet() {
 
   useFocusTrap(open, panelRef)
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, close])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan (overlay-escape). */
+  useEscapeLayer(open, close)
+
+  /* v2.49 (audit): batang data tidak replay initial scaleX:0 setiap
+     lembar dibuka — membuka lembar sudah menjadi interaksinya (pola
+     keuangan-wallet-flow / allowance). */
+  const playBars = useFirstVisit('fin-drill-bars')
 
   const isCat = drill?.kind === 'cat'
   const isWallet = drill?.kind === 'wallet'
@@ -294,7 +295,7 @@ export function FinDrillSheet() {
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-border">
                     <m.div
-                      initial={{ scaleX: 0 }}
+                      initial={playBars ? { scaleX: 0 } : false}
                       animate={{
                         scaleX: Math.min(1, monthOut / budget),
                       }}
@@ -324,14 +325,14 @@ export function FinDrillSheet() {
                     </span>
                     <div className="flex h-2.5 min-w-0 flex-1 gap-1 overflow-hidden rounded-full bg-border">
                       <m.div
-                        initial={{ scaleX: 0 }}
+                        initial={playBars ? { scaleX: 0 } : false}
                         animate={{ scaleX: flow.masuk / maxFlow }}
                         transition={barFill}
                         className="h-full origin-left rounded-l-full bg-pistachio"
                         style={{ width: '50%' }}
                       />
                       <m.div
-                        initial={{ scaleX: 0 }}
+                        initial={playBars ? { scaleX: 0 } : false}
                         animate={{ scaleX: flow.keluar / maxFlow }}
                         transition={barFill}
                         className="h-full origin-left rounded-r-full bg-clay"

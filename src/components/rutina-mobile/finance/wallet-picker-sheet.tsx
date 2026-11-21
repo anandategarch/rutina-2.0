@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { formatIDRShort, walletBalance } from './utils'
 
 /**
@@ -61,14 +62,8 @@ export function WalletPickerSheet({
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan (overlay-escape). */
+  useEscapeLayer(open, onClose)
 
   /* Fokus langsung ke pencarian saat dibuka. */
   useEffect(() => {

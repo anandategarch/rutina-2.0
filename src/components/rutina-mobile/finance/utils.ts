@@ -33,7 +33,13 @@ export function formatIDRShort(n: number): string {
       maximumFractionDigits: 1,
     })} jt`
   }
-  if (v >= 1_000) return `${sign}${Math.round(v / 1_000)} rb`
+  /* v2.49 (audit): 999.500–999.999 rb membulat ke "1000 rb" — salahi
+     bentuk; lintas ke satuan jt seperti nominal di atasnya. */
+  if (v >= 1_000) {
+    const rb = Math.round(v / 1_000)
+    if (rb >= 1_000) return `${sign}${rb / 1_000} jt`
+    return `${sign}${rb} rb`
+  }
   return `${sign}${v}`
 }
 
@@ -394,8 +400,15 @@ export function allowanceInfo(
   budgets: Record<string, number>,
   txs: Tx[],
   today = todayISO(),
+  /** v2.49 (audit): set kategori yang layak dianggarkan (helper
+   *  budgetableCatIds) — null = semua anggaran (perilaku lama).
+   *  Diteruskan pemanggil agar jatah aman/home-card SEPAKAT dengan
+   *  tab Anggaran (anggaran non-budgetable dari impor tak dihitung). */
+  budgetableIds?: Set<string> | null,
 ): AllowanceInfo | null {
-  const budgetCats = Object.keys(budgets).filter((c) => (budgets[c] ?? 0) > 0)
+  const budgetCats = Object.keys(budgets).filter(
+    (c) => (budgets[c] ?? 0) > 0 && (!budgetableIds || budgetableIds.has(c)),
+  )
   if (budgetCats.length === 0) return null
   const budgetTotal = budgetCats.reduce((a, c) => a + (budgets[c] ?? 0), 0)
 

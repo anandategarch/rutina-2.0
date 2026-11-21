@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { CONTENT_W } from '../layout-widths'
 import { addDaysISO, shortDateLabel, todayISO, useRutina } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { WalletPickerSheet } from './wallet-picker-sheet'
 import { formatIDR, walletBalance } from './utils'
 
@@ -57,14 +58,9 @@ export function TransferSheet() {
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, close])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — pemilih dompet di
+     atasnya ditutup berlapis, draf transfer aman. */
+  useEscapeLayer(open, close)
 
   const amount = Number(digits || '0')
   const from = wallets.find((w) => w.id === fromId)

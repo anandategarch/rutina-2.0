@@ -32,6 +32,7 @@ import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
 import { playfair } from '../serif'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { useAnimePop } from '../anime-kit'
 import { RutinaDialog } from '../rutina-dialog'
 import { deloadActive, doubleProgression, exStatOf } from './fit-utils'
@@ -56,13 +57,12 @@ import {
  *   + prefers-reduced-motion, mengikuti splash.tsx).
  */
 
-const KIND_LABEL: Record<WorkoutKind, string> = {
-  beban: 'Angkat Beban',
-  jalan: 'Jalan',
-  lari: 'Lari',
-  'lari-jalan': 'Lari + Jalan',
-  badminton: 'Badminton',
-}
+/* Label header sesi immersive — disengaja LOKAL (bukan KIND_LABEL
+   fit-utils): konteks sesi berjalan memakai "Angkat Beban", sedangkan
+   riwayat/lembar catat memakai "Barbel di rumah". Sesi hanya berisi
+   kind 'beban'; duplikasi peta penuh dihapus agar tak bisa bergeser
+   diam-diam (audit v2.49). */
+const SESSION_KIND_LABEL = 'Angkat Beban'
 
 const WEIGHT_STEP = 2.5
 const WEIGHT_MIN = 0
@@ -662,18 +662,34 @@ function SessionView({
     row.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
   }, [session.currentIdx])
 
-  /* Keyboard: Escape = konfirmasi akhiri, panah = pindah gerakan. */
+  /* Keyboard: Escape = konfirmasi akhiri, panah = pindah gerakan.
+   *  v2.49 (audit): Escape kini lewat tumpukan lapisan (overlay-escape)
+   *  — ketika panel tambah-gerakan / pemilih gerakan / dialog konfirmasi
+   *  terbuka di atasnya, Escape menutup LAPISSAN TERATAS saja (draf
+   *  panel & rencana tidak lenyap). Panah dinonaktifkan saat lapisan
+   *  atas terbuka / fokus di input agar tidak memindah gerakan diam-diam. */
+  /* Panel tambah-gerakan terbuka → Escape menutup panelnya dulu. */
+  useEscapeLayer(adding, () => setAdding(false))
+  useEscapeLayer(!adding && !confirmOpen, () => setConfirmOpen(true))
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (adding) setAdding(false)
-        else if (!confirmOpen) setConfirmOpen(true)
-      } else if (e.key === 'ArrowRight') {
-        setDir(1)
-        nextExercise()
-      } else if (e.key === 'ArrowLeft') {
-        setDir(-1)
-        prevExercise()
+      if (e.key === 'Escape') return
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        if (adding || confirmOpen) return
+        const t = e.target
+        if (
+          t instanceof HTMLElement &&
+          (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+        )
+          return
+        if (e.key === 'ArrowRight') {
+          setDir(1)
+          nextExercise()
+        } else {
+          setDir(-1)
+          prevExercise()
+        }
       }
     }
     window.addEventListener('keydown', onKey)
@@ -918,7 +934,7 @@ function SessionView({
               className="select-none pb-2"
             >
               <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-                {KIND_LABEL[ex.kind]} · Set{' '}
+                {SESSION_KIND_LABEL} · Set{' '}
                 <span className="text-hero-accent">
                   {Math.min(ex.sets.length + 1, ex.targetSets)}
                 </span>{' '}
@@ -1368,14 +1384,9 @@ export function SessionPickerSheet({
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — pemilih gerakan di
+     atasnya menutup berlapis, rencana sesi tidak lenyap. */
+  useEscapeLayer(open, onClose)
 
   const recent = useMemo(() => recentExercises(workouts), [workouts])
 

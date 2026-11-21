@@ -72,6 +72,7 @@ import {
   HABIT_CAT_COLORS,
   WEEKDAY_MIN,
   addDaysISO,
+  dayCompliance,
   habitProgressOn,
   habitStatusOn,
   habitStreak,
@@ -193,19 +194,22 @@ function timeLabelOf(h: Habit): string {
 const WEEK_DOT_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as const
 
 /**
- * Deretan 7 titik mini (±7px, jarak 3px) — selesai memakai warna domain
- * (module accent = Rose Clay di layar ini), kosong memakai permukaan
- * sekunder; hari yang belum terjadi diredupkan agar pekan terbaca utuh.
+ * Deretan 7 titik mini (±7px, jarak 3px) — sadar-jadwal via
+ * habitStatusOn (v2.49 audit): selesai = aksen domain, terlewat = clay,
+ * hari-jeda & tanpa-jadwal = titik redup (BUKAN kegagalan), masa depan
+ * diredupkan. Sebelumnya seluruh hari tanpa jadwal/hari-jeda dirender
+ * identik dengan hari TERLEWAT — melanggar "tanpa jadwal ≠ kegagalan"
+ * pada kebiasaan Sen/Rab/Jum (4 titik "belum selesai" palsu per pekan).
  * Dipakai pada baris agenda & perpustakaan (komposisi layar ini sendiri,
  * bukan lewat task-row).
  */
 function WeekDots({
   completions,
-  habitId,
+  habit,
   today,
 }: {
   completions: Completions
-  habitId: string
+  habit: Habit
   today: string
 }) {
   const start = weekStartISO(today)
@@ -214,30 +218,47 @@ function WeekDots({
     return {
       label,
       iso,
-      done: iso <= today && isDoneOn(completions, iso, habitId),
-      future: iso > today,
+      status: habitStatusOn(habit, completions, iso, today),
     }
   })
-  const doneCount = dots.filter((d) => d.done).length
+  const doneCount = dots.filter((d) => d.status === 'done').length
 
   return (
     <span
       role="img"
-      aria-label={`Riwayat pekan ini: ${doneCount} hari selesai`}
+      aria-label={`Riwayat pekan ini: ${doneCount} hari selesai sesuai jadwal`}
       className="flex shrink-0 items-center gap-[3px]"
     >
       {dots.map((d) => (
         <span
           key={d.label}
           aria-hidden="true"
-          title={`${d.label} — ${d.done ? 'selesai' : d.future ? 'belum terjadi' : 'belum selesai'}`}
+          title={`${d.label} — ${
+            d.status === 'done'
+              ? 'selesai'
+              : d.status === 'missed'
+                ? 'terjadwal, belum selesai'
+                : d.status === 'pending'
+                  ? 'hari ini — masih ada waktu'
+                  : d.status === 'rest'
+                    ? 'hari jeda'
+                    : d.status === 'future'
+                      ? 'belum terjadi'
+                      : 'tanpa jadwal'
+          }`}
           className={
             'h-[7px] w-[7px] rounded-full ' +
-            (d.done
+            (d.status === 'done'
               ? 'bg-module-accent'
-              : d.future
-                ? 'bg-surface-secondary opacity-40'
-                : 'bg-surface-secondary')
+              : d.status === 'missed'
+                ? 'bg-clay'
+                : d.status === 'pending'
+                  ? 'bg-module-accent/50'
+                  : d.status === 'rest'
+                    ? 'bg-module-accent/35'
+                    : d.status === 'future'
+                      ? 'bg-surface-secondary opacity-40'
+                      : 'bg-surface-sunken')
           }
         />
       ))}
@@ -421,7 +442,7 @@ function AgendaRow({
             </span>
           </span>
         </button>
-        <WeekDots completions={completions} habitId={habit.id} today={today} />
+        <WeekDots completions={completions} habit={habit} today={today} />
       </div>
 
       {/* Strip stepper kebiasaan terukur — hanya saat belum selesai */}
@@ -578,7 +599,7 @@ function LibraryRow({
           </span>
         </span>
       </button>
-      <WeekDots completions={completions} habitId={habit.id} today={today} />
+      <WeekDots completions={completions} habit={habit} today={today} />
     </div>
   )
 }
@@ -1055,9 +1076,15 @@ export default function KebiasaanScreen() {
   )
 
   /* Agenda hari ini — kebiasaan aktif terjadwal hari ini, menunggu dan
-     selesai diurutkan jam pengingat (belum selesai selalu di atas). */
+     selesai diurutkan jam pengingat (belum selesai selalu di atas).
+     v2.49 (audit): hari-jeda DIAMPUNI dari agenda — kebiasaan yang sedang
+     berjeda bukan misi yang menunggu (sepakat dengan dayCompliance,
+     lembar detail: "N jeda diampuni"). */
   const scheduledToday = useMemo(
-    () => activeHabits.filter((h) => scheduledOn(h, today)),
+    () =>
+      activeHabits.filter(
+        (h) => scheduledOn(h, today) && !(h.restDays ?? []).includes(today),
+      ),
     [activeHabits, today],
   )
   const pendingToday = useMemo(
@@ -1103,10 +1130,11 @@ export default function KebiasaanScreen() {
     })).filter((g) => g.items.length > 0)
   }, [pendingToday, showAllAgenda])
 
-  const agendaPct =
-    scheduledToday.length > 0
-      ? doneToday.length / scheduledToday.length
-      : 0
+  /* v2.49 (audit): pct agenda = dayCompliance (satu sumber) — dulu
+     penyebut habitsOn mentah menghitung hari-jeda, membuat bar agenda
+     membaca 33% saat sulur/heatmap membaca 50% untuk hari yang sama. */
+  const agendaDc = dayCompliance(habits, completions, today)
+  const agendaPct = agendaDc.pct == null ? 0 : agendaDc.pct / 100
 
   /* Konsistensi — tiga angka kunci dari histori nyata. */
   const maxStreak = useMemo(
@@ -1130,18 +1158,17 @@ export default function KebiasaanScreen() {
     let schedRemaining = 0
     for (let i = 0; i < 7; i++) {
       const iso = addDaysISO(start, i)
-      /* v2.45 (audit): hanya hitung hari SETELAH kebiasaan diciptakan —
-         kebiasaan baru Rabu tidak mengecilkan capaian pekan karena
-         Senin-Selasa "seharusnya" terjadwal (konsisten daySchedules &
-         habitWeeklyRates yang sudah sadar-createdAt). */
-      const scheduled = habitsOn(habits, iso).filter((h) => h.createdAt <= iso)
+      /* v2.49 (audit): dayCompliance = SATU sumber (sadar-createdAt +
+         hari-jeda diampuni) — sepakat dengan sulur, hero Beranda, rekap
+         pekan & konstelasi. Dulu hari-jeda dihitung sebagai misi yang
+         "tersisa" (membingkai jeda sebagai kegagalan) dan bisa membuat
+         "6/7 · 86%" untuk pekan yang sulurnya berdaun penuh. */
+      const dc = dayCompliance(habits, completions, iso)
       if (iso <= today) {
-        schedElapsed += scheduled.length
-        doneElapsed += scheduled.filter((h) =>
-          isDoneOn(completions, iso, h.id),
-        ).length
+        schedElapsed += dc.due
+        doneElapsed += dc.done
       } else {
-        schedRemaining += scheduled.length
+        schedRemaining += dc.due
       }
     }
     return { schedElapsed, doneElapsed, schedRemaining }

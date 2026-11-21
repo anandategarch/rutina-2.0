@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as m from 'motion/react-m'
 import { Leaf } from 'lucide-react'
 import { toast } from 'sonner'
@@ -53,7 +53,14 @@ export function PlantGarden({
   const playSection = useFirstVisit('garden-plant-section')
 
   const today = todayISO()
-  const active = habits.filter((h) => !h.archived)
+  /* v2.49 (audit): identitas stabil — array baru tiap render membuat
+     effect di bawah berjalan ulang pada setiap re-render induk (mis.
+     tiap selectedId berubah); useMemo menjaga referensi selama daftar
+     kebiasaan tak berubah. */
+  const active = useMemo(
+    () => habits.filter((h) => !h.archived),
+    [habits],
+  )
 
   /* v2.31 Garden: milestone yang terdengar — saat tanaman naik tahap,
      toast singkat menyapa (perayaan visual tetap dipegang usePlantGrowth

@@ -412,10 +412,13 @@ function TaskRowFull({
             onExpand()
           }
         }}
-        role="button"
+        /* v2.49 (audit): role="group", bukan "button" — baris ini MEMBERI
+           KANDUNG tombol centang sungguhan; tombol-di-dalam-tombol
+           membuat pembaca layar mengumumkan struktur yang mustahil.
+           Ketuk/klik area baris & Enter/Space tetap membuka detail. */
+        role="group"
         tabIndex={0}
-        aria-expanded={expanded}
-        aria-label={`${habit.title} — ketuk untuk detail, tombol lingkaran untuk menandai selesai`}
+        aria-label={`${habit.title} — ketuk area baris untuk detail, tombol lingkaran untuk menandai selesai`}
         whileTap={{ scale: 0.97 }}
         className={
           'relative z-10 flex flex-wrap cursor-pointer items-center gap-2 p-3 transition-colors duration-300 ' +
@@ -724,7 +727,7 @@ function TaskRowFull({
                 {habit.reminder && (
                   <div className="flex items-center gap-2 text-eyebrow font-medium text-content-muted">
                     <Bell aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span>Pengingat {habit.reminder} WIB</span>
+                    <span>Pengingat {habit.reminder}</span>
                   </div>
                 )}
               </dl>

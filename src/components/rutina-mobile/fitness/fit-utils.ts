@@ -67,10 +67,8 @@ export function totalRepsOf(w: Workout): number {
   return w.sets.reduce((a, s) => a + s.reps, 0)
 }
 
-/** Total volume (kg) sesi beban — Σ beban × repetisi, alias tonase. */
-export function volumeOf(w: Workout): number {
-  return tonaseOf(w)
-}
+/* (v2.49 audit: volumeOf — alias murni tonaseOf — & weekSummary —
+ *  tersuperseedi activitySummary — dihapus; nol konsumen.) */
 
 /** e1RM terbaik dalam satu sesi beban. */
 export function bestE1rmIn(w: Workout): number {
@@ -90,9 +88,17 @@ export function paceLabelOf(minPerKm: number): string {
   return `${min}'${String(sec).padStart(2, '0')}"`
 }
 
-/** Pace kardio: menit per km — "6'32\"" atau null bila data kurang. */
+/** Pace kardio: menit per km — "6'32\"" atau null bila data kurang.
+ *  v2.49 (audit): NaN (pemisah desimal telanjang "."/",") TIDAK lolos
+ *  lagi sebagai input valid — `NaN <= 0` selalu false di JS. */
 export function paceOf(duration: number, distance: number): string | null {
-  if (distance <= 0 || duration <= 0) return null
+  if (
+    !Number.isFinite(distance) ||
+    !Number.isFinite(duration) ||
+    distance <= 0 ||
+    duration <= 0
+  )
+    return null
   return paceLabelOf(duration / distance)
 }
 
@@ -179,28 +185,6 @@ export function weekRange(): { start: string; end: string } {
   const dow = (new Date(today + 'T00:00:00').getDay() + 6) % 7 // Senin = 0
   const start = addDaysISO(today, -dow)
   return { start, end: addDaysISO(start, 6) }
-}
-
-export interface WeekSummary {
-  sessions: number
-  /** Total menit latihan pekan ini. */
-  minutes: number
-  /** Tonase total (kg) dari sesi beban pekan ini. */
-  tonase: number
-  /** e1RM tertinggi pekan ini. */
-  bestE1rm: number
-}
-
-/** Ringkasan pekan berjalan — angka hero layar Bugar. */
-export function weekSummary(workouts: Workout[]): WeekSummary {
-  const { start, end } = weekRange()
-  const inWeek = workouts.filter((w) => w.date >= start && w.date <= end)
-  return {
-    sessions: inWeek.length,
-    minutes: inWeek.reduce((a, w) => a + (w.duration || 0), 0),
-    tonase: inWeek.reduce((a, w) => a + tonaseOf(w), 0),
-    bestE1rm: inWeek.reduce((a, w) => Math.max(a, bestE1rmIn(w)), 0),
-  }
 }
 
 /* ===== Ringkasan Aktivitas (v2.17) ===== */

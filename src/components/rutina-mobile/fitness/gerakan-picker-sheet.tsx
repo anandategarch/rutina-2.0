@@ -10,6 +10,7 @@ import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type Workout } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import {
   EX_LIB,
   KIT_META,
@@ -95,14 +96,9 @@ export function GerakanPickerSheet({
     if (open) setQuery('')
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — pemilih gerakan di
+     atas WorkoutSheet/SessionView ditutup BERLAPIS, bukan serentak. */
+  useEscapeLayer(open, onClose)
 
   /* Fokus langsung ke pencarian saat dibuka. */
   useEffect(() => {

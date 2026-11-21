@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils'
 import { useCheckInSheet } from './checkin-sheet'
 import { formatIDR } from './finance/utils'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 import {
   FOLDER_SHORT,
   HABIT_CAT_COLORS,
@@ -318,15 +319,9 @@ export function QuickActionHub() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  /* Escape menutup hub. */
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeHub()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeHub])
+  /* Escape menutup hub — v2.49 (audit): lewat tumpukan lapisan
+     (overlay-escape). */
+  useEscapeLayer(open, closeHub)
 
   /* Fokus: trap penuh + pengembalian fokus ke pemicu saat ditutup
      (v2.16, audit T5-d #1 — sebelumnya satu-satunya dialog tanpa trap:

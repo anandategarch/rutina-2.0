@@ -563,16 +563,8 @@ export function exerciseLabel(name: string): string {
   return EX_LIB.find((e) => e.name === name)?.idName ?? name
 }
 
-/** Enam gerakan inti barbel rumah (v2.17) — alat cukup barbel 5 kg +
- *  matras; gerakan paling relevan untuk gym rumah sederhana. */
-export const HOME_BARBELL_CORE: string[] = [
-  'Barbell Curl',
-  'Overhead Press',
-  'Barbell Row',
-  'Romanian Deadlift',
-  'Floor Press',
-  'Zercher Squat',
-]
+/* (v2.49 audit: HOME_BARBELL_CORE dihapus — nol konsumen; pustaka
+ *  gerakan hidup di EX_LIB & PROG_DB.) */
 
 export const EX_LEVELS: Record<1 | 2 | 3, string> = {
   1: 'Pemula',

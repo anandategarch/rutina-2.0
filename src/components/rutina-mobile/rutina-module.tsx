@@ -1,8 +1,7 @@
 'use client'
 
-import type { HTMLAttributes } from 'react'
-
-import { cn } from '@/lib/utils'
+/* v2.49 (audit): import HTMLAttributes & cn tidak terpakai setelah
+   RutinaModuleShell dihapus (nol konsumen). */
 
 /**
  * RutinaModuleShell — penanda domain warna sebuah layar/bagian.
@@ -27,19 +26,8 @@ export type RutinaModule =
   | 'kebiasaan'
   | 'profil'
 
-export interface RutinaModuleShellProps
-  extends HTMLAttributes<HTMLDivElement> {
-  /** Domain warna layar/bagian ini. */
-  module: RutinaModule
-}
-
-export function RutinaModuleShell({
-  module,
-  className,
-  ...props
-}: RutinaModuleShellProps) {
-  return <div data-module={module} className={cn(className)} {...props} />
-}
+/* v2.49 (audit): RutinaModuleShell & MODULE_BORDER dihapus — nol
+ *  konsumen sejak Color System 2.0 memakai utilitas kontekstual. */
 
 /* ---- Peta kelas eksplisit (non-kontekstual) ----------------------------
    Dipakai saat komponen perlu warna domain SPESIFIK yang tidak bergantung
@@ -69,13 +57,4 @@ export const MODULE_TINT: Record<RutinaModule, string> = {
   stats: 'bg-module-stats/15 text-module-stats-strong',
   kebiasaan: 'bg-module-kebiasaan/15 text-module-kebiasaan-strong',
   profil: 'bg-module-profil/15 text-module-profil-strong',
-}
-
-export const MODULE_BORDER: Record<RutinaModule, string> = {
-  bugar: 'border-module-bugar/35',
-  finance: 'border-module-finance/35',
-  journal: 'border-module-journal/35',
-  stats: 'border-module-stats/35',
-  kebiasaan: 'border-module-kebiasaan/35',
-  profil: 'border-module-profil/35',
 }

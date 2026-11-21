@@ -6,10 +6,15 @@
  *
  * • BlurFade     — magicuidesign/magicui (23.3k ★)
  * • SplitText    — ibelick/motion-primitives "TextEffect" (7k ★)
+ * • Spotlight    — cult-ui "SpotlightCard" / magicui Spotlight
  *
  * (v2.37: ShineBorder dihapus — komponen tak pernah terpakai dan
  *  membawa animasi infinite `animate-shine` yang melanggar direktif
  *  gerak: "tidak ada animasi dekoratif berulang".)
+ *
+ * (v2.49 audit: AnimatedList/AnimatedListItem/Magnetic/Tilt dihapus —
+ *  nol konsumen sejak v2.38; pola yang sama (stagger/press) hidup di
+ *  varian bersama & transisi token, bukan komponen yatim.)
  *
  * Referensi sumber asli dicantumkan di tiap komponen.
  */
@@ -169,197 +174,6 @@ export function SplitText({
         </m.span>
       ))}
     </m.span>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* AnimatedList — daftar dengan entrance berantai (stagger antar anak). */
-/* Pola: motion-primitives "AnimatedList" / motion docs list variants. */
-/* ------------------------------------------------------------------ */
-
-const listParent: Variants = {
-  hidden: {},
-  show: {
-    transition: {
-      staggerChildren: motionTokens.stagger.normal,
-      delayChildren: motionTokens.stagger.tight,
-    },
-  },
-}
-
-const listItem: Variants = {
-  hidden: { opacity: 0, y: 16, scale: 0.985 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      duration: motionTokens.duration.enter,
-      ease: motionTokens.easing.standard,
-    },
-  },
-}
-
-interface AnimatedListProps {
-  children: ReactNode
-  className?: string
-  /** Mulai animasi saat masuk viewport (default: langsung saat mount). */
-  inView?: boolean
-}
-
-/** Wadah daftar — bungkus sekumpulan AnimatedListItem. */
-export function AnimatedList({
-  children,
-  className,
-  inView = false,
-}: AnimatedListProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inViewResult = useInView(ref, { once: true, margin: '-30px' })
-  const show = !inView || inViewResult
-
-  return (
-    <m.div
-      ref={ref}
-      variants={listParent}
-      initial="hidden"
-      animate={show ? 'show' : 'hidden'}
-      className={className}
-    >
-      {children}
-    </m.div>
-  )
-}
-
-/** Satu baris daftar — naik + fade mengikuti ritme orangtuanya. */
-export function AnimatedListItem({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <m.div variants={listItem} className={className}>
-      {children}
-    </m.div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Magnetic — tombol "magnet" yang condong mengikuti kursor (desktop,  */
-/* pointer halus saja). Pola: cult-ui Magnetic / magicui Magnet.       */
-/* Perf: gerakan ditulis ke CSS var via style langsung — React tetap   */
-/* diam; transisi CSS yang menghaluskan, bukan rAF per frame.          */
-/* ------------------------------------------------------------------ */
-
-interface MagneticProps {
-  children: ReactNode
-  className?: string
-  /** Kekuatan tarikan (0–1). Default 0.28. */
-  strength?: number
-}
-
-export function Magnetic({
-  children,
-  className,
-  strength = 0.28,
-}: MagneticProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inner = useRef<HTMLDivElement>(null)
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    /* Hanya pointer halus (mouse/trackpad) — sentuhan tidak magnet. */
-    if (e.pointerType !== 'mouse') return
-    const el = ref.current
-    const child = inner.current
-    if (!el || !child) return
-    const r = el.getBoundingClientRect()
-    const dx = e.clientX - (r.left + r.width / 2)
-    const dy = e.clientY - (r.top + r.height / 2)
-    child.style.transform = `translate(${dx * strength}px, ${dy * strength}px)`
-  }
-
-  const onLeave = () => {
-    const child = inner.current
-    if (!child) return
-    child.style.transform = 'translate(0px, 0px)'
-  }
-
-  return (
-    <div
-      ref={ref}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
-      className={className}
-    >
-      <div
-        ref={inner}
-        className="transition-transform duration-300 ease-out will-change-transform"
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Tilt — kartu miring 3D halus mengikuti kursor (perspektif shared).  */
-/* Pola: cult-ui "3D Card" (7.5k ★) — varian tenang, tanpa glare.      */
-/* ------------------------------------------------------------------ */
-
-interface TiltProps {
-  children: ReactNode
-  className?: string
-  /** Derajat maksimum kemiringan. Default 7. */
-  max?: number
-  /** Skala saat hover. Default 1 (tanpa zoom). */
-  hoverScale?: number
-}
-
-export function Tilt({
-  children,
-  className,
-  max = 7,
-  hoverScale = 1,
-}: TiltProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const frame = useRef<number | null>(null)
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse') return
-    const el = ref.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    const px = (e.clientX - r.left) / r.width - 0.5
-    const py = (e.clientY - r.top) / r.height - 0.5
-
-    /* rAF-dikunci: satu tulisan style per frame, tanpa getBCR berulang. */
-    if (frame.current) cancelAnimationFrame(frame.current)
-    frame.current = requestAnimationFrame(() => {
-      el.style.transform = `perspective(900px) rotateX(${(-py * max).toFixed(2)}deg) rotateY(${(px * max).toFixed(2)}deg) scale(${hoverScale})`
-    })
-  }
-
-  const onLeave = () => {
-    const el = ref.current
-    if (!el) return
-    if (frame.current) cancelAnimationFrame(frame.current)
-    el.style.transform =
-      'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)'
-  }
-
-  return (
-    <div
-      ref={ref}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
-      className={cn(
-        'transition-transform duration-300 ease-out will-change-transform',
-        className,
-      )}
-    >
-      {children}
-    </div>
   )
 }
 

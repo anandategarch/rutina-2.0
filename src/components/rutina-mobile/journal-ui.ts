@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { useRutina, todayISO, type FolderKey, type Note } from './store'
+import { useRutina, todayISO, uid, type FolderKey, type Note } from './store'
 
 /**
  * UI kanvas jurnal + metadata suasana hati per catatan.
@@ -138,6 +138,22 @@ export function countWords(body: string): number {
   return t === '' ? 0 : t.split(/\s+/).length
 }
 
+/** v2.49 (audit): hitungan mood dari catatan yang MASIH HIDUP — satu
+ *  implementasi untuk WritingActivityCard & JournalScreen (dua salinan
+ *  identik bisa bergeser diam-diam saat salah satunya diedit). */
+export function liveMoodCounts(
+  notes: Note[],
+  noteMoods: Record<string, string>,
+): [string, number][] {
+  const live = new Set(notes.map((n) => n.id))
+  const m = new Map<string, number>()
+  for (const [id, mood] of Object.entries(noteMoods)) {
+    if (!live.has(id)) continue
+    m.set(mood, (m.get(mood) ?? 0) + 1)
+  }
+  return [...m.entries()].sort((a, b) => b[1] - a[1])
+}
+
 /**
  * Buat catatan baru dan kembalikan id-nya secara sinkron. Meniru `addNote`
  * di store utama persis (skema id, catatan terbaru di depan, tone) namun
@@ -149,7 +165,9 @@ export function createNote(input: {
   body: string
   folder: FolderKey
 }): string {
-  const id = `note-${Date.now()}`
+  /* v2.49 (audit): uid() anti-tabrakan (pola store v2.45) — autosave
+     dua catatan dalam milidetik yang sama tidak lagi melahirkan PK kembar. */
+  const id = `note-${uid()}`
   useRutina.setState((s) => ({
     notes: [
       {

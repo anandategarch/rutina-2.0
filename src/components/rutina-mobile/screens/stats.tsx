@@ -72,6 +72,7 @@ import {
   bestStreak,
   computeLevel,
   computeXp,
+  dayCompliance,
   dayCounts,
   daySchedules,
   doneCountOn,
@@ -304,7 +305,11 @@ export default function StatsScreen() {
   const dayInfo = useMemo<Record<string, MonthDayInfo>>(() => {
     const map: Record<string, MonthDayInfo> = {}
     for (const [iso, rec] of Object.entries(completions)) {
-      const done = Object.values(rec ?? {}).filter(Boolean).length
+      /* v2.49 (audit): `filter(Boolean)` menghitung progres PARSIAL
+         (angka truthy, mis. 5 dari 8 gelas) sebagai "kebiasaan selesai"
+         — menggembungkan titik kalender & aria; store canonical
+         (doneCountOn) menyaring `v === true` saja. */
+      const done = Object.values(rec ?? {}).filter((v) => v === true).length
       if (done > 0) map[iso] = { ...map[iso], done }
     }
     for (const t of txs) {
@@ -329,11 +334,14 @@ export default function StatsScreen() {
     let sched = 0
     let done = 0
     for (let iso = range.start; iso <= last; iso = addDaysISO(iso, 1)) {
-      const dayHabits = habitsOn(habits, iso)
-      sched += dayHabits.length
-      for (const h of dayHabits) {
-        if (isDoneOn(completions, iso, h.id)) done++
-      }
+      /* v2.49 (audit): dayCompliance = SATU sumber (sadar-createdAt,
+         hari-jeda diampuni) — habitsOn mentah menghitung hari sebelum
+         kebiasaan ada & hari-jeda sebagai misi yang gagal, membuat
+         "konsistensi" Laporan Bulanan berselisih dengan lembar detail
+         & konstelasi untuk hari-hari yang sama. */
+      const dc = dayCompliance(habits, completions, iso)
+      sched += dc.due
+      done += dc.done
     }
     const flow = monthFlow(txs, viewYm)
     const byCat = monthSpendByCat(txs, viewYm)
@@ -444,9 +452,11 @@ export default function StatsScreen() {
 
     push('active', 'Hari aktif', activeDays(curDays), activeDays(prevDays), false, (n) => `${n} hari`, (n) => `${n} hari`)
     push('done', 'Kebiasaan selesai', totalDone(curDays), totalDone(prevDays), false, (n) => `${n} misi`, (n) => `${n} misi`)
+    /* v2.49 (audit): label basi — notesInWindow dihitung EKSAK dari
+       tanggal-dibuat (v2.36), footer layar ini sendiri bilang demikian. */
     push(
       'notes',
-      'Catatan (perkiraan)',
+      'Catatan',
       notesInWindow(notes, weekStart, today, today),
       notesInWindow(notes, prevWeekStart, addDaysISO(weekStart, -1), today),
       false,
@@ -528,13 +538,27 @@ export default function StatsScreen() {
     return { xp, level, progress, remaining, best, activeHabits }
   }, [habits, completions, today, bonusClaimed])
 
+  /* ===== Tren penyelesaian 30 hari — konstelasi bintang (v2.47 Life
+     Observatory): titik harian jujur, pct NULL bila hari itu tak ada
+     jadwal (rateSeries lama memalsukan 0); rata-rata, delta, dan hitungan
+     “di atas 70%” dihitung dari hari NON-NULL saja. */
+  const trendPoints = useMemo(
+    () => constellationDays(habits, completions, today, 30),
+    [habits, completions, today],
+  )
+  const { avg: trendAvgRaw, delta: trendDelta, above70 } = useMemo(
+    () => constellationStats(trendPoints),
+    [trendPoints],
+  )
+  const trendAvg = trendAvgRaw ?? 0
+
   /* ===== KPI strip — lensa 30 hari =====
-     Konsistensi memakai sumber kebenaran yang sama dengan rata-rata
-     konstelasi di bawah: daySchedules (sadar createdAt & arsip, hari
-     jeda diampuni keluar penyebut — audit v2.47 #11) sehingga KPI dan
-     grafik TIDAK BISA berselisih di layar yang sama; misi memakai
-     doneCountOn (ala dayCounts). Streak & rekor dari bestStreak —
-     sama dengan widget runtun. */
+     v2.49 (audit): KPI Konsistensi kini = rata-rata konstelasi yang
+     sama (rata-rata DARI pct harian), bukan jumlah/jumlah — keduanya
+     berselisih setiap hari penyebutnya berbeda (jadwal weekday/weekend,
+     jeda, createdAt): hari A 1/1 (100%) + hari B 0/5 (0%) → KPI lama 17%
+     vs grafik 50%. Angka pendamping "N dari M terjadwal" tetap jumlah
+     (labelnya memang total). */
   const kpi = useMemo(() => {
     const sched30 = daySchedules(habits, completions, today, 30)
     const sched = sched30.reduce((a, sd) => a + sd.scheduled, 0)
@@ -544,12 +568,12 @@ export default function StatsScreen() {
       missions += doneCountOn(completions, addDaysISO(today, -i))
     }
     return {
-      consistency: sched > 0 ? Math.round((done / sched) * 100) : 0,
+      consistency: Math.round(trendAvgRaw ?? 0),
       sched,
       done,
       missions,
     }
-  }, [habits, completions, today])
+  }, [habits, completions, today, trendAvgRaw])
 
   /* ===== Wawasan lintas domain (v2.32 Observatory) — menjawab "kenapa",
       bukan menambah angka (audit: insight harus menjawab apa yang berubah
@@ -776,19 +800,9 @@ export default function StatsScreen() {
           ? `Pekan berjalan turun ${p3 - p4} misi dibanding pekan lalu.`
           : 'Pekan berjalan setara dengan pekan lalu.'
 
-  /* Tren penyelesaian 30 hari — konstelasi bintang (v2.47 Life
-     Observatory): titik harian jujur, pct NULL bila hari itu tak ada
-     jadwal (rateSeries lama memalsukan 0); rata-rata, delta, dan hitungan
-     “di atas 70%” dihitung dari hari NON-NULL saja. */
-  const trendPoints = useMemo(
-    () => constellationDays(habits, completions, today, 30),
-    [habits, completions, today],
-  )
-  const { avg: trendAvgRaw, delta: trendDelta, above70 } = useMemo(
-    () => constellationStats(trendPoints),
-    [trendPoints],
-  )
-  const trendAvg = trendAvgRaw ?? 0
+  /* Tren penyelesaian 30 hari — data & rata-rata dihitung DI ATAS
+     (sebelum KPI strip) agar KPI dan grafik berbagi SATU angka; di sini
+     tinggal badge arahnya. */
   const trendBadge =
     trendDelta >= 1 ? 'naik' : trendDelta <= -1 ? 'turun' : 'stabil'
   const TrendIcon =
@@ -1015,7 +1029,8 @@ export default function StatsScreen() {
                     block: 'start',
                   })
               }
-              className="interactive flex h-8 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-2 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
+              /* v2.49 (audit): 32px → 36px (pintasan seksi = kontrol utama). */
+              className="interactive flex h-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-2 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
             >
               {s.label}
             </button>
@@ -1091,7 +1106,11 @@ export default function StatsScreen() {
                 {level}
               </p>
               <span className="mt-2.5 rounded-full bg-hero-surface-raised px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
-                <Counter to={xp} immediate={!playEntrance} /> XP
+                <Counter
+                  to={xp}
+                  immediate={!playEntrance || Boolean(reducedMotion)}
+                />{' '}
+                XP
               </span>
             </div>
           </m.div>
@@ -1120,7 +1139,10 @@ export default function StatsScreen() {
             </p>
             <p className="mt-1.5 flex items-baseline gap-1.5">
               <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums text-hero-content">
-                <Counter to={kpi.consistency} immediate={!playEntrance} />
+                <Counter
+                  to={kpi.consistency}
+                  immediate={!playEntrance || Boolean(reducedMotion)}
+                />
               </span>
               <span className="text-note font-semibold text-hero-content-muted">%</span>
             </p>
@@ -1268,7 +1290,7 @@ export default function StatsScreen() {
                   type="button"
                   aria-pressed={vizMode === id}
                   onClick={() => setVizMode(id)}
-                  className={`interactive h-7 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`interactive h-9 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     vizMode === id
                       ? 'bg-primary text-primary-foreground'
                       : 'text-content-secondary hover:text-content-primary'
@@ -1323,7 +1345,10 @@ export default function StatsScreen() {
               </RutinaTabs>
               <p className="mt-4 flex items-baseline gap-1.5">
                 <span className="text-kpi-hero font-semibold leading-none tracking-tight text-hero-content">
-                  <Counter to={chartTotal} immediate={!playEntrance} />
+                  <Counter
+                    to={chartTotal}
+                    immediate={!playEntrance || Boolean(reducedMotion)}
+                  />
                 </span>
                 <span className="text-note font-medium text-hero-content-muted">
                   misi{period === 'pekan' ? ' / pekan' : ' / bulan'}
@@ -1569,7 +1594,11 @@ export default function StatsScreen() {
                   {trendAvgRaw != null && (
                     <p className="mt-1.5 flex items-baseline gap-1.5">
                       <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
-                        <Counter to={trendAvg} decimals={1} immediate={!playEntrance} />
+                        <Counter
+                          to={trendAvg}
+                          decimals={1}
+                          immediate={!playEntrance || Boolean(reducedMotion)}
+                        />
                       </span>
                       <span className="text-note font-medium text-content-muted">
                         % rata-rata / hari
@@ -2510,7 +2539,7 @@ export default function StatsScreen() {
                 type="button"
                 onClick={() => setScreen('profil')}
                 aria-label="Isi check-in hari ini di Profil"
-                className="interactive mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong transition-colors hover:bg-module-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="interactive mt-2 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong transition-colors hover:bg-module-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Isi check-in hari ini
                 <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />

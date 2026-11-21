@@ -24,6 +24,7 @@ import {
   spendByDay,
 } from './finance/utils'
 import { BUDGET_WARN_PCT } from './daily-highlight'
+import { budgetableCatIds } from './finance/cats'
 import { RutinaCard } from './rutina-card'
 import { RutinaSectionHeader } from './rutina-section-header'
 import { addDaysISO, fromISO, todayISO, useRutina, WEEKDAY_MIN } from './store'
@@ -46,10 +47,13 @@ export function HomeFinanceCard() {
 
   const today = todayISO()
 
-  /* Jatah aman hari ini (v2.22) — sisa anggaran ÷ hari tersisa. */
+  /* Jatah aman hari ini (v2.22) — sisa anggaran ÷ hari tersisa.
+     v2.49 (audit): set budgetable sama dengan tab Anggaran. */
+  const customCats = useRutina((s) => s.customCats)
   const allowance = useMemo(
-    () => allowanceInfo(budgets, txs, today),
-    [budgets, txs, today],
+    () =>
+      allowanceInfo(budgets, txs, today, budgetableCatIds(customCats)),
+    [budgets, txs, today, customCats],
   )
 
   const todayTxs = useMemo(
@@ -66,10 +70,14 @@ export function HomeFinanceCard() {
      bukan harian. Sisa negatif (lewat batas) tampil apa adanya. */
   const budgetAlert = useMemo(() => {
     const spend = monthSpendByCat(txs, today.slice(0, 7))
+    /* v2.49 (audit): hanya kategori budgetable — selaras tab Anggaran
+       (anggaran impor non-budgetable tak memicu strip peringatan). */
+    const ok = budgetableCatIds(customCats)
     let worst: { cat: string; spent: number; limit: number; pct: number } | null =
       null
     for (const [cat, limit] of Object.entries(budgets)) {
       if (!(limit > 0)) continue
+      if (!ok.has(cat)) continue
       const spent = spend[cat] ?? 0
       const pct = spent / limit
       if (pct >= BUDGET_WARN_PCT && (!worst || pct > worst.pct)) {
@@ -77,7 +85,7 @@ export function HomeFinanceCard() {
       }
     }
     return worst
-  }, [txs, budgets, today])
+  }, [txs, budgets, today, customCats])
 
   const keluar = todayTxs.reduce(
     (a, t) => a + (t.type === 'keluar' ? t.amount : 0),
@@ -401,7 +409,10 @@ export function HomeFinanceCard() {
                     />
                   </span>
                   <span
-                    className="absolute -bottom-[3px] -top-[3px] w-0.5 rounded-full bg-espresso/70"
+                    /* v2.49 (audit): bg-espresso/70 di atas permukaan gelap
+                       ≈ gelap-di-atas-gelap (penanda posisi ideal lenyap di
+                       dark mode) — token yang berbalik mengikuti tema. */
+                    className="absolute -bottom-[3px] -top-[3px] w-0.5 rounded-full bg-content-primary/70"
                     style={{
                       left: `${Math.min(100, allowance.idealPct)}%`,
                     }}

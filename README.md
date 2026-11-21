@@ -6,8 +6,41 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.48.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.49.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.49 — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
+
+Audit penuh enam arah (paralel per modul + fondasi) atas v2.48, kelas P1+P3:
+**tumpukan lapisan Escape** (overlay-escape.ts — satu dispatcher global;
+hanya sheet/dialog TERATAS yang tertutup; dulu SATU Escape menutup bersamaan
+pemilih kategori + lembar transaksinya dan draf panjang lenyap — terverifikasi
+live: picker tertutup dulu, lembar bertahan, draf aman); **provenance manual
+cermin dua arah** (centang manual SETELAH kontribusi workout tidak lagi
+tertimpa nilai basi saat workout dihapus); **negosiasi sinkronisasi resume**
+(kembali-online/fokus kini GET dulu & bandingkan ala boot — tidak lagi dorong
+buta yang menimpa snapshot server); **empat id `Date.now()` telanjang → uid()**
+(addWorkout/kelompok/kategori/kutipan — PK kembar menumbangkan createMany);
+**lima kolam kepatuhan divergen dipersatukan ke dayCompliance** (hero Beranda,
+DateStrip, weekMission, rekap pekan, target pekan, goldilocks, Laporan
+Bulanan — dulu "2 dari 4 (50%)" bisa berdampingan dengan lembar detail
+"2 dari 2 (100%), 2 jeda diampuni"); **KPI Konsistensi = rata-rata
+konstelasi** (jumlah/jumlah berselisih tiap hari penyebut beda); **grafik
+arus kas tidak lagi meluber 42px menimpa kartu ringkasan**; **NaN lolos
+validasi `<= 0`** (pemisah desimal telanjang) diguard Number.isFinite;
+**sheet check-in kini bergulir** (sebelumnya judul & pegangan seret terdorong
+keluar layar kelas 320–568px); **perayaan misi tuntas tak lagi replay** tiap
+kunjungan ulang Beranda (penanda per-tanggal persisten); persen agregat &
+pratinjau setor tanpa clamp; kalender kalender-konstelasi menghitung `true`
+saja (progres parsial ≠ selesai); WeekDots sadar-jadwal (tanpa jadwal ≠
+terlewat); heatmap sel ≥24px di wadah gulir; kontras gelap (chip streak,
+garis ideal anggaran, outline-gold → outline-primary); pruning 35 dependensi
+mati + 30 berkas ui/ perancah + ekspor yatim (AnimatedList/Magnetic/Tilt/
+RutinaModuleShell/weekSummary/…). Verifikasi: tsc & lint hijau, 156/156 test,
+E2E browser 7 tujuan × 320/390/768/1440px nol overflow & nol error konsol;
+interaksi live: Escape berlapis, NaN-guard, sel heatmap 24,3px, lembar
+check-in bergulir, WeekDots 5-keadaan, data uji dikembalikan penuh (server
+0 kebiasaan via curl).
 
 ## v2.48 — Audit Menyeluruh Edisi Visualisasi Ilustratif: 45 Perbaikan
 

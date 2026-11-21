@@ -159,7 +159,9 @@ export function TrainingCalendar() {
         type="button"
         onClick={() => setSelected(isSel ? null : iso)}
         aria-pressed={isSel}
-        aria-label={`${iso}${isToday ? ' — hari ini' : ''}${isSel ? ' — terpilih' : ''} — ${desc}`}
+        /* v2.49 (audit): tanggal manusia, bukan ISO mentah (selaras
+           konstelasi/kalender jurnal/month-calendar). */
+        aria-label={`${shortDateLabel(iso)}${isToday ? ' — hari ini' : ''}${isSel ? ' — terpilih' : ''} — ${desc}`}
         className={
           'flex h-[52px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
           (isSel

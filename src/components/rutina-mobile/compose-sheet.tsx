@@ -15,6 +15,7 @@ import { JournalCanvas } from './journal-canvas'
 import { CONTENT_W } from './layout-widths'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from './store'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 
 /**
  * Sheet bawah kustom — dibangun manual (bukan shadcn Sheet) agar tetap
@@ -48,15 +49,8 @@ export function ComposeSheet() {
     }
   }
 
-  // Tutup dengan Escape
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeCompose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeCompose])
+  // Tutup dengan Escape — v2.49 (audit): tumpukan lapisan (overlay-escape).
+  useEscapeLayer(open, () => closeCompose())
 
   const submit = () => {
     const t = title.trim()

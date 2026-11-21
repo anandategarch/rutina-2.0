@@ -219,7 +219,11 @@ export function DailyHighlightCard({
           {/* Mini-visual — bukan sekadar angka: runtun, batang anggaran,
               batang tujuan, atau chip hitungan yang langsung terbaca. */}
           {hl.visual.kind === 'streak' && (
-            <p className="mt-2.5 flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-meta font-bold text-espresso w-fit">
+            /* v2.49 (audit): text-espresso di atas bg-gold/25 tak terbaca
+               di mode gelap (≈1,9:1 — espresso tak punya override .dark).
+               text-warning = emas terang, pola yang sudah dipakai kartu
+               pemulihan Beranda (≈4,6:1 di gelap, ≈7:1 di terang). */
+            <p className="mt-2.5 flex items-center gap-1.5 rounded-full bg-gold/25 px-3 py-1.5 text-meta font-bold text-warning w-fit">
               <Flame className="h-3.5 w-3.5" strokeWidth={2.2} aria-hidden="true" />
               {hl.visual.streak} hari beruntun
             </p>
@@ -341,14 +345,16 @@ export function DailyHighlightCard({
 
       {/* CTA pil ringkas — menunggu di akhir kartu tanpa memenuhi lebar
           layar (v2.27 Daybook: Sorotan adalah panel sekunder, bukan
-          hero kedua; CTA besar penuh diserahkan ke ruang kerjanya). */}
+          hero kedua; CTA besar penuh diserahkan ke ruang kerjanya).
+          v2.49 (audit): 36px → 44px — aksi utama ("Selesaikan sekarang"/
+          "Klaim +XP"), bukan kontrol sekunder. */}
       <div className="mt-3.5 flex">
         <m.button
           type="button"
           onClick={runCta}
           whileTap={{ scale: 0.96 }}
           transition={motionTokens.spring.snappy}
-          className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-colors duration-200 hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft transition-colors duration-200 hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           {ctaLabel[hl.cta]}
         </m.button>

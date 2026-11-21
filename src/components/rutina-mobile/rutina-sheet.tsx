@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
 
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { CONTENT_W } from './layout-widths'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 
 /**
  * RutinaSheet — kerangka bottom sheet seragam seluruh produk.
@@ -17,7 +18,8 @@ import { useFocusTrap } from './use-focus-trap'
  * - Naik dari bawah (spring), bisa diseret ke bawah untuk menutup.
  * - Backdrop memblokir interaksi konten di belakangnya.
  * - Focus management: fokus awal, trap Tab, kembali ke pemicu (useFocusTrap).
- * - Escape menutup sheet.
+ * - Escape menutup sheet — lewat tumpukan lapisan (overlay-escape, v2.49):
+ *   hanya sheet TERATAS yang tertutup; sheet bersarang ditutup berlapis.
  *
  * Konten sheet (formulir, daftar) tinggal diletakkan sebagai children.
  */
@@ -45,15 +47,7 @@ export function RutinaSheet({
   const panelRef = useRef<HTMLDivElement>(null)
 
   useFocusTrap(open, panelRef)
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  useEscapeLayer(open, onClose)
 
   return (
     <AnimatePresence>
@@ -90,7 +84,11 @@ export function RutinaSheet({
             exit={{ y: '100%' }}
             transition={sheetSpring}
             className={cn(
-              'absolute inset-x-0 bottom-0 z-50 mx-auto w-full rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 shadow-sheet',
+              /* v2.49 (audit): max-height + gulir — tanpa ini, sheet panjang
+                 (check-in harian ≈668px) melampaui viewport kelas 320–568px:
+                 judul & pegangan seret terdorong keluar layar dan backdrop
+                 menutupi seluruh layar (tak ada jalur batal di ponsel). */
+              'absolute inset-x-0 bottom-0 z-50 mx-auto w-full max-h-[calc(100%-1.5rem)] overflow-y-auto overscroll-contain no-scrollbar rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 shadow-sheet',
               CONTENT_W,
               className,
             )}

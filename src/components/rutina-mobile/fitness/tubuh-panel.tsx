@@ -35,6 +35,7 @@ import {
   weightSeries,
 } from './fit-utils'
 import { useSvgId } from '../visualizations/shared/svg-id'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 
 /* ===== Konstanta tubuh ===== */
 
@@ -319,6 +320,9 @@ function BodyHistory({
   logs: BodyLogs
   waterTarget: number
 }) {
+  /* v2.49 (audit): gerbang anti-replay — kunjungan ulang tab Bugar
+     menampilkan seksi langsung (pola useFirstVisit blok Latihan). */
+  const playHistory = useFirstVisit('bugar-tubuh-history')
   const today = todayISO()
   const DAYS = 14
 
@@ -393,7 +397,7 @@ function BodyHistory({
 
   return (
     <m.section
-      initial={{ opacity: 0, y: 14 }}
+      initial={playHistory ? { opacity: 0, y: 14 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
       aria-label="Riwayat tubuh 14 hari"
@@ -452,7 +456,7 @@ function BodyHistory({
                       p.value != null ? `${fmtJam(p.value)} jam tidur` : 'tidak tercatat'
                     }`}
                     onClick={() => setSel(sel === p.date ? null : p.date)}
-                    className="interactive group relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive group relative min-w-0 flex-1 cursor-pointer rounded-sm before:absolute before:-inset-x-1 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     <span className="flex h-full items-end justify-center">
                       {p.value != null ? (
@@ -501,7 +505,7 @@ function BodyHistory({
                       p.value != null ? `energi ${p.value} dari 5` : 'tidak tercatat'
                     }`}
                     onClick={() => setSel(sel === p.date ? null : p.date)}
-                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm before:absolute before:-inset-x-1 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {p.value != null ? (
                       /* Glif baterai — tinggi isi ∝ nilai/5; posisi tetap
@@ -571,7 +575,7 @@ function BodyHistory({
                       p.value != null ? `nyeri otot ${p.value} dari 5` : 'tidak tercatat'
                     }`}
                     onClick={() => setSel(sel === p.date ? null : p.date)}
-                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm before:absolute before:-inset-x-1 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {p.value != null ? (
                       <span
@@ -630,7 +634,7 @@ function BodyHistory({
                       p.value != null ? `stres ${p.value} dari 5` : 'tidak tercatat'
                     }`}
                     onClick={() => setSel(sel === p.date ? null : p.date)}
-                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm before:absolute before:-inset-x-1 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {p.value != null ? (
                       <span
@@ -691,7 +695,7 @@ function BodyHistory({
                           : 'tidak tercatat'
                       }`}
                       onClick={() => setSel(sel === p.date ? null : p.date)}
-                      className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm before:absolute before:-inset-x-1 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {p.value != null ? (
                         <>
@@ -769,6 +773,8 @@ function BodyHistory({
 /* ===== Panel Tubuh ===== */
 
 export function TubuhPanel() {
+  /* v2.49 (audit): gerbang anti-replay seksi-seksi Tubuh (pola Latihan). */
+  const playSection = useFirstVisit('bugar-tubuh-sections')
   const bodyLogs = useRutina((s) => s.bodyLogs)
   const setWaterToday = useRutina((s) => s.setWaterToday)
   const logWeightToday = useRutina((s) => s.logWeightToday)
@@ -824,7 +830,7 @@ export function TubuhPanel() {
     <div>
       {/* Check-in tidur & energi */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={motionTokens.preset.chipReveal}
         aria-label="Check-in harian tubuh"
@@ -921,7 +927,7 @@ export function TubuhPanel() {
 
       {/* Kesiapan latihan — turunan check-in */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         aria-label="Kesiapan latihan"
@@ -985,7 +991,7 @@ export function TubuhPanel() {
           (tidur 30% · nyeri 30% · stres 20% · energi 20%) */}
       {readiness && (
         <m.section
-          initial={{ opacity: 0, y: 14 }}
+          initial={playSection ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.step }}
           aria-label="Rincian kesiapan latihan"
@@ -1059,7 +1065,7 @@ export function TubuhPanel() {
 
       {/* Hidrasi */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.normal }}
         aria-label="Hidrasi hari ini"
@@ -1085,7 +1091,7 @@ export function TubuhPanel() {
               type="button"
               aria-label="Kurangi satu gelas"
               onClick={() => setWaterToday(-1)}
-              className="interactive flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface-sunken text-content-secondary hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -1099,7 +1105,7 @@ export function TubuhPanel() {
                 }
               }}
               whileTap={{ scale: 0.92 }}
-              className="interactive flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} />
             </m.button>
@@ -1141,7 +1147,7 @@ export function TubuhPanel() {
 
       {/* Berat badan */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.relaxed }}
         aria-label="Berat badan"
@@ -1166,9 +1172,14 @@ export function TubuhPanel() {
                 </span>
               )}
               {weightDelta != null && (
+                /* v2.49 (audit): warna mengikuti ARAH menuju tujuan, bukan
+                   asumsi menurunkan berat — pengguna dengan tujuan menaikkan
+                   berat melihat "10 kg di bawah tujuan" memerah (padahal itu
+                   kondisi memburuk bagi mereka... atau membaik — arah tak
+                   diketahui aplikasi). Netral + positif saat tepat/sampai. */
                 <span
                   className={
-                    weightDelta > 0 ? 'text-content-danger' : 'text-success'
+                    weightDelta > 0 ? 'text-content-danger' : 'text-content-secondary'
                   }
                 >
                   {' '}
@@ -1216,7 +1227,7 @@ export function TubuhPanel() {
           tujuan, dan tinggi badan (dasar BMI). Semua dipakai lintas
           panel: Latihan (menit vs sasaran), Asupan (makro), Tubuh ini. */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.sweep }}
         aria-label="Sasaran bugar musim ini"

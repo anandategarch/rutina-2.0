@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   ArrowDownRight,
@@ -167,6 +167,9 @@ export function WeeklyRecapCard({
 
   /* v2.27 audit motion: gerbang anti-replay entrance. */
   const playEntrance = useFirstVisit('home-recap')
+  /* v2.49 (audit): hitung-naik angka bukan transform — MotionConfig
+     reducedMotion="user" tidak menghentikannya; gerbang eksplisit. */
+  const reducedMotion = useReducedMotion()
 
   /* Hari terpilih pada strip perjalanan (audit Tahap 2: menekan hari
      menampilkan jumlah misi, aktivitas, dan status target hari itu) dan
@@ -501,8 +504,14 @@ export function WeeklyRecapCard({
                     tidak menampilkan angka kosong yang menyesatkan. */}
                 {sel.scheduled > 0 ? (
                   <span className="tabular-nums">
+                    {/* v2.49 (audit): pct sejajar dengan pecahan yang
+                        di-penggal — tak ada lagi "2/3 jadwal (150%)". */}
                     {Math.min(sel.done, sel.scheduled)}/{sel.scheduled} jadwal (
-                    {Math.round((sel.done / sel.scheduled) * 100)}%)
+                    {Math.min(
+                      100,
+                      Math.round((sel.done / sel.scheduled) * 100),
+                    )}
+                    %)
                   </span>
                 ) : (
                   <span>tanpa kebiasaan terjadwal</span>
@@ -560,7 +569,10 @@ export function WeeklyRecapCard({
       <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="flex items-baseline gap-1.5">
           <span className="text-kpi font-semibold leading-none tracking-tight text-content-primary">
-            <Counter to={recap.missionsDone} immediate={!playEntrance} />
+            <Counter
+              to={recap.missionsDone}
+              immediate={!playEntrance || Boolean(reducedMotion)}
+            />
           </span>
           <span className="text-note font-semibold text-content-secondary">
             misi selesai

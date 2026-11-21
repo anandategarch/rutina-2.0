@@ -1348,6 +1348,9 @@ function WeekActivityCard() {
    garis menurun = makin cepat; tanpa warna baik/buruk otomatis. */
 function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
   const playEntrance = useFirstVisit('bugar-studio-tren')
+  /* v2.49 (audit): gerbang eksplisit — morfologi tinggi batang (height)
+     bukan transform, MotionConfig reducedMotion="user" tak menghentikannya. */
+  const reducedMotion = useReducedMotion()
   const [metric, setMetric] = useState<'jarak' | 'pace'>('jarak')
   const [selIdx, setSelIdx] = useState<number | null>(null)
   /* Periode deret (pola riwayat): jendela 30/90 hari — 'semua' tanpa
@@ -1364,9 +1367,11 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
   }, [sessions, period])
 
   /* Deret jarak — sesi kardio dalam jendela periode, maks 8 sesi
-     ('semua' dilonggarkan ke 14). */
+     ('semua' dibatasi 10 — bukan 14 — agar tombol tetap ≥24px di 320px;
+     preseden lembar detail gerakan "maks 10 sesi", audit v2.47.1;
+     v2.49 menutup celah yang lolos). */
   const distSeries = useMemo(
-    () => [...cardioSeries(windowed, period === 'semua' ? 14 : 8)].reverse(),
+    () => [...cardioSeries(windowed, period === 'semua' ? 10 : 8)].reverse(),
     [windowed, period],
   )
   /* Deret pace — sesi kardio dengan jarak & durasi valid, urut waktu. */
@@ -1377,7 +1382,7 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
           (w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0 && w.duration > 0,
         )
         .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(period === 'semua' ? -14 : -8),
+        .slice(period === 'semua' ? -10 : -8),
     [windowed, period],
   )
 
@@ -1525,10 +1530,14 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
                       animate={{
                         height: `${Math.max(8, (d.km / max) * 100)}%`,
                       }}
-                      transition={{
-                        ...motionTokens.spring.chart,
-                        delay: i * motionTokens.stagger.normal,
-                      }}
+                      transition={
+                        reducedMotion
+                          ? { duration: 0 }
+                          : {
+                              ...motionTokens.spring.chart,
+                              delay: i * motionTokens.stagger.normal,
+                            }
+                      }
                       className={`w-full rounded-t-md transition-colors ${
                         isSel
                           ? 'bg-module-accent-strong'
@@ -2690,7 +2699,9 @@ export default function BugarScreen() {
                   aria-pressed={active}
                   onClick={() => setLibMuscle(g)}
                   className={
-                    'interactive h-8 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                    /* v2.49 (audit): 32px → 36px — pil filter utama Pustaka
+                       (pembanding: WINDOWS/WO_FILTERS/QUICK_MODES h-9). */
+                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                     (active
                       ? 'bg-surface-inverse text-content-inverse shadow-soft'
                       : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')

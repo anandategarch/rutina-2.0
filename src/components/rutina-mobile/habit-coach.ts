@@ -10,6 +10,7 @@
 
 import {
   addDaysISO,
+  habitWeeklyRates,
   isDoneOn,
   scheduledOn,
   weekStartISO,
@@ -22,39 +23,36 @@ import {
 export interface PlantStage {
   key: 'benih' | 'tunas' | 'pohon-muda' | 'pohon-dewasa' | 'berbunga'
   label: string
-  emoji: string
   hint: string
 }
+
+/* (v2.49 audit: bidang `emoji` dihapus — nol pembaca sejak PlantGlyph
+ *  menggantikan emoji di v2.4x.) */
 
 export const PLANT_STAGES: PlantStage[] = [
   {
     key: 'benih',
     label: 'Benih',
-    emoji: '🌰',
     hint: 'Baru ditanam — selesaikan sekali untuk menumbuhkannya.',
   },
   {
     key: 'tunas',
     label: 'Tunas',
-    emoji: '🌱',
     hint: 'Mulai berkecambah — jaga air dan sinar (versi 2 menit membantu!).',
   },
   {
     key: 'pohon-muda',
     label: 'Pohon Muda',
-    emoji: '🌿',
     hint: 'Akar mulai kuat — konsistensi sedang terbentuk.',
   },
   {
     key: 'pohon-dewasa',
     label: 'Pohon Dewasa',
-    emoji: '🌳',
     hint: 'Kebiasaan ini telah mengakar dalam hidupmu.',
   },
   {
     key: 'berbunga',
     label: 'Berbunga',
-    emoji: '🌸',
     hint: 'Kebiasaan matang — kembangkannya lebih jauh!',
   },
 ]
@@ -122,23 +120,19 @@ export type GoldilocksTone = 'naik' | 'kecilkan'
 
 /** Statistik pekan berjalan (Senin–Minggu, hari terjadwal yang sudah
  *  lewat): berapa hari terjadwal & berapa selesai — dasar tunggal
- *  bagi seluruh saran Goldilocks (dipakai goldilocksGroups). */
+ *  bagi seluruh saran Goldilocks (dipakai goldilocksGroups).
+ *  v2.49 (audit): kini pemetaan tipis atas habitWeeklyRates — SATU
+ *  sumber. Rumus lokal lama mengabaikan createdAt (kebiasaan yang baru
+ *  dibuat Kamu dipersalahkan atas Sen–Rab yang belum ada) & hari-jeda
+ *  (jeda dihitung sebagai hari terjadwal yang gagal) — kartu coach bisa
+ *  membaca "0 dari 4 hari" saat matriks perbandingan membaca "0/1". */
 function goldilocksStats(
   h: Habit,
   c: Completions,
   today: string,
 ): { done: number; scheduled: number } | null {
-  const wk = weekStartISO(today)
-  let scheduled = 0
-  let done = 0
-  for (let d = 0; d < 7; d++) {
-    const iso = addDaysISO(wk, d)
-    if (iso > today) break
-    if (!scheduledOn(h, iso)) continue
-    scheduled++
-    if (isDoneOn(c, iso, h.id)) done++
-  }
-  return scheduled === 0 ? null : { done, scheduled }
+  const r = habitWeeklyRates(h, c, today, 1)[0]
+  return r && r.scheduled > 0 ? { done: r.done, scheduled: r.scheduled } : null
 }
 
 /* ===== Saran Coach terkonsolidasi (audit antirepetisi v2.41) =====

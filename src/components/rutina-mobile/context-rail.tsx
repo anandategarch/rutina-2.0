@@ -255,7 +255,11 @@ function NextUpCard({ title = 'Berikutnya' }: { title?: string }) {
             <Check className="h-4 w-4" strokeWidth={2.4} />
           </span>
           <p className="text-note font-medium leading-snug text-content-secondary">
-            Semua misi hari ini telah dijadwalkan.
+            {/* v2.49 (audit): teks lama \"Semua misi hari ini telah
+                dijadwalkan\" mengklaim sesuatu yang tidak diperiksa —
+                cabang ini juga tercapai saat tak ada pengingat sama
+                sekali / semuanya sudah lewat. */}
+            Tidak ada pengingat yang tersisa hari ini.
           </p>
         </div>
       )}

@@ -40,6 +40,7 @@ import {
   type WorkoutSet,
 } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 
 /**
  * Lembar catat aktivitas (v2.17) — tiga mode mengikuti empat jenis
@@ -155,14 +156,7 @@ export function WorkoutSheet() {
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeWorkoutSheet()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeWorkoutSheet])
+  useEscapeLayer(open, () => closeWorkoutSheet())
 
   const patchBlock = (i: number, patch: Partial<SetBlock>) =>
     setBlocks((bs) => bs.map((b, j) => (j === i ? { ...b, ...patch } : b)))
@@ -175,9 +169,16 @@ export function WorkoutSheet() {
     }
     const kcalNum = Number((kcal || '0').replace(/\D/g, ''))
 
+    /* v2.49 (audit): guard Number.isFinite — pemisah desimal telanjang
+       ("."/",") menghasilkan NaN yang LOLOS uji `<= 0` (NaN <= 0 = false
+       di JS), lalu tersimpan sebagai jarak/beban NaN & meracuni pace,
+       PR, dan grafik barbel. */
+    const kmNum = Number(distance.replace(',', '.'))
+    const durOK = Number.isFinite(dur) && dur > 0
+
     if (mode === 'kardio') {
-      const km = Number(distance.replace(',', '.'))
-      if (km <= 0 || dur <= 0) {
+      const km = kmNum
+      if (!(Number.isFinite(km) && km > 0) || !durOK) {
         toast.warning('Isi jarak dan durasi dulu')
         return
       }
@@ -197,7 +198,7 @@ export function WorkoutSheet() {
     }
 
     if (mode === 'badminton') {
-      if (dur <= 0) {
+      if (!durOK) {
         toast.warning('Isi durasi bermain dulu')
         return
       }
@@ -224,7 +225,15 @@ export function WorkoutSheet() {
     for (const b of blocks) {
       const w = Number(b.weight.replace(',', '.'))
       const r = Number(b.reps)
-      if (!b.exercise || w <= 0 || r <= 0 || b.count < 1) continue
+      if (
+        !b.exercise ||
+        !Number.isFinite(w) ||
+        w <= 0 ||
+        !Number.isFinite(r) ||
+        r <= 0 ||
+        b.count < 1
+      )
+        continue
       for (let i = 0; i < b.count; i++) {
         valid.push({ exercise: b.exercise, weight: w, reps: r })
       }
@@ -247,7 +256,12 @@ export function WorkoutSheet() {
     )
   }
 
-  const pace = paceOf(Number(duration || '0'), Number(distance.replace(',', '.') || '0'))
+  /* Pace pratinjau — paceOf menolak NaN/0 sendiri (audit v2.49), jadi
+     pemisah desimal telanjang tak lagi menghasilkan "NaN'NaN\"". */
+  const pace = paceOf(
+    Number(duration || '0'),
+    Number(distance.replace(',', '.') || '0'),
+  )
 
   /* ===== Deload-aware targets — mode beban + masa deload aktif ===== */
   const deloadOn = deloadActive(deloadUntil)
@@ -265,7 +279,15 @@ export function WorkoutSheet() {
     blocks.forEach((b, i) => {
       const w = Number(b.weight.replace(',', '.'))
       const r = Number(b.reps)
-      if (!b.exercise || w <= 0 || r <= 0 || b.count < 1) return
+      if (
+        !b.exercise ||
+        !Number.isFinite(w) ||
+        w <= 0 ||
+        !Number.isFinite(r) ||
+        r <= 0 ||
+        b.count < 1
+      )
+        return
       spans.push({ index: i, count: b.count })
       for (let k = 0; k < b.count; k++) valid.push({ exercise: b.exercise, weight: w, reps: r })
     })

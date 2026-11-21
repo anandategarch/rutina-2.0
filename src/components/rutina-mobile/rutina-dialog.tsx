@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { fade, pressSnappy } from '@/lib/motion/transitions'
 import { CONTENT_W } from './layout-widths'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 
 /**
  * RutinaDialog — dialog terpusat standar (kartu di tengah bingkai ponsel).
@@ -36,15 +37,9 @@ export function RutinaDialog({
   const panelRef = useRef<HTMLDivElement>(null)
 
   useFocusTrap(open, panelRef)
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — dialog bersarang
+     (konfirmasi di atas sheet) ditutup berlapis, bukan serentak. */
+  useEscapeLayer(open, onClose)
 
   return (
     <AnimatePresence>

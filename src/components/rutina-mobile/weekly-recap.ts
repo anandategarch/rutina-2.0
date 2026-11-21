@@ -10,7 +10,7 @@
 import {
   addDaysISO,
   bestStreak,
-  habitsOn,
+  dayCompliance,
   weekStartISO,
   WEEKDAY_MIN,
   XP_PER_TASK,
@@ -86,28 +86,18 @@ export function recapRangeLabel(start: string, end: string): string {
 }
 
 /** Hitungan misi selesai yang SADAR-JADWAL untuk sebuah tanggal
- *  (audit v2.47 (3-d)): penyelsaian kebiasaan yang dikenal
- *  namun TIDAK terjadwal tanggal itu (bonus kartu pemulihan / Sorotan
- *  risiko runtun) tidak dihitung — senada pembilang hero Beranda v2.45
- *  (habitsOn + isDoneOn), sehingga daun sulur rekap (metGoal) tidak
- *  bertunas dari centang luar jadwal. Entri ber-id yang tak dikenal
- *  tetap dihitung: deleteHabit membersihkan jejak completions-nya,
- *  jadi id yatim bukan buatan aplikasi — dan jadwalnya memang tak
- *  bisa dipastikan. */
+ *  (audit v2.47 (3-d), DISATUKAN v2.49): kini pemetaan tipis di atas
+ *  dayCompliance — SATU sumber kepatuhan (sadar-createdAt, hari-jeda
+ *  diampuni keluar dari penyebut, bonus luar jadwal & id yatim tak
+ *  dihitung). Rumus lokal lama (habitsOn + isDoneOn) menumbuhkan daun
+ *  sulur dari centang pada hari-jeda dan bisa berselisih dengan hero
+ *  Beranda / lembar detail atas data yang sama. */
 function scheduledDoneCountOn(
   habits: Habit[],
   c: Completions,
   dateISO: string,
 ): number {
-  const known = new Set(habits.map((h) => h.id))
-  const scheduled = new Set(habitsOn(habits, dateISO).map((h) => h.id))
-  let done = 0
-  for (const [id, v] of Object.entries(c[dateISO] ?? {})) {
-    if (v !== true) continue
-    if (known.has(id) && !scheduled.has(id)) continue
-    done++
-  }
-  return done
+  return dayCompliance(habits, c, dateISO).done
 }
 
 /** Ringkasan pekan berjalan + pembanding pekan lalu. */
@@ -123,13 +113,17 @@ export function weeklyRecapOf(input: WeeklyRecapInput): WeeklyRecapInfo {
   for (let d = 0; d < 7; d++) {
     const iso = addDaysISO(start, d)
     const isFuture = iso > today
-    const done = scheduledDoneCountOn(habits, completions, iso)
+    const dc = dayCompliance(habits, completions, iso)
+    const done = dc.done
     if (!isFuture) missionsDone += done
     days.push({
       iso,
       label: WEEKDAY_MIN[fromISO(iso).getDay()],
       done,
-      scheduled: habitsOn(habits, iso).length,
+      /* v2.49 (audit): penyebut ikut dayCompliance — hari-jeda diampuni,
+         sepakat dengan hero & lembar detail (dulu habitsOn mentah
+         menampilkan "2/3 jadwal" untuk hari yang 1-nya berjeda). */
+      scheduled: dc.due,
       metGoal: done >= dailyGoal && dailyGoal > 0,
       isToday: iso === today,
       isFuture,

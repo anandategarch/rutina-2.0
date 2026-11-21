@@ -32,6 +32,7 @@ import { RutinaSheet } from './rutina-sheet'
 import {
   addDaysISO,
   fromISO,
+  dayCompliance,
   habitsOn,
   isDoneOn,
   longDateLabel,
@@ -172,12 +173,13 @@ function useDayData(shown: string): DayData | null {
       done: isDoneOn(completions, shown, h.id),
       rest: (h.restDays ?? []).includes(shown),
     }))
-    /* Ringkasan kepala sepakat dengan sulur/heatmap: jeda diampuni
-       keluar dari pembilang & penyebut (dayCompliance di store.ts). */
-    const dueRows = habitRows.filter((r) => !r.rest)
-    const doneCount = dueRows.filter((r) => r.done).length
-    const dueCount = dueRows.length
-    const restCount = habitRows.length - dueRows.length
+    /* v2.49 (audit): ringkasan kepala = dayCompliance langsung (satu
+       sumber) — duplikat rumus pool/due/done/rest dihapus; perilaku
+       identik (jeda diampuni, sadar-createdAt). */
+    const dc = dayCompliance(habits, completions, shown)
+    const doneCount = dc.done
+    const dueCount = dc.due
+    const restCount = habitRows.length - dueCount
 
     const dayNotes = notesOnDate(notes, shown, today)
     const allDayTxs = txs.filter((t) => t.ts === shown)
@@ -293,8 +295,14 @@ function DayDetailBody({
                         diampuni keluar penyebut, selaras sulur & heatmap);
                         info jeda disebut eksplisit, baris per-kebiasaan
                         di bawah tetap memakai labelnya sendiri. */}
-                    {data.doneCount > 0 &&
-                      ` (${Math.round((data.doneCount / data.dueCount) * 100)}%)`}
+                    {data.doneCount > 0
+                      ? ` (${Math.round((data.doneCount / data.dueCount) * 100)}%)`
+                      : /* v2.49 (audit): 0% NYATA tetap ditulis — permukaan
+                           lain (heatmap/aria) menyebut 0%, tanpa ini lembar
+                           hari membaca "0 dari 3 selesai" tanpa vonis. */
+                        data.dueCount > 0
+                        ? ' (0%)'
+                        : ''}
                     {data.restCount > 0 && `, ${data.restCount} jeda diampuni`}
                   </p>
                   <ul className="mt-2 space-y-2">

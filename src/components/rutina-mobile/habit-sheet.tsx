@@ -60,6 +60,7 @@ import {
   type WorkoutKind,
 } from './store'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 
 /** Urutan tampil hari: Senin → Minggu. */
 const DISPLAY_DAYS = [1, 2, 3, 4, 5, 6, 0]
@@ -169,21 +170,9 @@ export function HabitSheet() {
      terbuka di atas sheet: Radix memang sengaja MEMBIARKAN Escape pada
      alertdialog (konfirmasi tak boleh terlewat). Tanpa guard ini sheet
      ikut tertutup dan dialog tertinggal yatim di atas layar kosong. */
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      /* Tanpa pengecekan state "open": Radix 1.1.x memang TIDAK menahan
-         Escape pada AlertDialog (hanya interaksi luar), jadi saat handler
-         window ini berjalan dialog sudah memasuki animasi keluar namun
-         ELEMENNYA masih ada — Escape pertama menutup dialog saja,
-         Escape kedua menutup sheet. */
-      if (document.querySelector('[role="alertdialog"]')) return
-      closeHabitSheet()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, closeHabitSheet])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — guard AlertDialog
+     terpusat di dispatcher overlay-escape. */
+  useEscapeLayer(open, closeHabitSheet)
 
   const maxTarget = draft.schedule.length || 7
 
@@ -1111,7 +1100,9 @@ export function HabitSheet() {
                       {upcomingRestDays.map((iso) => (
                         <span
                           key={iso}
-                          className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2.5 py-1 text-eyebrow font-semibold text-espresso"
+                          /* v2.49 (audit): kontras gelap — pola text-warning
+                             (lihat daily-highlight-card). */
+                          className="inline-flex items-center gap-1 rounded-full bg-gold/25 px-2.5 py-1 text-eyebrow font-semibold text-warning"
                         >
                           <Snowflake
                             aria-hidden="true"

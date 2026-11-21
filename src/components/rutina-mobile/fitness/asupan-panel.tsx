@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
 import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { useAnimePop } from '../anime-kit'
 import {
@@ -96,6 +97,8 @@ function entriesOn(entries: FoodEntry[], date: string): FoodEntry[] {
 /* ===== Baris jurnal makan ===== */
 
 function FoodRow({ entry }: { entry: FoodEntry }) {
+  /* v2.49 (audit): gerbang anti-replay baris jurnal makan. */
+  const playRows = useFirstVisit('bugar-asupan-rows')
   const deleteFoodEntry = useRutina((s) => s.deleteFoodEntry)
   /* v2.45 (audit F2): label porsi SEKALI dengan spasi yang benar —
      dulu "½1 piring (½)" / "1½× 1 piring (1½×)" tercetak dua kali
@@ -111,7 +114,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
   return (
     <m.div
       layout="position"
-      initial={{ opacity: 0, y: 14 }}
+      initial={playRows ? { opacity: 0, y: 14 } : false}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={motionTokens.preset.chipReveal}
@@ -185,6 +188,8 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
 /* ===== Panel Asupan ===== */
 
 export function AsupanPanel() {
+  /* v2.49 (audit): gerbang anti-replay seksi-seksi Asupan (pola Latihan). */
+  const playSection = useFirstVisit('bugar-asupan-sections')
   const foodEntries = useRutina((s) => s.foodEntries)
   const calorieTarget = useRutina((s) => s.calorieTarget)
   const setCalorieTarget = useRutina((s) => s.setCalorieTarget)
@@ -229,6 +234,14 @@ export function AsupanPanel() {
     () => burnedToday(workouts, bodyLogs, today),
     [workouts, bodyLogs, today],
   )
+
+  /* v2.49 (audit): kkal tanpa smartwatch adalah estimasi MET — WorkoutRow
+     di Bugar memberi label "(taksiran)"; neraca Asupan ikut jujur bila
+     salah satu sesi hari ini memakai fallback (bukan angka smartwatch). */
+  const burnedEstimated = useMemo(
+    () => workouts.some((w) => w.date === today && w.kcal == null),
+    [workouts, today],
+  )
   const allowance = calorieTarget + burned
 
   /* Deret 7 hari untuk grafik mini. */
@@ -270,7 +283,7 @@ export function AsupanPanel() {
     <div>
       {/* Neraca kalori hari ini */}
       <m.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={motionTokens.preset.chipReveal}
         aria-label="Neraca kalori hari ini"
@@ -388,7 +401,7 @@ export function AsupanPanel() {
           <p className="text-note font-bold tabular-nums text-module-accent-fg">
             +<span ref={burnedRef} className="inline-block">{fmt(burned)}</span>
             <span className="ml-0.5 text-chart-label font-semibold text-module-accent-fg/75">
-              kkal
+              kkal{burnedEstimated && burned > 0 ? ' (taksiran)' : ''}
             </span>
           </p>
         </div>
@@ -549,7 +562,7 @@ export function AsupanPanel() {
         type="button"
         onClick={openFoodSheet}
         whileTap={{ scale: 0.97 }}
-        initial={{ opacity: 0, y: 14 }}
+        initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         className="interactive mt-3 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-surface-inverse text-section font-bold text-content-inverse shadow-soft hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -624,7 +637,11 @@ export function AsupanPanel() {
                       : `Lihat semua (${rows.length}) — ${hiddenCount} lainnya`}
                   </button>
                 )}
-                {rows.length === 0 && shownEntries.length === 0 && (
+                {/* v2.49 (audit): stub per-slot HANYA bila hari itu punya
+                    catatan di slot lain — hari yang benar-benar kosong
+                    menumpuk 5 pesan "kosong" beruntun (4 slot + empty
+                    state besar); cukup satu. */}
+                {rows.length === 0 && shownEntries.length > 0 && (
                   <div className="rounded-2xl border border-dashed border-border px-4 py-3 text-center">
                     <p className="text-meta font-medium text-content-muted">
                       Belum ada catatan {slot.label.toLowerCase()}
@@ -637,7 +654,7 @@ export function AsupanPanel() {
 
           {shownEntries.length === 0 && (
             <m.div
-              initial={{ opacity: 0, y: 14 }}
+              initial={playSection ? { opacity: 0, y: 14 } : false}
               animate={{ opacity: 1, y: 0 }}
               transition={motionTokens.preset.chipReveal}
               className="rounded-xl border-2 border-dashed border-primary/30 px-6 py-9 text-center"
@@ -715,7 +732,7 @@ export function AsupanPanel() {
                     className="interactive group flex h-full min-w-0 flex-1 cursor-pointer flex-col justify-end rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
                   >
                     <m.div
-                      initial={{ scaleY: 0 }}
+                      initial={playSection ? { scaleY: 0 } : false}
                       animate={{ scaleY: 1 }}
                       transition={{
                         ...motionTokens.preset.data,

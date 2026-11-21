@@ -78,7 +78,9 @@ import {
 const FAQ_ITEMS = [
   {
     q: 'Bagaimana cara kerja XP dan level?',
-    a: 'Setiap misi yang selesai bernilai 80 XP, bonus harian 120 XP. Kumpulkan cukup XP untuk naik level dan membuka lencana baru.',
+    /* v2.49 (audit): hanya ada dua tingkat (7 → 8) dan tanpa lencana —
+       jangan menjanjikan yang tidak ada. */
+    a: 'Setiap misi yang selesai bernilai 80 XP, bonus harian 120 XP. Capai 2.400 XP untuk mencapai Level 8 — penanda musim penuh dedikasi.',
   },
   {
     q: 'Apa itu streak dan bagaimana menjaganya?',
@@ -489,9 +491,15 @@ export default function ProfileScreen() {
 
   /* Pengingat aktif — jumlah nyata kebiasaan yang memakai jam pengingat
      (diatur per kebiasaan di lembar suntingnya, bukan saklar global).
+     v2.49 (audit): hanya kebiasaan AKTIF — kebiasaan terarsip tak bisa
+     mengingatkan apa pun, menghitungnya menaikkan rasio secara palsu.
      useMemo dengan alasan yang sama: render scrollspy berulang saat gulir. */
+  const activeHabitCount = useMemo(
+    () => habits.filter((h) => !h.archived).length,
+    [habits],
+  )
   const reminderCount = useMemo(
-    () => habits.filter((h) => h.reminder !== null).length,
+    () => habits.filter((h) => !h.archived && h.reminder !== null).length,
     [habits],
   )
 
@@ -924,10 +932,10 @@ export default function ProfileScreen() {
               label="Pengingat kebiasaan"
               description={
                 <>
-                  {`${reminderCount} dari ${habits.length} kebiasaan memakai jam pengingat`}
+                  {`${reminderCount} dari ${activeHabitCount} kebiasaan memakai jam pengingat`}
                   {/* v2.39 (audit visual data): bar rasio pengingat —
                       teks tetap membawa angka persis. */}
-                  {habits.length > 0 && (
+                  {activeHabitCount > 0 && (
                     <span
                       aria-hidden="true"
                       className="mt-1.5 block h-1 overflow-hidden rounded-full bg-surface-sunken"

@@ -358,10 +358,14 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
                   strokeDasharray="4 4"
                 />
                 <text
-                  x={w - 40}
+                  /* v2.49 (audit): jangkar kanan — label start di x=w−40
+                     memotong "%" di tepi viewBox saat rata-rata tinggi
+                     ("rata² 100,0%" ≈ 50px lebar). */
+                  x={w - 2}
                   y={avgY + 2.5}
                   fontSize={8}
                   fontWeight={600}
+                  textAnchor="end"
                   fill="var(--content-muted)"
                 >
                   rata² {fmtAvg(stats.avg)}%

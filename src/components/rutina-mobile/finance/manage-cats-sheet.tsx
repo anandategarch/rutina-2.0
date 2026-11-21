@@ -31,6 +31,7 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { CONTENT_W } from '../layout-widths'
 import { useRutina, type TxType } from '../store'
 import { useFocusTrap } from '../use-focus-trap'
+import { useEscapeLayer } from '../overlay-escape'
 import { CATS_BY_TYPE, catMetaOf } from './cats'
 import { formatIDR } from './utils'
 
@@ -82,22 +83,12 @@ export function ManageCatsSheet() {
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        /* Radix 1.1.x tidak menahan Escape pada AlertDialog — saat handler
-           ini berjalan dialog konfirmasi hapus sudah menutup namun
-           elemennya masih ada; Escape pertama untuk dialog, kedua untuk
-           sheet. */
-        if (document.querySelector('[role="alertdialog"]')) return
-        if (editing) setEditing(null)
-        else close()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, close, editing])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — guard AlertDialog
+     terpusat di dispatcher; mode sunting ditutup lebih dulu. */
+  useEscapeLayer(open, () => {
+    if (editing) setEditing(null)
+    else close()
+  })
 
   /* Statistik nyata per kategori — jumlah transaksi + total nominal. */
   const rows = useMemo<CatRowInfo[]>(() => {
@@ -381,7 +372,7 @@ export function ManageCatsSheet() {
                                       type="button"
                                       aria-label={`Hapus kategori ${meta.label}`}
                                       title="Hapus kategori"
-                                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-content-danger transition-colors hover:bg-destructive/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </button>

@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { monthLabel } from './finance/utils'
-import { DAYS, fromISO, isoOf } from './store'
+import { DAYS, fromISO, isoOf, longDateLabel } from './store'
 
 /**
  * MonthCalendar — kisi bulanan aktivitas (audit #7).
@@ -110,7 +110,9 @@ export function MonthCalendar({
         key={iso}
         type="button"
         onClick={() => onSelect(iso)}
-        aria-label={`${iso}${isToday ? ' — hari ini' : ''}${isSel ? ' — terpilih' : ''}${
+        /* v2.49 (audit): tanggal MANUSIA, bukan ISO mentah — selaras
+           konstelasi/kalender jurnal ("Sen, 16 Jun"). */
+        aria-label={`${longDateLabel(iso)}${isToday ? ' — hari ini' : ''}${isSel ? ' — terpilih' : ''}${
           d && (d.done ?? 0) > 0
             ? ` — ${d.done} kebiasaan selesai`
             : ''

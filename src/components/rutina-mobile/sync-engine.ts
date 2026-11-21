@@ -362,12 +362,16 @@ function hasUnsyncedEdits(): boolean {
  *  disembunyikan/ditutup (visibilitychange/pagehide): jendela debounce
  *  900 ms bisa terpotong oleh itu dan suntingan tercecer sampai tab
  *  dibuka lagi. Penjaga in-flight ada di push() sendiri (dijadwalkan
- *  ulang otomatis bila push lain sedang berjalan — tidak dobel). */
+ *  ulang otomatis bila push lain sedang berjalan — tidak dobel).
+ *  v2.49 (audit): jangan pernah bilas buta dari perangkat ber-data
+ *  contoh warisan — GET+negosiasi tak mungkin di jendela pagehide,
+ *  jadi cek seed lokal (sinkron) cukup. */
 function flushPendingEdits(): void {
   /* Negosiasi boot belum tuntas / snapshot server sedang diterapkan —
      boot() sendiri yang menuntaskan nasib suntingan lokal. */
   if (!ready || suppress) return
   if (!hasUnsyncedEdits()) return
+  if (hasLegacyDemoSeed()) return
   if (pushTimer) {
     clearTimeout(pushTimer)
     pushTimer = null
@@ -442,6 +446,73 @@ function hasLocalData(): boolean {
     s.foodEntries.length > 0 ||
     Object.keys(s.bodyLogs).length > 0
   )
+}
+
+/** v2.49 (audit): negosiasi push-vs-pull yang dulu hanya hidup di
+ *  boot() — diekstrak agar jalur resume (online/fokus) TIDAK pernah
+ *  mendorong buta. Tanpa ini, perangkat yang kembali online dengan
+ *  suntingan tertunda menimpa snapshot server tanpa membandingkan
+ *  apakah server sudah bergerak (dan tanpa penjual demo-seed yang
+ *  boot() miliki). Kebijakan tetap identik dengan boot: suntingan
+ *  lokal yang belum terkirim menang; selain itu server-menang. */
+let negotiateInFlight: Promise<void> | null = null
+
+async function negotiate(): Promise<void> {
+  /* Satu negosiasi pada satu waktu — online + fokus bisa beruntun. */
+  if (negotiateInFlight) return
+  negotiateInFlight = (async () => {
+    let remote: StateResponse | null = null
+    try {
+      const res = await fetch('/api/state', {
+        cache: 'no-store',
+        headers: syncHeaders(),
+      })
+      if (res.ok) remote = (await res.json()) as StateResponse
+    } catch {
+      /* Offline di tengah jalan — biarkan penjadwal biasa mencoba lagi. */
+      return
+    }
+    if (!remote?.initialized || !remote.state) return
+    /* Validasi snapshot server — sama dengan boot() (audit v2.45). */
+    const check = syncStateSchema.safeParse(remote.state)
+    if (!check.success) {
+      console.warn('[sync] snapshot server tidak sehat saat negosiasi')
+      return
+    }
+    const meta = readMeta()
+    const serverPushAt = remote.syncedAt ? Date.parse(remote.syncedAt) : 0
+    const lastSynced = meta?.lastSyncedAt ?? 0
+    const localNewer =
+      lastSynced > 0
+        ? (meta?.lastEditAt ?? 0) > lastSynced
+        : (meta?.lastEditAt ?? 0) > (serverPushAt || 0)
+    const demoSeed = hasLegacyDemoSeed()
+    const neverSynced = lastSynced === 0
+    const localBeatsEmpty =
+      isRemoteEmpty(check.data) && hasLocalData() && neverSynced && !demoSeed
+    if ((localNewer && !demoSeed) || localBeatsEmpty) {
+      if (hasUnsyncedEdits()) await push()
+    } else if (serverPushAt > lastSynced) {
+      /* Server bergerak sejak sinkron terakhir kita (perangkat lain)
+         dan kita tidak punya suntingan yang lebih baru → tarik. */
+      suppress = true
+      try {
+        applyServerState(check.data)
+        const now = Date.now()
+        patchMeta({ lastSyncedAt: now })
+        setSyncKind('synced', now)
+      } catch (error) {
+        console.warn('[sync] applyServerState gagal (negosiasi):', error)
+      } finally {
+        suppress = false
+      }
+    }
+  })()
+  try {
+    await negotiateInFlight
+  } finally {
+    negotiateInFlight = null
+  }
 }
 
 async function boot(): Promise<void> {
@@ -546,6 +617,11 @@ async function boot(): Promise<void> {
   materializeDue()
 
   ready = true
+  /* v2.49 (audit): suntingan yang tercatat SEBELUM ready (jendela
+     boot/splash ~2,6 dtk — mis. salinan transaksi berulang yang baru
+     dimaterialisasi) dulunya menunggu suntingan berikutnya atau event
+     online/fokus untuk terdorong. Bilas sekali sekarang. */
+  if (hasUnsyncedEdits()) schedulePush(0)
 }
 
 /* ===== Hook ===== */
@@ -587,11 +663,12 @@ export function useSyncEngine(): void {
     })
 
     /* Koneksi datang/pergi — indikator status ikut bernapas: saat kembali
-       online, dorong perubahan tertunda (bila ada) atau cukup pulihkan
-       keadaan "tersinkron". */
+       online, NEGOSIASIKAN dulu dengan server (v2.49 audit — dulu:
+       dorong buta) — snapshot server ditarik & dibandingkan dengan
+       stempel lokal sebelum diputuskan dorong vs tarik. */
     const onOnline = () => {
       if (hasUnsyncedEdits()) {
-        schedulePush(0)
+        void negotiate()
       } else if (syncStatusStore.getState().kind === 'offline') {
         setSyncKind('synced')
       }
@@ -609,7 +686,9 @@ export function useSyncEngine(): void {
     const onFocus = () => {
       if (!hasUnsyncedEdits()) return
       const kind = syncStatusStore.getState().kind
-      if (kind === 'error' || kind === 'offline') schedulePush(0)
+      /* v2.49 (audit): negosiasi (GET dulu) alih-alih dorong buta —
+         perangkat lain bisa saja mendorong saat tab ini di belakang. */
+      if (kind === 'error' || kind === 'offline') void negotiate()
     }
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
@@ -626,11 +705,6 @@ export function useSyncEngine(): void {
       window.removeEventListener('focus', onFocus)
     }
   }, [])
-}
-
-/** Status mesin untuk indikator UI (profil): sudah pernah sinkron? */
-export function syncStatus(): { lastSyncedAt: number | null } {
-  return { lastSyncedAt: readMeta()?.lastSyncedAt ?? null }
 }
 
 /** Tarik paksa snapshot server dan terapkan ke store — melewati negosiasi
@@ -654,9 +728,21 @@ export async function forcePull(): Promise<boolean> {
       setSyncKind('error')
       return false
     }
+    /* v2.49 (audit): validasi snapshot dengan skema yang sama dengan
+     *  boot() — baris server yang cacat tidak boleh menyentuh store
+     *  lewat jalur tarik-paksa (asimetri pengerasan v2.45 ditutup). */
+    const check = syncStateSchema.safeParse(remote.state)
+    if (!check.success) {
+      const issue = check.error.issues[0]
+      console.warn(
+        `[sync] snapshot server tidak sehat (forcePull): ${issue.path.join('.')} — ${issue.message}`,
+      )
+      setSyncKind('error')
+      return false
+    }
     suppress = true
     try {
-      applyServerState(remote.state)
+      applyServerState(check.data)
       const now = Date.now()
       patchMeta({ lastSyncedAt: now, lastEditAt: 0 })
       setSyncKind('synced', now)

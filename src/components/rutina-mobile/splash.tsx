@@ -177,7 +177,9 @@ export function Splash({ onDone }: { onDone: () => void }) {
         Kebiasaan kecil, perubahan besar.
       </p>
 
-      <p className="absolute bottom-8 text-chart-label font-bold uppercase tracking-[0.28em] text-primary-foreground/50">
+      {/* v2.49 (audit): hormati safe-area — tanpa ini teks duduk di zona
+          home-indicator perangkat berponi selama 2,6 dtk splash. */}
+      <p className="absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] text-chart-label font-bold uppercase tracking-[0.28em] text-primary-foreground/50">
         Earth Tone Edition
       </p>
     </m.div>

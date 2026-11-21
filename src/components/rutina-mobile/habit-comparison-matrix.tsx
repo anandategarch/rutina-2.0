@@ -135,25 +135,28 @@ export function HabitComparisonMatrix({
             </thead>
             <tbody>
               {rows.map((r) => (
+                /* v2.49 (audit): baris tabel kembali jadi BARIS sungguhan —
+                   role="button" pada <tr> menetralkan semantik row/th
+                   (pembaca layar berhenti mengumumkan sel sebagai tabel).
+                   Ketuk-baris penuh tetap untuk pointer; keyboard memakai
+                   tombol nama kebiasaan di sel pertama. */
                 <tr
                   key={r.habit.id}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Buka detail ${r.habit.title} — rata-rata ${r.avg ?? '—'}% empat pekan`}
                   onClick={() => onSelect(r.habit.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onSelect(r.habit.id)
-                    }
-                  }}
-                  className="interactive cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="interactive cursor-pointer rounded-lg focus-within:focus-visible:outline focus-within:focus-visible:outline-2 focus-within:focus-visible:outline-offset-2 focus-within:focus-visible:outline-primary"
                 >
                   <th
                     scope="row"
                     className="max-w-0 truncate pr-2 text-left text-meta font-semibold text-content-primary"
                   >
-                    {r.habit.title}
+                    <button
+                      type="button"
+                      onClick={() => onSelect(r.habit.id)}
+                      aria-label={`Buka detail ${r.habit.title} — rata-rata ${r.avg ?? '—'}% empat pekan`}
+                      className="cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      {r.habit.title}
+                    </button>
                   </th>
                   {r.pcts.map((p, i) => (
                     <td key={i} className="p-0">

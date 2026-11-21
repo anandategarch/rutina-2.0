@@ -24,6 +24,7 @@ import { MOOD_DOT, useJournalUi } from './journal-ui'
 import { FOLDER_SHORT, noteDateLabel, useRutina } from './store'
 import { playfair } from './serif'
 import { useFocusTrap } from './use-focus-trap'
+import { useEscapeLayer } from './overlay-escape'
 import { motionTokens } from '@/lib/motion/tokens'
 
 /**
@@ -55,22 +56,10 @@ export function ReadingSheet() {
   // AlertDialog hapus juga dikecualikan: Radix sengaja menahan Escape
   // pada alertdialog — tanpa guard ini sheet tertutup dan dialog
   // konfirmasi tertinggal yatim.
-  useEffect(() => {
-    if (!note) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      if (useJournalUi.getState().canvasOpen) return
-      /* Tanpa pengecekan state "open": Radix 1.1.x memang TIDAK menahan
-         Escape pada AlertDialog (hanya interaksi luar), jadi saat handler
-         window ini berjalan dialog sudah memasuki animasi keluar namun
-         ELEMENNYA masih ada — Escape pertama menutup dialog saja,
-         Escape kedua menutup sheet. */
-      if (document.querySelector('[role="alertdialog"]')) return
-      closeReading()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [note, closeReading])
+  /* v2.49 (audit): Escape lewat tumpukan lapisan — canvas tulis &
+     AlertDialog di atasnya memiliki lapisan sendiri (dispatcher
+     memprioritaskan alertdialog); guard lama kini terpusat. */
+  useEscapeLayer(Boolean(note), closeReading)
 
   return (
     <AnimatePresence>
