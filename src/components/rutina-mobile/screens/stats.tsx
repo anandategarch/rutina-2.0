@@ -500,10 +500,15 @@ export default function StatsScreen() {
      aria-live di bawah grafik (audit Tahap 2 #3). */
   const [selBar, setSelBar] = useState<number | null>(null)
 
-  /* Mode visual seksi Kinerja & Konsistensi (v2.37 §8): batang misi +
-     area 30 hari (grafik) atau heatmap 12 pekan — satu ruang, dua
-     sudut pandang. */
-  const [vizMode, setVizMode] = useState<'grafik' | 'panas'>('grafik')
+  /* Mode visual seksi Konsistensi (v2.58, audit Tahap 2): rasi bintang
+     30 hari (tren) atau heatmap 12 pekan (panas) — satu ruang, satu
+     grafik besar pada satu waktu (dulu mode grafik menumpuk batang misi
+     + rasi secara vertikal). */
+  const [vizMode, setVizMode] = useState<'tren' | 'panas'>('tren')
+
+  /* Lipatan Wawasan & Pencapaian (v2.58) — terkendali agar pintasan nav
+     "Wawasan" bisa membukanya lalu menggulir padanya. */
+  const [insightsOpen, setInsightsOpen] = useState(false)
 
   /* Gerbang pandangan-pertama untuk grafik tren (audit Tahap 2 #4):
      kartu dipasang sejak awal (tinggi tetap, tanpa layout shift), grafik
@@ -973,54 +978,180 @@ export default function StatsScreen() {
           </p>
         </header>
 
-        {/* Profil pemain — avatar memakai resep standar bg-cocoa/text-parchment
-            (selaras Beranda & Profil), bukan varian matcha yang menyendiri. */}
-        <section
-          aria-label="Profil pemain"
-          className="mt-[var(--layout-gap)] flex items-center gap-3"
-        >
-          <Avatar className="h-10 w-10 border-2 border-cocoa/40">
-            <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
-              AN
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-section font-semibold tracking-tight">
-              Ananda
+        {/* ===== HERO OBSERVATORIUM (v2.58, audit Tahap 2) — profil
+            pemain, cincin Level/XP, dan tiga metrik kunci disatukan dalam
+            SATU permukaan hero. Dulu empat blok bertumpuk sebelum grafik
+            pertama (baris profil + cincin XP 176px + kartu KPI + kartu
+            wawasan periode); wawasan periode kini tinggal di lipatan
+            Wawasan & Pencapaian di bawah. ===== */}
+        <section aria-label="Ringkasan pemain" className="mt-[var(--layout-gap)]">
+          <m.div
+            initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-24px' }}
+            transition={motionTokens.preset.data}
+            className="@container rounded-2xl border border-border bg-hero-surface p-4 shadow-soft sm:p-5"
+          >
+            {/* Baris profil — avatar, nama, lencana level. */}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-cocoa/40">
+                <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
+                  AN
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-section font-semibold tracking-tight text-hero-content">
+                  Ananda
+                </p>
+                <p className="text-eyebrow font-medium text-hero-content-muted">
+                  Petualang Konsisten
+                </p>
+              </div>
+              <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-hero-surface-raised px-3 text-eyebrow font-semibold text-pistachio shadow-soft">
+                <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
+                LV {level}
+              </span>
+            </div>
+
+            {/* Cincin XP (ringkas 144px) + tiga metrik kunci — sejajar pada
+                ruang cukup, menumpuk tenang di ponsel. */}
+            <div className="mt-4 flex flex-col items-center gap-5 @[34rem]:flex-row @[34rem]:gap-7">
+              <m.div
+                initial={playEntrance ? { opacity: 0, scale: 0.9 } : false}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={motionTokens.preset.data}
+                whileTap={{ scale: 0.96 }}
+                className="relative shrink-0 cursor-pointer select-none"
+              >
+                <svg
+                  viewBox="0 0 200 200"
+                  className="h-36 w-36 -rotate-90"
+                  role="img"
+                  aria-label={`Progres XP level ${level}: ${Math.round(progress * 100)} persen`}
+                >
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={R}
+                    fill="none"
+                    stroke="var(--border-default)"
+                    strokeWidth="13"
+                  />
+                  <m.circle
+                    cx="100"
+                    cy="100"
+                    r={R}
+                    fill="none"
+                    stroke={`url(#${xpGradId})`}
+                    strokeWidth="13"
+                    strokeLinecap="round"
+                    strokeDasharray={CIRC}
+                    initial={
+                      playEntrance
+                        ? { strokeDashoffset: CIRC }
+                        : { strokeDashoffset: CIRC * (1 - progress) }
+                    }
+                    animate={{ strokeDashoffset: CIRC * (1 - progress) }}
+                    transition={motionTokens.spring.progressArc}
+                  />
+                  <defs>
+                    <linearGradient
+                      id={xpGradId}
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" stopColor="var(--chart-stroke-4)" />
+                      <stop offset="100%" stopColor="var(--chart-stroke-1)" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+                    Level
+                  </p>
+                  <p className="text-kpi font-semibold leading-none tabular-nums text-hero-content">
+                    {level}
+                  </p>
+                  <span className="mt-2 rounded-full bg-hero-surface-raised px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
+                    <Counter
+                      to={xp}
+                      immediate={!playEntrance || Boolean(reducedMotion)}
+                    />{' '}
+                    XP
+                  </span>
+                </div>
+              </m.div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+                  Konsistensi · 30 hari
+                </p>
+                <p className="mt-1.5 flex items-baseline gap-1.5">
+                  <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums text-hero-content">
+                    <Counter
+                      to={kpi.consistency}
+                      immediate={!playEntrance || Boolean(reducedMotion)}
+                    />
+                  </span>
+                  <span className="text-note font-semibold text-hero-content-muted">%</span>
+                </p>
+                <p className="mt-1 text-eyebrow font-medium leading-snug text-hero-content-muted">
+                  {kpi.sched > 0
+                    ? `${kpi.done} dari ${kpi.sched} terjadwal selesai`
+                    : 'Belum ada jadwal kebiasaan'}
+                </p>
+                {/* Baris sekunder — misi, streak berjalan, rekor; hairline
+                    atas, dibaca sekali sapuan, tanpa kotak. */}
+                <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1.5 border-t border-hero-content-muted/20 pt-3 text-meta text-hero-content-muted">
+                  <span className="flex items-baseline gap-1.5">
+                    Misi 30 hari
+                    <span className="font-bold tabular-nums text-hero-content">
+                      {kpi.missions}
+                    </span>
+                  </span>
+                  <span className="flex items-baseline gap-1.5">
+                    Streak berjalan
+                    <span className="font-bold tabular-nums text-hero-content">
+                      {best.streak} hari
+                    </span>
+                  </span>
+                  <span className="flex items-baseline gap-1.5">
+                    Rekor
+                    <span className="font-bold tabular-nums text-hero-content">
+                      {best.record} hari
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="mt-4 border-t border-hero-content/10 pt-3 text-center text-eyebrow font-medium text-hero-content-muted">
+              {level >= 8
+                ? 'Level baru terbuka — lanjutkan petualanganmu'
+                : `${remaining} XP lagi menuju Level ${level + 1}`}
             </p>
-            <p className="text-eyebrow font-medium text-content-muted">
-              Petualang Konsisten
-            </p>
-          </div>
-          <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-hero-surface-raised px-3 text-eyebrow font-semibold text-pistachio shadow-soft">
-            <Sparkles className="h-3.5 w-3.5" strokeWidth={2.2} />
-            LV {level}
-          </span>
+          </m.div>
         </section>
 
-        {/* Pintasan seksi (review Statistik v2.13): halaman observatorium
-            panjang — chip melompat mulus ke seksi yang dituju tanpa
-            menggulir manual. scrollIntoView bekerja pada wadah gulir
-            terdekat (root layar ini). Kisi 3 kolom (v2.19) mengganti
-            flex-wrap agar chip selebar-selaras — enam pintasan (Tahap 2:
-            +Wawasan mengikuti urutan seksi baru) membentuk dua baris
-            penuh yang disengaja, tanpa chip menggantung sendirian. */}
+        {/* Pintasan seksi (v2.58, audit Tahap 2): empat area utama —
+            ringkasan (di atas), konsistensi, kalender, dan wawasan; chip
+            Wawasan membuka lipatan Wawasan & Pencapaian lalu menggulir. */}
         <nav
           aria-label="Pintasan seksi Statistik"
-          className="mt-[var(--layout-gap)] grid grid-cols-3 gap-1.5 @[30rem]:flex @[30rem]:flex-wrap"
+          className="mt-[var(--layout-gap)] grid grid-cols-2 gap-1.5 @[30rem]:flex @[30rem]:flex-wrap"
         >
           {[
-            { id: 'stats-tren', label: 'Tren' },
-            { id: 'stats-kalender', label: 'Kalender' },
-            { id: 'stats-laporan', label: 'Laporan' },
-            { id: 'stats-wawasan', label: 'Wawasan' },
-            { id: 'stats-bugar', label: 'Bugar' },
-            { id: 'stats-piala', label: 'Piala' },
+            { id: 'stats-tren', label: 'Tren', open: false },
+            { id: 'stats-kalender', label: 'Kalender', open: false },
+            { id: 'stats-wawasan', label: 'Wawasan', open: true },
+            { id: 'stats-bugar', label: 'Bugar', open: false },
           ].map((s) => (
             <button
               key={s.id}
               type="button"
-              onClick={() =>
+              onClick={() => {
+                if (s.open) setInsightsOpen(true)
                 document
                   .getElementById(s.id)
                   ?.scrollIntoView({
@@ -1028,8 +1159,7 @@ export default function StatsScreen() {
                     behavior: reducedMotion ? 'auto' : 'smooth',
                     block: 'start',
                   })
-              }
-              /* v2.49 (audit): 32px → 36px (pintasan seksi = kontrol utama). */
+              }}
               className="interactive flex h-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-2 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
             >
               {s.label}
@@ -1041,226 +1171,19 @@ export default function StatsScreen() {
             observatory (var(--layout-gap)) agar seluruh layar berbagi satu
             denyut laboratorium data yang seragam. */}
         <div className="mt-[var(--layout-gap)] flex flex-col gap-[var(--layout-gap)]">
-        {/* Ring XP interaktif */}
-        <section
-          className="flex flex-col items-center"
-          aria-label="Progres level pemain"
-        >
-          <m.div
-            initial={playEntrance ? { opacity: 0, scale: 0.9 } : false}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={motionTokens.preset.data}
-            whileTap={{ scale: 0.96 }}
-            className="relative cursor-pointer select-none"
-          >
-            <svg
-              viewBox="0 0 200 200"
-              className="h-44 w-44 -rotate-90"
-              role="img"
-              aria-label={`Progres XP level ${level}: ${Math.round(progress * 100)} persen`}
-            >
-              <circle
-                cx="100"
-                cy="100"
-                r={R}
-                fill="none"
-                stroke="var(--border-default)"
-                strokeWidth="13"
-              />
-              <m.circle
-                cx="100"
-                cy="100"
-                r={R}
-                fill="none"
-                stroke={`url(#${xpGradId})`}
-                strokeWidth="13"
-                strokeLinecap="round"
-                strokeDasharray={CIRC}
-                initial={
-                  playEntrance
-                    ? { strokeDashoffset: CIRC }
-                    : { strokeDashoffset: CIRC * (1 - progress) }
-                }
-                animate={{ strokeDashoffset: CIRC * (1 - progress) }}
-                transition={motionTokens.spring.progressArc}
-              />
-              <defs>
-                <linearGradient
-                  id={xpGradId}
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="100%"
-                >
-                  <stop offset="0%" stopColor="var(--chart-stroke-4)" />
-                  <stop offset="100%" stopColor="var(--chart-stroke-1)" />
-                </linearGradient>
-              </defs>
-            </svg>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-                Level
-              </p>
-              <p className="text-kpi-hero font-semibold leading-none tabular-nums text-content-primary">
-                {level}
-              </p>
-              <span className="mt-2.5 rounded-full bg-hero-surface-raised px-2.5 py-1 text-eyebrow font-semibold text-pistachio">
-                <Counter
-                  to={xp}
-                  immediate={!playEntrance || Boolean(reducedMotion)}
-                />{' '}
-                XP
-              </span>
-            </div>
-          </m.div>
-
-          <p className="mt-3 text-center text-eyebrow font-medium text-content-muted">
-            {level >= 8
-              ? 'Level baru terbuka — lanjutkan petualanganmu'
-              : `${remaining} XP lagi menuju Level ${level + 1}`}
-          </p>
-        </section>
-
-        {/* ===== KPI hierarki (v2.32 Observatory): SATU angka dominan +
-            baris sekunder inline di bawah hairline — menggantikan kisi
-            empat kotak seragam (audit: KPI utama cukup 1–2 dominan;
-            bersama cincin XP, dua fokus halaman, sisanya pendamping). */}
-        <section aria-label="Ringkasan metrik utama">
-          <m.div
-            initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-24px' }}
-            transition={motionTokens.preset.data}
-            className="rounded-2xl border border-border bg-hero-surface p-4 shadow-soft sm:p-5"
-          >
-            <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-              Konsistensi · 30 hari
-            </p>
-            <p className="mt-1.5 flex items-baseline gap-1.5">
-              <span className="text-kpi-lg font-semibold leading-none tracking-tight tabular-nums text-hero-content">
-                <Counter
-                  to={kpi.consistency}
-                  immediate={!playEntrance || Boolean(reducedMotion)}
-                />
-              </span>
-              <span className="text-note font-semibold text-hero-content-muted">%</span>
-            </p>
-            <p className="mt-1 text-eyebrow font-medium leading-snug text-hero-content-muted">
-              {kpi.sched > 0
-                ? `${kpi.done} dari ${kpi.sched} terjadwal selesai`
-                : 'Belum ada jadwal kebiasaan'}
-            </p>
-            {/* Baris sekunder — misi, streak berjalan, rekor; pola sub-metri
-                studio (hairline atas, dibaca sekali sapuan, tanpa kotak). */}
-            <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1.5 border-t border-hero-content-muted/20 pt-3 text-meta text-hero-content-muted">
-              <span className="flex items-baseline gap-1.5">
-                Misi 30 hari
-                <span className="font-bold tabular-nums text-hero-content">
-                  {kpi.missions}
-                </span>
-              </span>
-              <span className="flex items-baseline gap-1.5">
-                Streak berjalan
-                <span className="font-bold tabular-nums text-hero-content">
-                  {best.streak} hari
-                </span>
-              </span>
-              <span className="flex items-baseline gap-1.5">
-                Rekor
-                <span className="font-bold tabular-nums text-hero-content">
-                  {best.record} hari
-                </span>
-              </span>
-              {best.habit && (
-                <span
-                  className="hidden min-w-0 truncate sm:inline"
-                  title={best.habit.title}
-                >
-                  pemegang streak: {best.habit.title}
-                </span>
-              )}
-            </div>
-          </m.div>
-        </section>
-
-        {/* ===== Wawasan Periode Ini (review UI/UX v2.44 Tahap 2) —
-            maksimal tiga temuan pembanding periode tepat setelah KPI:
-            konsistensi vs periode sebelumnya, ringkasan Bugar, arus
-            kas. Kosong bila data pembanding belum cukup. ===== */}
-        {periodInsights.length > 0 && (
-          <section aria-label="Wawasan periode ini" className="mt-[var(--layout-gap)]">
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">
-                  Wawasan Periode Ini
-                </h2>
-                <p className="text-eyebrow font-medium text-content-muted">
-                  30 hari · vs periode sebelumnya
-                </p>
-              </div>
-              <ul className="mt-3 divide-y divide-border-default">
-                {periodInsights.map((f) => {
-                  const Icon =
-                    f.key === 'bugar'
-                      ? Dumbbell
-                      : f.tone === 'up'
-                        ? TrendingUp
-                        : f.tone === 'down'
-                          ? TrendingDown
-                          : Sparkles
-                  return (
-                    <li key={f.key} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                      <span
-                        aria-hidden="true"
-                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                          f.tone === 'up'
-                            ? 'bg-secondary text-success'
-                            : f.tone === 'down'
-                              ? 'bg-clay/20 text-content-danger'
-                              : 'bg-module-accent-soft text-module-accent-strong'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" strokeWidth={2.2} />
-                      </span>
-                      <div className="min-w-0">
-                        <p
-                          className={`text-note font-bold ${
-                            f.tone === 'down' ? 'text-content-danger' : 'text-content-primary'
-                          }`}
-                        >
-                          {f.title}
-                        </p>
-                        <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
-                          {f.body}
-                        </p>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </m.div>
-          </section>
-        )}
-
-        {/* ===== Kinerja & Konsistensi (audit density v2.37 §8) — grafik
-            misi, tren 30 hari, dan peta panas 12 pekan disatukan dalam
-            SATU seksi ber-saklar mode (sebelumnya tiga blok terpisah
-            memakan tiga layar gulir); id stats-tren dipertahankan untuk
-            pintasan nav. ===== */}
+        {/* ===== KONSISTENSI (v2.58, audit Tahap 2) — SATU grafik besar
+            dengan pemilih mode Tren | Peta Panas: rasi bintang 30 hari
+            (tren) atau heatmap 12 pekan (historis). Dulu mode Grafik
+            menumpuk DUA grafik konsistensi besar (batang misi + rasi)
+            secara vertikal di ponsel; batang misi per periode kini
+            analisis lanjutan di dalam lipatan Wawasan & Pencapaian.
+            id stats-tren dipertahankan untuk pintasan nav. ===== */}
         <section
           id="stats-tren"
-          aria-label="Kinerja dan konsistensi"
+          aria-label="Konsistensi"
           className="scroll-mt-3"
         >
-          {/* Judul seksi + saklar mode visual — pola segmen aria-pressed
-              rounded-full, selaras toggle mode pembacaan Heatmap. */}
           <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
             <div className="min-w-0">
               <h2 className="flex items-center gap-1.5 text-section-lg font-bold tracking-tight text-content-primary">
@@ -1268,20 +1191,20 @@ export default function StatsScreen() {
                   aria-hidden="true"
                   className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
                 />
-                Kinerja &amp; Konsistensi
+                Konsistensi
               </h2>
               <p className="mt-0.5 text-meta font-medium text-module-accent-strong">
-                misi per periode · tren 30 hari · peta panas 12 pekan
+                persentase misi selesai · 30 hari · 12 pekan
               </p>
             </div>
             <div
               role="group"
-              aria-label="Mode visual kinerja dan konsistensi"
+              aria-label="Mode visual konsistensi"
               className="flex shrink-0 gap-1 rounded-full border border-border bg-surface-sunken p-0.5"
             >
               {(
                 [
-                  ['grafik', 'Grafik'],
+                  ['tren', 'Tren'],
                   ['panas', 'Peta Panas'],
                 ] as const
               ).map(([id, label]) => (
@@ -1302,10 +1225,743 @@ export default function StatsScreen() {
             </div>
           </div>
 
+          <div className="mt-3">
+            {vizMode === 'tren' ? (
+              /* Tren — rasi bintang 30 hari (v2.47 Life Observatory):
+                 bintang per hari terjadwal, titik redup = tanpa jadwal
+                 (bukan 0%), garis putus rata-rata non-null; bintang bisa
+                 diketuk (baris bacaan aria-live di dalam kartu). */
+                            <m.div
+                initial={playEntrance ? { opacity: 0, y: 16 } : false}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-24px' }}
+                transition={motionTokens.preset.data}
+                className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+              >
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-body font-semibold tracking-tight text-content-secondary">
+                      Tren Penyelesaian
+                    </p>
+                    <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
+                      persentase misi selesai · 30 hari terakhir
+                    </p>
+                    {/* Rata-rata hanya tampil bila ada hari terjadwal —
+                        menahan diri dari angka 0% karangan. */}
+                    {trendAvgRaw != null && (
+                      <p className="mt-1.5 flex items-baseline gap-1.5">
+                        <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
+                          <Counter
+                            to={trendAvg}
+                            decimals={1}
+                            immediate={!playEntrance || Boolean(reducedMotion)}
+                          />
+                        </span>
+                        <span className="text-note font-medium text-content-muted">
+                          % rata-rata / hari
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent-strong px-2.5 py-1 text-eyebrow font-semibold text-module-accent-fg">
+                    <TrendIcon className="h-3.5 w-3.5" />
+                    {trendBadge}
+                  </span>
+                </div>
+                <div className="mt-4" ref={trendChartRef}>
+                  {kpi.sched === 0 ? (
+                    <RutinaEmptyState
+                      className="px-4 py-6"
+                      icon={<CalendarDays />}
+                      title="Belum ada kebiasaan terjadwal"
+                      description="Atur jadwal kebiasaan di tab Kebiasaan — tren konsistensi mulai terbaca setelah ada misi terjadwal."
+                    />
+                  ) : trendChartInView ? (
+                    <LifeConstellation points={trendPoints} />
+                  ) : (
+                    /* Penahan tinggi tetap — grafik dipasang saat pertama
+                       masuk viewport agar entrance konstelasi bermain tepat
+                       pada momen itu (audit Tahap 2 #4), tanpa layout shift. */
+                    <div className="h-[150px]" aria-hidden="true" />
+                  )}
+                </div>
+                {/* Legenda grafik tren — bintang solid, garis putus rata-rata,
+                    dan titik redup hari tanpa jadwal (null ≠ 0%). */}
+                <div
+                  className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5"
+                  aria-label="Legenda grafik tren penyelesaian"
+                >
+                  <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
+                    <span
+                      aria-hidden="true"
+                      className="h-[3px] w-5 rounded-full bg-chart-stroke-4"
+                    />
+                    % selesai harian
+                  </span>
+                  {trendAvgRaw != null && (
+                    <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
+                      <span
+                        aria-hidden="true"
+                        className="w-5 border-t-2 border-dashed border-chart-stroke-5"
+                      />
+                      rata-rata {trendAvg.toFixed(1).replace('.', ',')}%
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-1.5 w-1.5 rounded-full bg-content-muted/40"
+                    />
+                    tanpa jadwal
+                  </span>
+                </div>
+                <p className="mt-2 text-eyebrow font-medium text-content-muted">
+                  Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
+                </p>
+              </m.div>
+            ) : (
+              /* Peta Panas — pola penyelesaian 12 pekan; visitKey
+                 diteruskan agar gerbang anti-replay internal Heatmap
+                 (tab pertama saja) seragam dengan seluruh layar. */
+              <Heatmap visitKey="stats-heatmap" />
+            )}
+          </div>
+        </section>
+
+        {/* Kalender Aktivitas + Laporan Bulanan terpadu (v2.58, audit
+            Tahap 2): laporan hidup DI DALAM kartu kalender — satu panel
+            aktivitas bulanan; panel detail tanggal tetap di samping pada
+            ruang kerja lebar. */}
+        <RutinaBentoGrid>
+          <RutinaBentoItem className="col-span-2 @[52rem]:col-span-7">
+            {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
+            <m.section
+              id="stats-kalender"
+              initial={playEntrance ? { opacity: 0, y: 16 } : false}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={motionTokens.preset.data}
+              aria-label="Kalender aktivitas bulanan"
+              className="scroll-mt-3"
+            >
+              <RutinaSectionHeader
+                title="Kalender Aktivitas"
+                description="Titik harian: kebiasaan, transaksi, dan latihan sepanjang bulan."
+              />
+              <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+                <MonthCalendar
+                  month={viewYm}
+                  info={dayInfo}
+                  today={today}
+                  selected={selectedDay}
+                  canPrev={canPrev}
+                  canNext={canNext}
+                  onPrev={goPrevMonth}
+                  onNext={goNextMonth}
+                  onSelect={(iso) => setSelectedDay(iso)}
+                />
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3.5 text-eyebrow font-medium text-content-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-chart-stroke-1" />
+                    Kebiasaan selesai
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 rounded-full bg-module-finance"
+                    />
+                    Ada transaksi
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-cocoa" />
+                    Ada latihan
+                  </span>
+                  <span className="ml-auto hidden sm:inline">
+                    {inspectorWide
+                      ? 'Ketuk tanggal — detail tampil di panel di samping.'
+                      : 'Ketuk tanggal untuk detail.'}
+                  </span>
+                </div>
+                {/* Laporan Bulanan terpadu (v2.58, audit Tahap 2): hidup
+                    DI DALAM kartu kalender — mengganti bulan pada kalender
+                    ikut mengganti isi laporan; tidak lagi kartu besar
+                    terpisah. Tetap dilipat default (review v2.13). */}
+                {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8).
+                    Dilipat secara default (review Statistik v2.13): laporan
+                    jarang dibuka tiap kunjungan — ringkasan singkat tampil di
+                    pemicu, detail penuh dibuka bila dibutuhkan. ===== */}
+                <div id="stats-laporan" className="scroll-mt-3">
+                <Collapsible defaultOpen={false}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`Laporan bulanan ${monthLabel(viewYm)}${monthReport.hasActivity ? `, konsistensi ${monthReport.pct} persen` : ''} — buka untuk detail`}
+                      className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+                        <CalendarDays aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-body font-semibold text-content-primary">
+                          Laporan Bulanan
+                        </span>
+                        <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                          {monthLabel(viewYm)}
+                          {monthReport.hasActivity
+                            ? ` · konsistensi ${monthReport.pct}%`
+                            : ''}
+                        </span>
+                      </span>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                      />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                  <div className="rounded-xl bg-surface-sunken/40 px-4 py-4 sm:px-5">
+                    {monthReport.hasActivity ? (
+                      <div className="space-y-5">
+                        {/* Konsistensi kebiasaan — angka besar matcha + batang tipis. */}
+                        <div>
+                          <p className="text-body font-semibold tracking-tight text-content-secondary">
+                            Konsistensi kebiasaan
+                          </p>
+                          <p className="mt-1.5 flex items-baseline gap-1.5">
+                            <span className="text-kpi-lg font-semibold leading-none tabular-nums text-success">
+                              {monthReport.pct}%
+                            </span>
+                            <span className="text-meta font-medium text-content-muted">
+                              {monthReport.done} dari {monthReport.sched} terjadwal selesai
+                            </span>
+                          </p>
+                          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                            <m.div
+                              initial={
+                                playEntrance
+                                  ? { scaleX: 0 }
+                                  : { scaleX: monthReport.pct / 100 }
+                              }
+                              whileInView={{ scaleX: monthReport.pct / 100 }}
+                              viewport={{ once: true, margin: '-16px' }}
+                              transition={barFill}
+                              style={{ width: '100%' }}
+                              className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-5 border-t border-border pt-5 sm:grid-cols-2">
+                          {/* Tiga kategori pengeluaran teratas. */}
+                          <div>
+                            <p className="text-body font-semibold tracking-tight text-content-secondary">
+                              Pengeluaran teratas
+                            </p>
+                            {monthReport.topCats.length === 0 ? (
+                              <p className="mt-2 text-meta font-medium text-content-muted">
+                                Tidak ada pengeluaran bulan ini.
+                              </p>
+                            ) : (
+                              <ul className="mt-2.5 space-y-3">
+                                {monthReport.topCats.map((c) => {
+                                  const Icon = catMeta(c.cat).icon
+                                  return (
+                                    <li key={c.cat}>
+                                      <div className="flex items-baseline justify-between gap-2">
+                                        <span className="flex min-w-0 items-center gap-1.5 truncate text-note font-semibold text-content-primary">
+                                          <Icon
+                                            aria-hidden="true"
+                                            className="h-3.5 w-3.5 shrink-0 text-content-secondary"
+                                          />
+                                          {catMeta(c.cat).label}
+                                        </span>
+                                        <span className="shrink-0 text-meta font-semibold tabular-nums text-content-primary">
+                                          {formatIDR(c.amount)}
+                                        </span>
+                                      </div>
+                                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                                        <m.div
+                                          initial={
+                                            playEntrance
+                                              ? { scaleX: 0 }
+                                              : { scaleX: Math.min(100, c.share) / 100 }
+                                          }
+                                          whileInView={{ scaleX: Math.min(100, c.share) / 100 }}
+                                          viewport={{ once: true, margin: '-16px' }}
+                                          transition={barFill}
+                                          style={{ width: '100%' }}
+                                          className="h-full origin-left rounded-full bg-clay"
+                                        />
+                                      </div>
+                                      <p className="mt-1 text-eyebrow font-medium tabular-nums text-content-muted">
+                                        {c.share}% dari total pengeluaran
+                                      </p>
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            )}
+                          </div>
+
+                          {/* Penggunaan anggaran bulan berjalan. */}
+                          <div>
+                            <p className="text-body font-semibold tracking-tight text-content-secondary">
+                              Penggunaan anggaran
+                            </p>
+                            {monthReport.budgetUse.length === 0 ? (
+                              <p className="mt-2 text-meta font-medium text-content-muted">
+                                Tidak ada pemakaian anggaran bulan ini.
+                              </p>
+                            ) : (
+                              <ul className="mt-2.5 space-y-3">
+                                {monthReport.budgetUse.map((b) => {
+                                  const over = b.used > b.limit
+                                  const pctB =
+                                    b.limit > 0
+                                      ? Math.min(100, Math.round((b.used / b.limit) * 100))
+                                      : 0
+                                  return (
+                                    <li key={b.cat}>
+                                      <p className="text-note font-semibold text-content-primary">
+                                        {catMeta(b.cat).label} — {formatIDR(b.used)}{' '}
+                                        <span className="font-medium text-content-muted">
+                                          dari {formatIDR(b.limit)}
+                                        </span>
+                                      </p>
+                                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+                                        <m.div
+                                          initial={
+                                            playEntrance ? { scaleX: 0 } : { scaleX: pctB / 100 }
+                                          }
+                                          whileInView={{ scaleX: pctB / 100 }}
+                                          viewport={{ once: true, margin: '-16px' }}
+                                          transition={barFill}
+                                          style={{ width: '100%' }}
+                                          className={`h-full origin-left rounded-full ${over ? 'bg-destructive' : 'bg-module-accent'}`}
+                                        />
+                                      </div>
+                                      <p
+                                        className={`mt-1 text-eyebrow ${
+                                          over
+                                            ? 'font-semibold text-content-danger'
+                                            : 'text-content-muted'
+                                        }`}
+                                      >
+                                        {over
+                                          ? `Lewat ${formatIDR(b.used - b.limit)} dari batas`
+                                          : `Sisa ${formatIDR(b.limit - b.used)} lagi`}
+                                      </p>
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Refleksi identitas + runtun terbaik. */}
+                        <div className="rounded-2xl bg-surface-sunken p-4">
+                          <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
+                            <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
+                            Refleksi identitas
+                          </p>
+                          {identityText ? (
+                            <p className="mt-2 text-note italic leading-relaxed text-content-secondary">
+                              Suara identitasmu: &ldquo;{identityText}&rdquo;
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-note leading-relaxed text-content-muted">
+                              Belum ada suara identitas — atur di Profil.
+                            </p>
+                          )}
+                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                            <p className="min-w-0 break-words text-meta font-semibold leading-snug text-content-secondary">
+                              Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
+                            </p>
+                            <p className="flex shrink-0 items-center gap-1 text-note font-semibold tabular-nums text-success">
+                              <Flame aria-hidden="true" className="h-3.5 w-3.5" />
+                              {best.streak} hari
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <RutinaEmptyState
+                        icon={<CalendarDays />}
+                        title="Belum ada aktivitas bulan ini"
+                        description="Tidak ada kebiasaan selesai, transaksi, atau latihan pada bulan ini — pilih bulan lain di kalender."
+                      />
+                    )}
+                  </div>
+                  </CollapsibleContent>
+                </Collapsible>
+                </div>
+              </RutinaCard>
+            </m.section>
+          </RutinaBentoItem>
+
+
+          {inspectorWide && (
+            <RutinaBentoItem className="col-span-2 @[52rem]:col-span-5">
+              {/* Inspector tanggal desktop — PERMANEN di ruang kerja lebar:
+                  tanggal terpilih dari kalender (default hari ini). Ponsel:
+                  sheet di bawah layar. */}
+              <DayDetailPanel date={selectedDay ?? today} />
+            </RutinaBentoItem>
+          )}
+        </RutinaBentoGrid>
+
+        {/* ===== Bugar & Tubuh — ringkasan satu baris + tautan (audit
+            density v2.37 §9): grafik lengkap modul Bugar (tonase, PR,
+            asupan kkal, tidur/energi/hidrasi) tidak lagi diduplikasi
+            di sini — empat metrik utama + pintu ke layar Bugar. ===== */}
+        <section id="stats-bugar" aria-label="Ringkasan bugar dan tubuh" className="@container scroll-mt-3">
+          <SectionTitle title="Bugar & Tubuh" hint="ringkasan · detail di tab Bugar" />
+          <m.div
+            initial={playEntrance ? { opacity: 0, y: 16 } : false}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-24px' }}
+            transition={motionTokens.preset.data}
+            className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+          >
+            <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
+              <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
+              Latihan &amp; Tubuh · 30 hari
+            </p>
+            <div className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-4 @[30rem]:grid-cols-4">
+              <RutinaMetric
+                label="Sesi latihan"
+                value={fitSessions}
+                unit="sesi"
+                size="sm"
+              />
+              <RutinaMetric
+                label="Total durasi"
+                value={fitMinutes}
+                unit="menit"
+                size="sm"
+              />
+              <RutinaMetric
+                label="Kardio"
+                value={cardio30.km.toFixed(1).replace('.', ',')}
+                unit="km"
+                size="sm"
+                caption={`${cardio30.sessions} sesi jalan/lari`}
+              />
+              <div>
+                <RutinaMetric
+                  label="Berat terakhir"
+                  value={
+                    lastWeight != null
+                      ? lastWeight.toFixed(1).replace('.', ',')
+                      : '–'
+                  }
+                  unit={lastWeight != null ? 'kg' : undefined}
+                  size="sm"
+                  caption={
+                    weightDelta != null
+                      ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
+                      : 'belum ada riwayat berat'
+                  }
+                />
+                {/* Sparkline mini (v2.39 audit visual data) — warna
+                    netral (naik/turun belum tentu baik/buruk); baru
+                    digambar dari 3 catatan (aturan jujur: 2 titik
+                    bukan tren). Skala penuh 14 catatan terakhir. */}
+                {weightSpark.length >= 3 && (
+                  <svg
+                    viewBox="0 0 120 26"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                    className="mt-1.5 h-6 w-full"
+                  >
+                    {(() => {
+                      const lo = Math.min(...weightSpark)
+                      const hi = Math.max(...weightSpark)
+                      const span = Math.max(hi - lo, 0.5)
+                      const n = weightSpark.length
+                      const pts = weightSpark
+                        .map(
+                          (v, i) =>
+                            `${((i / (n - 1)) * 120).toFixed(1)},${(
+                              3 +
+                              (1 - (v - lo) / span) * 20
+                            ).toFixed(1)}`,
+                        )
+                        .join(' ')
+                      return (
+                        <polyline
+                          points={pts}
+                          fill="none"
+                          stroke="var(--chart-stroke-1)"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      )
+                    })()}
+                  </svg>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setScreen('bugar')}
+              aria-label="Buka layar Bugar untuk detail latihan, asupan, dan tubuh"
+              className="interactive mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-module-accent-strong text-note font-bold text-module-accent-fg shadow-soft transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <Dumbbell aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
+              Buka Bugar untuk detail latihan, asupan, &amp; tubuh
+            </button>
+          </m.div>
+        </section>
+        {/* ===== WAWASAN & PENCAPAIAN (v2.58, audit Tahap 2) — seluruh
+            analisis sekunder di balik SATU lipatan tertutup: temuan
+            periode, komposisi kebiasaan, wawasan lintas domain, grafik
+            misi per periode, pembanding pekan, piala & lencana, dan ruang
+            suasana. Observatorium kini empat area jernih: ringkasan →
+            konsistensi → kalender → wawasan. Kualifikasi observasional
+            lintas domain tetap terpelihara (bukan sebab-akibat). ===== */}
+        <div id="stats-wawasan" className="scroll-mt-3">
+          <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Wawasan dan pencapaian — ${periodInsights.length} temuan periode, ${unlockedCount} dari ${badges.length} lencana terbuka. Buka untuk detail`}
+                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
+                  <Sparkles aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Wawasan &amp; Pencapaian
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                    {`${periodInsights.length} temuan periode · ${unlockedCount}/${badges.length} lencana${
+                      mood ? ` · merasa ${mood.toLowerCase()} hari ini` : ''
+                    }`}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+            <div className="mt-4 space-y-[var(--layout-gap)]">
+          {/* ===== Wawasan Periode Ini (review UI/UX v2.44 Tahap 2) —
+              maksimal tiga temuan pembanding periode tepat setelah KPI:
+              konsistensi vs periode sebelumnya, ringkasan Bugar, arus
+              kas. Kosong bila data pembanding belum cukup. ===== */}
+          {periodInsights.length > 0 && (
+            <section aria-label="Wawasan periode ini">
+              <m.div
+                initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-24px' }}
+                transition={motionTokens.preset.data}
+                className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <h2 className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">
+                    Wawasan Periode Ini
+                  </h2>
+                  <p className="text-eyebrow font-medium text-content-muted">
+                    30 hari · vs periode sebelumnya
+                  </p>
+                </div>
+                <ul className="mt-3 divide-y divide-border-default">
+                  {periodInsights.map((f) => {
+                    const Icon =
+                      f.key === 'bugar'
+                        ? Dumbbell
+                        : f.tone === 'up'
+                          ? TrendingUp
+                          : f.tone === 'down'
+                            ? TrendingDown
+                            : Sparkles
+                    return (
+                      <li key={f.key} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                        <span
+                          aria-hidden="true"
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                            f.tone === 'up'
+                              ? 'bg-secondary text-success'
+                              : f.tone === 'down'
+                                ? 'bg-clay/20 text-content-danger'
+                                : 'bg-module-accent-soft text-module-accent-strong'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" strokeWidth={2.2} />
+                        </span>
+                        <div className="min-w-0">
+                          <p
+                            className={`text-note font-bold ${
+                              f.tone === 'down' ? 'text-content-danger' : 'text-content-primary'
+                            }`}
+                          >
+                            {f.title}
+                          </p>
+                          <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
+                            {f.body}
+                          </p>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </m.div>
+            </section>
+          )}
+
+
+          {/* ===== Wawasan — komposisi kategori kebiasaan + suasana hati =====
+              (audit visualisasi v2.12: duplikasi dihapus — ring misi harian
+              sudah terbaca di Beranda, kartu streak ganda sudah terwakili KPI
+              utama; donut diberi judul jujur sesuai sumber datanya.)
+              Urutan seksi Tahap 2 #2: setelah Kalender/Laporan, sebelum
+              perbandingan pekan — komposisi kategori menempati posisi #5. */}
+          <RutinaBentoGrid>
+            <RutinaBentoItem span="medium">
+              {/* Komposisi kebiasaan aktif — bunga radial per kategori
+                  (v2.47 Life Observatory: HabitFlower menggantikan donut
+                  PieChart). Panjang kelopak memetakan jumlah LINEAR
+                  (outerR = 24 + value/max × 34); baris legenda adalah
+                  pemilih utama (tombol nyata), kelopak juga bisa diketuk. */}
+              <m.div
+                initial={playEntrance ? { opacity: 0, y: 16 } : false}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-24px' }}
+                transition={motionTokens.preset.data}
+                className="h-full rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+              >
+                <p className="text-body font-semibold tracking-tight text-content-secondary">
+                  Komposisi Kebiasaan Aktif
+                </p>
+                <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
+                  jumlah kebiasaan per kategori — kondisi saat ini
+                </p>
+                {catData.length === 0 ? (
+                  <RutinaEmptyState
+                    className="mt-3 px-4 py-6"
+                    icon={<Leaf />}
+                    title="Belum ada kebiasaan aktif"
+                    description="Tanam kebiasaan pertamamu di tab Kebiasaan — komposisi kategori terbaca otomatis di sini."
+                  />
+                ) : (
+                  <HabitFlower data={catData} total={activeHabits.length} />
+                )}
+              </m.div>
+            </RutinaBentoItem>
+
+            <RutinaBentoItem span="medium">
+              {/* Wawasan lintas domain (v2.32 Observatory) — menjawab "kenapa",
+                  bukan menambah angka. Menggantikan slot input suasana hati
+                  (audit: data entry tidak semestinya berada di observatorium);
+                  input pindah ke seksi Check-in di ujung halaman. */}
+              <m.div
+                initial={playEntrance ? { opacity: 0, y: 16 } : false}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-24px' }}
+                transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
+                className="h-full rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+              >
+                <p className="text-body font-semibold tracking-tight text-content-secondary">
+                  Wawasan Lintas Domain
+                </p>
+                <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
+                  observasi 30 hari — bukan sebab-akibat
+                </p>
+                {/* v2.36: visual pembanding hari berlatih vs tanpa latihan —
+                    dua bar horizontal + jumlah sampel; hubungan tetap
+                    disclaim sebagai observasional. */}
+                {crossInsights.woCompare && (
+                  <div
+                    className="mt-3 space-y-2 rounded-xl bg-surface-sunken px-3.5 py-3"
+                    role="img"
+                    aria-label={`Rata-rata misi pada ${crossInsights.woCompare.nWith} hari berlatih: ${crossInsights.woCompare.avgWith.toFixed(1).replace('.', ',')}, vs ${crossInsights.woCompare.avgWithout.toFixed(1).replace('.', ',')} pada ${crossInsights.woCompare.nWithout} hari tanpa latihan. Observasional, bukan sebab-akibat.`}
+                  >
+                    {(
+                      [
+                        {
+                          label: 'Hari berlatih',
+                          n: crossInsights.woCompare.nWith,
+                          avg: crossInsights.woCompare.avgWith,
+                          bar: 'bg-chart-stroke-4',
+                        },
+                        {
+                          label: 'Tanpa latihan',
+                          n: crossInsights.woCompare.nWithout,
+                          avg: crossInsights.woCompare.avgWithout,
+                          bar: 'bg-primary/45',
+                        },
+                      ] as const
+                    ).map((row) => {
+                      const max = Math.max(
+                        crossInsights.woCompare!.avgWith,
+                        crossInsights.woCompare!.avgWithout,
+                        0.1,
+                      )
+                      return (
+                        <div key={row.label}>
+                          <div className="flex items-baseline justify-between gap-2 text-chart-label">
+                            <span className="font-semibold text-content-secondary">
+                              {row.label}
+                              <span className="ml-1 font-medium text-content-muted">
+                                {row.n} hari
+                              </span>
+                            </span>
+                            <span className="font-bold tabular-nums text-content-primary">
+                              {row.avg.toFixed(1).replace('.', ',')} misi/hari
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-primary">
+                            <m.div
+                              initial={false}
+                              className={`h-full rounded-full ${row.bar}`}
+                              style={{
+                                width: `${Math.max((row.avg / max) * 100, 3)}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                {crossInsights.list.length === 0 ? (
+                  <RutinaEmptyState
+                    className="mt-3 px-4 py-6"
+                    icon={<Sparkles className="h-6 w-6" />}
+                    title="Belum cukup pola"
+                    description="Catat latihan dan suasana hatimu beberapa hari lagi — wawasan muncul otomatis begitu datanya cukup."
+                  />
+                ) : (
+                  <ul className="mt-3 space-y-3.5">
+                    {crossInsights.list.map((f) => (
+                      <li key={f.title}>
+                        <p className="text-note font-semibold text-content-primary">
+                          {f.title}
+                        </p>
+                        <p className="mt-1 text-pretty text-meta leading-relaxed text-content-secondary">
+                          {f.body}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </m.div>
+            </RutinaBentoItem>
+          </RutinaBentoGrid>
+
+
           {/* Misi selesai — panel fokus periode + instrumen grafik.
               Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
               periode, total, dan ringkasan; kartu grafik murni batang. */}
-          <RutinaBentoGrid className="mt-3">
+          <RutinaBentoGrid>
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4">
             {/* Panel fokus periode — sakelar periode + pembacaan ringkas */}
             <m.section
@@ -1366,14 +2022,13 @@ export default function StatsScreen() {
           </RutinaBentoItem>
 
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-8">
-            {/* Instrumen grafik — batang misi selesai (mode Grafik).
-                Kartu instrumen parchment (audit Tahap 2 #6): garis &
-                indikator tegas di atas permukaan terang; batang non-puncak
-                memakai tinta content redup, puncak memakai gradasi chart
-                token. Setiap batang adalah tombol — "tooltip" interaktif
-                terbaca di baris aria-live di bawah grafik. Mode Peta Panas
-                menggantikan kartu ini dengan heatmap 12 pekan. */}
-            {vizMode === 'grafik' ? (
+            {/* Instrumen grafik — batang misi selesai (analisis lanjutan
+                di dalam lipatan Wawasan & Pencapaian, v2.58). Kartu
+                instrumen parchment (audit Tahap 2 #6): garis & indikator
+                tegas di atas permukaan terang; batang non-puncak memakai
+                tinta content redup, puncak memakai gradasi chart token.
+                Setiap batang adalah tombol — "tooltip" interaktif terbaca
+                di baris aria-live di bawah grafik. */}
             <m.section
               ref={chartRef}
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
@@ -1557,206 +2212,39 @@ export default function StatsScreen() {
                 </>
               )}
             </m.section>
-            ) : (
-              /* Heatmap — pola penyelesaian 12 pekan; visitKey diteruskan
-                 agar gerbang anti-replay internal Heatmap (tab pertama
-                 saja) seragam dengan seluruh layar Statistik. */
-              <Heatmap visitKey="stats-heatmap" />
-            )}
           </RutinaBentoItem>
         </RutinaBentoGrid>
 
-        {/* Tren penyelesaian 30 hari (mode Grafik) — tetap visual
-            terpisah dari batang misi: sumbu & satuan berbeda, tidak
-            digabung; kini menempati ruang yang sama dengan saklar mode.
-            v2.47 Life Observatory: rasi bintang SVG kustom menggantikan
-            AreaChart — bintang per hari terjadwal, titik redup = tanpa
-            jadwal (bukan 0%), garis putus rata-rata non-null; bintang
-            bisa diketuk (baris bacaan aria-live). */}
-        {vizMode === 'grafik' && (
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: 16 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
-            >
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-body font-semibold tracking-tight text-content-secondary">
-                    Tren Penyelesaian
-                  </p>
-                  <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
-                    persentase misi selesai · 30 hari terakhir
-                  </p>
-                  {/* Rata-rata hanya tampil bila ada hari terjadwal —
-                      menahan diri dari angka 0% karangan. */}
-                  {trendAvgRaw != null && (
-                    <p className="mt-1.5 flex items-baseline gap-1.5">
-                      <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
-                        <Counter
-                          to={trendAvg}
-                          decimals={1}
-                          immediate={!playEntrance || Boolean(reducedMotion)}
-                        />
-                      </span>
-                      <span className="text-note font-medium text-content-muted">
-                        % rata-rata / hari
-                      </span>
-                    </p>
-                  )}
-                </div>
-                <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent-strong px-2.5 py-1 text-eyebrow font-semibold text-module-accent-fg">
-                  <TrendIcon className="h-3.5 w-3.5" />
-                  {trendBadge}
-                </span>
-              </div>
-              <div className="mt-4" ref={trendChartRef}>
-                {kpi.sched === 0 ? (
-                  <RutinaEmptyState
-                    className="px-4 py-6"
-                    icon={<CalendarDays />}
-                    title="Belum ada kebiasaan terjadwal"
-                    description="Atur jadwal kebiasaan di tab Kebiasaan — tren konsistensi mulai terbaca setelah ada misi terjadwal."
-                  />
-                ) : trendChartInView ? (
-                  <LifeConstellation points={trendPoints} />
-                ) : (
-                  /* Penahan tinggi tetap — grafik dipasang saat pertama
-                     masuk viewport agar entrance konstelasi bermain tepat
-                     pada momen itu (audit Tahap 2 #4), tanpa layout shift. */
-                  <div className="h-[150px]" aria-hidden="true" />
-                )}
-              </div>
-              {/* Legenda grafik tren — bintang solid, garis putus rata-rata,
-                  dan titik redup hari tanpa jadwal (null ≠ 0%). */}
-              <div
-                className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5"
-                aria-label="Legenda grafik tren penyelesaian"
-              >
-                <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
-                  <span
-                    aria-hidden="true"
-                    className="h-[3px] w-5 rounded-full bg-chart-stroke-4"
-                  />
-                  % selesai harian
-                </span>
-                {trendAvgRaw != null && (
-                  <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
-                    <span
-                      aria-hidden="true"
-                      className="w-5 border-t-2 border-dashed border-chart-stroke-5"
-                    />
-                    rata-rata {trendAvg.toFixed(1).replace('.', ',')}%
-                  </span>
-                )}
-                <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
-                  <span
-                    aria-hidden="true"
-                    className="inline-block h-1.5 w-1.5 rounded-full bg-content-muted/40"
-                  />
-                  tanpa jadwal
-                </span>
-              </div>
-              <p className="mt-2 text-eyebrow font-medium text-content-muted">
-                Konsistensi di atas 70% pada {above70} dari 30 hari terakhir.
-              </p>
-            </m.div>
-        )}
-        </section>
 
-        {/* Kalender Aktivitas + Laporan Bulanan — pasangan bento 7 : 5
-            (col-span mentah — preset bento tak memiliki 7/5) */}
-        <RutinaBentoGrid>
-          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
-            {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
-            <m.section
-              id="stats-kalender"
-              initial={playEntrance ? { opacity: 0, y: 16 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              aria-label="Kalender aktivitas bulanan"
-              className="scroll-mt-3"
-            >
-              <RutinaSectionHeader
-                title="Kalender Aktivitas"
-                description="Titik harian: kebiasaan, transaksi, dan latihan sepanjang bulan."
-              />
-              <RutinaCard radius="2xl" density="comfortable" className="mt-3">
-                <MonthCalendar
-                  month={viewYm}
-                  info={dayInfo}
-                  today={today}
-                  selected={selectedDay}
-                  canPrev={canPrev}
-                  canNext={canNext}
-                  onPrev={goPrevMonth}
-                  onNext={goNextMonth}
-                  onSelect={(iso) => setSelectedDay(iso)}
-                />
-                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3.5 text-eyebrow font-medium text-content-muted">
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-chart-stroke-1" />
-                    Kebiasaan selesai
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      aria-hidden="true"
-                      className="h-2 w-2 rounded-full bg-module-finance"
-                    />
-                    Ada transaksi
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true" className="h-2 w-2 rounded-full bg-cocoa" />
-                    Ada latihan
-                  </span>
-                  <span className="ml-auto hidden sm:inline">
-                    {inspectorWide
-                      ? 'Ketuk tanggal — detail tampil di panel di samping.'
-                      : 'Ketuk tanggal untuk detail.'}
-                  </span>
-                </div>
-              </RutinaCard>
-            </m.section>
-          </RutinaBentoItem>
-
-          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5">
-            {/* Inspector tanggal desktop — PERMANEN di ruang kerja lebar:
-                menampilkan tanggal terpilih dari kalender (default hari ini)
-                sehingga observatorium data punya panel bacaan yang selalu
-                hadir, bukan overlay. Ponsel: lewati (sheet di bawah). */}
-            {inspectorWide && (
-              <DayDetailPanel
-                date={selectedDay ?? today}
-                className="mb-[var(--layout-gap)]"
-              />
-            )}
-
-            {/* ===== Laporan Bulanan — konsistensi & anggaran (audit #8).
-                Dilipat secara default (review Statistik v2.13): laporan
-                jarang dibuka tiap kunjungan — ringkasan singkat tampil di
-                pemicu, detail penuh dibuka bila dibutuhkan. ===== */}
-            <div id="stats-laporan" className="scroll-mt-3">
+          {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12),
+              dilipat secara default (audit density v2.37 §8): ringkasan
+              misi tampil di pemicu (pola persis Laporan Bulanan), tabel
+              perbandingan lengkap dibuka bila dibutuhkan. ===== */}
+          <m.section
+            initial={playEntrance ? { opacity: 0, y: 16 } : false}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-24px' }}
+            transition={motionTokens.preset.data}
+            aria-label="Pembanding pekan ini vs pekan lalu"
+          >
             <Collapsible defaultOpen={false}>
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  aria-label={`Laporan bulanan ${monthLabel(viewYm)}${monthReport.hasActivity ? `, konsistensi ${monthReport.pct} persen` : ''} — buka untuk detail`}
+                  aria-label={`Pekan ini vs pekan lalu, ${shortDateLabel(weekStart)} sampai ${shortDateLabel(today)}${weekDoneSummary ? `, ${weekDoneSummary}` : ''} — buka untuk detail perbandingan`}
                   className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-                    <CalendarDays aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                    <CalendarCheck aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-body font-semibold text-content-primary">
-                      Laporan Bulanan
+                      Pekan Ini vs Pekan Lalu
                     </span>
-                    <span className="mt-0.5 block text-meta font-medium text-content-muted">
-                      {monthLabel(viewYm)}
-                      {monthReport.hasActivity
-                        ? ` · konsistensi ${monthReport.pct}%`
-                        : ''}
+                    <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                      {`${shortDateLabel(weekStart)} – ${shortDateLabel(today)}${
+                        weekDoneSummary ? ` · ${weekDoneSummary}` : ''
+                      }`}
                     </span>
                   </span>
                   <ChevronDown
@@ -1766,813 +2254,349 @@ export default function StatsScreen() {
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-              <RutinaCard radius="2xl" density="comfortable" className="mt-3">
-                {monthReport.hasActivity ? (
-                  <div className="space-y-5">
-                    {/* Konsistensi kebiasaan — angka besar matcha + batang tipis. */}
-                    <div>
-                      <p className="text-body font-semibold tracking-tight text-content-secondary">
-                        Konsistensi kebiasaan
-                      </p>
-                      <p className="mt-1.5 flex items-baseline gap-1.5">
-                        <span className="text-kpi-lg font-semibold leading-none tabular-nums text-success">
-                          {monthReport.pct}%
-                        </span>
-                        <span className="text-meta font-medium text-content-muted">
-                          {monthReport.done} dari {monthReport.sched} terjadwal selesai
-                        </span>
-                      </p>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
-                        <m.div
-                          initial={
-                            playEntrance
-                              ? { scaleX: 0 }
-                              : { scaleX: monthReport.pct / 100 }
-                          }
-                          whileInView={{ scaleX: monthReport.pct / 100 }}
-                          viewport={{ once: true, margin: '-16px' }}
-                          transition={barFill}
-                          style={{ width: '100%' }}
-                          className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-pistachio"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-5 border-t border-border pt-5 sm:grid-cols-2">
-                      {/* Tiga kategori pengeluaran teratas. */}
-                      <div>
-                        <p className="text-body font-semibold tracking-tight text-content-secondary">
-                          Pengeluaran teratas
+            <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+              <ul className="space-y-2.5">
+                {weekMetrics.map((row) => {
+                  const DeltaIcon =
+                    row.dir === 'up' ? ArrowUpRight : row.dir === 'down' ? ArrowDownRight : Minus
+                  const tone =
+                    row.good == null
+                      ? 'text-content-muted'
+                      : row.good
+                        ? 'text-success'
+                        : 'text-warning'
+                  /* Skala batang per metrik — pasangan lalu vs sekarang
+                     dinormalisasi ke maksimum pasangannya sendiri agar
+                     satuan berbeda (misi, rupiah, sesi) tak dibandingkan
+                     lintas baris (audit visualisasi v2.12). */
+                  const pairMax = Math.max(row.curN, row.prevN)
+                  const prevW = pairMax > 0 ? Math.round((row.prevN / pairMax) * 100) : 0
+                  const curW = pairMax > 0 ? Math.round((row.curN / pairMax) * 100) : 0
+                  return (
+                    <li
+                      key={row.key}
+                      className="rounded-2xl bg-surface-sunken px-3.5 py-3"
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="min-w-0 break-words text-note font-semibold leading-snug text-content-primary">
+                          {row.label}
                         </p>
-                        {monthReport.topCats.length === 0 ? (
-                          <p className="mt-2 text-meta font-medium text-content-muted">
-                            Tidak ada pengeluaran bulan ini.
-                          </p>
-                        ) : (
-                          <ul className="mt-2.5 space-y-3">
-                            {monthReport.topCats.map((c) => {
-                              const Icon = catMeta(c.cat).icon
-                              return (
-                                <li key={c.cat}>
-                                  <div className="flex items-baseline justify-between gap-2">
-                                    <span className="flex min-w-0 items-center gap-1.5 truncate text-note font-semibold text-content-primary">
-                                      <Icon
-                                        aria-hidden="true"
-                                        className="h-3.5 w-3.5 shrink-0 text-content-secondary"
-                                      />
-                                      {catMeta(c.cat).label}
-                                    </span>
-                                    <span className="shrink-0 text-meta font-semibold tabular-nums text-content-primary">
-                                      {formatIDR(c.amount)}
-                                    </span>
-                                  </div>
-                                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
-                                    <m.div
-                                      initial={
-                                        playEntrance
-                                          ? { scaleX: 0 }
-                                          : { scaleX: Math.min(100, c.share) / 100 }
-                                      }
-                                      whileInView={{ scaleX: Math.min(100, c.share) / 100 }}
-                                      viewport={{ once: true, margin: '-16px' }}
-                                      transition={barFill}
-                                      style={{ width: '100%' }}
-                                      className="h-full origin-left rounded-full bg-clay"
-                                    />
-                                  </div>
-                                  <p className="mt-1 text-eyebrow font-medium tabular-nums text-content-muted">
-                                    {c.share}% dari total pengeluaran
-                                  </p>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </div>
-
-                      {/* Penggunaan anggaran bulan berjalan. */}
-                      <div>
-                        <p className="text-body font-semibold tracking-tight text-content-secondary">
-                          Penggunaan anggaran
-                        </p>
-                        {monthReport.budgetUse.length === 0 ? (
-                          <p className="mt-2 text-meta font-medium text-content-muted">
-                            Tidak ada pemakaian anggaran bulan ini.
-                          </p>
-                        ) : (
-                          <ul className="mt-2.5 space-y-3">
-                            {monthReport.budgetUse.map((b) => {
-                              const over = b.used > b.limit
-                              const pctB =
-                                b.limit > 0
-                                  ? Math.min(100, Math.round((b.used / b.limit) * 100))
-                                  : 0
-                              return (
-                                <li key={b.cat}>
-                                  <p className="text-note font-semibold text-content-primary">
-                                    {catMeta(b.cat).label} — {formatIDR(b.used)}{' '}
-                                    <span className="font-medium text-content-muted">
-                                      dari {formatIDR(b.limit)}
-                                    </span>
-                                  </p>
-                                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
-                                    <m.div
-                                      initial={
-                                        playEntrance ? { scaleX: 0 } : { scaleX: pctB / 100 }
-                                      }
-                                      whileInView={{ scaleX: pctB / 100 }}
-                                      viewport={{ once: true, margin: '-16px' }}
-                                      transition={barFill}
-                                      style={{ width: '100%' }}
-                                      className={`h-full origin-left rounded-full ${over ? 'bg-destructive' : 'bg-module-accent'}`}
-                                    />
-                                  </div>
-                                  <p
-                                    className={`mt-1 text-eyebrow ${
-                                      over
-                                        ? 'font-semibold text-content-danger'
-                                        : 'text-content-muted'
-                                    }`}
-                                  >
-                                    {over
-                                      ? `Lewat ${formatIDR(b.used - b.limit)} dari batas`
-                                      : `Sisa ${formatIDR(b.limit - b.used)} lagi`}
-                                  </p>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Refleksi identitas + runtun terbaik. */}
-                    <div className="rounded-2xl bg-surface-sunken p-4">
-                      <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-                        <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
-                        Refleksi identitas
-                      </p>
-                      {identityText ? (
-                        <p className="mt-2 text-note italic leading-relaxed text-content-secondary">
-                          Suara identitasmu: &ldquo;{identityText}&rdquo;
-                        </p>
-                      ) : (
-                        <p className="mt-2 text-note leading-relaxed text-content-muted">
-                          Belum ada suara identitas — atur di Profil.
-                        </p>
-                      )}
-                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-                        <p className="min-w-0 break-words text-meta font-semibold leading-snug text-content-secondary">
-                          Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
-                        </p>
-                        <p className="flex shrink-0 items-center gap-1 text-note font-semibold tabular-nums text-success">
-                          <Flame aria-hidden="true" className="h-3.5 w-3.5" />
-                          {best.streak} hari
+                        <p
+                          className={`flex shrink-0 items-center gap-1 text-eyebrow font-semibold tabular-nums ${tone}`}
+                        >
+                          <DeltaIcon aria-hidden="true" className="h-3 w-3" strokeWidth={2.4} />
+                          {row.deltaText}
                         </p>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <RutinaEmptyState
-                    icon={<CalendarDays />}
-                    title="Belum ada aktivitas bulan ini"
-                    description="Tidak ada kebiasaan selesai, transaksi, atau latihan pada bulan ini — pilih bulan lain di kalender."
-                  />
-                )}
+                      <div className="mt-2 space-y-1.5">
+                        {/* Pekan lalu — batang redup */}
+                        <div className="flex items-center gap-2">
+                          <span className="w-9 shrink-0 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
+                            lalu
+                          </span>
+                          <div
+                            className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-content-primary/10"
+                            role="presentation"
+                          >
+                            <m.div
+                              initial={playEntrance ? { scaleX: 0 } : { scaleX: prevW / 100 }}
+                              whileInView={{ scaleX: prevW / 100 }}
+                              viewport={{ once: true, margin: '-16px' }}
+                              transition={barFill}
+                              style={{ width: '100%' }}
+                              className="h-full origin-left rounded-full bg-content-secondary/40"
+                            />
+                          </div>
+                          <span className="w-24 shrink-0 truncate text-right text-eyebrow font-medium tabular-nums text-content-muted">
+                            {row.prev}
+                          </span>
+                        </div>
+                        {/* Pekan ini — batang aksen domain */}
+                        <div className="flex items-center gap-2">
+                          <span className="w-9 shrink-0 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
+                            kini
+                          </span>
+                          <div
+                            className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-content-primary/10"
+                            role="presentation"
+                          >
+                            <m.div
+                              initial={playEntrance ? { scaleX: 0 } : { scaleX: curW / 100 }}
+                              whileInView={{ scaleX: curW / 100 }}
+                              viewport={{ once: true, margin: '-16px' }}
+                              transition={{ ...barFill, delay: motionTokens.delay.tight }}
+                              style={{ width: '100%' }}
+                              className="h-full origin-left rounded-full bg-module-accent-strong"
+                            />
+                          </div>
+                          <span className="w-24 shrink-0 truncate text-right text-eyebrow font-semibold tabular-nums text-content-primary">
+                            {row.cur}
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+              <p className="mt-3 text-eyebrow leading-relaxed text-content-muted">
+                Skala batang berlaku per metrik — satuan berbeda tidak
+                dibandingkan langsung. Pengeluaran dihitung tanpa transfer;
+                nilai lebih kecil dinilai lebih baik. Jumlah catatan
+                dihitung eksak dari tanggal-dibuat (v2.36).
+              </p>
               </RutinaCard>
               </CollapsibleContent>
             </Collapsible>
-            </div>
-          </RutinaBentoItem>
-        </RutinaBentoGrid>
-
-        {/* ===== Wawasan — komposisi kategori kebiasaan + suasana hati =====
-            (audit visualisasi v2.12: duplikasi dihapus — ring misi harian
-            sudah terbaca di Beranda, kartu streak ganda sudah terwakili KPI
-            utama; donut diberi judul jujur sesuai sumber datanya.)
-            Urutan seksi Tahap 2 #2: setelah Kalender/Laporan, sebelum
-            perbandingan pekan — komposisi kategori menempati posisi #5. */}
-        <RutinaBentoGrid id="stats-wawasan" className="scroll-mt-3">
-          <RutinaBentoItem span="medium">
-            {/* Komposisi kebiasaan aktif — bunga radial per kategori
-                (v2.47 Life Observatory: HabitFlower menggantikan donut
-                PieChart). Panjang kelopak memetakan jumlah LINEAR
-                (outerR = 24 + value/max × 34); baris legenda adalah
-                pemilih utama (tombol nyata), kelopak juga bisa diketuk. */}
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: 16 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              className="h-full rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
-            >
-              <p className="text-body font-semibold tracking-tight text-content-secondary">
-                Komposisi Kebiasaan Aktif
-              </p>
-              <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
-                jumlah kebiasaan per kategori — kondisi saat ini
-              </p>
-              {catData.length === 0 ? (
-                <RutinaEmptyState
-                  className="mt-3 px-4 py-6"
-                  icon={<Leaf />}
-                  title="Belum ada kebiasaan aktif"
-                  description="Tanam kebiasaan pertamamu di tab Kebiasaan — komposisi kategori terbaca otomatis di sini."
-                />
-              ) : (
-                <HabitFlower data={catData} total={activeHabits.length} />
-              )}
-            </m.div>
-          </RutinaBentoItem>
-
-          <RutinaBentoItem span="medium">
-            {/* Wawasan lintas domain (v2.32 Observatory) — menjawab "kenapa",
-                bukan menambah angka. Menggantikan slot input suasana hati
-                (audit: data entry tidak semestinya berada di observatorium);
-                input pindah ke seksi Check-in di ujung halaman. */}
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: 16 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.tight }}
-              className="h-full rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
-            >
-              <p className="text-body font-semibold tracking-tight text-content-secondary">
-                Wawasan Lintas Domain
-              </p>
-              <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
-                observasi 30 hari — bukan sebab-akibat
-              </p>
-              {/* v2.36: visual pembanding hari berlatih vs tanpa latihan —
-                  dua bar horizontal + jumlah sampel; hubungan tetap
-                  disclaim sebagai observasional. */}
-              {crossInsights.woCompare && (
-                <div
-                  className="mt-3 space-y-2 rounded-xl bg-surface-sunken px-3.5 py-3"
-                  role="img"
-                  aria-label={`Rata-rata misi pada ${crossInsights.woCompare.nWith} hari berlatih: ${crossInsights.woCompare.avgWith.toFixed(1).replace('.', ',')}, vs ${crossInsights.woCompare.avgWithout.toFixed(1).replace('.', ',')} pada ${crossInsights.woCompare.nWithout} hari tanpa latihan. Observasional, bukan sebab-akibat.`}
-                >
-                  {(
-                    [
-                      {
-                        label: 'Hari berlatih',
-                        n: crossInsights.woCompare.nWith,
-                        avg: crossInsights.woCompare.avgWith,
-                        bar: 'bg-chart-stroke-4',
-                      },
-                      {
-                        label: 'Tanpa latihan',
-                        n: crossInsights.woCompare.nWithout,
-                        avg: crossInsights.woCompare.avgWithout,
-                        bar: 'bg-primary/45',
-                      },
-                    ] as const
-                  ).map((row) => {
-                    const max = Math.max(
-                      crossInsights.woCompare!.avgWith,
-                      crossInsights.woCompare!.avgWithout,
-                      0.1,
-                    )
-                    return (
-                      <div key={row.label}>
-                        <div className="flex items-baseline justify-between gap-2 text-chart-label">
-                          <span className="font-semibold text-content-secondary">
-                            {row.label}
-                            <span className="ml-1 font-medium text-content-muted">
-                              {row.n} hari
-                            </span>
-                          </span>
-                          <span className="font-bold tabular-nums text-content-primary">
-                            {row.avg.toFixed(1).replace('.', ',')} misi/hari
-                          </span>
-                        </div>
-                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-primary">
-                          <m.div
-                            initial={false}
-                            className={`h-full rounded-full ${row.bar}`}
-                            style={{
-                              width: `${Math.max((row.avg / max) * 100, 3)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {crossInsights.list.length === 0 ? (
-                <RutinaEmptyState
-                  className="mt-3 px-4 py-6"
-                  icon={<Sparkles className="h-6 w-6" />}
-                  title="Belum cukup pola"
-                  description="Catat latihan dan suasana hatimu beberapa hari lagi — wawasan muncul otomatis begitu datanya cukup."
-                />
-              ) : (
-                <ul className="mt-3 space-y-3.5">
-                  {crossInsights.list.map((f) => (
-                    <li key={f.title}>
-                      <p className="text-note font-semibold text-content-primary">
-                        {f.title}
-                      </p>
-                      <p className="mt-1 text-pretty text-meta leading-relaxed text-content-secondary">
-                        {f.body}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </m.div>
-          </RutinaBentoItem>
-        </RutinaBentoGrid>
-
-        {/* Pekan Ini vs Pekan Lalu + Bugar & Tubuh — pasangan bento (medium · medium) */}
-        <RutinaBentoGrid>
-          <RutinaBentoItem span="medium">
-            {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12),
-                dilipat secara default (audit density v2.37 §8): ringkasan
-                misi tampil di pemicu (pola persis Laporan Bulanan), tabel
-                perbandingan lengkap dibuka bila dibutuhkan. ===== */}
-            <m.section
-              initial={playEntrance ? { opacity: 0, y: 16 } : false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-24px' }}
-              transition={motionTokens.preset.data}
-              aria-label="Pembanding pekan ini vs pekan lalu"
-            >
-              <Collapsible defaultOpen={false}>
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`Pekan ini vs pekan lalu, ${shortDateLabel(weekStart)} sampai ${shortDateLabel(today)}${weekDoneSummary ? `, ${weekDoneSummary}` : ''} — buka untuk detail perbandingan`}
-                    className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-                      <CalendarCheck aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-body font-semibold text-content-primary">
-                        Pekan Ini vs Pekan Lalu
-                      </span>
-                      <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
-                        {`${shortDateLabel(weekStart)} – ${shortDateLabel(today)}${
-                          weekDoneSummary ? ` · ${weekDoneSummary}` : ''
-                        }`}
-                      </span>
-                    </span>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-              <RutinaCard radius="2xl" density="comfortable" className="mt-3">
-                <ul className="space-y-2.5">
-                  {weekMetrics.map((row) => {
-                    const DeltaIcon =
-                      row.dir === 'up' ? ArrowUpRight : row.dir === 'down' ? ArrowDownRight : Minus
-                    const tone =
-                      row.good == null
-                        ? 'text-content-muted'
-                        : row.good
-                          ? 'text-success'
-                          : 'text-warning'
-                    /* Skala batang per metrik — pasangan lalu vs sekarang
-                       dinormalisasi ke maksimum pasangannya sendiri agar
-                       satuan berbeda (misi, rupiah, sesi) tak dibandingkan
-                       lintas baris (audit visualisasi v2.12). */
-                    const pairMax = Math.max(row.curN, row.prevN)
-                    const prevW = pairMax > 0 ? Math.round((row.prevN / pairMax) * 100) : 0
-                    const curW = pairMax > 0 ? Math.round((row.curN / pairMax) * 100) : 0
-                    return (
-                      <li
-                        key={row.key}
-                        className="rounded-2xl bg-surface-sunken px-3.5 py-3"
-                      >
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p className="min-w-0 break-words text-note font-semibold leading-snug text-content-primary">
-                            {row.label}
-                          </p>
-                          <p
-                            className={`flex shrink-0 items-center gap-1 text-eyebrow font-semibold tabular-nums ${tone}`}
-                          >
-                            <DeltaIcon aria-hidden="true" className="h-3 w-3" strokeWidth={2.4} />
-                            {row.deltaText}
-                          </p>
-                        </div>
-                        <div className="mt-2 space-y-1.5">
-                          {/* Pekan lalu — batang redup */}
-                          <div className="flex items-center gap-2">
-                            <span className="w-9 shrink-0 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
-                              lalu
-                            </span>
-                            <div
-                              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-content-primary/10"
-                              role="presentation"
-                            >
-                              <m.div
-                                initial={playEntrance ? { scaleX: 0 } : { scaleX: prevW / 100 }}
-                                whileInView={{ scaleX: prevW / 100 }}
-                                viewport={{ once: true, margin: '-16px' }}
-                                transition={barFill}
-                                style={{ width: '100%' }}
-                                className="h-full origin-left rounded-full bg-content-secondary/40"
-                              />
-                            </div>
-                            <span className="w-24 shrink-0 truncate text-right text-eyebrow font-medium tabular-nums text-content-muted">
-                              {row.prev}
-                            </span>
-                          </div>
-                          {/* Pekan ini — batang aksen domain */}
-                          <div className="flex items-center gap-2">
-                            <span className="w-9 shrink-0 text-chart-label font-semibold uppercase tracking-wide text-content-muted">
-                              kini
-                            </span>
-                            <div
-                              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-content-primary/10"
-                              role="presentation"
-                            >
-                              <m.div
-                                initial={playEntrance ? { scaleX: 0 } : { scaleX: curW / 100 }}
-                                whileInView={{ scaleX: curW / 100 }}
-                                viewport={{ once: true, margin: '-16px' }}
-                                transition={{ ...barFill, delay: motionTokens.delay.tight }}
-                                style={{ width: '100%' }}
-                                className="h-full origin-left rounded-full bg-module-accent-strong"
-                              />
-                            </div>
-                            <span className="w-24 shrink-0 truncate text-right text-eyebrow font-semibold tabular-nums text-content-primary">
-                              {row.cur}
-                            </span>
-                          </div>
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-                <p className="mt-3 text-eyebrow leading-relaxed text-content-muted">
-                  Skala batang berlaku per metrik — satuan berbeda tidak
-                  dibandingkan langsung. Pengeluaran dihitung tanpa transfer;
-                  nilai lebih kecil dinilai lebih baik. Jumlah catatan
-                  dihitung eksak dari tanggal-dibuat (v2.36).
-                </p>
-                </RutinaCard>
-                </CollapsibleContent>
-              </Collapsible>
-            </m.section>
-          </RutinaBentoItem>
-
-          <RutinaBentoItem span="medium">
-            {/* ===== Bugar & Tubuh — ringkasan satu baris + tautan (audit
-                density v2.37 §9): grafik lengkap modul Bugar (tonase, PR,
-                asupan kkal, tidur/energi/hidrasi) tidak lagi diduplikasi
-                di sini — empat metrik utama + pintu ke layar Bugar. ===== */}
-            <section id="stats-bugar" aria-label="Ringkasan bugar dan tubuh" className="@container scroll-mt-3">
-              <SectionTitle title="Bugar & Tubuh" hint="ringkasan · detail di tab Bugar" />
-              <m.div
-                initial={playEntrance ? { opacity: 0, y: 16 } : false}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-24px' }}
-                transition={motionTokens.preset.data}
-                className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+          </m.section>
+          {/* ===== Piala & Lencana — lebar penuh, dilipat default
+              (audit visualisasi v2.12: kartu Streak Berjalan dihapus —
+              streak & rekor sudah terbaca di KPI utama. Review v2.13:
+              koleksi lencana jarang dibuka tiap kunjungan — hitungan
+              terbuka tampil di pemicu, kisi dibuka bila diminati.) ===== */}
+          <div id="stats-piala" className="@container scroll-mt-3">
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Piala dan lencana, ${unlockedCount} dari ${badges.length} terbuka — buka untuk melihat koleksi`}
+                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
               >
-                <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-                  <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
-                  Latihan &amp; Tubuh · 30 hari
-                </p>
-                <div className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-4 @[30rem]:grid-cols-4">
-                  <RutinaMetric
-                    label="Sesi latihan"
-                    value={fitSessions}
-                    unit="sesi"
-                    size="sm"
-                  />
-                  <RutinaMetric
-                    label="Total durasi"
-                    value={fitMinutes}
-                    unit="menit"
-                    size="sm"
-                  />
-                  <RutinaMetric
-                    label="Kardio"
-                    value={cardio30.km.toFixed(1).replace('.', ',')}
-                    unit="km"
-                    size="sm"
-                    caption={`${cardio30.sessions} sesi jalan/lari`}
-                  />
-                  <div>
-                    <RutinaMetric
-                      label="Berat terakhir"
-                      value={
-                        lastWeight != null
-                          ? lastWeight.toFixed(1).replace('.', ',')
-                          : '–'
-                      }
-                      unit={lastWeight != null ? 'kg' : undefined}
-                      size="sm"
-                      caption={
-                        weightDelta != null
-                          ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
-                          : 'belum ada riwayat berat'
-                      }
-                    />
-                    {/* Sparkline mini (v2.39 audit visual data) — warna
-                        netral (naik/turun belum tentu baik/buruk); baru
-                        digambar dari 3 catatan (aturan jujur: 2 titik
-                        bukan tren). Skala penuh 14 catatan terakhir. */}
-                    {weightSpark.length >= 3 && (
-                      <svg
-                        viewBox="0 0 120 26"
-                        preserveAspectRatio="none"
-                        aria-hidden="true"
-                        className="mt-1.5 h-6 w-full"
-                      >
-                        {(() => {
-                          const lo = Math.min(...weightSpark)
-                          const hi = Math.max(...weightSpark)
-                          const span = Math.max(hi - lo, 0.5)
-                          const n = weightSpark.length
-                          const pts = weightSpark
-                            .map(
-                              (v, i) =>
-                                `${((i / (n - 1)) * 120).toFixed(1)},${(
-                                  3 +
-                                  (1 - (v - lo) / span) * 20
-                                ).toFixed(1)}`,
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/25 text-warning">
+                  <Trophy aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Piala &amp; Lencana
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                    {/* Tahap 2: hitungan dinamis — koleksi v2.22 berisi 8
+                        lencana, angka lama (4) menyesatkan. */}
+                    {unlockedCount}/{badges.length} terbuka
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+            <div className="mt-3 grid grid-cols-2 gap-2.5 @[36rem]:grid-cols-4">
+                  {badges.map((b) => (
+                    <BadgeCard key={b.name} badge={b} />
+                  ))}
+                </div>
+            </CollapsibleContent>
+          </Collapsible>
+          </div>
+
+
+          {/* v2.37 Ruang Suasana (audit density §8/§9): input check-in tetap
+              di ujung halaman + riwayat mood 14 hari (dipindah dari Profil)
+              — satu pusat suasana hati; Profil cukup chip ringkas. */}
+          <section
+            aria-label="Ruang suasana hati"
+            className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+          >
+            <p className="text-body font-semibold tracking-tight text-content-secondary">
+              Ruang Suasana
+            </p>
+            <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
+              satu ketukan — tercermin di wawasan lintas domain &amp; Profil
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {MOODS.map((m) => {
+                const MoodIcon = MOOD_ICONS[m]
+                const selected = mood === m
+                return (
+                  <button
+                    /* key berubah saat terpilih → tombol dipasang ulang
+                       sehingga animasi pop CSS bermain setiap kali aktif. */
+                    key={selected ? `on-${m}` : `off-${m}`}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={`Catat suasana hati: ${m}`}
+                    onClick={() => setMood(selected ? null : m)}
+                    className={
+                      'interactive flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border ' +
+                      (selected
+                        ? 'motion-safe:animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
+                        : 'border-border bg-surface-secondary text-content-secondary hover:bg-surface-sunken')
+                    }
+                  >
+                    <MoodIcon className="h-4 w-4" />
+                    <span className="text-eyebrow font-semibold">{m}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-3 text-eyebrow font-medium text-content-muted">
+              {mood
+                ? `Kamu merasa ${mood.toLowerCase()} hari ini`
+                : 'Bagaimana perasaanmu?'}
+            </p>
+
+            {/* Riwayat 14 hari — grid 2×7 (perbaikan v2.53): dulu SATU
+                baris 14 kolom — label hari "Min/Sen/…" (±20px) tidak muat
+                pada kolom ±15–22px di layar sempit sehingga saling menumpuk
+                jadi pita teks tak terbaca. Dua pekan berurutan selalu mulai
+                di hari yang sama (±7 hari), maka kedua baris sejajar rapi
+                di bawah SATU header hari — kolom kini 2× lebih lega dan
+                pola mingguan mood terbaca seperti kalender mini. */}
+            {moodLogged ? (
+              <>
+                <div className="mt-4 border-t border-border pt-4">
+                  <div
+                    role="list"
+                    aria-label="Mood per hari, 14 hari terakhir"
+                  >
+                    {/* Header hari — 7 kolom, sejajar dengan kedua baris ikon. */}
+                    <div
+                      className="grid grid-cols-7 gap-1"
+                      aria-hidden="true"
+                    >
+                      {moodDays.slice(0, 7).map((d) => (
+                        <span
+                          key={`h-${d.iso}`}
+                          className="text-center text-chart-label font-semibold uppercase tracking-wide text-content-muted"
+                        >
+                          {d.label}
+                        </span>
+                      ))}
+                    </div>
+                    {/* Dua pekan ikon — pekan lalu di atas, pekan ini (dengan
+                        penanda hari ini) di bawah. */}
+                    {[moodDays.slice(0, 7), moodDays.slice(7, 14)].map(
+                      (week, wi) => (
+                        <div
+                          key={`w-${wi}`}
+                          className="mt-1 grid grid-cols-7 gap-1"
+                        >
+                          {week.map((d) => {
+                            const MoodIcon =
+                              d.mood != null ? MOOD_ICONS[d.mood] : null
+                            return (
+                              <div
+                                key={d.iso}
+                                role="listitem"
+                                title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
+                                aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
+                                className={cn(
+                                  'flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5',
+                                  d.isToday &&
+                                    'bg-secondary/60 ring-1 ring-primary/30',
+                                )}
+                              >
+                                {MoodIcon ? (
+                                  <MoodIcon
+                                    className={cn(
+                                      'h-4.5 w-4.5',
+                                      MOOD_TONE[d.mood ?? '']?.text,
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                ) : (
+                                  <Minus
+                                    className="h-4 w-4 text-content-muted/40"
+                                    aria-hidden="true"
+                                  />
+                                )}
+                              </div>
                             )
-                            .join(' ')
-                          return (
-                            <polyline
-                              points={pts}
-                              fill="none"
-                              stroke="var(--chart-stroke-1)"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              vectorEffect="non-scaling-stroke"
-                            />
-                          )
-                        })()}
-                      </svg>
+                          })}
+                        </div>
+                      ),
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setScreen('bugar')}
-                  aria-label="Buka layar Bugar untuk detail latihan, asupan, dan tubuh"
-                  className="interactive mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-module-accent-strong text-note font-bold text-module-accent-fg shadow-soft transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  <Dumbbell aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
-                  Buka Bugar untuk detail latihan, asupan, &amp; tubuh
-                </button>
-              </m.div>
-            </section>
-          </RutinaBentoItem>
-        </RutinaBentoGrid>
-
-        {/* ===== Piala & Lencana — lebar penuh, dilipat default
-            (audit visualisasi v2.12: kartu Streak Berjalan dihapus —
-            streak & rekor sudah terbaca di KPI utama. Review v2.13:
-            koleksi lencana jarang dibuka tiap kunjungan — hitungan
-            terbuka tampil di pemicu, kisi dibuka bila diminati.) ===== */}
-        <div id="stats-piala" className="@container scroll-mt-3">
-        <Collapsible defaultOpen={false}>
-          <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              aria-label={`Piala dan lencana, ${unlockedCount} dari ${badges.length} terbuka — buka untuk melihat koleksi`}
-              className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/25 text-warning">
-                <Trophy aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-body font-semibold text-content-primary">
-                  Piala &amp; Lencana
-                </span>
-                <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
-                  {/* Tahap 2: hitungan dinamis — koleksi v2.22 berisi 8
-                      lencana, angka lama (4) menyesatkan. */}
-                  {unlockedCount}/{badges.length} terbuka
-                </span>
-              </span>
-              <ChevronDown
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
-              />
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-          <div className="mt-3 grid grid-cols-2 gap-2.5 @[36rem]:grid-cols-4">
-                {badges.map((b) => (
-                  <BadgeCard key={b.name} badge={b} />
-                ))}
-              </div>
-          </CollapsibleContent>
-        </Collapsible>
-        </div>
-
-        {/* v2.37 Ruang Suasana (audit density §8/§9): input check-in tetap
-            di ujung halaman + riwayat mood 14 hari (dipindah dari Profil)
-            — satu pusat suasana hati; Profil cukup chip ringkas. */}
-        <section
-          aria-label="Ruang suasana hati"
-          className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
-        >
-          <p className="text-body font-semibold tracking-tight text-content-secondary">
-            Ruang Suasana
-          </p>
-          <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
-            satu ketukan — tercermin di wawasan lintas domain &amp; Profil
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {MOODS.map((m) => {
-              const MoodIcon = MOOD_ICONS[m]
-              const selected = mood === m
-              return (
-                <button
-                  /* key berubah saat terpilih → tombol dipasang ulang
-                     sehingga animasi pop CSS bermain setiap kali aktif. */
-                  key={selected ? `on-${m}` : `off-${m}`}
-                  type="button"
-                  aria-pressed={selected}
-                  aria-label={`Catat suasana hati: ${m}`}
-                  onClick={() => setMood(selected ? null : m)}
-                  className={
-                    'interactive flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl border ' +
-                    (selected
-                      ? 'motion-safe:animate-pop border-module-accent-strong bg-module-accent-strong text-module-accent-fg'
-                      : 'border-border bg-surface-secondary text-content-secondary hover:bg-surface-sunken')
-                  }
-                >
-                  <MoodIcon className="h-4 w-4" />
-                  <span className="text-eyebrow font-semibold">{m}</span>
-                </button>
-              )
-            })}
-          </div>
-          <p className="mt-3 text-eyebrow font-medium text-content-muted">
-            {mood
-              ? `Kamu merasa ${mood.toLowerCase()} hari ini`
-              : 'Bagaimana perasaanmu?'}
-          </p>
-
-          {/* Riwayat 14 hari — grid 2×7 (perbaikan v2.53): dulu SATU
-              baris 14 kolom — label hari "Min/Sen/…" (±20px) tidak muat
-              pada kolom ±15–22px di layar sempit sehingga saling menumpuk
-              jadi pita teks tak terbaca. Dua pekan berurutan selalu mulai
-              di hari yang sama (±7 hari), maka kedua baris sejajar rapi
-              di bawah SATU header hari — kolom kini 2× lebih lega dan
-              pola mingguan mood terbaca seperti kalender mini. */}
-          {moodLogged ? (
-            <>
-              <div className="mt-4 border-t border-border pt-4">
-                <div
-                  role="list"
-                  aria-label="Mood per hari, 14 hari terakhir"
-                >
-                  {/* Header hari — 7 kolom, sejajar dengan kedua baris ikon. */}
-                  <div
-                    className="grid grid-cols-7 gap-1"
-                    aria-hidden="true"
-                  >
-                    {moodDays.slice(0, 7).map((d) => (
+                {/* Distribusi mood — satu bar segmented netral dari MOOD_DOT
+                    (bukan pelangi); hari tanpa check-in TIDAK masuk penyebut. */}
+                {(() => {
+                  const logged = moodCounts.reduce((a, c) => a + c.count, 0)
+                  const segs = moodCounts.filter((c) => c.count > 0)
+                  return (
+                    segs.length > 0 && (
+                      <div className="mt-3">
+                        <div
+                          className="flex h-2 overflow-hidden rounded-full bg-surface-sunken"
+                          role="img"
+                          aria-label={`Distribusi mood 14 hari dari ${logged} hari tercatat: ${segs
+                            .map((c) => `${c.name} ${c.count}`)
+                            .join(', ')}`}
+                        >
+                          {segs.map((c) => (
+                            <span
+                              key={c.name}
+                              className={MOOD_DOT[c.name] ?? 'bg-cocoa/40'}
+                              style={{ width: `${(c.count / logged) * 100}%` }}
+                            />
+                          ))}
+                        </div>
+                        <p className="mt-1.5 px-0.5 text-right text-eyebrow font-medium text-content-muted">
+                          dari {logged} hari tercatat
+                        </p>
+                      </div>
+                    )
+                  )
+                })()}
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
+                  <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
+                    Rekap 14 hari
+                  </span>
+                  {moodCounts
+                    .filter((c) => c.count > 0)
+                    .map((c, i, arr) => (
                       <span
-                        key={`h-${d.iso}`}
-                        className="text-center text-chart-label font-semibold uppercase tracking-wide text-content-muted"
+                        key={c.name}
+                        className="flex items-center gap-2 text-meta font-semibold"
                       >
-                        {d.label}
+                        {/* whitespace-nowrap: pasangan "Nama N×" tidak boleh
+                            patah baris di tengah — pemisah · tetap di ujung
+                            item sebelumnya. */}
+                        <span className="whitespace-nowrap">
+                          <span className={MOOD_TONE[c.name]?.text}>
+                            {c.name}
+                          </span>{' '}
+                          <span className="tabular-nums text-content-muted">
+                            {c.count}×
+                          </span>
+                        </span>
+                        {i < arr.length - 1 && (
+                          <span
+                            aria-hidden="true"
+                            className="text-content-muted/50"
+                          >
+                            ·
+                          </span>
+                        )}
                       </span>
                     ))}
-                  </div>
-                  {/* Dua pekan ikon — pekan lalu di atas, pekan ini (dengan
-                      penanda hari ini) di bawah. */}
-                  {[moodDays.slice(0, 7), moodDays.slice(7, 14)].map(
-                    (week, wi) => (
-                      <div
-                        key={`w-${wi}`}
-                        className="mt-1 grid grid-cols-7 gap-1"
-                      >
-                        {week.map((d) => {
-                          const MoodIcon =
-                            d.mood != null ? MOOD_ICONS[d.mood] : null
-                          return (
-                            <div
-                              key={d.iso}
-                              role="listitem"
-                              title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
-                              aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
-                              className={cn(
-                                'flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5',
-                                d.isToday &&
-                                  'bg-secondary/60 ring-1 ring-primary/30',
-                              )}
-                            >
-                              {MoodIcon ? (
-                                <MoodIcon
-                                  className={cn(
-                                    'h-4.5 w-4.5',
-                                    MOOD_TONE[d.mood ?? '']?.text,
-                                  )}
-                                  aria-hidden="true"
-                                />
-                              ) : (
-                                <Minus
-                                  className="h-4 w-4 text-content-muted/40"
-                                  aria-hidden="true"
-                                />
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ),
-                  )}
                 </div>
+              </>
+            ) : (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-meta font-medium leading-relaxed text-content-muted">
+                  Belum ada catatan suasana pada 14 hari terakhir — ketuk
+                  suasana di atas, atau isi lembar check-in lengkap.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setScreen('profil')}
+                  aria-label="Isi check-in hari ini di Profil"
+                  className="interactive mt-2 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong transition-colors hover:bg-module-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  Isi check-in hari ini
+                  <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+                </button>
               </div>
-              {/* Distribusi mood — satu bar segmented netral dari MOOD_DOT
-                  (bukan pelangi); hari tanpa check-in TIDAK masuk penyebut. */}
-              {(() => {
-                const logged = moodCounts.reduce((a, c) => a + c.count, 0)
-                const segs = moodCounts.filter((c) => c.count > 0)
-                return (
-                  segs.length > 0 && (
-                    <div className="mt-3">
-                      <div
-                        className="flex h-2 overflow-hidden rounded-full bg-surface-sunken"
-                        role="img"
-                        aria-label={`Distribusi mood 14 hari dari ${logged} hari tercatat: ${segs
-                          .map((c) => `${c.name} ${c.count}`)
-                          .join(', ')}`}
-                      >
-                        {segs.map((c) => (
-                          <span
-                            key={c.name}
-                            className={MOOD_DOT[c.name] ?? 'bg-cocoa/40'}
-                            style={{ width: `${(c.count / logged) * 100}%` }}
-                          />
-                        ))}
-                      </div>
-                      <p className="mt-1.5 px-0.5 text-right text-eyebrow font-medium text-content-muted">
-                        dari {logged} hari tercatat
-                      </p>
-                    </div>
-                  )
-                )
-              })()}
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
-                <span className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
-                  Rekap 14 hari
-                </span>
-                {moodCounts
-                  .filter((c) => c.count > 0)
-                  .map((c, i, arr) => (
-                    <span
-                      key={c.name}
-                      className="flex items-center gap-2 text-meta font-semibold"
-                    >
-                      {/* whitespace-nowrap: pasangan "Nama N×" tidak boleh
-                          patah baris di tengah — pemisah · tetap di ujung
-                          item sebelumnya. */}
-                      <span className="whitespace-nowrap">
-                        <span className={MOOD_TONE[c.name]?.text}>
-                          {c.name}
-                        </span>{' '}
-                        <span className="tabular-nums text-content-muted">
-                          {c.count}×
-                        </span>
-                      </span>
-                      {i < arr.length - 1 && (
-                        <span
-                          aria-hidden="true"
-                          className="text-content-muted/50"
-                        >
-                          ·
-                        </span>
-                      )}
-                    </span>
-                  ))}
-              </div>
-            </>
-          ) : (
-            <div className="mt-4 border-t border-border pt-4">
-              <p className="text-meta font-medium leading-relaxed text-content-muted">
-                Belum ada catatan suasana pada 14 hari terakhir — ketuk
-                suasana di atas, atau isi lembar check-in lengkap.
-              </p>
-              <button
-                type="button"
-                onClick={() => setScreen('profil')}
-                aria-label="Isi check-in hari ini di Profil"
-                className="interactive mt-2 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong transition-colors hover:bg-module-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                Isi check-in hari ini
-                <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
-              </button>
+            )}
+          </section>
+
             </div>
-          )}
-        </section>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
 
         </div>
 

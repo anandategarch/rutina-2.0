@@ -94,6 +94,22 @@ Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P0 Kebiasaan.
 | **Saran coach tetap lengkap di sini** | Kartu Goldilocks detail (CoachGroupCard) tetap hidup penuh di Kebiasaan — satu-satunya tempat detail (Beranda kini hanya pratampil, lihat v2.56). Semantik jadwal tak tersentuh: tanpa jadwal ≠ gagal, hari depan ≠ selesai, hari berjalan = berproses. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: pemicu kolapsibel tertutup default → buka → matriks + 22 baris detail muncul → ketuk baris → lembar detail terbuka (Escape berlapis menutup). Screenshot 390px dicek VLM: strip datar tanpa lingkaran ikon, tiga kolom terbaca, kolapsibel tertutup. |
 
+## [2.58] — Stage 2 Statistik: Empat Area Jernih
+
+Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P0 Statistik.
+Observatorium dirombak menjadi EMPAT area dominan (ringkasan →
+konsistensi → kalender → wawasan) dari belasan blok bertumpuk.
+
+| Area | Rincian |
+|---|---|
+| **1 · Ringkasan (hero tunggal)** | Dulu EMPAT blok bertumpuk sebelum grafik pertama: baris profil + cincin XP 176px + kartu KPI + kartu Wawasan Periode. Kini SATU permukaan hero `bg-hero-surface`: baris profil (avatar + nama + lencana LV) di kepala, cincin XP diringkas 176→144px bersebelahan tiga metrik kunci (Konsistensi 30 hari dominan + baris sekunder Misi/Streak/Rekor di bawah hairline), baris sisa-XP menutup kartu. Semua angka & animasi ring (spring progressArc, Counter) dipertahankan. |
+| **2 · Konsistensi (pemilih Tren \| Peta Panas)** | Dulu mode "Grafik" menumpuk DUA grafik konsistensi besar secara vertikal di ponsel (batang misi per periode + rasi bintang 30 hari). Kini SATU grafik besar per waktu: mode Tren = rasi bintang LifeConstellation (bintang per hari terjadwal, titik redup = tanpa jadwal ≠ 0%, garis putus rata-rata), mode Peta Panas = heatmap 12 pekan. Batang misi per periode beserta panel Fokus Periode (sakelar Pekan/Bulan + total + ringkasan) menjadi analisis lanjutan di dalam lipatan Wawasan — data, satuan, dan interaksi ketuk-batang utuh. |
+| **3 · Kalender Aktivitas (laporan terpadu)** | Laporan Bulanan tidak lagi kartu bento terpisah 5-kolom — kini hidup DI DALAM kartu kalender (dilipat default, permukaan sunken flat menggantikan RutinaCard-bersarang): mengganti bulan pada kalender ikut mengganti isi laporan. Panel detail tanggal desktop (DayDetailPanel) tetap di samping kalender pada ruang kerja ≥832px; sheet detail harian ponsel tak tersentuh. |
+| **4 · Wawasan & Pencapaian (lipatan tunggal)** | Seluruh analisis sekunder di balik SATU lipatan tertutup dengan ringkasan hidup di pemicu ("N temuan periode · N/N lencana · merasa X hari ini"): Wawasan Periode Ini, Komposisi Kebiasaan (HabitFlower), Wawasan Lintas Domain, grafik misi per periode + Fokus Periode, Pekan Ini vs Pekan Lalu, Piala & Lencana, dan Ruang Suasana. Pintasan nav "Wawasan" membuka lipatan lalu menggulir. Kualifikasi observasional lintas domain tetap utuh (bukan sebab-akibat). |
+| **Ringkasan Bugar tetap tampil** | Kartu ringkas 4 metrik + pintu ke Bugar tetap di level atas (bukan di lipatan) — tanpa menduplikasi grafik penuh Bugar. |
+| **Pintasan nav 6 → 4 chip** | Tren · Kalender · Wawasan · Bugar — selaras empat area; chip Laporan/Piala/Wawasan lama digantikan lipatan terpadu. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: pemilih Tren↔Peta Panas bekerja (rasi/heatmap berganti tanpa tumpang tindih), lipatan Wawasan terbuka via pemicu MAUPUN chip nav, seluruh 7 sub-seksi terverifikasi hadir (periode/komposisi/lintas-domain/fokus+misi/pekan/piala/suasana), laporan bulanan terbuka DI DALAM kartu kalender + mengikuti bulan, tanpa overflow horizontal di 320px, mode gelap bersih. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas
