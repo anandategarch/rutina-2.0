@@ -82,6 +82,18 @@ Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P0 Beranda.
 | **Layout stabil** | Agenda tidak lagi bercabang melebar penuh saat kolom samping kosong (kondisional v2.13 dipensiunkan) — kolom rekomendasi kini SELALU terisi (paling buruk: sorotan netral), komposisi bento stabil tanpa pergeseran layout antar-keadaan. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live ketiga keadaan prioritas: pratinjau coach (default) → sorotan streak-risk → pemulihan "Rapikan meja kerja" (dibuat via uncheck Jumat) → klik "Selesaikan" → toast + rotasi otomatis ke rekomendasi berikutnya. Screenshot 390px & 1440px dicek visual: hero tanpa petak, agenda ↔ satu kolom rekomendasi, tanpa defect. |
 
+## [2.57] — Stage 2 Kebiasaan: Matriks Dilipat, Strip Metrik Ringan
+
+Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P0 Kebiasaan.
+
+| Perbaikan | Rincian |
+|---|---|
+| **Matriks Perbandingan ditutup default** | Seksi konsistensi dulu menumpuk LIMA blok besar di mobile (bedeng metrik + Sulur Pekan + matriks 4 pekan + heatmap + taman) — pengguliran vertikal berlebihan untuk pandangan default. Matriks adalah analisis lanjutan, bukan pandangan utama: kini hidup di balik kolapsibel tertutup "Perbandingan 4 Pekan" (pola pemicu Laporan Bulanan Statistik — ikon + ringkasan satu baris + chevron). Fungsi utuh: terbuka satu ketukan, 22 baris drilldown detail terverifikasi tetap bekerja; `habitWeeklyRates` tetap satu-satunya sumber perhitungan (nol duplikasi kepatuhan). |
+| **Strip metrik diringankan** | Bedeng metrik garden-bed dengan TIGA lingkaran ikon 32px di atas tiap angka + stagger kartu per-sel → SATU strip editorial datar berpembatas hairline (`grid-cols-3` + border-l), angka turun ke skala `sm`, keterangan dipadatkan ("65% tercapai"). Ketiga metrik (runtun terbaik · target pekan · tanaman dewasa) tetap utuh bersama bar progres — hanya bobot visualnya yang turun. Terukur 260px tanpa overflow pada 320px. |
+| **Urutan pandangan utama kini** | Strip metrik → Sulur Pekan (utama mingguan) → kolapsibel matriks → Heatmap (historis) → Taman (interaktif per-kebiasaan) — sesuai arsitektur sprint: satu visualisasi utama + dua pendukung + analisis lanjutan di balik ketukan. |
+| **Saran coach tetap lengkap di sini** | Kartu Goldilocks detail (CoachGroupCard) tetap hidup penuh di Kebiasaan — satu-satunya tempat detail (Beranda kini hanya pratampil, lihat v2.56). Semantik jadwal tak tersentuh: tanpa jadwal ≠ gagal, hari depan ≠ selesai, hari berjalan = berproses. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: pemicu kolapsibel tertutup default → buka → matriks + 22 baris detail muncul → ketuk baris → lembar detail terbuka (Escape berlapis menutup). Screenshot 390px dicek VLM: strip datar tanpa lingkaran ikon, tiga kolom terbaca, kolapsibel tertutup. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

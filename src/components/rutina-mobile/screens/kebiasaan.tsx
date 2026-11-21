@@ -13,6 +13,7 @@ import {
   Check,
   ChevronDown,
   Clock,
+  Columns3,
   Flame,
   Link2,
   Pencil,
@@ -1944,93 +1945,71 @@ export default function KebiasaanScreen() {
               ) : (
                 <>
 
-              {/* Bedeng metrik kebun — runtun terbaik, capaian pekan,
-                  tanaman dewasa; glif kecil (Flame · Check · PlantGlyph)
-                  menandai tiap angka di atas permukaan garden-bed. */}
+              {/* Strip metrik kebun (v2.57, audit Tahap 2 — bobot visual
+                  dikurangi): dulu tiap angka membawa lingkaran ikon 32px
+                  di atas permukaan garden-bed tersendiri + stagger kartu
+                  per-sel; kini SATU strip editorial datar berpembatas
+                  hairline — angka sm, keterangan tetap utuh. Runtun
+                  terbaik · capaian pekan · tanaman dewasa. */}
               <m.div
                 variants={journalList}
                 initial={playEntrance ? 'hidden' : 'show'}
                 animate="show"
                 className="mt-4"
               >
-                <div className="garden-bed p-3.5 sm:p-4">
-                  <div className="grid grid-cols-3 gap-3 sm:gap-5">
-                    <m.div variants={journalCard} className="min-w-0">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
-                      >
-                        <Flame className="h-4 w-4" strokeWidth={2.2} />
-                      </span>
-                      <RutinaMetric
-                        popOn={maxStreak}
-                        className="mt-2"
-                        label="Runtun terbaik"
-                        value={maxStreak}
-                        unit="hari"
-                        trend={maxStreak > 0 ? 'up' : 'neutral'}
-                        caption="sedang berjalan"
-                      />
-                    </m.div>
-                    <m.div variants={journalCard} className="min-w-0">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
-                      >
-                        <Check className="h-4 w-4" strokeWidth={2.2} />
-                      </span>
-                      <RutinaMetric
-                        popOn={weekTarget.doneElapsed}
-                        className="mt-2"
-                        label="Target pekan ini"
-                        value={
-                          weekTarget.schedElapsed > 0
-                            ? `${weekTarget.doneElapsed}/${weekTarget.schedElapsed}`
-                            : '—'
-                        }
-                        unit="target"
-                        trend={
-                          weekTargetPct == null
-                            ? 'neutral'
-                            : weekTargetPct >= 80
-                              ? 'up'
-                              : weekTargetPct >= 50
-                                ? 'neutral'
-                                : 'down'
-                        }
-                        caption={
-                          weekTarget.schedElapsed === 0
-                            ? 'belum ada jadwal pekan ini'
-                            : `${
-                                weekTargetPct ?? 0
-                              }% tercapai · ${weekTarget.schedRemaining} target tersisa`
-                        }
-                        progress={
-                          weekTargetPct != null
-                            ? weekTargetPct / 100
-                            : undefined
-                        }
-                      />
-                    </m.div>
-                    <m.div variants={journalCard} className="min-w-0">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
-                      >
-                        <PlantGlyph
-                          stage="berbunga"
-                          className="h-[18px] w-[18px]"
-                        />
-                      </span>
-                      <RutinaMetric
-                        popOn={maturePlants}
-                        className="mt-2"
-                        label="Tanaman"
-                        value={maturePlants}
-                        unit="pohon"
-                        caption="dewasa / berbunga"
-                      />
-                    </m.div>
+                <div className="grid grid-cols-3 rounded-xl border border-module-accent/20 bg-module-accent-soft/40 py-3 [&>*+*]:border-l [&>*+*]:border-module-accent/15">
+                  <div className="min-w-0 px-3">
+                    <RutinaMetric
+                      popOn={maxStreak}
+                      size="sm"
+                      label="Runtun terbaik"
+                      value={maxStreak}
+                      unit="hari"
+                      trend={maxStreak > 0 ? 'up' : 'neutral'}
+                      caption="sedang berjalan"
+                    />
+                  </div>
+                  <div className="min-w-0 px-3">
+                    <RutinaMetric
+                      popOn={weekTarget.doneElapsed}
+                      size="sm"
+                      label="Target pekan"
+                      value={
+                        weekTarget.schedElapsed > 0
+                          ? `${weekTarget.doneElapsed}/${weekTarget.schedElapsed}`
+                          : '—'
+                      }
+                      unit="target"
+                      trend={
+                        weekTargetPct == null
+                          ? 'neutral'
+                          : weekTargetPct >= 80
+                            ? 'up'
+                            : weekTargetPct >= 50
+                              ? 'neutral'
+                              : 'down'
+                      }
+                      caption={
+                        weekTarget.schedElapsed === 0
+                          ? 'belum ada jadwal'
+                          : `${weekTargetPct ?? 0}% tercapai`
+                      }
+                      progress={
+                        weekTargetPct != null
+                          ? weekTargetPct / 100
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className="min-w-0 px-3">
+                    <RutinaMetric
+                      popOn={maturePlants}
+                      size="sm"
+                      label="Tanaman"
+                      value={maturePlants}
+                      unit="pohon"
+                      caption="dewasa / berbunga"
+                    />
                   </div>
                 </div>
               </m.div>
@@ -2043,11 +2022,49 @@ export default function KebiasaanScreen() {
                   bacaan + lembar detail hari (pola heatmap). */}
               <GrowthVine />
 
-              {/* Matriks perbandingan konsistensi (review UI/UX v2.44
-                  Tahap 2): semua kebiasaan aktif × 4 pekan — menemukan
-                  yang paling konsisten / menurun / membaik / butuh
-                  perhatian dalam satu pandangan; ketuk baris buka detail. */}
-              <HabitComparisonMatrix onSelect={openHabitDetail} />
+              {/* Matriks perbandingan 4 pekan (v2.57, audit Tahap 2) —
+                  DITUTUP secara default: seksi konsistensi dulu menumpuk
+                  lima blok besar (metrik + sulur + matriks + heatmap +
+                  taman) di tampilan mobile; matriks adalah analisis
+                  lanjutan (bukan pandangan utama) sehingga kini hidup di
+                  balik satu ketukan. Fungsi & data utuh — habitWeeklyRates
+                  tetap satu-satunya sumber perhitungan. */}
+              <Collapsible defaultOpen={false} className="mt-4">
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Lihat perbandingan 4 pekan — matriks konsistensi semua kebiasaan aktif"
+                    className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                    >
+                      <Columns3
+                        aria-hidden="true"
+                        className="h-[18px] w-[18px]"
+                        strokeWidth={2}
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-body font-semibold text-content-primary">
+                        Perbandingan 4 Pekan
+                      </span>
+                      <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                        kebiasaan × pekan — yang paling konsisten atau perlu
+                        perhatian
+                      </span>
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <HabitComparisonMatrix onSelect={openHabitDetail} />
+                </CollapsibleContent>
+              </Collapsible>
 
               {/* Taman Pertumbuhan — bedeng tanaman di dalam zona kebun
                   yang sama; mode 'beds' menanam kisi melipat di ruang
