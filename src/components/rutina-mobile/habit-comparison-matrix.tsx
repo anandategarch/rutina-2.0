@@ -85,7 +85,9 @@ export function HabitComparisonMatrix({
           <h3 className="text-note font-semibold tracking-tight text-content-secondary">
             Perbandingan Konsistensi
           </h3>
-          <p className="text-chart-label font-medium text-content-muted">
+          {/* v2.47: angka tabular + anti-lipat — ritme kepala seragam dengan
+              sulur pekan di atasnya. */}
+          <p className="text-chart-label font-medium whitespace-nowrap tabular-nums text-content-muted">
             4 pekan · sesuai jadwal
           </p>
         </div>

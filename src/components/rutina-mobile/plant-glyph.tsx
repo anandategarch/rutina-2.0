@@ -178,6 +178,22 @@ export function usePlantGrowth<T extends HTMLElement>(
 /* PlantGlyph — render SVG tahap tanaman.                              */
 /* ------------------------------------------------------------------ */
 
+/* Bunga kecil (v2.47 pemolesan botani): 4 mahkota + titik pusat emas —
+   sedikit lebih besar dari lingkaran polos lama; grup tetap
+   data-plant="bloom" + ORIGIN_CENTER agar koreografi usePlantGrowth
+   (scale 0→1 saat milestone) tidak berubah. */
+function Bloom({ cx, cy, s }: { cx: number; cy: number; s: number }) {
+  return (
+    <g data-plant="bloom" style={ORIGIN_CENTER}>
+      <circle cx={cx} cy={cy - s} r={s * 0.66} fill="currentColor" stroke="none" />
+      <circle cx={cx} cy={cy + s} r={s * 0.66} fill="currentColor" stroke="none" />
+      <circle cx={cx - s} cy={cy} r={s * 0.66} fill="currentColor" stroke="none" />
+      <circle cx={cx + s} cy={cy} r={s * 0.66} fill="currentColor" stroke="none" />
+      <circle cx={cx} cy={cy} r={s * 0.5} fill="var(--palette-gold)" stroke="none" />
+    </g>
+  )
+}
+
 export function PlantGlyph({
   stage,
   className,
@@ -304,28 +320,21 @@ export function PlantGlyph({
             />
           </g>
           <g data-plant="canopy" style={ORIGIN_CENTER}>
+            {/* v2.47: kurva blob kanopi dihaluskan — semua sambungan
+                kontrol kolinear (tanpa lekuk halus di tepi), bentuk tetap
+                dalam bingkai 16..48 × 17.5..42.5 yang lama. */}
             <path
-              d="M16 31 C16 22 23 16.5 32 17.5 C41 16.5 48 22 48 31 C48 38.5 41 42.5 32 41.5 C23 42.5 16 38.5 16 31 Z"
+              d="M17 31 C17 23.8 23.8 17.5 32 17.5 C40.2 17.5 47 23.8 47 31 C47 38.2 40.2 42.5 32 42.5 C23.8 42.5 17 38.2 17 31 Z"
               {...S}
             />
           </g>
           {stage === 'berbunga' && (
             <>
-              <g data-plant="bloom" style={ORIGIN_CENTER}>
-                <circle cx="24.5" cy="27" r="2.1" fill="currentColor" stroke="none" />
-              </g>
-              <g data-plant="bloom" style={ORIGIN_CENTER}>
-                <circle cx="33.5" cy="21.5" r="2.4" fill="currentColor" stroke="none" />
-              </g>
-              <g data-plant="bloom" style={ORIGIN_CENTER}>
-                <circle cx="41" cy="28.5" r="2.1" fill="currentColor" stroke="none" />
-              </g>
-              <g data-plant="bloom" style={ORIGIN_CENTER}>
-                <circle cx="28.5" cy="35" r="1.7" fill="currentColor" stroke="none" />
-              </g>
-              <g data-plant="bloom" style={ORIGIN_CENTER}>
-                <circle cx="38" cy="35.5" r="1.7" fill="currentColor" stroke="none" />
-              </g>
+              <Bloom cx={24.5} cy={27} s={1.9} />
+              <Bloom cx={33.5} cy={21.5} s={2.05} />
+              <Bloom cx={41} cy={28.5} s={1.9} />
+              <Bloom cx={28.5} cy={35} s={1.55} />
+              <Bloom cx={38} cy={35.5} s={1.55} />
             </>
           )}
         </svg>

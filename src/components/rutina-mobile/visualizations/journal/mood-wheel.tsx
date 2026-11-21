@@ -1,0 +1,157 @@
+'use client'
+
+import { useMemo } from 'react'
+import * as m from 'motion/react-m'
+import { useReducedMotion } from 'motion/react'
+
+import { motionTokens } from '@/lib/motion/tokens'
+import { useFirstVisit } from '@/lib/motion/first-visit'
+
+/**
+ * MoodWheel — roda distribusi suasana catatan (Jurnal, Quiet Atelier).
+ *
+ * Mengganti bar segmen proporsi mood: donat arc ∝ jumlah/total dengan
+ * celah tipis antar-arc dan ujung membulat (strokeLinecap round).
+ * Angka persis tetap dibawa legenda teks "{mood} {n}×" di pemanggil —
+ * roda adalah bentuk, bukan sumber angka.
+ *
+ * Warna arc MENGACU MOOD_DOT (journal-ui.ts) satu-satu, diterjemahkan
+ * ke nilai CSS eksplisit karena kelas Tailwind tidak bisa menjadi fill
+ * SVG: bg-gold → var(--color-gold), bg-primary → var(--primary),
+ * bg-cocoa/40 & bg-espresso/40 → color-mix 40% di atas permukaan kartu
+ * (semantik "titik pudar di atas kartu" dipertahankan, sekligus aman
+ * mode gelap karena mengikuti --surface-primary).
+ *
+ * Non-interaktif dengan sengaja: lapisan interaktif tetap chip filter
+ * mood di atas kartu. Hanya merender bila ada ≥1 mood tercatat
+ * (kondisi di pemanggil).
+ */
+
+/** Padanan nilai CSS untuk kelas MOOD_DOT (journal-ui.ts). */
+const MOOD_ARC_FILL: Record<string, string> = {
+  Ceria: 'var(--color-gold)',
+  Baik: 'var(--primary)',
+  Biasa: 'color-mix(in oklab, var(--color-cocoa) 40%, var(--surface-primary))',
+  Lelah: 'color-mix(in oklab, var(--color-espresso) 40%, var(--surface-primary))',
+}
+/** Mood di luar daftar → padanan fallback 'bg-cocoa/40' yang lama. */
+const ARC_FALLBACK_FILL = MOOD_ARC_FILL.Biasa
+
+const CX = 48
+const CY = 48
+/** Radius tengah donat — inner 26 / outer 40 (stroke 14). */
+const R_MID = 33
+const STROKE = 14
+/** Celah terlihat antar ujung arc yang membulat. */
+const GAP_DEG = 2
+/** Ujung bulat (strokeLinecap round) menjulur melewati ujung path
+ *  sepanjang setengah lebar goresan → sudut padanannya di radius
+ *  tengah; endpoint path ditarik mundur sejauh ini agar celah antar
+ *  arc tetap GAP_DEG. */
+const CAP_DEG = (180 / Math.PI) * (STROKE / 2 / R_MID)
+/** Rentang sapuan minimal saat proporsi terlalu kecil untuk dua
+ *  tarikan — tampil sebagai titik arc berujung bulat. */
+const MIN_SPAN_DEG = 1.2
+
+/** Titik pada lingkaran — 0° = pukul dua belas, searah jarum jam. */
+function polar(deg: number, r: number): { x: number; y: number } {
+  const rad = ((deg - 90) * Math.PI) / 180
+  return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) }
+}
+
+/** Path arc (searah jarum jam) dari startDeg sepanjang spanDeg. */
+function arcPath(startDeg: number, spanDeg: number): string {
+  const a = polar(startDeg, R_MID)
+  const b = polar(startDeg + spanDeg, R_MID)
+  const large = spanDeg > 180 ? 1 : 0
+  return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${R_MID} ${R_MID} 0 ${large} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`
+}
+
+export function MoodWheel({
+  counts,
+}: {
+  /** Pasangan [mood, jumlah] — hanya mood tercatat, terurut menurun. */
+  counts: [string, number][]
+}) {
+  const play = useFirstVisit('journal-mood-wheel')
+  const reduced = useReducedMotion()
+
+  const total = counts.reduce((a, [, n]) => a + n, 0)
+
+  /* Geometri arc: sudut ∝ jumlah/total; tarikan CAP_DEG di kedua ujung
+     menjaga celah antar arc tetap terbaca. (Sudut awal dihitung dalam
+     loop murni — bukan reassign di dalam callback map.) */
+  const arcs = useMemo(() => {
+    const starts: number[] = []
+    let acc = 0
+    for (const [, n] of counts) {
+      starts.push(acc)
+      acc += (n / total) * 360
+    }
+    return counts.map(([mood, n], i) => ({
+      mood,
+      count: n,
+      start: starts[i] ?? 0,
+      span: Math.max((n / total) * 360 - 2 * CAP_DEG, MIN_SPAN_DEG),
+    }))
+  }, [counts, total])
+
+  return (
+    <div className="relative h-24 w-24 shrink-0">
+      <svg
+        viewBox="0 0 96 96"
+        className="h-full w-full"
+        role="img"
+        aria-label={`Distribusi suasana catatan: ${counts
+          .map(([mood, n]) => `${mood} ${n} kali`)
+          .join(', ')}`}
+      >
+        {/* Rel donat samar — padanan track bg-surface-sunken bar lama. */}
+        <circle
+          cx={CX}
+          cy={CY}
+          r={R_MID}
+          fill="none"
+          stroke="var(--surface-sunken)"
+          strokeWidth={STROKE}
+        />
+        {arcs.map((a, i) => {
+          const fill = MOOD_ARC_FILL[a.mood] ?? ARC_FALLBACK_FILL
+          return (
+            <m.path
+              key={a.mood}
+              d={arcPath(a.start + CAP_DEG, a.span)}
+              fill="none"
+              stroke={fill}
+              strokeWidth={STROKE}
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray={1}
+              initial={
+                play && !reduced ? { strokeDashoffset: 1 } : false
+              }
+              animate={{ strokeDashoffset: 0 }}
+              transition={{
+                ...motionTokens.preset.data,
+                delay: i * motionTokens.stagger.normal,
+              }}
+            />
+          )
+        })}
+      </svg>
+      {/* Pusat roda — total mood tercatat; aria-hidden karena label svg
+          sudah membawa seluruh distribusi (angka per mood + jumlah). */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+      >
+        <span className="text-kpi-sm font-bold leading-none tabular-nums text-content-primary">
+          {total}
+        </span>
+        <span className="mt-0.5 text-chart-label text-content-muted">
+          mood tercatat
+        </span>
+      </div>
+    </div>
+  )
+}

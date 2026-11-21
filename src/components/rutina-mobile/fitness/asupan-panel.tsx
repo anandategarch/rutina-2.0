@@ -40,6 +40,7 @@ import {
 } from '../store'
 import { FOOD_DB } from './food-db'
 import { burnedToday } from './fit-utils'
+import { MacroPlate } from '../visualizations/fitness/macro-plate'
 
 /* ===== Utilitas asupan ===== */
 
@@ -427,10 +428,10 @@ export function AsupanPanel() {
           </p>
         )}
 
-        {/* Makro — segmented bar komposisi (dari kontribusi kalori) + tiga
-            kolom gram. Komposisi hanya digambar dari makro yang tercatat;
-            bila belum lengkap, angka tetap tampil dengan keterangan jujur
-            (audit visualisasi v2.12). */}
+        {/* Makro — piring komposisi ilustratif (v2.47, dari kontribusi
+            kalori) + bullet bar gram vs sasaran. Komposisi hanya digambar
+            dari makro yang tercatat; bila belum lengkap, angka tetap
+            tampil dengan keterangan jujur (audit visualisasi v2.12). */}
         <div className="mt-4 rounded-2xl bg-espresso/35 p-3 backdrop-blur-sm">
           {(() => {
             const pK = sum.protein * KCAL_PER_G.protein
@@ -438,32 +439,17 @@ export function AsupanPanel() {
             const fK = sum.fat * KCAL_PER_G.fat
             const total = pK + cK + fK
             if (sum.macroKnown && total > 0) {
-              const pP = Math.round((pK / total) * 100)
-              const cP = Math.round((cK / total) * 100)
-              const fP = Math.max(0, 100 - pP - cP)
               const partial = sum.knownKcal < sum.kcal
               return (
                 <div className="mb-3">
-                  <div
-                    className="flex h-2.5 overflow-hidden rounded-full bg-module-accent-fg/15"
-                    role="img"
-                    aria-label={`Komposisi makro: protein ${pP} persen, karbohidrat ${cP} persen, lemak ${fP} persen${partial ? ', dihitung dari makanan yang makronya tercatat' : ''}`}
-                  >
-                    <span className="bg-gold" style={{ width: `${pP}%` }} />
-                    <span
-                      className="bg-module-accent-fg/75"
-                      style={{ width: `${cP}%` }}
-                    />
-                    <span
-                      className="bg-module-accent-fg/40"
-                      style={{ width: `${fP}%` }}
-                    />
-                  </div>
-                  <div className="mt-1.5 flex justify-between text-chart-label font-semibold text-module-accent-fg/75">
-                    <span>P {pP}%</span>
-                    <span>K {cP}%</span>
-                    <span>L {fP}%</span>
-                  </div>
+                  <MacroPlate
+                    protein={sum.protein}
+                    carb={sum.carb}
+                    fat={sum.fat}
+                    proteinTarget={fitTargets.protein}
+                    carbTarget={fitTargets.carb}
+                    fatTarget={fitTargets.fat}
+                  />
                   {partial && (
                     <p className="mt-1.5 text-chart-label leading-relaxed text-module-accent-fg/65">
                       Komposisi dari {fmt(sum.knownKcal)} dari {fmt(sum.kcal)}{' '}

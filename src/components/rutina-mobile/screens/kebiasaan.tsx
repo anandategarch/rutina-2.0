@@ -58,6 +58,7 @@ import {
 } from '../habit-coach'
 import { CoachGroupCard } from '../coach-card'
 import { PlantGarden } from '../plant-garden'
+import { GrowthVine } from '../visualizations/habits/growth-vine'
 import Heatmap from '../heatmap'
 import { HabitComparisonMatrix } from '../habit-comparison-matrix'
 import { PlantGlyph } from '../plant-glyph'
@@ -2006,6 +2007,13 @@ export default function KebiasaanScreen() {
                   </div>
                 </div>
               </m.div>
+
+              {/* Sulur Pekan Ini (v2.47 Growth Garden) — satu cabang botani
+                  = pekan berjalan: 7 daun Senin..Minggu, bentuk daun jujur
+                  terhadap jadwal (penuh/sebagian/terlewat/kuncup tanpa
+                  jadwal/belum berjalan); ketuk daun → baris bacaan + lembar
+                  detail hari (pola heatmap). */}
+              <GrowthVine />
 
               {/* Matriks perbandingan konsistensi (review UI/UX v2.44
                   Tahap 2): semua kebiasaan aktif × 4 pekan — menemukan

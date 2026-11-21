@@ -77,7 +77,6 @@ import {
   fromISO,
   habitsOn,
   isDoneOn,
-  rateSeries,
   shortDateLabel,
   todayISO,
   useRutina,
@@ -98,19 +97,12 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { cardioSummary, durationLabel, weightSeries } from '../fitness/fit-utils'
-
 import {
-  Area,
-  AreaChart,
-  Cell,
-  Pie,
-  PieChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+  constellationDays,
+  constellationStats,
+  LifeConstellation,
+} from '../visualizations/stats/life-constellation'
+import { HabitFlower } from '../visualizations/stats/habit-flower'
 
 /** Keliling ring progres XP (r = 78 pada viewBox 200). */
 const R = 78
@@ -118,34 +110,6 @@ const CIRC = 2 * Math.PI * R
 /* Kurva gerak CSS batang grafik — mengikuti kurva preset.data agar
    transisi CSS & Motion terasa satu denyut (governance audit v2.9). */
 const BAR_EASE = motionTokens.easing.standard
-
-/* ===== Gaya tooltip Recharts — token earth-tone standar layar =====
-   Audit Tahap 2 #3: seluruh tooltip grafik memakai kombinasi token yang
-   sama (permukaan parchment + hairline + teks konten) sehingga pembacaan
-   titik data terasa satu bahasa di semua instrumen observatorium. */
-const CHART_TOOLTIP_STYLE = {
-  background: 'var(--surface-primary)',
-  border: '1px solid var(--border-strong)',
-  borderRadius: 12,
-  boxShadow: 'var(--shadow-pop)',
-  padding: '8px 12px',
-  fontSize: 11,
-  lineHeight: 1.5,
-  color: 'var(--content-primary)',
-} as const
-const CHART_TOOLTIP_ITEM = { color: 'var(--content-primary)' } as const
-const CHART_TOOLTIP_LABEL = {
-  color: 'var(--content-muted)',
-  fontWeight: 600,
-  marginBottom: 2,
-} as const
-
-/** Tanggal singkat “19 Nov” untuk sumbu X tren (id-ID, tanpa hari). */
-const trendTick = (iso: string) =>
-  fromISO(iso).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-  })
 
 /** Ikon suasana hati — padanan MOODS di store. */
 const MOOD_ICONS: Record<string, typeof Laugh> = {
@@ -524,17 +488,15 @@ export default function StatsScreen() {
      sudut pandang. */
   const [vizMode, setVizMode] = useState<'grafik' | 'panas'>('grafik')
 
-  /* Gerbang pandangan-pertama untuk grafik Recharts (audit Tahap 2 #4):
+  /* Gerbang pandangan-pertama untuk grafik tren (audit Tahap 2 #4):
      kartu dipasang sejak awal (tinggi tetap, tanpa layout shift), grafik
-     baru DIPASANG saat pertama masuk viewport — animasi isAnimationActive
+     baru DIPASANG saat pertama masuk viewport — entrance konstelasi
      bermain tepat pada momen itu dan tidak diulang saat gulir balik. */
   const trendChartRef = useRef<HTMLDivElement>(null)
   const trendChartInView = useInView(trendChartRef, {
     once: true,
     margin: '-40px',
   })
-  const donutRef = useRef<HTMLDivElement>(null)
-  const donutInView = useInView(donutRef, { once: true, margin: '-40px' })
 
   /* Misi hari ini — dari jadwal & histori penyelesaian nyata (dipakai
      menghitung XP ring profil; ring misi harian sendiri sudah dibaca di
@@ -813,23 +775,23 @@ export default function StatsScreen() {
           ? `Pekan berjalan turun ${p3 - p4} misi dibanding pekan lalu.`
           : 'Pekan berjalan setara dengan pekan lalu.'
 
-  /* Tren penyelesaian 30 hari — persen selesai per hari. `date` ISO nyata
-     ditambahkan agar sumbu X & tooltip memakai tanggal (bukan indeks
-     "Hari ke-N" yang harus dihitung sendiri oleh pembaca). */
-  const trend = rateSeries(habits, completions, today, 30)
-  const trendData = trend.map((p) => ({
-    ...p,
-    date: addDaysISO(today, p.d - 30),
-  }))
-  const trendAvg = trend.reduce((a, b) => a + b.v, 0) / (trend.length || 1)
-  const avgLast15 = trend.slice(15).reduce((a, b) => a + b.v, 0) / 15
-  const avgPrev15 = trend.slice(0, 15).reduce((a, b) => a + b.v, 0) / 15
-  const trendDelta = avgLast15 - avgPrev15
+  /* Tren penyelesaian 30 hari — konstelasi bintang (v2.47 Life
+     Observatory): titik harian jujur, pct NULL bila hari itu tak ada
+     jadwal (rateSeries lama memalsukan 0); rata-rata, delta, dan hitungan
+     “di atas 70%” dihitung dari hari NON-NULL saja. */
+  const trendPoints = useMemo(
+    () => constellationDays(habits, completions, today, 30),
+    [habits, completions, today],
+  )
+  const { avg: trendAvgRaw, delta: trendDelta, above70 } = useMemo(
+    () => constellationStats(trendPoints),
+    [trendPoints],
+  )
+  const trendAvg = trendAvgRaw ?? 0
   const trendBadge =
     trendDelta >= 1 ? 'naik' : trendDelta <= -1 ? 'turun' : 'stabil'
   const TrendIcon =
     trendDelta >= 1 ? TrendingUp : trendDelta <= -1 ? TrendingDown : Minus
-  const above70 = trend.filter((p) => p.v > 70).length
 
   const catData = categoryData(habits)
 
@@ -1396,9 +1358,16 @@ export default function StatsScreen() {
               aria-label="Grafik misi selesai"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-body font-semibold tracking-tight text-content-secondary">
-                  Misi Selesai
-                </p>
+                <div>
+                  {/* v2.47 Mission Harvest: eyebrow kecil “panen misi” —
+                      copy tambahan sadar-batang, judul kartu tak berubah. */}
+                  <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                    panen misi
+                  </p>
+                  <p className="text-body font-semibold tracking-tight text-content-secondary">
+                    Misi Selesai
+                  </p>
+                </div>
                 {/* Label periode data selalu terlihat di header kartu
                     (audit Tahap 2 #3) — bukan hanya di panel fokus. */}
                 <p className="text-chart-label font-semibold uppercase tracking-[0.14em] text-content-muted">
@@ -1435,6 +1404,7 @@ export default function StatsScreen() {
                          ulang seluruh grafik — stagger anime.js tak diulang. */
                       const isPeak = d.value === chartMax && d.value > 0
                       const isSel = selBar === i
+                      const hasValue = d.value > 0
                       return (
                         <button
                           key={i}
@@ -1442,16 +1412,26 @@ export default function StatsScreen() {
                           aria-pressed={isSel}
                           aria-label={`${d.label} — ${d.value} misi selesai`}
                           onClick={() => setSelBar(isSel ? null : i)}
-                          className="interactive flex flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-lg pt-1"
+                          className="interactive flex flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-lg pt-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
+                          {/* v2.47 Mission Harvest — batang = tangkai panen:
+                              kolom rounded-t-full gradasi aksen modul dengan
+                              tudung di puncak: daun kecil matcha (biasa) /
+                              buah emas + tangkai (puncak). Tudung DI DALAM
+                              data-bar (absolut di puncak) sehingga ikut
+                              tumbuh bersama stagger scaleY & ikut naik saat
+                              tinggi batang bernorf antar periode. Tinggi &
+                              transisi tinggi dijaga PERSIS seperti sebelumnya. */}
                           <div
                             data-bar
-                            className={`w-full origin-bottom rounded-full ${
+                            className={`relative w-full origin-bottom ${
+                              d.value === 0 ? 'rounded-full' : 'rounded-t-full'
+                            } ${
                               isPeak
                                 ? 'bg-gradient-to-t from-chart-1 to-chart-4'
                                 : isSel
-                                  ? 'bg-chart-stroke-4'
-                                  : 'bg-content-primary/15'
+                                  ? 'bg-module-accent-strong'
+                                  : 'bg-gradient-to-t from-module-accent/70 to-module-accent'
                             }`}
                             style={{
                               height: `${
@@ -1466,7 +1446,59 @@ export default function StatsScreen() {
                                 ? undefined
                                 : `height ${motionTokens.preset.data.duration * 1000}ms cubic-bezier(${BAR_EASE.join(',')})`,
                             }}
-                          />
+                          >
+                            {hasValue && (
+                              <span
+                                aria-hidden="true"
+                                className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full transition-transform duration-200 ${
+                                  isSel ? 'scale-[1.15]' : 'scale-100'
+                                }`}
+                                style={{ transformOrigin: '50% 100%' }}
+                              >
+                                {isPeak ? (
+                                  /* Buah emas + tangkai — penanda puncak. */
+                                  <svg
+                                    viewBox="0 0 14 16"
+                                    className="block h-[15px] w-[13px]"
+                                  >
+                                    <path
+                                      d="M7 1 C 7 2.8 7 3.9 7 5.4"
+                                      fill="none"
+                                      stroke="var(--chart-stroke-4)"
+                                      strokeWidth={1.6}
+                                      strokeLinecap="round"
+                                    />
+                                    <path
+                                      d="M7 3.9 C 8.8 2.9 10.3 3.1 11.3 4.1"
+                                      fill="none"
+                                      stroke="var(--chart-stroke-4)"
+                                      strokeWidth={1.5}
+                                      strokeLinecap="round"
+                                    />
+                                    <circle cx="7" cy="10.4" r="4.7" fill="var(--palette-gold)" />
+                                    <circle
+                                      cx="5.5"
+                                      cy="9"
+                                      r="1.1"
+                                      fill="var(--surface-primary)"
+                                      opacity={0.55}
+                                    />
+                                  </svg>
+                                ) : (
+                                  /* Daun kecil matcha — hari biasa. */
+                                  <svg
+                                    viewBox="0 0 14 14"
+                                    className="block h-[13px] w-[13px]"
+                                  >
+                                    <path
+                                      d="M7 13.2 C 2.4 11 1.2 5.2 4 1.4 C 8.8 2.4 11.6 6.4 10.6 10.4 C 9.9 12.2 8.7 13.2 7 13.2 Z"
+                                      fill="var(--chart-stroke-4)"
+                                    />
+                                  </svg>
+                                )}
+                              </span>
+                            )}
+                          </div>
                           <span
                             className={`text-chart-label font-semibold ${
                               isPeak
@@ -1511,10 +1543,10 @@ export default function StatsScreen() {
         {/* Tren penyelesaian 30 hari (mode Grafik) — tetap visual
             terpisah dari batang misi: sumbu & satuan berbeda, tidak
             digabung; kini menempati ruang yang sama dengan saklar mode.
-            Kartu instrumen parchment: garis tegas chart-stroke-4 + isi
-            lembut chart-4 opasitas rendah (audit Tahap 2 #6); garis putus
-            rata-rata memberi konteks sekilas; legenda + label periode
-            selalu terlihat (audit Tahap 2 #3). */}
+            v2.47 Life Observatory: rasi bintang SVG kustom menggantikan
+            AreaChart — bintang per hari terjadwal, titik redup = tanpa
+            jadwal (bukan 0%), garis putus rata-rata non-null; bintang
+            bisa diketuk (baris bacaan aria-live). */}
         {vizMode === 'grafik' && (
             <m.div
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
@@ -1531,14 +1563,18 @@ export default function StatsScreen() {
                   <p className="mt-0.5 text-eyebrow font-medium text-content-muted">
                     persentase misi selesai · 30 hari terakhir
                   </p>
-                  <p className="mt-1.5 flex items-baseline gap-1.5">
-                    <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
-                      <Counter to={trendAvg} decimals={1} immediate={!playEntrance} />
-                    </span>
-                    <span className="text-note font-medium text-content-muted">
-                      % rata-rata / hari
-                    </span>
-                  </p>
+                  {/* Rata-rata hanya tampil bila ada hari terjadwal —
+                      menahan diri dari angka 0% karangan. */}
+                  {trendAvgRaw != null && (
+                    <p className="mt-1.5 flex items-baseline gap-1.5">
+                      <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums text-content-primary">
+                        <Counter to={trendAvg} decimals={1} immediate={!playEntrance} />
+                      </span>
+                      <span className="text-note font-medium text-content-muted">
+                        % rata-rata / hari
+                      </span>
+                    </p>
+                  )}
                 </div>
                 <span className="flex shrink-0 items-center gap-1 rounded-full bg-module-accent-strong px-2.5 py-1 text-eyebrow font-semibold text-module-accent-fg">
                   <TrendIcon className="h-3.5 w-3.5" />
@@ -1554,84 +1590,16 @@ export default function StatsScreen() {
                     description="Atur jadwal kebiasaan di tab Kebiasaan — tren konsistensi mulai terbaca setelah ada misi terjadwal."
                   />
                 ) : trendChartInView ? (
-                  <ResponsiveContainer width="100%" height={130}>
-                    <AreaChart
-                      data={trendData}
-                      margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="trendFill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="var(--chart-4)"
-                            stopOpacity={0.22}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="var(--chart-4)"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="date"
-                        tick={{
-                          fill: 'var(--content-muted)',
-                          fontSize: 10,
-                        }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval={7}
-                        tickFormatter={(v: string) => trendTick(v)}
-                      />
-                      <YAxis hide domain={[0, 100]} />
-                      <ReferenceLine
-                        y={trendAvg}
-                        stroke="var(--chart-stroke-5)"
-                        strokeWidth={1.5}
-                        strokeDasharray="4 4"
-                        ifOverflow="extendDomain"
-                      />
-                      <RechartsTooltip
-                        cursor={{ stroke: 'var(--border-strong)' }}
-                        contentStyle={CHART_TOOLTIP_STYLE}
-                        itemStyle={CHART_TOOLTIP_ITEM}
-                        labelStyle={CHART_TOOLTIP_LABEL}
-                        labelFormatter={(v) => shortDateLabel(String(v))}
-                        formatter={(value) => [`${value}%`, 'Selesai']}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="v"
-                        stroke="var(--chart-stroke-4)"
-                        strokeWidth={2.5}
-                        fill="url(#trendFill)"
-                        isAnimationActive={!reducedMotion}
-                        animationDuration={motionTokens.preset.chartRevealMs.duration}
-                        animationEasing="ease-out"
-                        activeDot={{
-                          r: 4,
-                          fill: 'var(--chart-stroke-4)',
-                          stroke: 'var(--surface-primary)',
-                          strokeWidth: 2,
-                        }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <LifeConstellation points={trendPoints} />
                 ) : (
                   /* Penahan tinggi tetap — grafik dipasang saat pertama
-                     masuk viewport agar animasi Recharts bermain tepat
+                     masuk viewport agar entrance konstelasi bermain tepat
                      pada momen itu (audit Tahap 2 #4), tanpa layout shift. */
-                  <div className="h-[130px]" aria-hidden="true" />
+                  <div className="h-[150px]" aria-hidden="true" />
                 )}
               </div>
-              {/* Legenda grafik tren — garis solid & garis putus rata-rata. */}
+              {/* Legenda grafik tren — bintang solid, garis putus rata-rata,
+                  dan titik redup hari tanpa jadwal (null ≠ 0%). */}
               <div
                 className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5"
                 aria-label="Legenda grafik tren penyelesaian"
@@ -1643,12 +1611,21 @@ export default function StatsScreen() {
                   />
                   % selesai harian
                 </span>
+                {trendAvgRaw != null && (
+                  <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
+                    <span
+                      aria-hidden="true"
+                      className="w-5 border-t-2 border-dashed border-chart-stroke-5"
+                    />
+                    rata-rata {trendAvg.toFixed(1).replace('.', ',')}%
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 text-eyebrow font-medium text-content-muted">
                   <span
                     aria-hidden="true"
-                    className="w-5 border-t-2 border-dashed border-chart-stroke-5"
+                    className="inline-block h-1.5 w-1.5 rounded-full bg-content-muted/40"
                   />
-                  rata-rata {trendAvg.toFixed(1).replace('.', ',')}%
+                  tanpa jadwal
                 </span>
               </div>
               <p className="mt-2 text-eyebrow font-medium text-content-muted">
@@ -1947,10 +1924,11 @@ export default function StatsScreen() {
             perbandingan pekan — komposisi kategori menempati posisi #5. */}
         <RutinaBentoGrid id="stats-wawasan" className="scroll-mt-3">
           <RutinaBentoItem span="medium">
-            {/* Komposisi kebiasaan aktif — donut per kategori. Kartu
-                instrumen parchment: irisan memakai token kategori kebiasaan,
-                tooltip terang standar, animasi menyapu hanya saat pertama
-                masuk viewport (audit Tahap 2 #4). */}
+            {/* Komposisi kebiasaan aktif — bunga radial per kategori
+                (v2.47 Life Observatory: HabitFlower menggantikan donut
+                PieChart). Panjang kelopak memetakan jumlah LINEAR
+                (outerR = 24 + value/max × 34); baris legenda adalah
+                pemilih utama (tombol nyata), kelopak juga bisa diketuk. */}
             <m.div
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1972,70 +1950,7 @@ export default function StatsScreen() {
                   description="Tanam kebiasaan pertamamu di tab Kebiasaan — komposisi kategori terbaca otomatis di sini."
                 />
               ) : (
-                <div className="mt-3 flex items-center gap-4">
-                  <div ref={donutRef} className="relative h-28 w-28 shrink-0">
-                    {donutInView ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <RechartsTooltip
-                            contentStyle={CHART_TOOLTIP_STYLE}
-                            itemStyle={CHART_TOOLTIP_ITEM}
-                            labelStyle={CHART_TOOLTIP_LABEL}
-                            formatter={(value, name) => [
-                              `${value} kebiasaan`,
-                              String(name),
-                            ]}
-                          />
-                          <Pie
-                            data={catData}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={34}
-                            outerRadius={52}
-                            paddingAngle={3}
-                            stroke="none"
-                            isAnimationActive={!reducedMotion}
-                            animationDuration={motionTokens.preset.chartRevealMs.duration}
-                            animationEasing="ease-out"
-                          >
-                            {catData.map((c) => (
-                              <Cell key={c.name} fill={c.color} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : null}
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
-                        {activeHabits.length}
-                      </span>
-                      <span className="mt-0.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
-                        aktif
-                      </span>
-                    </div>
-                  </div>
-                  {/* Legenda kategori — jumlah konkret di sisi donut. */}
-                  <ul className="min-w-0 flex-1 space-y-2" aria-label="Legenda kategori kebiasaan">
-                    {catData.map((c) => (
-                      <li
-                        key={c.name}
-                        className="flex items-center gap-2.5 text-meta"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: c.color }}
-                        />
-                        <span className="flex-1 truncate font-medium text-content-secondary">
-                          {c.name}
-                        </span>
-                        <span className="shrink-0 font-semibold tabular-nums text-content-primary">
-                          {c.value}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <HabitFlower data={catData} total={activeHabits.length} />
               )}
             </m.div>
           </RutinaBentoItem>

@@ -27,7 +27,7 @@ import { playfair } from './serif'
 import { Counter } from './counter'
 import { formatIDRShort } from './finance/utils'
 import { longDateLabel, todayISO, useRutina } from './store'
-import { weeklyRecapOf } from './weekly-recap'
+import { weeklyRecapOf, type RecapDayInfo } from './weekly-recap'
 
 /* ===== Rekap Pekan — kartu perjalanan =====
 
@@ -46,6 +46,104 @@ interface ChipSpec {
   label: string
   icon: LucideIcon
   value: string
+}
+
+/* ===== Lapisan sulur strip perjalanan (v2.47 · Daily Almanac) =====
+
+   Sulur tumbuh menggantikan garis tanah datar: batang bergelombang
+   lembut (module-accent 35%, 1.5px) melewati 7 posisi hari DI BELAKANG
+   lingkaran; pasangan daun kecil hanya bertunas di hari yang targetnya
+   tercapai (metGoal — maks. 7 pasang, tanpa keramaian); garis tanah
+   samar tetap menjadi pijakan di bawah sulur. Dekoratif semata
+   (aria-hidden) — data dibawa label tiap tombol hari. */
+
+/** Posisi x (viewBox 0–100) kolom hari ke-i — 7 kolom sama lebar,
+ *  sejajar dengan titik tengah lingkaran hari. */
+const VINE_NODE_X = Array.from(
+  { length: 7 },
+  (_, i) => ((i + 0.5) * 100) / 7,
+)
+
+/** Batang sulur: gelombang mendatar — tangent datar di tiap simpul,
+ *  tonjolan bergantian di antaranya (simpul tersembunyi di balik
+ *  lingkaran; lengkungan terbaca di celah antar-lingkaran). */
+const VINE_STEM_D = (() => {
+  /* v2.47.1: amplitudo 3.4 → 4.2 — lengkungan tetap terbaca jelas di
+     celah antar-lingkaran pada kartu 320–390px. */
+  const amp = 4.2
+  const mid = 18
+  let d = `M 2.6 ${mid + 0.8} C ${VINE_NODE_X[0] - 2.4} ${mid + 0.8} ${VINE_NODE_X[0] - 1.2} ${mid} ${VINE_NODE_X[0]} ${mid}`
+  for (let i = 0; i < VINE_NODE_X.length - 1; i++) {
+    const a = VINE_NODE_X[i]
+    const b = VINE_NODE_X[i + 1]
+    const k = (b - a) / 2.6
+    const lift = i % 2 === 0 ? amp : -amp
+    d += ` C ${a + k} ${mid + lift} ${b - k} ${mid + lift} ${b} ${mid}`
+  }
+  const last = VINE_NODE_X[VINE_NODE_X.length - 1]
+  d += ` C ${last + 1.2} ${mid} ${last + 2.4} ${mid + 0.8} 97.4 ${mid + 0.8}`
+  return d
+})()
+
+/** Sepasang daun kecil (viewBox 64×18, bertunas dari titik 32,16). */
+const LEAF_LEFT_D =
+  'M32 16 C26 15.2 19 12.8 13.5 5.5 C17 4 22 5.2 25.8 8.4 C29 11.2 31.2 14.2 32 16 Z'
+const LEAF_RIGHT_D =
+  'M32 16 C38 15.2 45 12.8 50.5 5.5 C47 4 42 5.2 38.2 8.4 C35 11.2 32.8 14.2 32 16 Z'
+
+function JourneyVine({ days }: { days: RecapDayInfo[] }) {
+  return (
+    <>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 36"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-x-0 top-0 h-9 sm:h-11"
+      >
+        {/* Batang — non-scaling-stroke agar goresan tetap 1.5px pada
+            semua lebar kartu meski viewBox direnggangkan. */}
+        <path
+          d={VINE_STEM_D}
+          fill="none"
+          stroke="var(--module-accent)"
+          strokeOpacity="0.45"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {/* Garis tanah samar — pijakan visual di bawah sulur. */}
+        <line
+          x1="2.6"
+          y1="25.5"
+          x2="97.4"
+          y2="25.5"
+          stroke="var(--border-default)"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+          opacity="0.8"
+        />
+      </svg>
+      {/* Daun — svg kecil terpisah per simpul (bukan anak svg batang)
+          agar bentuknya tidak terdistorsi renggangan preserveAspectRatio.
+          Lebar mengikuti skala lingkaran (36/44px) agar ujung daun selalu
+          sedikit mengintip di sisi lingkaran. */}
+      {days.map((d, i) =>
+        d.metGoal ? (
+          <svg
+            key={d.iso}
+            aria-hidden="true"
+            viewBox="0 0 64 18"
+            preserveAspectRatio="none"
+            className="pointer-events-none absolute top-[2px] h-[18px] w-14 -translate-x-1/2 sm:top-[6px] sm:w-16"
+            style={{ left: `${VINE_NODE_X[i]}%` }}
+          >
+            <path d={LEAF_LEFT_D} fill="var(--module-accent)" fillOpacity="0.5" />
+            <path d={LEAF_RIGHT_D} fill="var(--module-accent)" fillOpacity="0.5" />
+          </svg>
+        ) : null,
+      )}
+    </>
+  )
 }
 
 export function WeeklyRecapCard({
@@ -217,13 +315,10 @@ export function WeeklyRecapCard({
         role="group"
         aria-label={`Perjalanan pekan ini: ${stripAria}`}
       >
-        {/* Jalur tanah di belakang sel — menyatukan 7 hari jadi satu
-            jejak perjalanan. Posisi vertikal mengikuti tinggi lingkaran
-            (36px dasar / 44px sm+). */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-[8%] top-[18px] h-px bg-border sm:top-[22px]"
-        />
+        {/* v2.47 (Daily Almanac): sulur tumbuh — batang bergelombang,
+            daun hanya di hari metGoal, garis tanah samar; seluruhnya di
+            belakang lingkaran hari. */}
+        <JourneyVine days={recap.days} />
         <div className="relative flex items-start justify-between">
           {recap.days.map((d, i) => {
             const sprout = d.metGoal
@@ -268,10 +363,21 @@ export function WeeklyRecapCard({
                     <m.div
                       initial={playEntrance ? { scale: 0, opacity: 0 } : false}
                       whileInView={{ scale: 1, opacity: 1 }}
+                      /* v2.47: hari terpilih terangkat halus dari sulur —
+                         transisi per-nilai agar spring entrance & lift
+                         tidak saling menunggu jeda stagger. */
+                      animate={{ y: daySelected ? -2 : 0 }}
                       viewport={{ once: true, margin: '-30px' }}
                       transition={{
-                        ...motionTokens.spring.playful,
-                        delay: i * 0.05,
+                        scale: {
+                          ...motionTokens.spring.playful,
+                          delay: i * motionTokens.stagger.normal,
+                        },
+                        opacity: {
+                          ...motionTokens.spring.playful,
+                          delay: i * motionTokens.stagger.normal,
+                        },
+                        y: motionTokens.spring.snappy,
                       }}
                       className={
                         'flex h-9 w-9 items-center justify-center rounded-full sm:h-11 sm:w-11 ' +
@@ -279,7 +385,10 @@ export function WeeklyRecapCard({
                           ? 'bg-secondary'
                           : sprout === 'partial'
                             ? 'bg-surface-primary/90 shadow-soft'
-                            : 'bg-transparent') +
+                            : /* v2.47.1: hari kosong tetap terbaca sebagai
+                                 simpul perjalanan — garis rambut inset agar
+                                 sulur di belakangnya tidak menembus. */
+                              'shadow-[inset_0_0_0_1px_var(--border-default)]') +
                         (daySelected
                           ? ' ring-2 ring-primary ring-offset-2 ring-offset-surface-primary'
                           : d.isToday

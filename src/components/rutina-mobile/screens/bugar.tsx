@@ -766,6 +766,9 @@ function WeekActivityCard() {
   /* Mode baca (review v2.44) — default Semua (perilaku lama). */
   const [mode, setMode] = useState<WeekMode>('semua')
   const meta = WEEK_MODE_META[mode]
+  /* Bahasa visual batang per satuan mode (v2.47): kg = kolom piringan,
+     km = jalur pin rute, mnt = penanda kokop. */
+  const isKgMode = meta.unit === 'kg'
 
   const { days, sessions, values, lastValues, max, weeks } = useMemo(() => {
     const M = WEEK_MODE_META[mode]
@@ -1042,8 +1045,12 @@ function WeekActivityCard() {
                   </>
                 )}
               </div>
-              {/* Batang tonase mini — tinggi proporsional Σ(beban×reps). */}
-              <div className="flex h-10 w-full items-end">
+              {/* Batang metrik mini — tinggi proporsional nilai mode;
+                  bentuk berganti per satuan: kg = kolom piringan (garis
+                  piringan dekoratif), km = jalur ramping + pin rute,
+                  mnt = batang + penanda kokop. Hari tanpa nilai tetap
+                  stub netral. */}
+              <div className="flex h-10 w-full items-end justify-center">
                 <m.div
                   initial={playEntrance ? { scaleY: 0 } : { scaleY: 1 }}
                   whileInView={{ scaleY: 1 }}
@@ -1056,14 +1063,53 @@ function WeekActivityCard() {
                     ease: motionTokens.easing.standard,
                   }}
                   style={{ height: `${barH}%`, transformOrigin: 'bottom' }}
-                  className={`w-full rounded-full transition-colors ${
+                  className={`relative transition-colors ${
+                    isKgMode
+                      ? 'w-[62%] rounded-t-md'
+                      : mode === 'kardio'
+                        ? 'w-2 rounded-full'
+                        : 'w-full rounded-full'
+                  } ${
                     isSel
                       ? 'bg-module-accent-strong'
                       : hasTonase
                         ? 'bg-module-accent/70 group-hover:bg-module-accent'
                         : 'bg-module-accent/15'
                   }`}
-                />
+                >
+                  {/* Garis piringan dekoratif — posisi tetap, bukan hitungan
+                      piringan fisik. */}
+                  {hasTonase && isKgMode && (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-1/4 h-px bg-surface-primary/40"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-1/2 h-px bg-surface-primary/40"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-3/4 h-px bg-surface-primary/40"
+                      />
+                    </>
+                  )}
+                  {/* Pin rute — penanda titik jangkauan kardio. */}
+                  {hasTonase && mode === 'kardio' && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full border-2 border-surface-primary bg-module-accent-strong"
+                    />
+                  )}
+                  {/* Penanda kokop — cincin di puncak batang durasi. */}
+                  {hasTonase && mode === 'badminton' && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-1.5 left-1/2 size-2.5 -translate-x-1/2 rounded-full border-2 border-module-accent bg-surface-primary/80"
+                    />
+                  )}
+                </m.div>
               </div>
               <span
                 className={`text-chart-label font-semibold ${
@@ -1223,7 +1269,7 @@ function WeekActivityCard() {
                     <div className="flex w-full flex-1 items-end">
                       <m.div
                         className={
-                          'w-full origin-bottom rounded-full ' +
+                          'relative w-full origin-bottom rounded-full ' +
                           (isCurrent
                             ? 'bg-module-accent-strong'
                             : wk.total > 0
@@ -1242,7 +1288,35 @@ function WeekActivityCard() {
                             : i * motionTokens.stagger.normal,
                           ease: motionTokens.easing.standard,
                         }}
-                      />
+                      >
+                        {/* Penanda puncak per mode (v2.47) — tutup piringan
+                            (garis 2px lebih gelap) untuk kg, pin rute untuk
+                            km, penanda kokop untuk mnt. */}
+                        {wk.total > 0 && isKgMode && (
+                          <span
+                            aria-hidden="true"
+                            className={`absolute inset-x-0 top-0 h-0.5 rounded-t-full ${
+                              isCurrent
+                                ? /* v2.47.1: 30 → 55 — tutup piringan pekan
+                                   berjalan terbaca pada kartu 320–390px. */
+                                  'bg-espresso/55'
+                                : 'bg-module-accent-strong/70'
+                            }`}
+                          />
+                        )}
+                        {wk.total > 0 && mode === 'kardio' && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full border-2 border-surface-primary bg-module-accent-strong"
+                          />
+                        )}
+                        {wk.total > 0 && mode === 'badminton' && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute -top-1.5 left-1/2 size-2.5 -translate-x-1/2 rounded-full border-2 border-module-accent bg-surface-primary/80"
+                          />
+                        )}
+                      </m.div>
                     </div>
                     <span
                       className={

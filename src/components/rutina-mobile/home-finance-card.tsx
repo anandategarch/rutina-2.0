@@ -285,10 +285,15 @@ export function HomeFinanceCard() {
                         key={d.iso}
                         className="flex h-full min-w-0 flex-1 flex-col gap-1"
                       >
-                        <span className="flex w-full flex-1 items-end">
+                        {/* v2.47 (coin-ledger): tekstur tumpukan koin — dua
+                            garis rambut TETAP (33%/66%, bukan hitungan
+                            nilai) pada batang berisi; hari ini mendapat
+                            tutup koin emas di puncak. Nol tetap stub 4px
+                            polos. */}
+                        <span className="relative flex w-full flex-1 items-end">
                           <m.span
                             className={
-                              'w-full origin-bottom rounded-full ' +
+                              'relative w-full origin-bottom overflow-hidden rounded-full ' +
                               (d.total <= 0
                                 ? 'bg-primary/15'
                                 : isToday
@@ -299,7 +304,25 @@ export function HomeFinanceCard() {
                             initial={playEntrance ? { scaleY: 0 } : false}
                             animate={{ scaleY: 1 }}
                             transition={barFill}
-                          />
+                          >
+                            {d.total > 0 && (
+                              <>
+                                <span className="absolute inset-x-0 top-[33%] h-px bg-surface-primary/50" />
+                                <span className="absolute inset-x-0 top-[66%] h-px bg-surface-primary/50" />
+                              </>
+                            )}
+                          </m.span>
+                          {isToday && d.total > 0 && (
+                            <m.span
+                              className="absolute left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-gold"
+                              style={{ bottom: `calc(${h}% + 3px)` }}
+                              initial={
+                                playEntrance ? { opacity: 0, y: -3 } : false
+                              }
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={barFill}
+                            />
+                          )}
                         </span>
                         <span
                           className={

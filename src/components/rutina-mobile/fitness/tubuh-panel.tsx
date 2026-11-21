@@ -290,12 +290,26 @@ function WeightWindowPicker({
 /* ===== Riwayat Tubuh 14 hari — small multiples (audit visualisasi
  *  v2.36, Tahap 2) =====
  *
- * Tiga metrik pemulihan yang selama ini hanya dibaca sebagai angka
- * harian/rata-rata, kini terbaca sebagai PERKEMBANGAN: tidur (batang
- * + zona target 7–8 jam), energi (titik skala 1–5), hidrasi (batang
- * vs target gelas). Skala masing-masing berdiri sendiri — jam, skor,
- * dan gelas tidak pernah disatukan. Hari tanpa catatan digambar
- * netral (bukan nol): "tidak mencatat" ≠ "0 jam tidur". */
+ * Lima metrik pemulihan yang selama ini hanya dibaca sebagai angka
+ * harian/rata-rata, kini terbaca sebagai PERKEMBANGAN (v2.47, edisi
+ * ilustratif): tidur (kolom malam dengan bulan sabit + zona target
+ * 7–8 jam), energi (glif baterai skala 1–5), nyeri otot (titik dengan
+ * pita zona 1–2/3/4–5), stres (cincin dengan pita zona yang sama),
+ * hidrasi (menara gelas vs target). Skala masing-masing berdiri
+ * sendiri — jam, skor, dan gelas tidak pernah disatukan. Hari tanpa
+ * catatan digambar netral (bukan nol): "tidak mencatat" ≠ "0 jam
+ * tidur". */
+
+/** Bulan sabit kecil — glif malam di puncak kolom tidur (dekoratif,
+ *  path bulan standar; nilai tetap dibawa aria-label tombol harian). */
+function MoonGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className}>
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="var(--palette-gold)" />
+    </svg>
+  )
+}
+
 function BodyHistory({
   logs,
   waterTarget,
@@ -352,9 +366,13 @@ function BodyHistory({
 
   /* Skala negatif (5 = terburuk): warna titik jujur mengikuti nilai —
      rendah hijau, sedang kuning, tinggi merah; berbeda dari energi
-     yang satu arah (makin tinggi makin baik, satu warna cukup). */
+     yang satu arah (makin tinggi makin baik, satu warna cukup).
+     Nyeri = titik padat; stres = cincin (bentuk membedakan dua skala
+     yang sama-sama 1–5). */
   const negTone = (v: number) =>
     v <= 2 ? 'bg-success' : v === 3 ? 'bg-warning' : 'bg-destructive'
+  const negRing = (v: number) =>
+    v <= 2 ? 'border-success' : v === 3 ? 'border-warning' : 'border-destructive'
 
   /* Skala tidur: minimal 8 jam agar zona target 7–8 selalu terlihat
      dan 8 jam tidak terlihat seperti "penuh". */
@@ -410,8 +428,9 @@ function BodyHistory({
                   {bodyCoverage(sleep)}/{DAYS} hari
                 </p>
               </div>
-              <div className="relative mt-2 flex h-14 gap-[3px]">
-                {/* Zona target 7–8 jam — latar lembut di belakang batang */}
+              <div className="relative mt-2 flex h-16 gap-[3px]">
+                {/* Zona target 7–8 jam — latar lembut di belakang batang
+                    + bulan sabit kecil di tepi kanan zona (dekoratif). */}
                 <div
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-x-0 rounded-md bg-primary/8"
@@ -419,7 +438,9 @@ function BodyHistory({
                     bottom: `${(7 / maxSleep) * 100}%`,
                     height: `${(1 / maxSleep) * 100}%`,
                   }}
-                />
+                >
+                  <MoonGlyph className="absolute right-[-1px] top-1/2 h-2 w-2 -translate-y-1/2 opacity-70" />
+                </div>
                 {sleep.map((p) => (
                   <button
                     key={p.date}
@@ -434,9 +455,12 @@ function BodyHistory({
                     <span className="flex h-full items-end justify-center">
                       {p.value != null ? (
                         <span
-                          className="w-full rounded-[3px] bg-module-accent"
+                          className="relative w-full rounded-[3px] bg-module-accent"
                           style={{ height: `${Math.max((p.value / maxSleep) * 100, 4)}%` }}
-                        />
+                        >
+                          {/* Glif malam — mahkota bulan di puncak kolom. */}
+                          <MoonGlyph className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2" />
+                        </span>
                       ) : (
                         <span className="h-1.5 w-full rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
                       )}
@@ -453,7 +477,7 @@ function BodyHistory({
             </div>
           )}
 
-          {/* --- Energi: titik skala 1–5 --- */}
+          {/* --- Energi: glif baterai skala 1–5 (v2.47) --- */}
           {bodyCoverage(energy) > 0 && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
@@ -465,7 +489,7 @@ function BodyHistory({
                   {bodyCoverage(energy)}/{DAYS} hari
                 </p>
               </div>
-              <div className="mt-2 flex h-14 gap-[3px]">
+              <div className="mt-2 flex h-16 gap-[3px]">
                 {energy.map((p) => (
                   <button
                     key={p.date}
@@ -478,10 +502,21 @@ function BodyHistory({
                     className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     {p.value != null ? (
+                      /* Glif baterai — tinggi isi ∝ nilai/5; posisi tetap
+                         di titik skala seperti titik lama. */
                       <span
-                        className="absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-module-accent"
-                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 4px)` }}
-                      />
+                        aria-hidden="true"
+                        className="absolute left-1/2 block h-[14px] w-[10px] -translate-x-1/2 rounded-[2.5px] border-[1.5px] border-content-muted/40"
+                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 7px)` }}
+                      >
+                        <span className="absolute -top-[2.5px] left-1/2 h-[2px] w-[4px] -translate-x-1/2 rounded-t-[1px] bg-content-muted/40" />
+                        <span className="absolute inset-[1px]">
+                          <span
+                            className="absolute inset-x-0 bottom-0 rounded-[1px] bg-module-accent"
+                            style={{ height: `${(p.value / 5) * 100}%` }}
+                          />
+                        </span>
+                      </span>
                     ) : (
                       <span className="absolute bottom-0 left-1/2 h-1.5 w-2 -translate-x-1/2 rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
                     )}
@@ -497,7 +532,8 @@ function BodyHistory({
             </div>
           )}
 
-          {/* --- Nyeri otot: titik skala 1–5 (DOMS, 5 = sangat nyeri) --- */}
+          {/* --- Nyeri otot: titik skala 1–5 (DOMS, 5 = sangat nyeri)
+              dengan pita zona pemulihan di belakang (v2.47) --- */}
           {bodyCoverage(soreness) > 0 && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
@@ -509,7 +545,21 @@ function BodyHistory({
                   {bodyCoverage(soreness)}/{DAYS} hari
                 </p>
               </div>
-              <div className="mt-2 flex h-14 gap-[3px]">
+              <div className="relative mt-2 flex h-16 gap-[3px]">
+                {/* Pita zona — 1–2 pulih (hijau), 3 waspada (emas),
+                    4–5 berat (lempung); dekoratif, nilai tetap di label. */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-[40%] bg-success/10"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-[40%] h-[20%] bg-gold/12"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-[60%] h-[40%] bg-clay/15"
+                />
                 {soreness.map((p) => (
                   <button
                     key={p.date}
@@ -541,7 +591,9 @@ function BodyHistory({
             </div>
           )}
 
-          {/* --- Stres: titik skala 1–5 (5 = sangat stres) --- */}
+          {/* --- Stres: cincin skala 1–5 (5 = sangat stres) dengan pita
+              zona yang sama seperti nyeri — bentuk cincin memisahkan
+              dua skala (v2.47) --- */}
           {bodyCoverage(stress) > 0 && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
@@ -553,7 +605,20 @@ function BodyHistory({
                   {bodyCoverage(stress)}/{DAYS} hari
                 </p>
               </div>
-              <div className="mt-2 flex h-14 gap-[3px]">
+              <div className="relative mt-2 flex h-16 gap-[3px]">
+                {/* Pita zona — makna sama dengan nyeri otot. */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-[40%] bg-success/10"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-[40%] h-[20%] bg-gold/12"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-[60%] h-[40%] bg-clay/15"
+                />
                 {stress.map((p) => (
                   <button
                     key={p.date}
@@ -567,8 +632,8 @@ function BodyHistory({
                   >
                     {p.value != null ? (
                       <span
-                        className={`absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full ${negTone(p.value)}`}
-                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 4px)` }}
+                        className={`absolute left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 bg-surface-primary ${negRing(p.value)}`}
+                        style={{ bottom: `calc(${(p.value / 5) * 100}% - 5px)` }}
                       />
                     ) : (
                       <span className="absolute bottom-0 left-1/2 h-1.5 w-2 -translate-x-1/2 rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
@@ -585,7 +650,10 @@ function BodyHistory({
             </div>
           )}
 
-          {/* --- Hidrasi: batang terhadap target gelas --- */}
+          {/* --- Hidrasi: menara gelas terhadap target (v2.47) ---
+              Gelas terisi dari bawah; sisa menuju target tampil sebagai
+              gelas garis luar; total glyph dibatasi 8 — lebihnya jadi
+              label +N di puncak. */}
           {bodyCoverage(water) > 0 && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
@@ -597,46 +665,71 @@ function BodyHistory({
                   {bodyCoverage(water)}/{DAYS} hari
                 </p>
               </div>
-              <div className="relative mt-2 flex h-14 gap-[3px]">
-                {/* Garis target — tepi atas = sasaran gelas harian */}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 border-t border-dashed border-module-accent/50"
-                  style={{ top: 0 }}
-                />
-                {water.map((p) => (
-                  <button
-                    key={p.date}
-                    type="button"
-                    aria-pressed={sel === p.date}
-                    aria-label={`${p.label} ${dateShort(p.date)} — ${
-                      p.value != null
-                        ? `${p.value} dari ${waterTarget} gelas`
-                        : 'tidak tercatat'
-                    }`}
-                    onClick={() => setSel(sel === p.date ? null : p.date)}
-                    className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    <span className="flex h-full items-end justify-center">
+              <div className="relative mt-2 flex h-16 gap-[3px]">
+                {water.map((p) => {
+                  /* total glyph = min(maks(nilai, target), 8) — gelas
+                     terisi + gelas kosong sasaran; lebih dari 8 → +N. */
+                  const total = Math.min(Math.max(p.value ?? 0, waterTarget), 8)
+                  const filled = Math.min(p.value ?? 0, total)
+                  const outline = total - filled
+                  const overflow = (p.value ?? 0) - total
+                  return (
+                    <button
+                      key={p.date}
+                      type="button"
+                      aria-pressed={sel === p.date}
+                      aria-label={`${p.label} ${dateShort(p.date)} — ${
+                        p.value != null
+                          ? `${p.value} dari ${waterTarget} gelas`
+                          : 'tidak tercatat'
+                      }`}
+                      onClick={() => setSel(sel === p.date ? null : p.date)}
+                      className="interactive relative min-w-0 flex-1 cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
                       {p.value != null ? (
-                        <span
-                          className="w-full rounded-[3px] bg-module-accent"
-                          style={{
-                            height: `${Math.max((Math.min(p.value, waterTarget) / waterTarget) * 100, 6)}%`,
-                          }}
-                        />
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className="absolute inset-0 flex flex-col items-center justify-end gap-[1px]"
+                          >
+                            {Array.from({ length: outline }, (_, i) => (
+                              <span
+                                key={`o${i}`}
+                                className="h-[7px] w-1.5 rounded-[1.5px] border border-module-accent/40"
+                              />
+                            ))}
+                            {Array.from({ length: filled }, (_, i) => (
+                              <span
+                                key={`f${i}`}
+                                className="relative h-[7px] w-1.5 rounded-[1.5px] border border-module-accent/70"
+                              >
+                                <span className="absolute inset-x-[0.5px] bottom-[0.5px] top-[1.5px] rounded-[1px] bg-module-accent" />
+                              </span>
+                            ))}
+                          </span>
+                          {overflow > 0 && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-1/2 top-0 -translate-x-1/2 rounded-[2px] bg-surface-primary px-0.5 text-chart-label font-bold leading-none text-module-accent-strong"
+                            >
+                              +{overflow}
+                            </span>
+                          )}
+                        </>
                       ) : (
-                        <span className="h-1.5 w-full rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                        <span className="absolute inset-x-0 bottom-0 flex h-full items-end justify-center">
+                          <span className="h-1.5 w-full rounded-full bg-surface-sunken shadow-[inset_0_0_0_1px_var(--border)]" />
+                        </span>
                       )}
-                    </span>
-                    {sel === p.date && (
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
-                      />
-                    )}
-                  </button>
-                ))}
+                      {sel === p.date && (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-primary"
+                        />
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}

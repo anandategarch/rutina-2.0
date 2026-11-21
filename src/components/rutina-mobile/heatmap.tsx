@@ -336,7 +336,7 @@ export default function Heatmap({
         <span className="flex flex-wrap items-center gap-1.5">
           {mode === 'kepatuhan' && (
             <span className="flex items-center gap-1">
-              <span className="h-3 w-3 rounded-[3px] bg-surface-primary shadow-[inset_0_0_0_1px_var(--border)]" />
+              <span className="h-3 w-3 rounded-[4px] bg-surface-primary shadow-[inset_0_0_0_1px_var(--border)]" />
               <span className="text-eyebrow font-semibold text-content-muted">
                 tanpa jadwal
               </span>
@@ -344,8 +344,10 @@ export default function Heatmap({
           )}
           {LEVEL_COLORS.map((c, i) => (
             <span key={c} className="flex items-center gap-1">
+              {/* v2.47: radius swatch 4px menggemakan radius sel 5px —
+                  satu bahasa bentuk pada satu legenda. */}
               <span
-                className="h-3 w-3 rounded-[3px]"
+                className="h-3 w-3 rounded-[4px]"
                 style={{ backgroundColor: c }}
               />
               <span className="text-eyebrow font-semibold tabular-nums text-content-muted">

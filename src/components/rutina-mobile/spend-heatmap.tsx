@@ -153,7 +153,9 @@ export function SpendHeatmap() {
         </div>
 
         <div className="min-w-0 flex-1">
-          {/* Baris label bulan — satu per pergantian bulan. */}
+          {/* Baris label bulan — satu per pergantian bulan (v2.47: gaya
+              eyebrow; kolom terakhir = pekan berjalan diberi garis bawah
+              tipis bronze sebagai penanda "hari ini"). */}
           <div
             aria-hidden="true"
             className="grid grid-cols-[repeat(12,minmax(0,1fr))] gap-1"
@@ -161,7 +163,11 @@ export function SpendHeatmap() {
             {grid.marks.map((mk, w) => (
               <span
                 key={w}
-                className="h-3 w-max text-chart-label font-bold uppercase leading-none text-content-muted"
+                className={`h-3 leading-none text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted ${
+                  w === WEEKS - 1
+                    ? 'w-full border-b border-module-finance/70'
+                    : 'w-max'
+                }`}
               >
                 {mk ?? ''}
               </span>

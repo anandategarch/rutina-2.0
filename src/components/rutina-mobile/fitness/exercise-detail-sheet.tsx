@@ -11,6 +11,7 @@ import { shortDateLabel, useRutina, type Workout, type WorkoutSet } from '../sto
 import { useFocusTrap } from '../use-focus-trap'
 import { e1rmOf, exStatOf } from './fit-utils'
 import { exerciseLabel } from './data'
+import { BarbellProgression } from '../visualizations/fitness/barbell-progression'
 
 /**
  * Detail progres SATU gerakan barbel (review UI/UX v2.44 — pola Hevy):
@@ -109,36 +110,10 @@ export function ExerciseDetailSheet({
     [sessions],
   )
 
-  /* Grafik e1RM — maks 12 sesi terakhir agar titik tetap terbaca. */
+  /* Grafik e1RM — maks 12 sesi terakhir agar kolom tetap terbaca. */
   const chartPts = useMemo(() => sessions.slice(-12), [sessions])
-  const chartGeom = useMemo(() => {
-    if (chartPts.length === 0) return null
-    const W = 300
-    const H = 96
-    const pad = 8
-    const vals = chartPts.map((p) => p.bestE1)
-    const min = Math.min(...vals)
-    const max = Math.max(...vals)
-    const span = Math.max(max - min, 0.1)
-    const step =
-      chartPts.length > 1 ? (W - pad * 2) / (chartPts.length - 1) : 0
-    const pts = chartPts.map((p, i) => ({
-      x: chartPts.length > 1 ? pad + step * i : W / 2,
-      y: H - pad - ((p.bestE1 - min) / span) * (H - pad * 2),
-    }))
-    return {
-      W,
-      H,
-      pts,
-      min,
-      max,
-      d: pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '),
-    }
-  }, [chartPts])
 
   const label = name ? exerciseLabel(name) : ''
-  const sel =
-    selIdx != null && chartPts[selIdx] != null ? chartPts[selIdx] : null
 
   return (
     <AnimatePresence>
@@ -252,70 +227,19 @@ export function ExerciseDetailSheet({
                     ))}
                   </div>
 
-                  {/* 2 — Grafik e1RM per sesi (maks 12 terakhir); ketuk
-                      titik untuk membaca sesinya. */}
-                  {chartGeom && chartPts.length >= 2 && (
+                  {/* 2 — Grafik e1RM per sesi (maks 12 terakhir) versi
+                      barbel ilustratif; ketuk kolom untuk membaca sesinya. */}
+                  {chartPts.length >= 2 && (
                     <div className="mt-4">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-                          Perkembangan e1RM
-                        </p>
-                        <p className="text-eyebrow font-medium tabular-nums text-content-muted">
-                          {chartPts.length} sesi terakhir
-                        </p>
-                      </div>
-                      <svg
-                        viewBox={`0 0 ${chartGeom.W} ${chartGeom.H}`}
-                        className="mt-2 h-24 w-full"
-                        role="img"
-                        aria-label={`Grafik e1RM ${label}: ${chartPts
-                          .map(
-                            (p) =>
-                              `${shortDateLabel(p.date)} ${fmtKg(p.bestE1)} kg`,
-                          )
-                          .join(', ')}`}
-                      >
-                        <polyline
-                          points={chartGeom.d}
-                          fill="none"
-                          stroke="var(--chart-stroke-3)"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        {chartGeom.pts.map((p, i) => (
-                          <circle
-                            key={chartPts[i]!.date + i}
-                            cx={p.x}
-                            cy={p.y}
-                            r={selIdx === i ? 6 : 4}
-                            fill={
-                              selIdx === i
-                                ? 'var(--chart-stroke-3)'
-                                : 'var(--surface-primary)'
-                            }
-                            stroke="var(--chart-stroke-3)"
-                            strokeWidth="2"
-                            className="cursor-pointer"
-                            onClick={() =>
-                              setSelIdx(selIdx === i ? null : i)
-                            }
-                          >
-                            <title>
-                              {`${shortDateLabel(chartPts[i]!.date)} — e1RM ${fmtKg(
-                                chartPts[i]!.bestE1,
-                              )} kg`}
-                            </title>
-                          </circle>
-                        ))}
-                      </svg>
-                      <p className="mt-1 text-meta leading-snug text-content-muted">
-                        {sel
-                          ? `${shortDateLabel(sel.date)} · set terbaik ${fmtKg(
-                              sel.top.weight,
-                            )} kg × ${sel.top.reps} → e1RM ${fmtKg(sel.bestE1)} kg`
-                          : 'Ketuk titik untuk membaca sesi latihannya.'}
-                      </p>
+                      <BarbellProgression
+                        points={chartPts.map((p) => ({
+                          date: p.date,
+                          bestE1: p.bestE1,
+                          top: { weight: p.top.weight, reps: p.top.reps },
+                        }))}
+                        selected={selIdx}
+                        onSelect={(i) => setSelIdx(i)}
+                      />
                     </div>
                   )}
 

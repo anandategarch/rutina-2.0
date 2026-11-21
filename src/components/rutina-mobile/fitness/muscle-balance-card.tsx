@@ -9,10 +9,18 @@ import { EX_LIB, MUSCLE_GROUPS } from './data'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import {
+  AnatomyMap,
+  type AnatomyGroupStat,
+} from '../visualizations/fitness/anatomy-map'
 
 /**
  * Neraca Kelompok Otot (review UI/UX v2.44) — distribusi volume latihan
  * beban per kelompok otot dalam jendela 7 / 30 hari.
+ *
+ * v2.47 (visualisasi ilustratif): daftar batang diganti PETA ANATOMI
+ * interaktif (anatomy-map.tsx) — siluet depan/belakang dengan wilayah
+ * otot yang intensitasnya mengikuti jumlah set relatif.
  *
  * Aturan review yang dipegang: hanya KELOMPOK OTOT UTAMA yang tercatat
  * di pustaka gerakan (EX_LIB.muscle) — beban TIDAK dibagi ke otot
@@ -20,11 +28,13 @@ import { RutinaEmptyState } from '../rutina-empty-state'
  * frekuensi = hari dengan sesi beban.
  */
 
-/** Batang satu kelompok otot — jumlah set + gerakan penyumbang. */
+/** Satu kelompok otot — jumlah set, gerakan & tanggal penyumbang. */
 interface MuscleBar {
   group: string
   sets: number
   exercises: string[]
+  /** Tanggal (ISO, unik) dengan ≥1 set kelompok ini — terbaru dulu. */
+  dates: string[]
 }
 
 const WINDOWS: { id: 7 | 30; label: string }[] = [
@@ -40,6 +50,7 @@ export function MuscleBalanceCard() {
   const workouts = useRutina((s) => s.workouts)
   const reducedEntrance = useFirstVisit('bugar-muscle-balance')
   const [win, setWin] = useState<7 | 30>(30)
+  const [selected, setSelected] = useState<string | null>(null)
 
   const { bars, activeDays, sessions } = useMemo(() => {
     const today = todayISO()
@@ -49,9 +60,11 @@ export function MuscleBalanceCard() {
     )
     const byGroup = new Map<string, MuscleBar>()
     for (const g of MUSCLE_GROUPS) {
-      byGroup.set(g, { group: g, sets: 0, exercises: [] })
+      byGroup.set(g, { group: g, sets: 0, exercises: [], dates: [] })
     }
     for (const w of inWindow) {
+      /* Kelompok yang kebagian set dari sesi ini — untuk tanggal unik. */
+      const hit = new Set<string>()
       for (const s of w.sets) {
         const muscle = MUSCLE_BY_NAME.get(s.exercise)
         if (!muscle) continue
@@ -59,7 +72,12 @@ export function MuscleBalanceCard() {
         if (!bar) continue
         bar.sets++
         if (!bar.exercises.includes(s.exercise)) bar.exercises.push(s.exercise)
+        hit.add(muscle)
       }
+      for (const g of hit) byGroup.get(g)!.dates.push(w.date)
+    }
+    for (const b of byGroup.values()) {
+      b.dates = [...new Set(b.dates)].sort().reverse()
     }
     const bars = [...byGroup.values()].sort((a, b) => b.sets - a.sets)
     return {
@@ -72,6 +90,13 @@ export function MuscleBalanceCard() {
   const maxSets = Math.max(...bars.map((b) => b.sets), 0)
   const trainedGroups = bars.filter((b) => b.sets > 0)
   const top = trainedGroups[0]
+
+  const stats: AnatomyGroupStat[] = bars.map((b) => ({
+    group: b.group,
+    sets: b.sets,
+    dates: b.dates,
+    exercises: b.exercises,
+  }))
 
   return (
     <m.section
@@ -101,7 +126,10 @@ export function MuscleBalanceCard() {
               <button
                 key={w.id}
                 type="button"
-                onClick={() => setWin(w.id)}
+                onClick={() => {
+                  setWin(w.id)
+                  setSelected(null)
+                }}
                 aria-pressed={on}
                 className={
                   'interactive h-6.5 cursor-pointer rounded-full px-2.5 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
@@ -131,65 +159,15 @@ export function MuscleBalanceCard() {
             {trainedGroups.length} kelompok otot (otot utama gerakan)
           </p>
 
-          {/* Batang per kelompok — lebar proporsional set terbanyak;
-              sub-label menyebut gerakan penyumbang terbanyak. */}
-          <div
-            className="mt-3 space-y-2.5"
-            role="img"
-            aria-label={`Jumlah set per kelompok otot ${win} hari: ${bars
-              .map((b) => `${b.group} ${b.sets} set`)
-              .join(', ')}`}
-          >
-            {bars.map((b, i) => {
-              const pct = maxSets > 0 ? (b.sets / maxSets) * 100 : 0
-              const names = b.exercises.slice(0, 2)
-              return (
-                <div key={b.group} className="flex items-center gap-3">
-                  <span className="w-[86px] shrink-0 text-right text-chart-label font-semibold text-content-secondary">
-                    {b.group}
-                  </span>
-                  <div className="h-5 min-w-0 flex-1">
-                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-surface-sunken">
-                      <m.div
-                        initial={
-                          reducedEntrance ? { scaleX: 0 } : { scaleX: 1 }
-                        }
-                        whileInView={{ scaleX: 1 }}
-                        viewport={{ once: true, margin: '-20px' }}
-                        transition={{
-                          duration: 0.5,
-                          delay: Math.min(i * 0.04, 0.3),
-                          ease: motionTokens.easing.standard,
-                        }}
-                        style={{ width: `${Math.max(pct, 2)}%` }}
-                        className={`h-full origin-left rounded-full ${
-                          b.sets === maxSets
-                            ? 'bg-module-accent-strong'
-                            : b.sets > 0
-                              ? 'bg-module-accent/60'
-                              : 'bg-transparent'
-                        }`}
-                      />
-                    </div>
-                    {names.length > 0 && (
-                      <p className="mt-0.5 truncate text-[10px] font-medium leading-none text-content-muted">
-                        {names.join(' · ')}
-                        {b.exercises.length > 2
-                          ? ` +${b.exercises.length - 2}`
-                          : ''}
-                      </p>
-                    )}
-                  </div>
-                  <span
-                    className={`w-10 shrink-0 text-right text-chart-label font-bold tabular-nums ${
-                      b.sets > 0 ? 'text-content-primary' : 'text-content-muted'
-                    }`}
-                  >
-                    {b.sets}
-                  </span>
-                </div>
-              )
-            })}
+          {/* Peta anatomi interaktif — wilayah otot ∝ jumlah set. */}
+          <div className="mt-2">
+            <AnatomyMap
+              stats={stats}
+              maxSets={maxSets}
+              selected={selected}
+              onSelect={setSelected}
+              windowLabel={`${win} hari`}
+            />
           </div>
 
           {/* Catatan kaki — kelompok terlatih + disclaimer otot utama. */}

@@ -35,7 +35,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 
 import {
   AlertDialog,
@@ -81,6 +80,9 @@ import {
   type Wallet as FinWallet,
 } from '../store'
 import { FinChart } from '../finance/fin-chart'
+import { BudgetRunway } from '../visualizations/finance/budget-runway'
+import { ChartSrSummary } from '../visualizations/shared/chart-frame'
+import { useSvgId } from '../visualizations/shared/svg-id'
 import { BUDGETABLE_CATS, catMetaOf } from '../finance/cats'
 import { useCatMeta } from '../finance/use-cat-meta'
 import { AllowanceCard } from '../finance/allowance-card'
@@ -325,27 +327,49 @@ function SectionTitle({ title, action }: { title: string; action?: ReactNode }) 
   )
 }
 
-/* ===== Kartu tujuan (cincin SVG animasi) ===== */
+/* ===== Kartu tujuan — celengan kaca ilustratif (v2.47) =====
+   Cincin progres diganti CELUNGENGAN: isian cair naik mengikuti rasio
+   saved/target (jujur, tidak dibulatkan secara visual), 2 koin emas
+   dekoratif mengapung di permukaan isian (jumlah tetap dua — bukan
+   hitungan nominal), tanda milestone 25/50/75/100% di sisi kanan, tutup
+   bronze antik + lencana centang saat tuntas. Semua aksi lama utuh. */
+
+/** Siluet celengan (viewBox 64×80): mulut sempit, bahu melebar, badan
+    membulat — dipakai untuk kaca, clipPath isian, dan tanda milestone. */
+const JAR_PATH =
+  'M22 9 H42 V13 C46 15 56 18 56 26 V70 C56 73.3 53.3 76 50 76 H14 C10.7 76 8 73.3 8 70 V26 C8 18 18 15 22 13 Z'
+
+/** Rentang vertikal interior isian: y 11 (mulut) s.d. 76 (dasar). */
+const JAR_FILL_TOP = 11
+const JAR_FILL_BOTTOM = 76
+/** Tempuh isian (px) — 100% = penuh sampai mulut. */
+const JAR_FILL_TRAVEL = JAR_FILL_BOTTOM - JAR_FILL_TOP
 
 function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   /* v2.35 anti-replay: deretan kartu tujuan hanya diantar pada kunjungan
-     pertama Vault; kontribusi baru tetap bermorf lewat animate ring. */
+     pertama Vault; kontribusi baru tetap bermorf lewat animate isian. */
   const playEntrance = useFirstVisit('fin-goal-card')
   const openGoalSheet = useRutina((s) => s.openGoalSheet)
+  const clipId = useSvgId('fin-jar')
   /* v2.45 (audit K14): target 0 (data tersinkron/impor) tak boleh
-     membagi NaN pada cincin/persen. */
+     membagi NaN pada isian/persen. */
   const safeTarget = Math.max(1, goal.target)
   const pct = Math.min(100, Math.round((goal.saved / safeTarget) * 100))
   const safeRatio = Math.min(1, goal.saved / safeTarget)
   const nContrib = goal.contributions?.length ?? 0
   const complete = goal.saved >= goal.target
-  /* Hampir tercapai (audit Tahap 2): cincin bernapas lembut — rayuan
+  /* Hampir tercapai (audit Tahap 2): celengan bernapas lembut — rayuan
      kecil untuk menuntaskan sisa langkah, tanpa konfeti berlebihan. */
   const near = !complete && pct >= 80
   const remaining = Math.max(0, goal.target - goal.saved)
   const Icon = GOAL_ICONS[index] ?? PiggyBank
-  const R = 24
-  const C = 2 * Math.PI * R
+  /* Warna isian: tuntas → success, hampir (≥80%) → warning, sisanya
+     aksen modul (bronze antik pada konteks Keuangan). */
+  const fillColor = complete
+    ? 'var(--success)'
+    : near
+      ? 'var(--warning)'
+      : 'var(--module-accent)'
 
   return (
     <Spotlight className="w-[188px] shrink-0 snap-start rounded-xl sm:w-full sm:shrink">
@@ -367,47 +391,150 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
           <MoreHorizontal className="h-4 w-4" strokeWidth={2.4} />
         </button>
         <div className="flex items-center gap-3.5">
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+          {/* Celengan kaca — role img + ringkasan nilai; SVG dekoratif. */}
+          <div
+            className={`relative h-20 w-16 shrink-0 ${
+              near ? 'motion-safe:animate-breathe' : ''
+            }`}
+            role="img"
+            aria-label={`Tabungan ${goal.name}: ${pct}% terkumpul, ${formatIDRShort(
+              goal.saved,
+            )} dari ${formatIDRShort(goal.target)}`}
+          >
             <svg
-              viewBox="0 0 56 56"
-              className={`absolute inset-0 h-full w-full -rotate-90 ${
-                near ? 'motion-safe:animate-breathe' : ''
-              }`}
+              viewBox="0 0 64 80"
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full"
             >
-              <circle
-                cx="28"
-                cy="28"
-                r={R}
-                fill="none"
-                stroke="var(--border-default)"
-                strokeWidth="5"
+              <defs>
+                <clipPath id={clipId}>
+                  <path d={JAR_PATH} />
+                </clipPath>
+              </defs>
+
+              {/* Kaca — rongga tembus pandang */}
+              <path
+                d={JAR_PATH}
+                fill="var(--surface-secondary)"
+                fillOpacity={0.5}
               />
-              <m.circle
-                cx="28"
-                cy="28"
-                r={R}
-                fill="none"
-                stroke={complete ? 'var(--success)' : 'var(--warning)'}
-                strokeWidth="5"
-                strokeLinecap="round"
-                strokeDasharray={C}
-                initial={
-                  playEntrance ? { strokeDashoffset: C } : false
-                }
-                animate={{
-                  strokeDashoffset: C * (1 - safeRatio),
-                }}
+
+              {/* Isian — tinggi AKURAT = rasio saved/target; tumbuh dari
+                  dasar (scaleY + originX/originY gaya Motion — origin
+                  string CSS ditimpa fallback 50% 50% oleh buildSVGAttrs,
+                  lihat motion-dom render/svg/utils/build-attrs.mjs). */}
+              <g clipPath={`url(#${clipId})`}>
+                <m.g
+                  initial={playEntrance ? { scaleY: 0 } : false}
+                  animate={{ scaleY: Math.max(0.003, safeRatio) }}
+                  transition={barFill}
+                  style={{ originX: 0.5, originY: 1 }}
+                >
+                  <rect
+                    x={8}
+                    y={JAR_FILL_TOP}
+                    width={48}
+                    height={JAR_FILL_TRAVEL}
+                    fill={fillColor}
+                  />
+                </m.g>
+              </g>
+
+              {/* 2 koin dekoratif di permukaan isian — ikut naik dengan
+                  spring yang sama (jumlah tetap dua, bukan nominal). */}
+              <m.g
+                initial={playEntrance ? { y: 0 } : false}
+                animate={{ y: -JAR_FILL_TRAVEL * safeRatio }}
                 transition={barFill}
+              >
+                <ellipse
+                  cx={26.5}
+                  cy={73.6}
+                  rx={5.6}
+                  ry={2.3}
+                  transform="rotate(-9 26.5 73.6)"
+                  fill="var(--palette-gold)"
+                  stroke="var(--palette-espresso)"
+                  strokeWidth={0.7}
+                />
+                <ellipse
+                  cx={36.5}
+                  cy={72.2}
+                  rx={5.6}
+                  ry={2.3}
+                  transform="rotate(7 36.5 72.2)"
+                  fill="var(--palette-gold)"
+                  stroke="var(--palette-espresso)"
+                  strokeWidth={0.7}
+                />
+              </m.g>
+
+              {/* Dinding kaca */}
+              <path
+                d={JAR_PATH}
+                fill="none"
+                stroke="var(--border-strong)"
+                strokeWidth={1.5}
+                strokeLinejoin="round"
               />
+
+              {/* Tanda milestone 25/50/75/100% di sisi kanan — tick 100%
+                  sedikit lebih panjang. */}
+              {[0.25, 0.5, 0.75, 1].map((r) => (
+                <line
+                  key={r}
+                  x1={57}
+                  y1={JAR_FILL_BOTTOM - JAR_FILL_TRAVEL * r}
+                  x2={r === 1 ? 62 : 60}
+                  y2={JAR_FILL_BOTTOM - JAR_FILL_TRAVEL * r}
+                  stroke="var(--border-strong)"
+                  strokeWidth={1}
+                />
+              ))}
+
+              {/* Tutup celengan — aksen modul kuat */}
+              <rect
+                x={20}
+                y={2}
+                width={24}
+                height={7}
+                rx={2.5}
+                fill="var(--module-accent-strong)"
+              />
+
+              {/* Lencana tuntas di tutup */}
+              {complete && (
+                <g>
+                  <circle
+                    cx={47}
+                    cy={6}
+                    r={6}
+                    fill="var(--success)"
+                    stroke="var(--surface-primary)"
+                    strokeWidth={1.5}
+                  />
+                  <path
+                    d="M44.4 6.2 46.3 8.1 49.7 4.2"
+                    fill="none"
+                    stroke="var(--module-accent-fg)"
+                    strokeWidth={1.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </g>
+              )}
             </svg>
-            <Icon className="relative h-5 w-5 text-content-secondary" />
           </div>
-          <div>
-            <p className="text-kpi-sm font-bold leading-none tabular-nums">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-kpi-sm font-bold leading-none tabular-nums">
+              <Icon
+                className="h-4 w-4 shrink-0 text-content-secondary"
+                strokeWidth={2.2}
+              />
               {pct}
               <span className="text-note">%</span>
             </p>
-            <p className="mt-1 text-eyebrow uppercase tracking-[0.14em] text-content-muted">
+            <p className="mt-1.5 text-eyebrow uppercase tracking-[0.14em] text-content-muted">
               {near ? 'hampir tiba' : 'terkumpul'}
             </p>
           </div>
@@ -1949,9 +2076,13 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
   )
 }
 
-/* ===== Donut komposisi pengeluaran + kartu langganan (v2.22) =====
-   Pasangan bento Ringkasan: donut interaktif (hover irisan mengganti
-   pusat; klik membuka drill kategori) + agregasi langganan berulang. */
+/* ===== Struk komposisi pengeluaran + kartu langganan (v2.22; v2.47
+   struk ilustratif) =====
+   Donut recharts diganti "STRUK" termal bergaya editorial: kertas
+   hangat ber-tepi sobek (mask zigzag), baris kategori dengan bar tinta
+   proporsional + nominal + persen, baris TOTAL di kaki. Baris dapat
+   dibedah ke drill kategori; perhitungan data (top 6 + sentinel
+   '__rest__') TIDAK berubah dari era donut. */
 
 const DONUT_COLORS = [
   'var(--palette-gold)',
@@ -1963,12 +2094,11 @@ const DONUT_COLORS = [
   'var(--palette-slate)',
 ]
 
-function CompositionDonut() {
+function CompositionReceipt() {
   const catMeta = useCatMeta()
   const txs = useRutina((s) => s.txs)
   const openFinDrill = useRutina((s) => s.openFinDrill)
-  const reducedMotion = useReducedMotion()
-  const [hovered, setHovered] = useState<number | null>(null)
+  const playEntrance = useFirstVisit('fin-receipt')
 
   const { slices, total } = useMemo(() => {
     const byCat = monthSpendByCat(txs, currentMonthKey())
@@ -2011,8 +2141,7 @@ function CompositionDonut() {
       </>
     )
 
-  const active = hovered != null ? slices[hovered] : null
-  /* Label irisan — sentinel agregat punya nama sendiri. */
+  /* Label baris — sentinel agregat punya nama sendiri. */
   const labelOf = (cat: string) =>
     cat === '__rest__' ? 'Kategori lain' : catMeta(cat).label
 
@@ -2020,97 +2149,127 @@ function CompositionDonut() {
     <>
       <RutinaSectionHeader
         title="Komposisi Pengeluaran"
-        description="Bulan ini — tanpa transfer. Ketuk irisan untuk membedah."
+        description="Bulan ini — tanpa transfer. Ketuk baris untuk membedah."
       />
-      <div className="mt-3 flex items-center gap-4">
-        {/* Donut — pusat menampilkan total / kategori yang di-hover.
-            Nama aksesibel untuk pembaca layar; navigasi per kategori
-            tetap tersedia lewat tombol legenda di bawah. */}
-        <div
-          role="img"
-          aria-label={`Donat pengeluaran bulan ini — total ${formatIDRShort(total)}`}
-          className="relative h-32 w-32 shrink-0"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={slices}
-                dataKey="value"
-                nameKey="cat"
-                innerRadius={40}
-                outerRadius={60}
-                paddingAngle={2}
-                stroke="none"
-                isAnimationActive={!reducedMotion}
-                animationDuration={motionTokens.preset.chartRevealMs.duration}
-                animationEasing="ease-out"
-                onMouseEnter={(_, i) => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-                onClick={(_, i) => {
-                  const s = slices[i]
-                  /* Sentinel agregat tak bisa di-drill ke satu kategori. */
-                  if (s && s.cat !== '__rest__') openFinDrill('cat', s.cat)
-                }}
-              >
-                {slices.map((s) => (
-                  <Cell
-                    key={s.cat}
-                    fill={s.color}
-                    opacity={hovered == null || slices[hovered]?.cat === s.cat ? 1 : 0.45}
-                    className="cursor-pointer"
-                  />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <AnimatePresence mode="wait" initial={false}>
-              <m.div
-                key={active?.cat ?? 'total'}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={motionTokens.preset.interaction}
-                className="flex max-w-full flex-col items-center px-2"
-              >
-                <span className="max-w-full truncate text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-                  {active ? labelOf(active.cat) : 'Total'}
-                </span>
-                <span className="text-kpi-sm font-bold tabular-nums text-content-primary">
-                  {formatIDRShort(active?.value ?? total)}
-                </span>
-              </m.div>
-            </AnimatePresence>
-          </div>
+      <ChartSrSummary>
+        Struk pengeluaran {currentMonthLabel()}: total {formatIDR(total)},
+        kategori teratas {labelOf(slices[0].cat)} sebesar{' '}
+        {total > 0 ? Math.round((slices[0].value / total) * 100) : 0}% dari
+        total pengeluaran bulan ini.
+      </ChartSrSummary>
+
+      {/* Struk "termal" — kertas hangat, tepi bawah sobek zigzag (mask
+          conic — tanpa filter); lebar nyaman dibaca, terpusat. */}
+      <div
+        className="relative mx-auto mt-3 w-full max-w-[320px] border border-gold/30 bg-gold/10 px-4 pb-7 pt-3.5
+          [-webkit-mask-image:conic-gradient(from_-45deg_at_bottom,#0000,#000_1deg_89deg,#0000_90deg)]
+          [mask-image:conic-gradient(from_-45deg_at_bottom,#0000,#000_1deg_89deg,#0000_90deg)]
+          [-webkit-mask-size:18px_100%]
+          [mask-size:18px_100%]
+          [-webkit-mask-repeat:repeat-x]
+          [mask-repeat:repeat-x]
+          [-webkit-mask-position:50%]
+          [mask-position:50%]"
+      >
+        {/* Kepala struk — eyebrow + bulan + total */}
+        <div className="text-center">
+          <p className="text-eyebrow font-bold uppercase tracking-[0.22em] text-content-muted">
+            Struk Pengeluaran
+          </p>
+          <p className="mt-0.5 text-eyebrow font-medium uppercase tracking-[0.14em] text-content-muted">
+            {currentMonthLabel()}
+          </p>
+          <p className="mt-1 text-lead font-bold tabular-nums text-content-primary">
+            {formatIDRShort(total)}
+          </p>
         </div>
-        {/* Legenda */}
-        <ul className="min-w-0 flex-1 space-y-1.5">
-          {slices.map((s, i) => (
-            <li key={s.cat}>
-              <button
-                type="button"
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-                onClick={() => {
-                  if (s.cat !== '__rest__') openFinDrill('cat', s.cat)
-                }}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-              >
+
+        {/* Baris kategori — pemisah putus-putus ala garis struk */}
+        <ul
+          role="list"
+          aria-label="Rincian pengeluaran per kategori bulan ini"
+          className="mt-3 divide-y divide-dashed divide-border/70"
+        >
+          {slices.map((s, i) => {
+            const pct = total > 0 ? Math.round((s.value / total) * 100) : 0
+            const isRest = s.cat === '__rest__'
+            const rowAria = `${labelOf(s.cat)}: ${formatIDR(s.value)}, ${pct}% dari total pengeluaran bulan ini`
+            const line = (
+              <>
                 <span
                   aria-hidden="true"
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: s.color }}
                 />
-                <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
-                  {labelOf(s.cat)}
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="min-w-0 truncate text-meta font-semibold text-content-primary">
+                      {labelOf(s.cat)}
+                    </span>
+                    <span className="shrink-0 text-meta font-bold tabular-nums text-content-primary">
+                      {formatIDRShort(s.value)}
+                      <span className="ml-1 font-medium text-content-muted">
+                        {pct}%
+                      </span>
+                    </span>
+                  </span>
+                  {/* Bar tinta — porsi kategori dari total pengeluaran */}
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-module-accent/12"
+                  >
+                    <m.span
+                      className="block h-full w-full origin-left rounded-full"
+                      initial={playEntrance ? { scaleX: 0 } : false}
+                      animate={{
+                        scaleX: Math.min(1, s.value / Math.max(1, total)),
+                      }}
+                      transition={{
+                        ...barFill,
+                        delay: Math.min(
+                          i * motionTokens.stagger.tight,
+                          0.2,
+                        ),
+                      }}
+                      style={{ backgroundColor: s.color }}
+                    />
+                  </span>
                 </span>
-                <span className="shrink-0 text-eyebrow font-semibold tabular-nums text-content-muted">
-                  {total > 0 ? Math.round((s.value / total) * 100) : 0}%
-                </span>
-              </button>
-            </li>
-          ))}
+              </>
+            )
+            return (
+              <li key={s.cat} className="py-2 first:pt-1">
+                {isRest ? (
+                  /* Sentinel agregat — tidak bisa dibedah ke satu
+                     kategori; baris statis (bukan tombol mati). */
+                  <div className="flex items-center gap-2.5">{line}</div>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={rowAria}
+                    onClick={() => openFinDrill('cat', s.cat)}
+                    className="-mx-1.5 flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-surface-sunken/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                  >
+                    {line}
+                  </button>
+                )}
+              </li>
+            )
+          })}
         </ul>
+
+        {/* Baris TOTAL — nominal penuh */}
+        <div className="mt-1 flex items-baseline justify-between gap-2 border-t-2 border-dashed border-border-strong/50 pt-2.5">
+          <span className="text-eyebrow font-bold uppercase tracking-[0.18em] text-content-secondary">
+            Total
+          </span>
+          <span className="text-body font-bold tabular-nums text-content-primary">
+            {formatIDR(total)}
+          </span>
+        </div>
+        <p className="mt-2 text-center text-eyebrow font-medium uppercase tracking-[0.3em] text-content-muted">
+          ··· terima kasih ···
+        </p>
       </div>
     </>
   )
@@ -3169,7 +3328,7 @@ export default function KeuanganScreen() {
         <BlurFade visitKey="keuangan-komposisi" delay={motionTokens.delay.relaxed}>
           <RutinaBentoGrid>
             <RutinaBentoItem span="wide" className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
-              <CompositionDonut />
+              <CompositionReceipt />
             </RutinaBentoItem>
             <RutinaBentoItem span="feature">
               <SubscriptionsCard />
@@ -3369,69 +3528,16 @@ export default function KeuanganScreen() {
                     </div>
                   </div>
 
-                  {/* Laju vs waktu bulan (review UI/UX v2.44) — membandingkan
-                      pemakaian aktual dengan laju ideal hari ke-N; tanda pada
-                      batang adalah posisi ideal (dipakai juga di tiap baris
-                      kategori di bawah). */}
-                  <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-                        Laju vs waktu bulan
-                      </p>
-                      <p className="text-eyebrow font-medium tabular-nums text-content-muted">
-                        hari ke-{pace.elapsed} dari {pace.dim}
-                      </p>
-                    </div>
-                    <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-border">
-                      <m.div
-                        initial={firstBudgetTotal ? { scaleX: 0 } : false}
-                        animate={{ scaleX: Math.min(totalPct, 100) / 100 }}
-                        transition={barFill}
-                        className={
-                          'h-full origin-left rounded-full ' +
-                          /* v2.45 (audit K12): ambang warna = ambang vonis
-                             (±10) — dulu batang menguning di diff 1-10
-                             sementara salinan masih "Selaras". */
-                          (pace.diff > 10
-                            ? 'bg-destructive'
-                            : 'bg-primary')
-                        }
-                        style={{ width: '100%' }}
-                      />
-                      <span
-                        aria-hidden="true"
-                        className="absolute inset-y-0 left-0 w-[2px] -translate-x-1/2 rounded-full bg-content-primary/70"
-                        style={{ left: `${Math.min(pace.idealPct, 100)}%` }}
-                      />
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-eyebrow tabular-nums">
-                      <span className="font-semibold text-content-secondary">
-                        Aktual {rawTotalPct}%
-                      </span>
-                      <span className="text-content-muted">
-                        Ideal {pace.idealPct}% · tanda pada batang
-                      </span>
-                    </div>
-                    <p
-                      className={`mt-1.5 text-eyebrow leading-snug ${
-                        pace.diff > 10
-                          ? 'font-semibold text-content-danger'
-                          : pace.diff < -10
-                            ? 'font-semibold text-success'
-                            : 'text-content-secondary'
-                      }`}
-                    >
-                      {pace.diff > 10
-                        ? `Lebih cepat ${pace.diff}% dari laju ideal — kecilkan porsi pekan sisa agar batas tak jebol.`
-                        : pace.diff < -10
-                          ? `Lebih hemat ${Math.abs(pace.diff)}% dari laju ideal — aman melaju di bawah waktu bulan.`
-                          : 'Selaras laju waktu bulan — pengeluaran mengikuti hari yang berjalan.'}{' '}
-                      <span className="text-content-muted">
-                        Jatah aman total ±{formatIDRShort(pace.daily)}/hari ·{' '}
-                        {pace.daysLeft} hari tersisa.
-                      </span>
-                    </p>
-                  </div>
+                  {/* Laju vs waktu bulan (review UI/UX v2.44; v2.47: landasan
+                      pacu ilustratif — koin aktual TANPA clamp, gerbang
+                      100% batas, wajik laju ideal; lihat
+                      visualizations/finance/budget-runway.tsx). */}
+                  <BudgetRunway
+                    pace={pace}
+                    totalPct={totalPct}
+                    rawTotalPct={rawTotalPct}
+                    playEntrance={firstBudgetTotal}
+                  />
 
                   {/* Baris per kategori — batas dapat disunting.
                       v2.36 (audit visualisasi): diurutkan berdasarkan

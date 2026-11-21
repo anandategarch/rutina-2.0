@@ -563,6 +563,22 @@ export default function HomeScreen() {
     ? attention.items.slice(0, HOME_AGENDA_LIMIT)
     : attention.items
 
+  /* v2.47 (Daily Almanac · Mission Trail): progres per-slot untuk chip
+     "x/y" di kepala rel agenda — misi SELESAI vs TOTAL terjadwal pada
+     slot itu untuk tanggal yang dilihat. Baris selesai dilipat ke
+     bagian "Selesai" di bawah, tetap dihitung agar progres jujur. */
+  const slotProgress = useMemo(() => {
+    const stats = new Map<AgendaSlot, { done: number; total: number }>()
+    for (const h of dayHabits) {
+      const slot = slotOf(h)
+      const cur = stats.get(slot) ?? { done: 0, total: 0 }
+      cur.total += 1
+      if (isDoneOn(completions, selectedDate, h.id)) cur.done += 1
+      stats.set(slot, cur)
+    }
+    return stats
+  }, [dayHabits, completions, selectedDate])
+
   const doneHabits = useMemo(
     () => dayHabits.filter((h) => isDoneOn(completions, selectedDate, h.id)),
     [dayHabits, completions, selectedDate],
@@ -1099,6 +1115,32 @@ export default function HomeScreen() {
                               <span className="rounded-full bg-secondary px-2 py-0.5 text-chart-label font-semibold text-content-secondary">
                                 {g.items.length}
                               </span>
+                              {/* v2.47 (Mission Trail): chip progres "x/y" +
+                                  bar mini di tiap rel waktu — perjalanan
+                                  pagi/siang/malam; reaktif terhadap centang
+                                  (barFill), dekoratif (aria-hidden bar). */}
+                              {(() => {
+                                const prog = slotProgress.get(g.key)
+                                if (!prog || prog.total <= 0) return null
+                                return (
+                                  <span className="ml-auto flex shrink-0 items-center gap-1.5">
+                                    <span className="rounded-full bg-module-accent/12 px-1.5 text-chart-label font-semibold tabular-nums text-module-accent-strong">
+                                      {prog.done}/{prog.total}
+                                    </span>
+                                    <span
+                                      aria-hidden="true"
+                                      className="block h-1 w-14 overflow-hidden rounded-full bg-module-accent/15"
+                                    >
+                                      <m.span
+                                        initial={false}
+                                        animate={{ scaleX: prog.done / prog.total }}
+                                        transition={barFill}
+                                        className="block h-full w-full origin-left rounded-full bg-module-accent"
+                                      />
+                                    </span>
+                                  </span>
+                                )
+                              })()}
                             </div>
                             {/* role=list di kisi kelompok — baris TaskRow
                                 terbaca sebagai daftar oleh pembaca layar

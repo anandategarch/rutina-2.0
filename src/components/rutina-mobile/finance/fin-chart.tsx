@@ -5,6 +5,7 @@ import * as m from 'motion/react-m'
 
 import { chartBar, pressSnappy } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
+import { CashflowRiver } from '../visualizations/finance/cashflow-river'
 import { EXPENSE, INCOME } from './cats'
 import type { PeriodPoint } from './utils'
 
@@ -23,6 +24,11 @@ import type { PeriodPoint } from './utils'
  * nol tengah (surplus tumbuh ke atas warna masuk, defisit ke bawah
  * warna keluar) — tanda TIDAK disampaikan lewat warna saja; tiap
  * kolom tetap ber-aria-label lengkap.
+ *
+ * v2.47 (Warm Editorial): mode ke-5 **Arus** — CashflowRiver, dua pita
+ * sungai masuk/keluar yang ketebalannya sebanding nilai pada SATU
+ * skala bersama (lihat visualizations/finance/cashflow-river.tsx).
+ * Empat mode lama tidak tersentuh.
  */
 
 const TRACK_H = 118 // ruang tumbuh batang (px)
@@ -33,13 +39,14 @@ const MODE_H = 30 // baris pemilih mode di atas grafik
 /* Easing standar — dari motionTokens (governance: tanpa kurva bebas). */
 const EASE = motionTokens.easing.standard
 
-export type FinChartMode = 'pair' | 'masuk' | 'keluar' | 'net'
+export type FinChartMode = 'pair' | 'masuk' | 'keluar' | 'net' | 'arus'
 
 const MODES: readonly [FinChartMode, string][] = [
   ['pair', 'Pasangan'],
   ['masuk', 'Masuk'],
   ['keluar', 'Keluar'],
   ['net', 'Net'],
+  ['arus', 'Arus'],
 ]
 
 /** Ukuran batang & jarak antar batang menurut kepadatan deret.
@@ -111,20 +118,31 @@ export function FinChart({
   return (
     <div
       className="relative select-none"
-      style={{ height: MODE_H + TRACK_H + LABEL_H }}
+      /* Mode Arus membawa legenda + baris baca sendiri — tinggi wadah
+         mengikuti konten; mode batang tetap kotak tetap seperti dahulu. */
+      style={
+        mode === 'arus'
+          ? undefined
+          : { height: MODE_H + TRACK_H + LABEL_H }
+      }
       role="group"
       aria-label="Grafik arus kas per periode — geser menyamping untuk histori panjang"
     >
-      <p className="sr-only">
-        Ringkasan arus kas deret ini: total masuk
-        {' '}
-        {totalIn.toLocaleString('id-ID')}, total keluar{' '}
-        {totalOut.toLocaleString('id-ID')}, selisih{' '}
-        {(totalIn - totalOut).toLocaleString('id-ID')}
-        {' '}rupiah. Rincian per periode tersedia pada tiap kolom berikut.
-      </p>
+      {/* Ringkasan nonvisual — mode Arus punya ringkasan ekuivalen
+          di dalam CashflowRiver (tidak didobel). */}
+      {mode !== 'arus' && (
+        <p className="sr-only">
+          Ringkasan arus kas deret ini: total masuk
+          {' '}
+          {totalIn.toLocaleString('id-ID')}, total keluar{' '}
+          {totalOut.toLocaleString('id-ID')}, selisih{' '}
+          {(totalIn - totalOut).toLocaleString('id-ID')}
+          {' '}rupiah. Rincian per periode tersedia pada tiap kolom berikut.
+        </p>
+      )}
 
-      {/* v2.45: pemilih mode baca — Pasangan / Masuk / Keluar / Net. */}
+      {/* v2.45: pemilih mode baca — Pasangan / Masuk / Keluar / Net;
+          v2.47: + Arus (sungai). */}
       <div
         role="group"
         aria-label="Mode pembacaan grafik arus kas"
@@ -137,7 +155,7 @@ export function FinChart({
             type="button"
             aria-pressed={mode === id}
             onClick={() => setMode(id)}
-            className={`interactive h-7 flex-1 cursor-pointer rounded-full px-2 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+            className={`interactive h-7 flex-1 cursor-pointer rounded-full px-1.5 text-chart-label font-bold whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
               mode === id
                 ? 'bg-primary text-primary-foreground'
                 : 'text-content-secondary hover:text-content-primary'
@@ -148,6 +166,13 @@ export function FinChart({
         ))}
       </div>
 
+      {mode === 'arus' ? (
+        /* v2.47: mode Arus — sungai arus kas ilustratif (pita tebal ∝
+           nilai, satu skala bersama); menggantikan seluruh badan batang
+           di bawah pemilih mode. */
+        <CashflowRiver points={points} active={active} onPick={onPick} />
+      ) : (
+      <>
       {/* Wadah geser — histori panjang (mode "Semua") melebar mengikuti
           jumlah kolom, bukan mengecilkan batang; ponsel menggeser
           horizontal. Garis bantu & garis dasar ikut melebar bersama
@@ -307,6 +332,8 @@ export function FinChart({
       />
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }

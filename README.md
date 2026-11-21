@@ -6,8 +6,50 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.46.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.47.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.47 — Warm Editorial Productivity: Edisi Visualisasi Data Ilustratif
+
+Sistem visualisasi data dievolusikan dari grafik konvensional menjadi
+instrumen personal ilustratif yang khas-domain — dengan satu ujian per
+grafik: *"bisakah pengguna memahami datanya tanpa perlu mengagumi
+ilustrasinya dulu?"* **Bugar** (Performance Studio): Neraca Kelompok Otot
+menjadi **peta anatomi SVG** dua sudut pandang (Depan/Belakang) dengan 7
+wilayah otot pilih-able yang intensitasnya ∝ jumlah set, panel rincian
+set/sesi/tanggal/gerakan, dan "Seluruh badan" sebagai garis luar siluet;
+progresi e1RM per gerakan menjadi **barbell ilustratif** (kolom piringan
+∝ e1RM estimasi Epley, sesi terakhir bergold tua); batang Aktivitas Pekan
+berganti bahasa visual per mode (piringan kg / pin rute km / kokop mnt);
+Riwayat Tubuh ilustratif (bulan tidur + zona 7–8 jam, baterai energi,
+menara gelas hidrasi, pita zona nyeri/stres); **Piring Makro** SVG tiga
+juring ∝ kontribusi energi. **Keuangan** (Vault & Ledger): komposisi
+pengeluaran menjadi **struk termal** bergerigi yang tetap bisa dibedah per
+kategori; target tabungan menjadi **stoples kaca** (isi = saved/target
+akurat, koin dekoratif, tanda milestone); laju anggaran menjadi **landasan
+pacu** dengan gerbang 100% + wajik ideal + koin Rp pada posisi aktual
+TANPA clamp (130% terbaca 130%); mode grafik arus kas ke-5 "**Arus**" —
+dua pita sungai mulus yang ketebalannya ∝ nilai (4 mode lama utuh).
+**Kebiasaan** (Growth Garden): "**Sulur Pekan Ini**" — batang botanical 7
+hari dengan daun penuh/setengah/layu/kuncup-tanpa-jadwal (kuncup ≠
+kegagalan); glif tanaman disempurnakan (bunga 4 kelopak emas).
+**Statistik** (Life Observatory): tren 30 hari menjadi **konstelasi**
+bintang kustom (hari tanpa jadwal = titik redup, bukan 0% palsu —
+memperbaiki kejujuran rateSeries lama), komposisi kategori menjadi
+**bunga radial** (panjang kelopak ∝ jumlah), batang misi menjadi **panen
+berbuah emas**; Recharts dipensiunkan dari layar ini. **Jurnal** (Quiet
+Atelier): jumlah kata mingguan menjadi **sapuan tinta** (kuas meruncing,
+pekan kosong = titik tinta), distribusi mood menjadi **roda mood**;
+**Beranda** (Daily Almanac): strip perjalanan Rekap Pekan ditumbuhi sulur
+bergelombang + daun di hari yang targetnya tercapai, agenda Pagi/Siang/
+Malam mendapat chip progres x/y, kartu arus kas bertekstur koin. Fondasi
+baru `src/components/rutina-mobile/visualizations/` (shared + 5 domain)
+dengan ChartFrame/ChartSrSummary/ChartLegend/useSvgId. Bug nyata
+tertangkap E2E dan diperbaiki di akar: referensi `var(--gold)` dkk. yang
+tidak terdefinisi (sempat membuat juring makro terender hitam) kini
+memakai token `--palette-*` valid. 157/157 test lulus; E2E browser
+390/768/1440px nol error konsol & nol overflow; data uji disuntik lalu
+dikembalikan penuh (server terbukti pulih).
 
 ## v2.46 — Warm Editorial Productivity 2.0: Split Hero & Identitas Tiap Ruang
 

@@ -30,6 +30,8 @@ import {
 } from '../store'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { InkDot, InkStroke } from '../visualizations/journal/ink-stroke'
+import { MoodWheel } from '../visualizations/journal/mood-wheel'
 
 /* ===== Aktivitas Menulis — kalender mini + distribusi (audit
    visualisasi v2.36, Tahap 4) =====
@@ -42,8 +44,8 @@ import { RutinaSectionHeader } from '../rutina-section-header'
    menambah sel apa pun. */
 const WRITE_LEVELS = [
   'var(--surface-secondary)',
-  'color-mix(in oklab, var(--module-accent) 30%, var(--surface-primary))',
-  'color-mix(in oklab, var(--module-accent) 55%, var(--surface-primary))',
+  'color-mix(in oklab, var(--module-accent) 35%, var(--surface-primary))',
+  'color-mix(in oklab, var(--module-accent) 60%, var(--surface-primary))',
   'var(--module-accent-strong)',
 ] as const
 
@@ -300,7 +302,7 @@ function WritingActivityCard({
                 <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <span className="min-w-[110px] text-center text-chart-label font-semibold tabular-nums text-content-secondary">
+            <span className="min-w-[118px] text-center text-eyebrow font-semibold uppercase tracking-[0.14em] tabular-nums text-content-muted">
               {monthLabel}
             </span>
             <button
@@ -347,10 +349,12 @@ function WritingActivityCard({
                   }
                   onClick={() => onPickDay(isSel ? null : iso)}
                   className={
-                    'interactive h-8 w-full cursor-pointer rounded-md text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                    'interactive h-8 w-full cursor-pointer rounded-[5px] text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                     (isSel
                       ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
-                      : '') +
+                      : iso === today
+                        ? 'ring-1 ring-module-accent/40 '
+                        : '') +
                     (isFuture
                       ? 'text-content-muted/50'
                       : count > 0
@@ -423,26 +427,25 @@ function WritingActivityCard({
                             (isSel ? 'bg-module-accent/10' : 'hover:bg-surface-sunken/70')
                           }
                         >
-                          <div className="flex w-full flex-1 items-end">
-                            <m.div
-                              initial={{ scaleY: 0 }}
-                              animate={{ scaleY: 1 }}
-                              transition={{
-                                duration: 0.45,
-                                delay: i * 0.05,
-                                ease: motionTokens.easing.standard,
-                              }}
-                              style={{ height: `${h}%` }}
-                              className={
-                                'w-full origin-bottom rounded-full ' +
-                                (isCurrent
-                                  ? 'bg-module-accent-strong'
-                                  : w.words > 0
-                                    ? 'bg-module-accent/60'
-                                    : 'bg-module-accent/15') +
-                                (isSel ? ' ring-2 ring-primary' : '')
-                              }
-                            />
+                          {/* v2.47 (Quiet Atelier): sapuan tinta menggantikan
+                              batang polos — tinggi luar tetap = tinggi nilai;
+                              pekan tanpa kata menjadi titik tinta kecil.
+                              min-h-0 menjaga area isi patuh pada baris h-24
+                              (flex item boleh menyusut di bawah kontennya). */}
+                          <div className="flex min-h-0 w-full flex-1 items-end">
+                            {w.words <= 0 ? (
+                              <InkDot delay={i * motionTokens.stagger.normal} />
+                            ) : (
+                              <InkStroke
+                                heightPct={h}
+                                isCurrent={isCurrent}
+                                /* Gradasi usia: pekan lampau makin tua makin
+                                   pudar (≥50%); pekan berjalan tinta penuh. */
+                                ageOpacity={Math.min(0.75, 0.5 + 0.125 * i)}
+                                selected={isSel}
+                                delay={i * motionTokens.stagger.normal}
+                              />
+                            )}
                           </div>
                           <span
                             className={
@@ -514,44 +517,25 @@ function WritingActivityCard({
             </div>
           )}
 
-          {/* Ringkasan mood — ringan, netral, hanya yang tercatat.
-              v2.39 (audit visual data): bar segmen proporsi mood memakai
-              warna titik yang sama — angka N× tetap membawa nilai persis. */}
+          {/* Ringkasan mood — roda distribusi (v2.47 Quiet Atelier):
+              arc ∝ jumlah/total, warna mengacu MOOD_DOT; angka N× tetap
+              dibawa legenda teks. Hanya mood yang benar-benar tercatat. */}
           {moodCounts.length > 0 && (
             <div className="mt-2.5">
-              {(() => {
-                const logged = moodCounts.reduce((a, [, n]) => a + n, 0)
-                return (
-                  <>
-                    <div
-                      className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
-                      role="img"
-                      aria-label={`Distribusi mood: ${moodCounts
-                        .map(([mood, n]) => `${mood} ${n}`)
-                        .join(', ')}`}
-                    >
-                      {moodCounts.map(([mood, n]) => (
-                        <span
-                          key={mood}
-                          className={MOOD_DOT[mood] ?? 'bg-cocoa/40'}
-                          style={{ width: `${(n / logged) * 100}%` }}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
-                      {moodCounts.map(([mood, n]) => (
-                        <span key={mood} className="flex items-center gap-1">
-                          <span
-                            aria-hidden="true"
-                            className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
-                          />
-                          {mood} {n}×
-                        </span>
-                      ))}
-                    </p>
-                  </>
-                )
-              })()}
+              <div className="flex items-center gap-4">
+                <MoodWheel counts={moodCounts} />
+                <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
+                  {moodCounts.map(([mood, n]) => (
+                    <span key={mood} className="flex items-center gap-1">
+                      <span
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 rounded-full ${MOOD_DOT[mood] ?? 'bg-cocoa/40'}`}
+                      />
+                      {mood} {n}×
+                    </span>
+                  ))}
+                </p>
+              </div>
             </div>
           )}
 
