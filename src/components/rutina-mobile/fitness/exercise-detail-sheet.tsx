@@ -177,9 +177,17 @@ export function ExerciseDetailSheet({
             {/* Isi bisa digulir */}
             <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-5 pt-3">
               {sessions.length === 0 || !stat ? (
-                <p className="py-6 text-center text-note text-content-muted">
-                  Belum ada set tercatat untuk gerakan ini.
-                </p>
+                /* 0 set tercatat — barbel kosong ilustratif (v2.50
+                   Tahap 2): bar + kolar tanpa piringan; gerbang grafik
+                   penuh tetap ≥2 titik di bawah (1 titik = ringkasan
+                   + tabel tanpa grafik, perilaku lama dipertahankan). */
+                <div className="py-3">
+                  <BarbellProgression
+                    points={[]}
+                    selected={null}
+                    onSelect={() => undefined}
+                  />
+                </div>
               ) : (
                 <>
                   {/* 1 — Ringkasan: rekor e1RM, beban terakhir, sesi, set */}
@@ -286,21 +294,22 @@ export function ExerciseDetailSheet({
                       </p>
                     )}
                   </div>
-
-                  {/* 4 — Aksi: langsung catat set baru untuk gerakan ini. */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose()
-                      openWorkoutSheet([{ name, count: 3, reps: 8 }])
-                    }}
-                    className="interactive mb-1 mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-note font-bold text-content-inverse transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Catat set {label}
-                  </button>
                 </>
               )}
+
+              {/* 4 — Aksi: langsung catat set baru — juga tampil pada
+                  keadaan kosong agar ajakan "mulai catat" bisa ditekan. */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  openWorkoutSheet([{ name, count: 3, reps: 8 }])
+                }}
+                className="interactive mb-1 mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-note font-bold text-content-inverse transition-colors hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Catat set {label}
+              </button>
             </div>
           </m.div>
         </>

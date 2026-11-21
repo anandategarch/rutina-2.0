@@ -35,6 +35,7 @@ import {
   weightSeries,
 } from './fit-utils'
 import { useSvgId } from '../visualizations/shared/svg-id'
+import { RecoveryOrbit } from '../visualizations/fitness/recovery-orbit'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 
 /* ===== Konstanta tubuh ===== */
@@ -395,6 +396,35 @@ function BodyHistory({
     bodyCoverage(soreness) === 0 &&
     bodyCoverage(stress) === 0
 
+  /* Potret orbit pemulihan (v2.50 Tahap 2) — nilai TERAKHIR tiap
+     metrik dari deret yang sama dengan baris riwayat (bukan pipeline
+     kedua): metrik yang tak pernah diisi tetap null — satelit
+     putus-putus, tidak pernah dibaca nol. Aditif terhadap skor
+     "Kesiapan latihan" (fitur terpisah). */
+  const latestOf = (xs: { date: string; value: number | null }[]) => {
+    let v: number | null = null
+    let d: string | null = null
+    for (const p of xs) {
+      if (p.value != null) {
+        v = p.value
+        d = p.date
+      }
+    }
+    return { v, d }
+  }
+  const orbSleep = latestOf(sleep)
+  const orbEnergy = latestOf(energy)
+  const orbSoreness = latestOf(soreness)
+  const orbStress = latestOf(stress)
+  const orbWater = latestOf(water)
+  const orbDates = [orbSleep.d, orbEnergy.d, orbSoreness.d, orbStress.d, orbWater.d]
+  const orbLatest = orbDates.reduce<string | null>(
+    (a, b) => (b != null && (a == null || b > a) ? b : a),
+    null,
+  )
+  const orbitDate =
+    orbLatest == null ? undefined : orbLatest === today ? 'Hari ini' : dateShort(orbLatest)
+
   return (
     <m.section
       initial={playHistory ? { opacity: 0, y: 14 } : false}
@@ -422,6 +452,25 @@ function BodyHistory({
         </p>
       ) : (
         <div className="mt-4 space-y-4">
+          {/* --- Orbit Pemulihan: potret radial lima metrik terkini
+              (v2.50 Tahap 2) — di atas baris riwayat; satelit
+              putus-putus = belum dicatat. --- */}
+          <div>
+            <p className="px-0.5 text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+              Orbit Pemulihan
+            </p>
+            <RecoveryOrbit
+              className="mt-1.5"
+              sleepH={orbSleep.v}
+              energy={orbEnergy.v}
+              soreness={orbSoreness.v}
+              stress={orbStress.v}
+              water={orbWater.v}
+              waterTarget={waterTarget}
+              date={orbitDate}
+            />
+          </div>
+
           {/* --- Tidur: batang + zona target 7–8 jam --- */}
           {bodyCoverage(sleep) > 0 && (
             <div>

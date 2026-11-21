@@ -16,8 +16,13 @@ import { motionTokens } from '@/lib/motion/tokens'
  *
  * Kejujuran data: tekstur garis piringan DECORATIF (posisi tetap di
  * 25/50/75% tinggi kolom, tidak terkuantisasi ke piringan nyata) —
- * catatan kaki menyatakannya eksplisit. Sesi terbaru memakai gold tua
- * (chart-stroke-3) — warna identitas e1RM papan rekor.
+ * catatan kaki menyatakannya eksplisit. Sorotan gold tua
+ * (chart-stroke-3) + bintang kini menandai SESI REKOR (e1RM
+ * tertinggi deret) — warna identitas e1RM papan rekor; sesi
+ * TERBARU hanya penanda kecil "terbaru" di bawah label tanggal
+ * (v2.50 Tahap 2, dulu sesi terakhir yang digold). Deret kosong
+ * menggambar barbel kosong ilustratif — bar + kolar tanpa piringan,
+ * tanpa skala palsu.
  *
  * A11y: SVG statis role="img" dengan ringkasan semua titik; pemilihan
  * sesi lewat lapisan tombol HTML di atas grafik (pola overlay kartu
@@ -55,8 +60,21 @@ interface ColGeom {
   h: number
   /** Posisi label tengah kolom. */
   cx: number
+  isPR: boolean
   isLast: boolean
   opacity: number
+}
+
+/** Bintang lima titik kecil (r luar 4,5) berpusat (cx, cy) — lencana
+ *  sesi rekor (pola polar macro-plate). */
+function starPath(cx: number, cy: number): string {
+  const pts: string[] = []
+  for (let k = 0; k < 10; k++) {
+    const r = k % 2 === 0 ? 4.5 : 1.9
+    const a = -Math.PI / 2 + (k * Math.PI) / 5
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`)
+  }
+  return `M${pts.join('L')}Z`
 }
 
 export function BarbellProgression({
@@ -73,9 +91,59 @@ export function BarbellProgression({
   const first = useFirstVisit('bugar-barbell-progress')
   const reduced = useReducedMotion()
 
-  /* Deret kosong (audit v2.47.1) — komponen BERSAMA: pemanggil masa
-     depan bisa mengirim []; jangan render skala -Infinity/Infinity. */
-  if (points.length === 0) return null
+  /* Deret kosong (audit v2.47.1 → v2.50): barbel kosong ilustratif —
+     batang + kolar + piringan hantu putus-putus, tanpa skala palsu.
+     Pemanggil (lembar detail gerakan) menampilkannya saat gerakan
+     belum punya set tercatat. */
+  if (points.length === 0) {
+    return (
+      <div>
+        <svg
+          viewBox="0 0 320 56"
+          className="w-full aspect-[320/56]"
+          role="img"
+          aria-label="Barbel kosong — belum ada set tercatat untuk gerakan ini"
+        >
+          <g aria-hidden="true" opacity="0.7">
+            <rect
+              x="14"
+              y="25"
+              width="292"
+              height="6"
+              rx="3"
+              fill="var(--content-muted)"
+              fillOpacity="0.5"
+            />
+            <rect x="8" y="21.5" width="5" height="13" rx="2" fill="var(--content-muted)" fillOpacity="0.8" />
+            <rect x="307" y="21.5" width="5" height="13" rx="2" fill="var(--content-muted)" fillOpacity="0.8" />
+            <circle
+              cx="40"
+              cy="28"
+              r="11"
+              fill="none"
+              stroke="var(--content-muted)"
+              strokeOpacity="0.55"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+            <circle
+              cx="280"
+              cy="28"
+              r="11"
+              fill="none"
+              stroke="var(--content-muted)"
+              strokeOpacity="0.55"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+          </g>
+        </svg>
+        <p className="mt-1 text-center text-meta font-medium leading-relaxed text-content-muted">
+          Belum ada set tercatat — mulai catat untuk melihat progresi.
+        </p>
+      </div>
+    )
+  }
 
   const n = points.length
   const vals = points.map((p) => p.bestE1)
@@ -84,10 +152,18 @@ export function BarbellProgression({
   const span = max - min
   const norm = (v: number) => (span > 1e-6 ? (v - min) / span : 0.62)
 
+  /* Sesi rekor pribadi (PR) deret — e1RM tertinggi (terbaru bila
+     seri); satu-satunya kolom bergold + bintang (v2.50). */
+  const prIdx = points.reduce(
+    (best, p, i) => (p.bestE1 >= points[best]!.bestE1 ? i : best),
+    0,
+  )
+
   const slot = AREA_W / Math.max(n, 1)
   const cols: ColGeom[] = points.map((p, i) => {
+    const isPR = i === prIdx
     const isLast = i === n - 1
-    const w = Math.min(slot * (isLast ? 0.78 : 0.7), isLast ? 38 : 34)
+    const w = Math.min(slot * (isPR ? 0.78 : 0.7), isPR ? 38 : 34)
     const hFrac = 0.08 + 0.92 * norm(p.bestE1)
     const h = hFrac * AREA_H
     return {
@@ -96,9 +172,11 @@ export function BarbellProgression({
       w,
       h,
       cx: LEFT + slot * i + slot / 2,
+      isPR,
       isLast,
-      /* Kolom lama lebih pudar — semua tetap ≥45% terbaca. */
-      opacity: isLast ? 1 : 0.45 + 0.4 * (n > 1 ? i / (n - 1) : 1),
+      /* Kolom lama lebih pudar — PR & terbaru tetap penuh, semua
+         lainnya ≥45% terbaca. */
+      opacity: isPR || isLast ? 1 : 0.45 + 0.4 * (n > 1 ? i / (n - 1) : 1),
     }
   })
 
@@ -199,7 +277,7 @@ export function BarbellProgression({
                 height={c.h}
                 rx={Math.min(c.w / 2.6, 4)}
                 fill={
-                  c.isLast
+                  c.isPR
                     ? 'var(--chart-stroke-3)'
                     : 'var(--module-accent)'
                 }
@@ -222,6 +300,24 @@ export function BarbellProgression({
                 ))}
             </m.g>
           ))}
+
+          {/* Lencana PR — bintang gold di atas kolom sesi rekor e1RM
+              (v2.50); menghindar ke atas saat label nilai sesi
+              terpilih muncul tepat di bawahnya. */}
+          <m.g
+            key={`pr-${prIdx}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={motionTokens.spring.snappy}
+          >
+            <path
+              d={starPath(
+                cols[prIdx]!.cx,
+                sel?.i === prIdx ? cols[prIdx]!.y - 15.5 : cols[prIdx]!.y - 7,
+              )}
+              fill="var(--chart-stroke-3)"
+            />
+          </m.g>
 
           {/* Sorotan sesi terpilih — cincin + label nilai di atas kolom. */}
           {sel && (
@@ -254,7 +350,8 @@ export function BarbellProgression({
             </m.g>
           )}
 
-          {/* Label tanggal — selang-satu bila kolom padat. */}
+          {/* Label tanggal — selang-satu bila kolom padat; sesi rekor
+              bergold + tebal (v2.50). */}
           {points.map((p, i) =>
             showLabel(i) ? (
               <text
@@ -263,12 +360,30 @@ export function BarbellProgression({
                 y="107.5"
                 fontSize="8"
                 textAnchor="middle"
-                fill="var(--content-muted)"
+                fontWeight={i === prIdx ? 700 : 400}
+                fill={
+                  i === prIdx
+                    ? 'var(--chart-stroke-3)'
+                    : 'var(--content-muted)'
+                }
               >
                 {shortDateLabel(p.date)}
               </text>
             ) : null,
           )}
+
+          {/* Penanda sesi TERBARU — kecil di bawah label tanggal
+              kolom terakhir (v2.50: pengganti sorotan gold lama). */}
+          <text
+            x={cols[n - 1]!.cx}
+            y="116.5"
+            fontSize="6.5"
+            fontWeight="600"
+            textAnchor="middle"
+            fill="var(--content-muted)"
+          >
+            terbaru
+          </text>
         </svg>
 
         {/* Lapisan tombol per slot sesi — pemilihan tidak bergantung
@@ -297,7 +412,9 @@ export function BarbellProgression({
         {sel
           ? `${shortDateLabel(sel.p.date)} · set terbaik ${fmtKg(
               sel.p.top.weight,
-            )} kg × ${sel.p.top.reps} → e1RM ${fmtKg(sel.p.bestE1)} kg`
+            )} kg × ${sel.p.top.reps} → e1RM ${fmtKg(sel.p.bestE1)} kg${
+              sel.i === prIdx ? ' — rekor pribadi' : ''
+            }`
           : 'Ketuk kolom untuk membaca sesi latihannya.'}
       </p>
 

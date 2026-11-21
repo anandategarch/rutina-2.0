@@ -69,7 +69,6 @@ import {
   KIND_LABEL,
   latestWeight,
   paceOf,
-  paceLabelOf,
   prBoard,
   readinessOf,
   tonaseOf,
@@ -98,6 +97,7 @@ import { BarbellToolsSheet } from '../fitness/barbell-tools'
 import { TrainingCalendar } from '../fitness/training-calendar'
 import { ExerciseDetailSheet } from '../fitness/exercise-detail-sheet'
 import { MuscleBalanceCard } from '../fitness/muscle-balance-card'
+import { PaceTrack } from '../visualizations/fitness/pace-track'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -1344,8 +1344,9 @@ function WeekActivityCard() {
    berbagi satu sumbu — pengguna memilih metriknya).
    Jarak: batang km per sesi dalam jendela periode 30/90 hari / semua
    (di dalam rentang riwayat aktif).
-   Pace: garis menit/km, hanya sesi dengan jarak & durasi valid,
-   garis menurun = makin cepat; tanpa warna baik/buruk otomatis. */
+   Pace: lintasan ilustratif menit/km (v2.50 Tahap 2) — hanya sesi
+   dengan jarak & durasi valid, titik lebih tinggi = makin cepat;
+   kurang dari 3 sesi menggambar lintasan kosong yang jujur. */
 function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
   const playEntrance = useFirstVisit('bugar-studio-tren')
   /* v2.49 (audit): gerbang eksplisit — morfologi tinggi batang (height)
@@ -1353,6 +1354,9 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
   const reducedMotion = useReducedMotion()
   const [metric, setMetric] = useState<'jarak' | 'pace'>('jarak')
   const [selIdx, setSelIdx] = useState<number | null>(null)
+  /* Pilihan sesi pada lintasan pace berbasis id — indeks tak stabil
+     saat periode berganti (pola selIdx untuk batang jarak). */
+  const [paceSelId, setPaceSelId] = useState<string | null>(null)
   /* Periode deret (pola riwayat): jendela 30/90 hari — 'semua' tanpa
      jendela tetapi dibatasi 14 sesi terakhir agar batang/garis tetap
      terbaca. Menggunakan kembali WO_RANGES (label & id sama). */
@@ -1374,50 +1378,39 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
     () => [...cardioSeries(windowed, period === 'semua' ? 10 : 8)].reverse(),
     [windowed, period],
   )
-  /* Deret pace — sesi kardio dengan jarak & durasi valid, urut waktu. */
-  const paceSeries = useMemo(
+  /* Deret pace — sesi kardio dengan jarak & durasi valid, urut waktu.
+     Pace numerik (durasi ÷ jarak) dihitung DI SINI di sumber deret —
+     komponen lintasan murni presentasional (v2.50). */
+  const pacePts = useMemo(
     () =>
       windowed
         .filter(
           (w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0 && w.duration > 0,
         )
         .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(period === 'semua' ? -10 : -8),
+        .slice(period === 'semua' ? -10 : -8)
+        .map((w) => ({
+          id: w.id,
+          date: w.date,
+          paceMinPerKm: w.duration / (w.distance ?? 1),
+          distanceKm: w.distance ?? 0,
+          durationMin: w.duration,
+          kind: KIND_LABEL[w.kind],
+        })),
     [windowed, period],
   )
 
-  /* Kartu hanya hidup bila ada cukup sesi jarak; opsi Pace tampil
-     hanya bila deret pace valid ≥ 3 (tidak pernah sumbu campuran). */
+  /* Kartu hanya hidup bila ada cukup sesi jarak; opsi Pace tetap
+     dapat dibuka — deret pace < 3 sesi menggambar lintasan kosong
+     di dalam komponen (bukan sumbu campuran, bukan garis palsu). */
   if (distSeries.length < 3) return null
-  const paceReady = paceSeries.length >= 3
-  const activeMetric = metric === 'pace' && !paceReady ? 'jarak' : metric
+  const activeMetric = metric
 
   const max = Math.max(...distSeries.map((d) => d.km), 0.1)
   const distSel =
     activeMetric === 'jarak' && selIdx !== null
       ? (distSeries[selIdx] ?? null)
       : null
-
-  const paces = paceSeries.map((w) => w.duration / (w.distance ?? 1))
-  const minP = Math.min(...paces)
-  const maxP = Math.max(...paces)
-  const span = Math.max(maxP - minP, 0.5)
-  const W = 280
-  const H = 64
-  const pts = paceSeries.map((_, i) => {
-    const x = (i / (paceSeries.length - 1)) * (W - 12) + 6
-    /* Pace rendah (cepat) digambar TINGGI — arah pembacaan "naik = cepat". */
-    const y = H - 8 - ((paces[i]! - minP) / span) * (H - 20)
-    return { x, y }
-  })
-  const path = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  /* Revisi audit F5: pemformat pace grafik tren dulunya lokal dengan
-     format "6:32" — kini paceLabelOf bersama dari fit-utils (format
-     "6'32\"" yang sama dengan baris lataman & kalender, pembulatan
-     ber-clamp tunggal). */
-  const fmtPace = (p: number) => paceLabelOf(p)
-  const paceSel =
-    activeMetric === 'pace' && selIdx !== null ? (paceSeries[selIdx] ?? null) : null
 
   return (
     <m.div
@@ -1440,24 +1433,18 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
         >
           {(['jarak', 'pace'] as const).map((mk) => {
             const on = activeMetric === mk
-            const disabled = mk === 'pace' && !paceReady
             return (
               <button
                 key={mk}
                 type="button"
-                disabled={disabled}
                 onClick={() => {
                   setMetric(mk)
                   setSelIdx(null)
+                  setPaceSelId(null)
                 }}
                 aria-pressed={on}
-                title={
-                  disabled
-                    ? 'Pace butuh ≥3 sesi kardio dengan jarak & durasi'
-                    : undefined
-                }
                 className={
-                  'interactive h-7 cursor-pointer rounded-full px-3 text-eyebrow font-bold capitalize transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong disabled:cursor-not-allowed disabled:opacity-40 ' +
+                  'interactive h-7 cursor-pointer rounded-full px-3 text-eyebrow font-bold capitalize transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
                   (on
                     ? 'bg-surface-inverse text-content-inverse shadow-soft'
                     : 'text-content-secondary hover:text-content-primary')
@@ -1488,6 +1475,7 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
                 onClick={() => {
                   setPeriod(p.id)
                   setSelIdx(null)
+                  setPaceSelId(null)
                 }}
                 aria-pressed={on}
                 className={
@@ -1572,73 +1560,16 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
           </div>
         </>
       ) : (
-        <>
-          <div className="relative mt-3">
-            <svg
-              viewBox={`0 0 ${W} ${H}`}
-              className="h-16 w-full"
-              role="img"
-              aria-label={`Tren pace ${paceSeries.length} sesi kardio terakhir, dalam menit per kilometer: ${paceSeries
-                .map(
-                  (w, i) => `${shortDateLabel(w.date)} ${fmtPace(paces[i]!)}`,
-                )
-                .join(', ')}. Garis menurun berarti pace makin cepat`}
-            >
-              <polyline
-                points={path}
-                fill="none"
-                stroke="var(--chart-stroke-2)"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {pts.map((p, i) => (
-                <circle
-                  key={i}
-                  cx={p.x}
-                  cy={p.y}
-                  r={selIdx === i ? 4.5 : 3}
-                  fill={
-                    selIdx === i
-                      ? 'var(--chart-stroke-2)'
-                      : 'var(--surface-primary)'
-                  }
-                  stroke="var(--chart-stroke-2)"
-                  strokeWidth="2"
-                />
-              ))}
-            </svg>
-            {/* Titik dapat dipilih — lapisan tombol di atas SVG (pola a11y
-                heatmap: nilai tidak bergantung pada hover). */}
-            <div className="absolute inset-0 flex">
-              {paceSeries.map((w, i) => (
-                <button
-                  key={`${w.id}-pace`}
-                  type="button"
-                  aria-pressed={selIdx === i}
-                  aria-label={`${shortDateLabel(w.date)}: pace ${fmtPace(
-                    paces[i]!,
-                  )} menit per kilometer`}
-                  onClick={() => setSelIdx(selIdx === i ? null : i)}
-                  className="interactive min-w-0 flex-1 cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-module-accent-strong"
-                />
-              ))}
-            </div>
-          </div>
-          <p
-            className="mt-2 text-meta font-semibold tabular-nums text-content-primary"
-            aria-live="polite"
-          >
-            {paceSel
-              ? `${longDateLabel(paceSel.date)} · ${fmtPace(
-                  paces[selIdx!]!,
-                )} menit/km — ${KIND_LABEL[paceSel.kind]}, ${paceSel
-                  .distance!
-                  .toFixed(2)
-                  .replace('.', ',')} km dalam ${durationLabel(paceSel.duration)}`
-              : 'Ketuk titik untuk membaca sesi. Garis menurun = makin cepat.'}
-          </p>
-        </>
+        /* Lintasan pace ilustratif (v2.50 Tahap 2) — menggantikan
+            polyline: titik pelari di lane melengkung, naik = cepat;
+            < 3 sesi valid menggambar lintasan kosong di dalamnya. */
+        <div className="mt-3">
+          <PaceTrack
+            sessions={pacePts}
+            selectedId={paceSelId}
+            onSelect={setPaceSelId}
+          />
+        </div>
       )}
     </m.div>
   )
