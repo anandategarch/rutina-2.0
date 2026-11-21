@@ -110,6 +110,21 @@ konsistensi → kalender → wawasan) dari belasan blok bertumpuk.
 | **Pintasan nav 6 → 4 chip** | Tren · Kalender · Wawasan · Bugar — selaras empat area; chip Laporan/Piala/Wawasan lama digantikan lipatan terpadu. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: pemilih Tren↔Peta Panas bekerja (rasi/heatmap berganti tanpa tumpang tindih), lipatan Wawasan terbuka via pemicu MAUPUN chip nav, seluruh 7 sub-seksi terverifikasi hadir (periode/komposisi/lintas-domain/fokus+misi/pekan/piala/suasana), laporan bulanan terbuka DI DALAM kartu kalender + mengikuti bulan, tanpa overflow horizontal di 320px, mode gelap bersih. |
 
+## [2.59] — Stage 2 Bugar: Studio Satu Pandangan, Riwayat Terpilih
+
+Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P1 Bugar (Latihan
++ Asupan + Tubuh).
+
+| Area | Rincian |
+|---|---|
+| **Hero ↔ grafik pekan melebur** | `WeekActivityCard` kini hidup DI DALAM tile hero ringkasan pekan (mode `embedded`: tanpa bingkai/bayangan sendiri, pembatas hairline) — SATU unit: KPI menit dominan + metrik ringkas (sesi/tonase/hari aktif + lari/badminton/barbel) + grafik aktivitas utama ber-sakelar mode dengan satuan benar (kg/km/menit). KPI mini mode Semua disembunyikan saat embedded (sesi/hari-aktif/durasi sudah terbaca di hero — tidak digandakan); mode Kardio/Badminton/Barbel tetap membawa KPI kontekstualnya (jarak/pace, durasi, tonase/set). Dulu grafik ini kartu terpisah di bawah bento. |
+| **Coach Bugar = SATU panel** | Kesiapan + SATU peringatan paling relevan (deload aktif > plateau > guard kardio) + aksi Alat Barbel kini baris berpembatas hairline di dalam satu permukaan `overflow-hidden` (dulu tiga kartu bertumpuk di kolom sempit). Semua aksi (isi check-in, akhiri/mulai deload, buka alat) utuh dengan target sentuh ≥36px. |
+| **Riwayat Latihan: pemilih Kalender \| Tren \| Daftar** | TrainingCalendar + CardioTrendCard (batang jarak / garis pace + PaceTrack) + daftar sesi (filter jenis & rentang + ledger + muat-lagi) disatukan dalam SATU area ber-pemilih tampilan — dulu kalender kartu tersendiri dan tren/daftar terkubur di kolom 5/12 ruang kerja. Mode Tren membawa pesan jujur saat <3 sesi kardio berjarak (kartu menggambar dirinya nol). Grid ruang kerja dirapikan: Program (7) + Papan Rekor (5), Pustaka + Neraca otot lebar penuh. |
+| **Pustaka = baris ringkas** | ExerciseCard berubah dari kartu berbingkai-berbayangan per gerakan menjadi baris ledger hairline (`divide-y`): nama + otot utama + level + chip alat + chip sesi + chevron; pencarian & filter kelompok otot tetap; interaksi detail (expand + lembar perkembangan e1RM) utuh. |
+| **Asupan: kotak bersarang dihapus** | Makro (MacroPlate + bullet bar gram vs sasaran + catatan cakupan) kini mengalir langsung di hero kalori dengan pembatas hairline — saldo kalori & makro SATU pengalaman gizi; angka gram presisi & semantik data-parsial tetap utuh. |
+| **Tubuh: pemilih deret** | Riwayat Tubuh menampilkan Orbit Pemulihan penuh + pemilih metrik (Tidur/Energi/Nyeri/Stres/Hidrasi) — SATU deret per waktu (dulu lima grafik menumpuk vertikal); default = metrik pertama yang punya catatan; metrik terpilih tanpa data menampilkan pesan jujur (bukan nol, orbit tetap menampilkan satelit putus-putus). Skala tidak pernah disatukan; tidak ada skor kesehatan rekayasa. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: hero tile memuat grafik pekan (DOM-verified parent), pemilih Riwayat Latihan tiga mode berganti (kalender grid bulan / Tren Kardio + Jarak-Pace + periode / daftar + filter + muat-lagi), pemilih Tubuh berganti deret Tidur→Energi, Pustaka baris + detail terbuka, 320px tanpa overflow horizontal. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

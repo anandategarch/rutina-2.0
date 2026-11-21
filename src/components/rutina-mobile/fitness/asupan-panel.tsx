@@ -444,8 +444,11 @@ export function AsupanPanel() {
         {/* Makro — piring komposisi ilustratif (v2.47, dari kontribusi
             kalori) + bullet bar gram vs sasaran. Komposisi hanya digambar
             dari makro yang tercatat; bila belum lengkap, angka tetap
-            tampil dengan keterangan jujur (audit visualisasi v2.12). */}
-        <div className="mt-4 rounded-2xl bg-espresso/35 p-3 backdrop-blur-sm">
+            tampil dengan keterangan jujur (audit visualisasi v2.12).
+            v2.59 (audit Tahap 2): kotak bersarang dihapus — saldo kalori
+            & makro kini SATU pengalaman gizi dalam hero yang sama,
+            dipisah hairline (bukan kartu-di-dalam-kartu). */}
+        <div className="mt-4 border-t border-module-accent-fg/20 pt-4">
           {(() => {
             const pK = sum.protein * KCAL_PER_G.protein
             const cK = sum.carb * KCAL_PER_G.carb

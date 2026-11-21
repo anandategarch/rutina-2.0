@@ -314,6 +314,16 @@ function MoonGlyph({ className }: { className?: string }) {
   )
 }
 
+/** Metrik riwayat tubuh — id pil pemilih + labelnya (v2.59). */
+type BodyMetric = 'tidur' | 'energi' | 'nyeri' | 'stres' | 'hidrasi'
+const BODY_METRICS: readonly [BodyMetric, string][] = [
+  ['tidur', 'Tidur'],
+  ['energi', 'Energi'],
+  ['nyeri', 'Nyeri'],
+  ['stres', 'Stres'],
+  ['hidrasi', 'Hidrasi'],
+]
+
 function BodyHistory({
   logs,
   waterTarget,
@@ -354,6 +364,20 @@ function BodyHistory({
   )
 
   const [sel, setSel] = useState<string | null>(null)
+  /* Pemilih metrik riwayat (v2.59, audit Tahap 2) — SATU deret per
+     waktu: dulu lima grafik riwayat menumpuk vertikal di ponsel; kini
+     orbit potret tetap tampil penuh, deret terpilih satu-satu. */
+  const [metric, setMetric] = useState<BodyMetric>(() =>
+    bodyCoverage(sleep) > 0
+      ? 'tidur'
+      : bodyCoverage(energy) > 0
+        ? 'energi'
+        : bodyCoverage(soreness) > 0
+          ? 'nyeri'
+          : bodyCoverage(stress) > 0
+            ? 'stres'
+            : 'hidrasi',
+  )
   const selSleep = sleep.find((p) => p.date === sel)
   const selEnergy = energy.find((p) => p.date === sel)
   const selWater = water.find((p) => p.date === sel)
@@ -471,8 +495,35 @@ function BodyHistory({
             />
           </div>
 
+          {/* Pemilih deret riwayat — pil aria-pressed (pola pemilih mode
+              Statistik); lima metrik, satu grafik per waktu. */}
+          <div
+            role="group"
+            aria-label="Pilih metrik riwayat tubuh"
+            className="flex gap-1 overflow-x-auto no-scrollbar rounded-full border border-border bg-surface-sunken p-0.5"
+          >
+            {(BODY_METRICS as readonly [BodyMetric, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={metric === id}
+                onClick={() => {
+                  setMetric(id)
+                  setSel(null)
+                }}
+                className={`interactive h-9 shrink-0 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  metric === id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-content-secondary hover:text-content-primary'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* --- Tidur: batang + zona target 7–8 jam --- */}
-          {bodyCoverage(sleep) > 0 && (
+          {bodyCoverage(sleep) > 0 && metric === 'tidur' && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
                 <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
@@ -533,7 +584,7 @@ function BodyHistory({
           )}
 
           {/* --- Energi: glif baterai skala 1–5 (v2.47) --- */}
-          {bodyCoverage(energy) > 0 && (
+          {bodyCoverage(energy) > 0 && metric === 'energi' && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
                 <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
@@ -589,7 +640,7 @@ function BodyHistory({
 
           {/* --- Nyeri otot: titik skala 1–5 (DOMS, 5 = sangat nyeri)
               dengan pita zona pemulihan di belakang (v2.47) --- */}
-          {bodyCoverage(soreness) > 0 && (
+          {bodyCoverage(soreness) > 0 && metric === 'nyeri' && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
                 <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
@@ -649,7 +700,7 @@ function BodyHistory({
           {/* --- Stres: cincin skala 1–5 (5 = sangat stres) dengan pita
               zona yang sama seperti nyeri — bentuk cincin memisahkan
               dua skala (v2.47) --- */}
-          {bodyCoverage(stress) > 0 && (
+          {bodyCoverage(stress) > 0 && metric === 'stres' && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
                 <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
@@ -711,7 +762,7 @@ function BodyHistory({
               puncak HANYA saat nilai MELAMPAUI target (audit v2.47.1:
               target > 8 tidak boleh terkesan terlampaui saat masih
               kurang — angka jujur tetap di label/aria). */}
-          {bodyCoverage(water) > 0 && (
+          {bodyCoverage(water) > 0 && metric === 'hidrasi' && (
             <div>
               <div className="flex items-baseline justify-between px-0.5">
                 <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
@@ -792,6 +843,22 @@ function BodyHistory({
                 })}
               </div>
             </div>
+          )}
+
+          {/* Metrik terpilih tanpa catatan — jujur: hari tanpa check-in
+              bukan nol; orbit di atas tetap menampilkan satelit
+              putus-putus untuk metrik ini. */}
+          {((metric === 'tidur' && bodyCoverage(sleep) === 0) ||
+            (metric === 'energi' && bodyCoverage(energy) === 0) ||
+            (metric === 'nyeri' && bodyCoverage(soreness) === 0) ||
+            (metric === 'stres' && bodyCoverage(stress) === 0) ||
+            (metric === 'hidrasi' && bodyCoverage(water) === 0)) && (
+            <p className="rounded-xl border border-dashed border-border-strong px-4 py-3.5 text-center text-meta font-medium leading-relaxed text-content-muted">
+              Belum ada catatan {' '}
+              {BODY_METRICS.find(([id]) => id === metric)?.[1].toLowerCase()}{' '}
+              dalam {DAYS} hari terakhir — isi check-in harian untuk mulai
+              menggambarkan perkembangannya.
+            </p>
           )}
 
           {/* Bacaan hari terpilih — selaras pola TonaseStrip (ketuk-untuk-baca). */}

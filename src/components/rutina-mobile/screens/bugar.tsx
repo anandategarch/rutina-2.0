@@ -559,10 +559,10 @@ function ExerciseCard({
   if (!ex) return null
 
   return (
-    <m.div
-      layout="position"
-      className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
-    >
+    /* v2.59 (audit Tahap 2): baris ledger RINGKAS — tanpa bingkai/bayangan
+       per gerakan (aturan global: tidak semua item daftar dapat kartu);
+       pemisah hairline datang dari divide-y wadah daftar. */
+    <m.div layout="position" className="py-2.5 first:pt-0.5 last:pb-0.5">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -757,7 +757,7 @@ const WEEK_MODE_META: Record<
   },
 }
 
-function WeekActivityCard() {
+function WeekActivityCard({ embedded = false }: { embedded?: boolean }) {
   const workouts = useRutina((s) => s.workouts)
   const reducedMotion = useReducedMotion()
   /* v2.35 anti-replay — pengungkapan hanya kunjungan pertama. */
@@ -893,7 +893,14 @@ function WeekActivityCard() {
       aria-label={`Aktivitas pekan ini — mode ${
         WEEK_MODES.find((x) => x.id === mode)?.label ?? 'Semua'
       }`}
-      className="mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
+      /* v2.59 (audit Tahap 2): mode embedded — kartu melebur ke unit hero
+         ringkasan pekan (KPI + metrik + grafik utama dalam SATU tile);
+         tanpa bingkai/bayangan sendiri, hanya pembatas hairline. */
+      className={
+        embedded
+          ? 'mt-4 border-t border-border-default pt-4'
+          : 'mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft'
+      }
     >
       <div className="flex items-baseline justify-between gap-2 px-0.5">
         <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
@@ -936,7 +943,10 @@ function WeekActivityCard() {
       </RutinaTabs>
 
       {/* KPI mini per mode — angka utama kartu standar review
-          (metrik + satuan jelas sebelum membaca grafik). */}
+          (metrik + satuan jelas sebelum membaca grafik). Mode 'semua'
+          disembunyikan saat embedded: angka sesi/hari-aktif/durasi sudah
+          terbaca di rel & baris metrik hero — tidak digandakan (v2.59). */}
+      {(mode !== 'semua' || !embedded) && (
       <div
         className="mt-3 grid grid-cols-3 gap-2"
         role="group"
@@ -958,6 +968,7 @@ function WeekActivityCard() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Tujuh kolom hari — ikon jenis aktivitas di atas, batang tonase
           mini di bawah; satu ketukan membuka detail hari lengkap. */}
@@ -1643,6 +1654,11 @@ export default function BugarScreen() {
      default: semua tertutup, pratinjau 3 gerakan per grup). */
   const [openLibGroups, setOpenLibGroups] = useState<Set<string>>(new Set())
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
+  /* Tampilan Riwayat Latihan (v2.59, audit Tahap 2): kalender | tren |
+     daftar — satu pandangan per waktu di ponsel. */
+  const [histView, setHistView] = useState<'kalender' | 'tren' | 'daftar'>(
+    'kalender',
+  )
   const [barbellOpen, setBarbellOpen] = useState(false)
   /* Detail progres satu gerakan (review v2.44) — nama gerakan yang
      lembar detailnya terbuka; null = tertutup. */
@@ -1660,6 +1676,12 @@ export default function BugarScreen() {
     [workouts],
   )
   const cardio = useMemo(() => cardioSummary(workouts), [workouts])
+  /* Sesi kardio berjarak — dasar pesan jujur mode Tren (kartu tren
+     menggambar diri sendiri nol bila < 3 sesi). */
+  const cardioDistCount = useMemo(
+    () => workouts.filter((w) => isCardioKind(w.kind) && (w.distance ?? 0) > 0).length,
+    [workouts],
+  )
   const prs = useMemo(() => prBoard(workouts), [workouts])
   const topPr = prs[0]
   /* Riwayat e1RM per gerakan — e1RM terbaik tiap sesi, urut tanggal;
@@ -2116,9 +2138,18 @@ export default function BugarScreen() {
           )
         })}
       </div>
+
+      {/* Grafik aktivitas pekan (v2.59, audit Tahap 2) — melebur ke unit
+          hero ringkasan pekan: SATU tile = KPI utama + metrik ringkas +
+          grafik aktivitas utama; tidak lagi kartu terpisah di bawah
+          bento. Satuan tetap sadar-mode (kg / km / menit). */}
+      <WeekActivityCard embedded />
               </RutinaBentoItem>
               <RutinaBentoItem span="feature">
-      {/* ===== Coach Bugar — kesiapan, deload, guard, alat ===== */}
+      {/* ===== Coach Bugar — kesiapan, deload, guard, alat =====
+          v2.59 (audit Tahap 2): SATU panel — kesiapan + SATU peringatan
+          paling relevan + aksi Alat Barbel sebagai baris berpembatas
+          hairline di dalam satu permukaan (dulu tiga kartu bertumpuk). */}
       <section aria-label="Coach Bugar">
         <RutinaSectionHeader
           eyebrow="Saran latihan"
@@ -2126,14 +2157,9 @@ export default function BugarScreen() {
           description="Kesiapan, deload, dan alat bantu — dihitung dari data latihanmu sendiri."
           accent
         />
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft">
           {/* a. Kesiapan latihan — ringkas dari check-in hari ini */}
-          <m.div
-            initial={playEntrance ? { opacity: 0, y: 14 } : false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={motionTokens.preset.chipReveal}
-            className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
-          >
+          <div className="p-4">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
                 <Sparkles className="h-5 w-5" aria-hidden="true" />
@@ -2176,19 +2202,13 @@ export default function BugarScreen() {
                 <span className="truncate">Isi check-in pagi untuk saran latihan</span>
               </button>
             )}
-          </m.div>
+          </div>
 
           {/* b. SATU peringatan paling relevan — prioritas: deload aktif
-              > plateau > guard kardio. Maksimal satu kartu peringatan
-              (di samping kesiapan) agar Coach bukan daftar panjang
-              (audit Tahap 2: saring saran, 1–2 rekomendasi saja). */}
+              > plateau > guard kardio. Maksimal satu strip peringatan
+              (di samping kesiapan) agar Coach bukan daftar panjang. */}
           {deloadOn && deloadUntil ? (
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: 14 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
-              className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
-            >
+            <div className="border-t border-border bg-destructive/8 px-4 py-3.5">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive text-destructive-foreground">
                   <AlertTriangle className="h-5 w-5" aria-hidden="true" />
@@ -2208,17 +2228,14 @@ export default function BugarScreen() {
                   endDeload()
                   toast.success('Deload diakhiri — beban kembali normal.')
                 }}
-                className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-note font-bold text-content-danger hover:bg-destructive/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                className="interactive mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center rounded-full border border-destructive/45 text-note font-bold text-content-danger hover:bg-destructive/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Akhiri deload sekarang
               </button>
-            </m.div>
+            </div>
           ) : stalledNames.length > 0 ? (
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: 14 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
-              className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 shadow-soft"
+            <div
+              className="border-t border-border bg-destructive/8 px-4 py-3.5"
             >
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive text-destructive-foreground">
@@ -2253,18 +2270,13 @@ export default function BugarScreen() {
                   startDeload(7)
                   toast.success('Deload 7 hari dimulai — target beban dipangkas 50%.')
                 }}
-                className="interactive mt-3 flex h-10 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
+                className="interactive mt-2.5 flex h-9 w-full cursor-pointer items-center justify-center rounded-full bg-destructive text-note font-bold text-destructive-foreground hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
               >
                 Mulai deload 7 hari
               </button>
-            </m.div>
+            </div>
           ) : guard.tooMuch && guard.suggestion ? (
-            <m.div
-              initial={playEntrance ? { opacity: 0, y: 14 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.step }}
-              className="rounded-xl border border-destructive/30 bg-surface-sunken p-4"
-            >
+            <div className="border-t border-border bg-surface-sunken px-4 py-3.5">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-destructive/15 text-content-danger">
                   <Footprints className="h-5 w-5" aria-hidden="true" />
@@ -2278,14 +2290,14 @@ export default function BugarScreen() {
                   </p>
                 </div>
               </div>
-            </m.div>
+            </div>
           ) : null}
 
           {/* c. Pintasan Alat Barbel — alat bantu, bukan rekomendasi */}
           <button
             type="button"
             onClick={() => setBarbellOpen(true)}
-            className="interactive flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-4 text-left shadow-soft hover:bg-surface-secondary/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="interactive flex w-full cursor-pointer items-center gap-3 border-t border-border bg-surface-primary p-4 text-left hover:bg-surface-secondary/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
               <Calculator className="h-5 w-5" aria-hidden="true" />
@@ -2309,41 +2321,80 @@ export default function BugarScreen() {
             </RutinaBentoGrid>
           </m.div>
 
-          {/* Aktivitas pekan ini — SATU kartu gabungan (audit v2.37):
-              jenis aktivitas + tonase pada sumbu hari yang sama. */}
-          <WeekActivityCard />
+          {/* ===== Riwayat Latihan (v2.59, audit Tahap 2) — kalender
+              bulanan, tren kardio, dan daftar sesi dalam SATU area
+              dengan pemilih tampilan Kalender | Tren | Daftar; dulu:
+              kalender kartu tersendiri + tren & daftar terkubur di
+              kolom sempit ruang kerja. ===== */}
+          <section aria-label="Riwayat latihan" className="mt-[var(--layout-gap)]">
+            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+              <div className="min-w-0">
+                <h2 className="flex items-center gap-1.5 text-section-lg font-bold tracking-tight text-content-primary">
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
+                  />
+                  Riwayat Latihan
+                </h2>
+                <p className="mt-0.5 text-meta font-medium text-module-accent-strong">
+                  kalender bulanan · tren kardio · daftar sesi
+                </p>
+              </div>
+              <div
+                role="group"
+                aria-label="Tampilan riwayat latihan"
+                className="flex shrink-0 gap-1 rounded-full border border-border bg-surface-sunken p-0.5"
+              >
+                {(
+                  [
+                    ['kalender', 'Kalender'],
+                    ['tren', 'Tren'],
+                    ['daftar', 'Daftar'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={histView === id}
+                    onClick={() => setHistView(id)}
+                    className={`interactive h-9 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      histView === id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-content-secondary hover:text-content-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          {/* Kalender Latihan — Training Log pola Strava: konsistensi
-              bulanan lintas jenis aktivitas (titik kardio/badminton/
-              barbel); ketuk tanggal untuk detail sesi hari itu. */}
-          <TrainingCalendar />
+            {histView === 'kalender' && (
+              /* Kalender Latihan — Training Log pola Strava: konsistensi
+                 bulanan lintas jenis aktivitas (titik kardio/badminton/
+                 barbel); ketuk tanggal untuk detail sesi hari itu. */
+              <div className="mt-3">
+                <TrainingCalendar />
+              </div>
+            )}
 
-          {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
-              (ritme --layout-gap performance); begitu kontainer ≥52rem,
-              seksi berpasangan 7:5 lalu 5:7 sehingga studio performa
-              terasa seperti MEJA KERJA, bukan gulir panjang: Program
-              berdampingan Riwayat, Papan Rekor berdampingan Pustaka. */}
-          <div className="mt-[var(--layout-gap)] grid grid-cols-1 gap-[var(--layout-gap)] @[52rem]:grid-cols-12">
-      {/* ===== Program latihan — pasangan kiri (7) ===== */}
-      <section aria-label="Program latihan" className="@[52rem]:col-span-7">
-        <div className="flex items-center gap-2 px-0.5">
-          <h2 className="text-section font-semibold tracking-tight text-content-secondary">
-            Program Latihan
-          </h2>
-        </div>
-        <p className="mt-1 px-0.5 text-meta leading-relaxed text-content-muted">
-          Rencana siap pakai — cukup barbel + rak + bangku. Pilih hari untuk
-          memulai sesi terisi otomatis.
-        </p>
-        <div className="mt-3 space-y-2.5">
-          {PROG_DB.map((p, i) => (
-            <ProgramCard key={p.id} prog={p} index={i} />
-          ))}
-        </div>
-      </section>
+            {histView === 'tren' && (
+              /* Tren kardio — batang jarak / garis pace (PaceTrack);
+                 periode 30/90/h-semua dikendalikan kartu sendiri. */
+              <div className="mt-3">
+                <CardioTrendCard sessions={workouts} />
+                {cardioDistCount < 3 && (
+                  <p className="mt-3 rounded-xl border border-dashed border-border-strong px-4 py-3.5 text-center text-meta font-medium leading-relaxed text-content-muted">
+                    Tren kardio mulai terbaca setelah minimal 3 sesi
+                    jalan/lari dengan jarak tercatat — catat lewat pintasan
+                    di atas.
+                  </p>
+                )}
+              </div>
+            )}
 
-      {/* ===== Riwayat olahraga — semua jenis, filter + rentang (v2.17) ===== */}
-      <section aria-label="Riwayat olahraga" className="@[52rem]:col-span-5">
+            {histView === 'daftar' && (
+              <div className="mt-3">
         <div className="flex items-center justify-between gap-3 px-0.5">
           <div className="flex items-center gap-2">
             <h2 className="text-section font-semibold tracking-tight text-content-secondary">
@@ -2359,7 +2410,6 @@ export default function BugarScreen() {
               : `${strengthCount} sesi barbel`}
           </span>
         </div>
-
         {/* Filter jenis aktivitas — Semua / Lari & Jalan / Badminton / Barbel */}
         <div
           role="group"
@@ -2415,17 +2465,6 @@ export default function BugarScreen() {
             ))}
           </RutinaTabsList>
         </RutinaTabs>
-
-        {/* Tren kardio — SATU ruang dua metrik (audit v2.37): batang
-            jarak / garis pace per pilihan; periode deret dikendalikan
-            sendiri oleh kartu (30/90 hari / semua) di dalam rentang
-            riwayat aktif; batang MORPH spring.chart saat rentang
-            berganti — bukan entrance ulang (perubahan data ≠
-            pengulangan entrance). */}
-        {(woFilter === 'semua' || woFilter === 'kardio') && (
-          <CardioTrendCard sessions={filteredWorkouts} />
-        )}
-
         {/* Daftar riwayat — hairline ledger-row per item (audit Tahap 2),
             bukan tumpukan kartu berbayang; ponsel tanpa nested scroll
             (audit v2.37), ruang kerja ≥52rem bergulir sendiri. */}
@@ -2496,6 +2535,33 @@ export default function BugarScreen() {
               </m.div>
             )}
           </AnimatePresence>
+        </div>
+              </div>
+            )}
+          </section>
+
+
+          {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
+              (ritme --layout-gap performance); begitu kontainer ≥52rem,
+              seksi berpasangan 7:5 lalu 5:7 sehingga studio performa
+              terasa seperti MEJA KERJA, bukan gulir panjang: Program
+              berdampingan Riwayat, Papan Rekor berdampingan Pustaka. */}
+          <div className="mt-[var(--layout-gap)] grid grid-cols-1 gap-[var(--layout-gap)] @[52rem]:grid-cols-12">
+      {/* ===== Program latihan — pasangan kiri (7) ===== */}
+      <section aria-label="Program latihan" className="@[52rem]:col-span-7">
+        <div className="flex items-center gap-2 px-0.5">
+          <h2 className="text-section font-semibold tracking-tight text-content-secondary">
+            Program Latihan
+          </h2>
+        </div>
+        <p className="mt-1 px-0.5 text-meta leading-relaxed text-content-muted">
+          Rencana siap pakai — cukup barbel + rak + bangku. Pilih hari untuk
+          memulai sesi terisi otomatis.
+        </p>
+        <div className="mt-3 space-y-2.5">
+          {PROG_DB.map((p, i) => (
+            <ProgramCard key={p.id} prog={p} index={i} />
+          ))}
         </div>
       </section>
 
@@ -2589,8 +2655,9 @@ export default function BugarScreen() {
         )}
       </section>
 
-      {/* ===== Pustaka gerakan — katalog pasangan kanan (7) ===== */}
-      <section aria-label="Pustaka gerakan" className="@[52rem]:col-span-7">
+      {/* ===== Pustaka gerakan — baris ringkas lebar penuh (v2.59):
+          baris ledger hairline, bukan kartu per gerakan. ===== */}
+      <section aria-label="Pustaka gerakan" className="@[52rem]:col-span-12">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-section font-semibold tracking-tight text-content-secondary">
             Pustaka Gerakan
@@ -2645,7 +2712,7 @@ export default function BugarScreen() {
           </div>
         </div>
 
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-3 divide-y divide-border/70">
           {/* Search-first (audit v2.37): hasil pencarian/filter tampil FLAT
               penuh; kondisi awal mengelompokkan per otot dengan pratinjau. */}
           {libFlatMode ? (
@@ -2682,7 +2749,7 @@ export default function BugarScreen() {
                         {g.items.length}
                       </span>
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="divide-y divide-border/70">
                       {items.map((e) => (
                         <ExerciseCard
                           key={e.name}
