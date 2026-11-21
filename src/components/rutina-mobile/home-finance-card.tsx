@@ -130,6 +130,8 @@ export function HomeFinanceCard() {
   const weekAvg = Math.round(
     weekSpend.reduce((a, d) => a + d.total, 0) / weekSpend.length,
   )
+  const weekTotal = weekSpend.reduce((a, d) => a + d.total, 0)
+  const todaySpend = weekSpend.find((d) => d.iso === today)?.total ?? 0
 
   return (
     <m.section
@@ -346,6 +348,19 @@ export function HomeFinanceCard() {
                     )
                   })}
                 </div>
+                {/* Padanan pembaca layar untuk strip aria-hidden di atas
+                    (audit a11y): total, hanya hari bernilai (hari nol
+                    dilewati — singkat), dan hari ini. UI visual tak berubah. */}
+                <p className="sr-only">
+                  {`Pengeluaran 7 hari terakhir: total ${formatIDRShort(weekTotal)}, rata-rata ${formatIDRShort(weekAvg)} per hari. Hari dengan pengeluaran: ${weekSpend
+                    .filter((d) => d.total > 0)
+                    .map((d) => `${d.label} ${formatIDRShort(d.total)}`)
+                    .join(', ')}. Hari ini: ${
+                    todaySpend > 0
+                      ? formatIDRShort(todaySpend)
+                      : 'belum ada pengeluaran'
+                  }.`}
+                </p>
               </div>
             )}
 

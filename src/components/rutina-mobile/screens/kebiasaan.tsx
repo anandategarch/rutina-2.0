@@ -2035,11 +2035,12 @@ export default function KebiasaanScreen() {
                 </div>
               </m.div>
 
-              {/* Sulur Pekan Ini (v2.47 Growth Garden) — satu cabang botani
-                  = pekan berjalan: 7 daun Senin..Minggu, bentuk daun jujur
+              {/* Sulur Pekan (v2.47 Growth Garden) — satu cabang botani
+                  per pekan Senin..Minggu: 7 daun dengan bentuk jujur
                   terhadap jadwal (penuh/sebagian/terlewat/kuncup tanpa
-                  jadwal/belum berjalan); ketuk daun → baris bacaan + lembar
-                  detail hari (pola heatmap). */}
+                  jadwal/belum berjalan); navigasi pekan (lampau hingga
+                  26 pekan) hidup di dalam komponen; ketuk daun → baris
+                  bacaan + lembar detail hari (pola heatmap). */}
               <GrowthVine />
 
               {/* Matriks perbandingan konsistensi (review UI/UX v2.44

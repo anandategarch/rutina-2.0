@@ -6,6 +6,7 @@ import { useReducedMotion } from 'motion/react'
 
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
+import { pressSnappy } from '@/lib/motion/transitions'
 
 /**
  * MoodWheel — roda distribusi suasana catatan (Jurnal, Quiet Atelier).
@@ -26,8 +27,10 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
  * mode gelap karena mengikuti --surface-primary).
  *
  * Non-interaktif dengan sengaja: lapisan interaktif tetap chip filter
- * mood di atas kartu. Hanya merender bila ada ≥1 mood tercatat
- * (kondisi di pemanggil).
+ * mood di atas kartu — prop `selectedMood` HANYA menyorot arc yang
+ * sedang difilter (cincin goresan lebih tebal + arc lain meredup),
+ * bukan membuka interaksi di roda. Hanya merender bila ada ≥1 mood
+ * tercatat (kondisi di pemanggil).
  */
 
 /** Padanan nilai CSS untuk kelas MOOD_DOT (journal-ui.ts). */
@@ -78,14 +81,25 @@ function arcPath(startDeg: number, spanDeg: number): string {
 
 export function MoodWheel({
   counts,
+  selectedMood = null,
 }: {
   /** Pasangan [mood, jumlah] — hanya mood tercatat, terurut menurun. */
   counts: [string, number][]
+  /** Mood yang sedang difilter di Jurnal (null = tanpa filter) — arc
+   *  yang cocok ditonjolkan halus. Dicocokkan terhadap counts: nilai
+   *  usang (semua catatan mood itu terhapus saat filter aktif) diabaikan
+   *  agar roda tidak meredup tanpa sorotan. */
+  selectedMood?: string | null
 }) {
   const play = useFirstVisit('journal-mood-wheel')
   const reduced = useReducedMotion()
 
   const total = counts.reduce((a, [, n]) => a + n, 0)
+
+  const selMood =
+    selectedMood != null && counts.some(([mood]) => mood === selectedMood)
+      ? selectedMood
+      : null
 
   /* Geometri arc — slot ∝ jumlah/total dan selalu menjumlah tepat
      360° (sudut awal dihitung dalam loop murni, bukan reassign di
@@ -142,7 +156,7 @@ export function MoodWheel({
         role="img"
         aria-label={`Distribusi suasana catatan: ${counts
           .map(([mood, n]) => `${mood} ${n} kali`)
-          .join(', ')}`}
+          .join(', ')}${selMood != null ? `, suasana ${selMood} dipilih` : ''}`}
       >
         {/* Rel donat samar — padanan track bg-surface-sunken bar lama. */}
         <circle
@@ -155,23 +169,34 @@ export function MoodWheel({
         />
         {arcs.map((a, i) => {
           const fill = MOOD_ARC_FILL[a.mood] ?? ARC_FALLBACK_FILL
+          /* Sorotan filter: arc terpilih bertambah tebal, arc lain
+             meredup — transisi ringan per-nilai (entrance stroke-dash
+             tetap berkoreografi, sorotan bergerak snappy). */
+          const isSel = selMood != null && a.mood === selMood
           return (
             <m.path
               key={a.mood}
               d={arcPath(a.pathStart, a.span)}
               fill="none"
               stroke={fill}
-              strokeWidth={STROKE}
               strokeLinecap="round"
               pathLength={1}
               strokeDasharray={1}
               initial={
                 play && !reduced ? { strokeDashoffset: 1 } : false
               }
-              animate={{ strokeDashoffset: 0 }}
+              animate={{
+                strokeDashoffset: 0,
+                strokeWidth: isSel ? STROKE + 2 : STROKE,
+                opacity: selMood != null && !isSel ? 0.55 : 1,
+              }}
               transition={{
-                ...motionTokens.preset.data,
-                delay: i * motionTokens.stagger.normal,
+                strokeDashoffset: {
+                  ...motionTokens.preset.data,
+                  delay: i * motionTokens.stagger.normal,
+                },
+                strokeWidth: pressSnappy,
+                opacity: motionTokens.preset.interaction,
               }}
             />
           )

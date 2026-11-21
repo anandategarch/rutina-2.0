@@ -92,6 +92,10 @@ export function constellationStats(
 /* ===== Geometri ===== */
 
 const PLOT_H = 150
+/** Margin plot: kiri — selat label sumbu-y (0/25/50/75%), kanan —
+ *  label "rata²" di tepi; label sumbu-x di y=141. */
+const PLOT_LEFT = 34
+const PLOT_RIGHT = 42
 /** Area gambar: atas 12, dasar 0% di y=126, label sumbu-x di y=141. */
 const Y_BASE = 126
 const Y_TOP = 14
@@ -146,9 +150,8 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
   const [selIdx, setSelIdx] = useState<number | null>(null)
 
   const { stars, line, stats } = useMemo(() => {
-    /* Margin: kiri 6, kanan 42 (label rata²), label-x di y 141. */
-    const left = 6
-    const right = w - 42
+    const left = PLOT_LEFT
+    const right = w - PLOT_RIGHT
     const step = points.length > 1 ? (right - left) / (points.length - 1) : 0
     const stars = points.map((p, i) => ({
       ...p,
@@ -170,8 +173,8 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
 
   const ariaSummary =
     stats.avg != null
-      ? `Tren konsistensi 30 hari: rata-rata ${fmtAvg(stats.avg)}%, ${stats.above70} hari di atas 70%`
-      : 'Tren konsistensi 30 hari: belum ada hari terjadwal'
+      ? `Tren konsistensi 30 hari, skala 0–100%: rata-rata ${fmtAvg(stats.avg)}%, ${stats.above70} hari di atas 70%`
+      : 'Tren konsistensi 30 hari, skala 0–100%: belum ada hari terjadwal'
 
   /* Jeda stagger per bintang ~12ms — koreografi satu kali per kunjungan
      pertama (30 tanda harus selesai dalam satu denyut preset.data, di
@@ -187,16 +190,20 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
       {/* Wadah geser (audit v2.47 #1) — 30 target ketuk ≥24px tidak muat
           pada kartu sempit; deret melebar mengikuti jumlah bintang dan
           ponsel menggeser horizontal (pola FinChart/CashflowRiver).
-          minWidth memuat margin plot (6 + 42) agar tiap target benar-benar
-          ≥24px, bukan 24px dikurangi margin. Pengukuran (ref) menempel pada
-          ISI GULIR — bukan induk terpotong viewport — sehingga bintang
-          merenggang benar saat isi lebih lebar dari layar. */}
+          minWidth memuat margin plot (PLOT_LEFT + PLOT_RIGHT) agar tiap
+          target benar-benar ≥24px, bukan 24px dikurangi margin — dan
+          selat label sumbu-y tetap utuh di lebar minimum. Pengukuran
+          (ref) menempel pada ISI GULIR — bukan induk terpotong viewport —
+          sehingga bintang merenggang benar saat isi lebih lebar dari
+          layar. */}
       <div className="overflow-x-auto no-scrollbar overscroll-x-contain">
         <div
           ref={ref}
           className="relative"
           style={{
-            minWidth: `max(100%, ${Math.max(1, stars.length) * 24 + 48}px)`,
+            minWidth: `max(100%, ${
+              Math.max(1, stars.length) * 24 + PLOT_LEFT + PLOT_RIGHT
+            }px)`,
           }}
         >
           <svg
@@ -216,8 +223,8 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
               {[25, 50, 75].map((v) => (
                 <line
                   key={v}
-                  x1={6}
-                  x2={w - 42}
+                  x1={PLOT_LEFT}
+                  x2={w - PLOT_RIGHT}
                   y1={yOf(v)}
                   y2={yOf(v)}
                   stroke="var(--border-default)"
@@ -225,13 +232,31 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
                 />
               ))}
               <line
-                x1={6}
-                x2={w - 42}
+                x1={PLOT_LEFT}
+                x2={w - PLOT_RIGHT}
                 y1={Y_BASE}
                 y2={Y_BASE}
                 stroke="var(--border-default)"
                 strokeWidth={1}
               />
+              {/* Label sumbu-y — angka kecil di selat kiri tiap garis
+                  bantu (0 = garis dasar), "%" hanya di label teratas;
+                  tidak ada garis 100 → tidak ada label 100 (jujur pada
+                  garis yang benar-benar digambar). Selat PLOT_LEFT
+                  menjaga label tak pernah bertumpuk dengan bintang. */}
+              {([0, 25, 50, 75] as const).map((v) => (
+                <text
+                  key={v}
+                  x={PLOT_LEFT - 5}
+                  y={(v === 0 ? Y_BASE : yOf(v)) + 2.5}
+                  textAnchor="end"
+                  fontSize={8.5}
+                  fontWeight={500}
+                  fill="var(--content-muted)"
+                >
+                  {v === 75 ? '75%' : v}
+                </text>
+              ))}
               {/* Label sumbu-x ~tiap 7 hari. */}
               {TICK_IDX.map((i) => {
                 const s = stars[i]
@@ -241,7 +266,13 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
                 return (
                   <text
                     key={s.date}
-                    x={i === TICK_IDX[0] ? 4 : i === TICK_IDX[TICK_IDX.length - 1] ? w - 44 : s.x}
+                    x={
+                      i === TICK_IDX[0]
+                        ? PLOT_LEFT - 2
+                        : i === TICK_IDX[TICK_IDX.length - 1]
+                          ? w - PLOT_RIGHT - 2
+                          : s.x
+                    }
                     y={141}
                     textAnchor={anchor}
                     fontSize={8.5}
@@ -349,8 +380,8 @@ export function LifeConstellation({ points }: { points: ConstellationDay[] }) {
                 }}
               >
                 <line
-                  x1={6}
-                  x2={w - 42}
+                  x1={PLOT_LEFT}
+                  x2={w - PLOT_RIGHT}
                   y1={avgY}
                   y2={avgY}
                   stroke="var(--chart-stroke-5)"

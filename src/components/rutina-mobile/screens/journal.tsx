@@ -68,6 +68,7 @@ function WritingActivityCard({
   onPickDay,
   weekFilter,
   onPickWeek,
+  selectedMood = null,
 }: {
   notes: Note[]
   noteMoods: Record<string, string>
@@ -77,6 +78,10 @@ function WritingActivityCard({
    *  rentang pekan itu. */
   weekFilter: string | null
   onPickWeek: (start: string | null) => void
+  /** Filter mood aktif layar Jurnal (null = semua) — diteruskan ke roda
+   *  suasana agar arc yang sedang disaring tersorot (roda tetap membawa
+   *  distribusi penuh, bukan hanya yang terfilter). */
+  selectedMood?: string | null
 }) {
   const today = todayISO()
   const [viewYm, setViewYm] = useState(today.slice(0, 7))
@@ -548,11 +553,12 @@ function WritingActivityCard({
 
           {/* Ringkasan mood — roda distribusi (v2.47 Quiet Atelier):
               arc ∝ jumlah/total, warna mengacu MOOD_DOT; angka N× tetap
-              dibawa legenda teks. Hanya mood yang benar-benar tercatat. */}
+              dibawa legenda teks. Hanya mood yang benar-benar tercatat.
+              Arc mood yang sedang difilter tersorot halus di roda. */}
           {moodCounts.length > 0 && (
             <div className="mt-2.5">
               <div className="flex items-center gap-4">
-                <MoodWheel counts={moodCounts} />
+                <MoodWheel counts={moodCounts} selectedMood={selectedMood} />
                 <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
                   {moodCounts.map(([mood, n]) => (
                     <span key={mood} className="flex items-center gap-1">
@@ -879,6 +885,7 @@ export default function JournalScreen() {
           weekFilter={weekFilter}
           onPickWeek={setWeekFilter}
           onPickDay={setDayFilter}
+          selectedMood={moodFilter}
         />
       )}
 

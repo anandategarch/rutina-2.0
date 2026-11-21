@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import * as m from 'motion/react-m'
 
 import { motionTokens } from '@/lib/motion/tokens'
@@ -21,7 +22,11 @@ import {
 } from '../../store'
 
 /**
- * Sulur Pekan Ini (Growth Vine) — satu cabang botani = pekan berjalan.
+ * Sulur Pekan (Growth Vine) — satu cabang botani = satu pekan Senin–
+ * Minggu yang sedang dilihat. Navigasi pekan hidup DI DALAM komponen
+ * (integrasi pemanggil tetap satu baris): pekan berjalan + pekan lampau
+ * hingga 26 pekan ke belakang; pekan masa depan tidak bisa dibuka
+ * (belum bermakna — simpul "belum berjalan" hanya mungkin di pekan ini).
  *
  * Batang melengkung horizontal dengan 7 simpul daun (Senin..Minggu).
  * Bentuk daun DIGERAKKAN OLEH DATA, jujur terhadap jadwal:
@@ -38,11 +43,13 @@ import {
  * dengan daySchedules/heatmap & konstelasi Statistik (audit v2.47 #13):
  * hormati createdAt & arsip, jeda terjadwal diampuni (keluar penyebut),
  * pct null bila tak ada jadwal — dipanggil per-hari untuk jendela
- * Senin..Minggu pekan berjalan (daySchedules memakai jendela bergulir
- * berakhir hari ini).
+ * Senin..Minggu PEKAN YANG DITAMPILKAN (daySchedules memakai jendela
+ * bergulir berakhir hari ini). Semantika per pekan: pekan lampau FINAL
+ * (0% = "terlewat", tidak pernah "berjalan"), "belum berjalan" hanya
+ * untuk hari setelah hari ini — hanya mungkin di pekan berjalan.
  */
 
-/* ===== Derivasi murni — pekan Senin..Minggu berjalan ===== */
+/* ===== Derivasi murni — pekan Senin..Minggu mana pun ===== */
 
 interface VineDay {
   iso: string
@@ -56,8 +63,12 @@ interface VineDay {
   isToday: boolean
 }
 
-function vineWeek(habits: Habit[], c: Completions, today: string): VineDay[] {
-  const start = weekStartISO(today)
+function vineWeek(
+  habits: Habit[],
+  c: Completions,
+  start: string,
+  today: string,
+): VineDay[] {
   return Array.from({ length: 7 }, (_, i) => {
     const iso = addDaysISO(start, i)
     const dc = dayCompliance(habits, c, iso)
@@ -74,6 +85,23 @@ function vineWeek(habits: Habit[], c: Completions, today: string): VineDay[] {
       isToday: iso === today,
     }
   })
+}
+
+/** Batas perjalanan ke masa lalu — 26 pekan (± setengah tahun):
+ *  cukup untuk menengok tren, tanpa perjalanan tak berbatas. */
+const MIN_WEEK_OFFSET = -26
+
+/** Label rentang pekan "16 – 22 Nov" — bulan ditulis sekali bila
+ *  awal dan akhir pekan sebulan (lintas bulan: "28 Okt – 3 Nov"). */
+function weekRangeLabel(start: string): string {
+  const s = fromISO(start)
+  const e = fromISO(addDaysISO(start, 6))
+  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
+    return `${s.getDate()} – ${e.getDate()} ${s.toLocaleDateString('id-ID', { month: 'short' })}`
+  }
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+  return `${fmt(s)} – ${fmt(e)}`
 }
 
 /** Bentuk visual simpul — turunan murni dari VineDay. */
@@ -110,9 +138,11 @@ function dayText(d: VineDay): string {
 
 const VB_W = 320
 const VB_H = 112
+/** Jarak antar simpul (satuan viewBox) — juga lebar kolom ketuk overlay. */
+const NODE_STEP = 44
 /** Simpul: x merata 28..292, y lengkung sinus lembut (puncak Rabu-Kamis). */
 const NODES = Array.from({ length: 7 }, (_, i) => ({
-  x: 28 + i * 44,
+  x: 28 + i * NODE_STEP,
   y: 66 - Math.round(11 * Math.sin((i / 6) * Math.PI)),
 }))
 
@@ -314,20 +344,58 @@ export function GrowthVine() {
   const completions = useRutina((s) => s.completions)
   const today = todayISO()
   const reducedMotion = useReducedMotion()
-  const play = useFirstVisit('kebiasaan-vine') && !reducedMotion
-
-  const days = useMemo(
-    () => vineWeek(habits, completions, today),
-    [habits, completions, today],
-  )
+  const firstVisit = useFirstVisit('kebiasaan-vine')
+  const playEntrance = firstVisit && !reducedMotion
 
   const [selIso, setSelIso] = useState<string | null>(null)
   const [detailDate, setDetailDate] = useState<string | null>(null)
 
+  /* Navigasi pekan — 0 = pekan berjalan, negatif = pekan lampau
+     (maks. 26 pekan). Pekan masa depan tidak tersedia: belum bermakna. */
+  const [weekOffset, setWeekOffset] = useState(0)
+  /* Rakitan daun diputar ulang SATU KALI per ganti pekan (kunci d.iso
+     berubah → simpul dipasang ulang), bukan pada tiap render — pola
+     gerbang anti-replay useFirstVisit diperluas ke navigasi. */
+  const [navigated, setNavigated] = useState(false)
+  const canPrev = weekOffset > MIN_WEEK_OFFSET
+  const canNext = weekOffset < 0
+  const shiftWeek = (delta: number) => {
+    if ((delta < 0 && !canPrev) || (delta > 0 && !canNext)) return
+    setWeekOffset((o) => Math.max(MIN_WEEK_OFFSET, Math.min(0, o + delta)))
+    setNavigated(true)
+    /* Seleksi hari tidak melintas pekan — daun terpilih lama dilepas. */
+    setSelIso(null)
+  }
+  const playLeaves = (firstVisit || navigated) && !reducedMotion
+
+  /* Senin pekan yang ditampilkan — jangkar label & deret hari. */
+  const startIso = addDaysISO(weekStartISO(today), weekOffset * 7)
+  const days = useMemo(
+    () => vineWeek(habits, completions, startIso, today),
+    [habits, completions, startIso, today],
+  )
+
   const selDay = selIso ? days.find((d) => d.iso === selIso) ?? null : null
 
+  const isCurrentWeek = weekOffset === 0
+  const weekName = isCurrentWeek
+    ? 'Pekan ini'
+    : `Pekan ${weekRangeLabel(startIso)}`
+
+  /* Ringkasan aksesibel satu pekan — hanya hari terjadwal yang SUDAH
+     berlalu dihitung (masa depan belum divonis; di pekan lampau semua
+     hari final, 0% tetap terhitung "tidak selesai" — jujur). */
+  const scheduledDays = days.filter((d) => !d.future && d.pct != null)
+  const fullDays = scheduledDays.filter((d) => d.pct === 100).length
+  const weekAnnouncement =
+    scheduledDays.length > 0
+      ? `${weekName}: ${fullDays} dari ${scheduledDays.length} hari terjadwal selesai`
+      : `${weekName}: tidak ada hari terjadwal`
+
   /* Ringkasan aksesibel untuk pembaca layar — tiap hari disebut ringkas. */
-  const summary = `Tanaman merambat pekan ini: ${days
+  const summary = `Tanaman merambat ${
+    isCurrentWeek ? 'pekan ini' : `pekan ${weekRangeLabel(startIso)}`
+  }: ${days
     .map((d) => {
       const s = leafStateOf(d)
       const v =
@@ -342,24 +410,60 @@ export function GrowthVine() {
 
   return (
     <m.div
-      initial={play ? { opacity: 0, y: 14 } : false}
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-20px' }}
       transition={motionTokens.preset.chipReveal}
       className="mt-4"
     >
       <div className="garden-bed p-3.5 sm:p-4">
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
           <h3 className="text-note font-semibold tracking-tight text-content-secondary">
-            Sulur Pekan Ini
+            Sulur Pekan
           </h3>
-          <p className="text-chart-label font-medium whitespace-nowrap text-content-muted">
-            Senin–Minggu · sesuai jadwal
-          </p>
+          {/* Navigasi pekan — target 44px, label diumumkan santun ke
+              pembaca layar bersama ringkasan pekannya. */}
+          <div
+            role="group"
+            aria-label="Navigasi pekan sulur"
+            className="flex items-center gap-0.5"
+          >
+            <m.button
+              type="button"
+              onClick={() => shiftWeek(-1)}
+              disabled={!canPrev}
+              aria-label="Pekan sebelumnya"
+              whileTap={{ scale: 0.92 }}
+              transition={pressSnappy}
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ChevronLeft aria-hidden="true" className="h-4 w-4" strokeWidth={2.4} />
+            </m.button>
+            <p
+              aria-live="polite"
+              className="min-w-[6.5rem] px-1 text-center text-chart-label font-semibold tabular-nums text-content-secondary"
+            >
+              <span aria-hidden="true">
+                {isCurrentWeek ? 'Pekan ini' : weekRangeLabel(startIso)}
+              </span>
+              <span className="sr-only">{weekAnnouncement}</span>
+            </p>
+            <m.button
+              type="button"
+              onClick={() => shiftWeek(1)}
+              disabled={!canNext}
+              aria-label="Pekan berikutnya"
+              whileTap={{ scale: 0.92 }}
+              transition={pressSnappy}
+              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <ChevronRight aria-hidden="true" className="h-4 w-4" strokeWidth={2.4} />
+            </m.button>
+          </div>
         </div>
         <p className="mt-0.5 text-chart-label leading-snug text-content-muted">
-          Ketuk daun untuk membaca hari — kuncup putus-putus berarti tanpa
-          jadwal, bukan terlewat.
+          Senin–Minggu, sesuai jadwal. Ketuk daun untuk membaca hari —
+          kuncup putus-putus berarti tanpa jadwal, bukan terlewat.
         </p>
 
         <div className="relative mt-2">
@@ -369,14 +473,16 @@ export function GrowthVine() {
             role="img"
             aria-label={summary}
           >
-            {/* Batang — digambar (pathLength 0→1) pada kunjungan pertama. */}
+            {/* Batang — digambar (pathLength 0→1) pada kunjungan pertama
+                saja (geometri identik di semua pekan — tak digambar ulang
+                saat berpindah pekan). */}
             <m.path
               d={stemPath()}
               fill="none"
               stroke="var(--module-accent)"
               strokeWidth={2}
               strokeLinecap="round"
-              initial={play ? { pathLength: 0 } : false}
+              initial={playEntrance ? { pathLength: 0 } : false}
               animate={{ pathLength: 1 }}
               transition={motionTokens.preset.data}
             />
@@ -387,6 +493,9 @@ export function GrowthVine() {
               const state = leafStateOf(d)
               const selected = selIso === d.iso
               return (
+                /* key = iso → ganti pekan = simpul dipasang ulang;
+                   VineLeaf merakit dengan stagger (kunjungan pertama
+                   ATAU ganti pekan), instan saat reduce-motion. */
                 <g key={d.iso} transform={`translate(${node.x} ${node.y})`}>
                   {/* Cincin sorot hari ini & daun terpilih. */}
                   {(d.isToday || selected) && (
@@ -403,7 +512,7 @@ export function GrowthVine() {
                     state={state}
                     isToday={d.isToday}
                     selected={selected}
-                    play={play}
+                    play={playLeaves}
                     index={i}
                   />
                   {/* Label hari + tanggal di bawah simpul. */}
@@ -436,19 +545,34 @@ export function GrowthVine() {
             })}
           </svg>
 
-          {/* Lapisan tombol overlay — satu per hari, target sentuh lega. */}
-          <div className="absolute inset-0 grid grid-cols-7">
-            {days.map((d) => (
-              <button
-                key={d.iso}
-                type="button"
-                aria-pressed={selIso === d.iso}
-                aria-label={dayText(d)}
-                title={dayText(d)}
-                onClick={() => setSelIso((prev) => (prev === d.iso ? null : d.iso))}
-                className="cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:[outline-offset:-2px] focus-visible:outline-primary"
-              />
-            ))}
+          {/* Lapisan tombol overlay — satu per hari, DIPUSATKAN pada
+              sumbu-x simpul SVGnya (koreksi audit: kolom seragam
+              grid-cols-7 meleset hingga ±5px dari simpul karena simpul
+              menempati 28..292 dari viewBox 320, bukan 0..320). Posisi
+              dihitung sebagai fraksi viewBox — SVG diskalakan w-full
+              sehingga fraksi selalu sejajar; kolom selebar NODE_STEP
+              bertumpuk rapat tanpa celah/ceturan (pusat simpul
+              berjarak tetap NODE_STEP). */}
+          <div className="absolute inset-0">
+            {days.map((d, i) => {
+              const node = NODES[i]
+              if (!node) return null
+              return (
+                <button
+                  key={d.iso}
+                  type="button"
+                  aria-pressed={selIso === d.iso}
+                  aria-label={dayText(d)}
+                  title={dayText(d)}
+                  onClick={() => setSelIso((prev) => (prev === d.iso ? null : d.iso))}
+                  className="absolute inset-y-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:[outline-offset:-2px] focus-visible:outline-primary"
+                  style={{
+                    left: `${(((node.x - NODE_STEP / 2) / VB_W) * 100).toFixed(3)}%`,
+                    width: `${((NODE_STEP / VB_W) * 100).toFixed(3)}%`,
+                  }}
+                />
+              )
+            })}
           </div>
         </div>
 
