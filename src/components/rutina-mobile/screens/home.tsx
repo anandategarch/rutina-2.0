@@ -7,7 +7,6 @@ import {
   Archive,
   ArchiveRestore,
   BarChart3,
-  Bell,
   BookOpen,
   CalendarDays,
   Check,
@@ -36,15 +35,12 @@ import { Button } from '@/components/ui/button'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { TaskRow } from '../task-row'
-import { MissionSteps } from '../mission-steps'
 import { MissionTrail } from '../mission-trail'
 import { GardenTree } from '../garden-tree'
 import { HomeFinanceCard } from '../home-finance-card'
-import { DailyHighlightCard } from '../daily-highlight-card'
 import { WeeklyRecapCard } from '../weekly-recap-card'
 import { PlantGarden } from '../plant-garden'
-import { goldilocksGroups } from '../habit-coach'
-import { CoachGroupCard } from '../coach-card'
+import { ForTodaySection } from '../for-today'
 import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
 import { RutinaCard } from '../rutina-card'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -646,24 +642,10 @@ export default function HomeScreen() {
   )
   const quoteSavedToday = quoteSavedDate === today
 
-  /* Pemulihan "Jangan Bolong Dua Kali" (audit v2.37): HANYA kebiasaan
-     terlewat kemarin yang TIDAK terjadwal hari ini — yang terjadwal
-     hari ini sudah punya baris Agenda berbadge "Terlewat kemarin",
-     kartu pemulihan terpisah akan menjadi tombol centang kedua. */
-  const recoveryList = attention.recovery
-
-  /* Saran Coach (Goldilocks) terkonsolidasi — audit antirepetisi v2.41:
-     SATU kartu per INTI saran; semua kebiasaan terjadwal hari ini yang
-     perlu "diperkecil" bergabung dalam satu kartu (baris ringkas nama +
-     capaian), begitu pula yang "pekan sempurna". Tidak ada lagi
-     deretan kartu berjudul identik. Kartu pemulihan terlewat kemarin
-     (recoveryList) tidak tumpang-tindih: populasinya kebiasaan yang
-     TIDAK terjadwal hari ini, sedangkan saran pekanan ini hanya membaca
-     yang terjadwal hari ini. */
-  const coachGroups = useMemo(
-    () => goldilocksGroups(todayHabits, completions, today),
-    [todayHabits, completions, today],
-  )
+  /* v2.56 (audit Tahap 2): derivasi recoveryList & coachGroups dipindah
+     ke ForTodaySection — kolom rekomendasi kini satu komponen dengan
+     satu keputusan prioritas; Beranda cukup meneruskan hasil
+     homeAttention (recovery + actionIds) tanpa langganan slice baru. */
 
   /* Header menyusut halus saat layar digulir — transform & opacity saja. */
   const { scrollY } = useScroll({ container: scrollRef })
@@ -893,17 +875,12 @@ export default function HomeScreen() {
                               ? `${missionRemaining} misi tersisa`
                               : 'Semua misi selesai — hari yang sempurna.'}
                       </p>
-                      {/* v2.39: petak misi — tiap misi terjadwal = satu
-                          petak kebun; centang menumbuhkannya. v2.50:
-                          jumlah petak mengikuti penyebut dcToday.due
-                          (sadur-jadwal) agar sepadan dengan persen &
-                          teks "X dari Y misi" di atasnya. */}
-                      <MissionSteps
-                        done={schedDoneToday}
-                        total={scheduledToday}
-                        entrance={playEntrance}
-                        className="mt-4"
-                      />
+                      {/* v2.56 (audit Tahap 2): petak misi MissionSteps
+                          DIHAPUS dari hero — dua indikator visual progres
+                          harian (petak + Jalur Misi di Agenda) saling
+                          mengulang informasi yang sama; hero cukup membawa
+                          narasi angka "X dari Y misi" + persen di kanan.
+                          Jalur Misi tetap hidup di kepala planner Agenda. */}
                     </div>
 
                     {/* Kanan — metrik utama + rel pekan (split desktop);
@@ -1043,11 +1020,12 @@ export default function HomeScreen() {
       {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal agenda */}
       <DateStrip />
 
-      {/* 2 — Komposisi bento agenda: daftar misi (tile lebar) + kolom
-          pengingat & saran coach (tile sempit) pada xl; urutan DOM sama.
-          Bila tidak ada pengingat & saran (semua misi sehat), tile samping
-          kosong → agenda melebar penuh agar tak ada kolom mati
-          (audit responsif v2.13). */}
+      {/* 2 — Komposisi bento agenda: daftar misi (tile lebar) + SATU
+          area rekomendasi "Untuk Hari Ini" (tile sempit) pada xl;
+          urutan DOM sama. Kolom rekomendasi selalu terisi (pratinjau
+          coach / sorotan netral sebagai pengisi) sehingga agenda tidak
+          pernah kehilangan pasangannya (v2.56 — dulu kondisional
+          melebar penuh saat kolom kosong; layout kini stabil). */}
       <m.div
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -1058,14 +1036,7 @@ export default function HomeScreen() {
         }}
       >
         <RutinaBentoGrid>
-          <RutinaBentoItem
-            span="wide"
-            className={
-              recoveryList.length === 0 && coachGroups.length === 0
-                ? '@[52rem]:col-span-12'
-                : undefined
-            }
-          >
+          <RutinaBentoItem span="wide">
             <section aria-label="Agenda hari ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
@@ -1451,105 +1422,22 @@ export default function HomeScreen() {
             </section>
           </RutinaBentoItem>
 
-          {/* Kolom sempit: pengingat "jangan bolong" dan saran coach
-              menumpuk vertikal — keduanya kondisional, kolom aman kosong.
-              Jarak dari agenda hanya di bawah xl (mt-6 xl:mt-0) supaya
-              di xl tepi atas kolom sejajar agenda; jarak antar-seksi
-              kolom diatur [&>section+section]. */}
+          {/* Kolom sempit: "Untuk Hari Ini" — SATU rekomendasi
+              kontekstual (v2.56, audit Tahap 2). Dulu tiga blok menumpuk
+              di sini (Sorotan + kartu pemulihan + deretan kartu Saran
+              Coach) yang bisa tampil bersamaan; kini ForTodaySection
+              memilih satu yang paling relevan (pemulihan → sorotan
+              mendesak lintas modul → pratinjau coach → sorotan netral),
+              detail saran coach tetap hidup di layar Kebiasaan.
+              Jarak dari agenda hanya di bawah xl (mt-6 xl:mt-0). */}
           <RutinaBentoItem
             span="feature"
-            className="mt-6 @[52rem]:mt-0 [&>section+section]:mt-6"
+            className="mt-6 @[52rem]:mt-0"
           >
-            {/* Sorotan Hari Ini (v2.27): dipindah ke kolom samping agenda —
-               panel sekunder SETELAH hero progres & daftar misi, sesuai
-               komposisi Daybook (daily insight = panel kecil, bukan hero
-               kedua yang bersaing di posisi teratas). */}
-            <DailyHighlightCard excludeHabitIds={attention.actionIds} />
-
-            {/* Pemulihan "Jangan Bolong Dua Kali" — kartu hangat (bukan
-               merah): kebiasaan terlewat kemarin yang TIDAK terjadwal
-               hari ini (maks 2) — yang terjadwal hari ini sudah ada di
-               Agenda dengan badge, tidak boleh dobel. */}
-            {recoveryList.length > 0 && (
-              <m.section
-                initial={playEntrance ? { opacity: 0, y: 16 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={motionTokens.preset.data}
-                aria-label="Pengingat jangan bolong dua kali"
-              >
-                <div className="rounded-lg border border-gold/45 bg-gold/15 p-4">
-                  <div className="flex items-start gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/30 text-warning"
-                    >
-                      <Bell className="h-4 w-4" strokeWidth={2.2} />
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="text-body font-semibold text-content-primary">
-                        Jangan bolong dua kali
-                      </h3>
-                      <p className="mt-0.5 text-pretty text-meta leading-relaxed text-content-muted">
-                        Terlewat kemarin tak apa — selesaikan hari ini supaya
-                        tidak bolong dua kali berturut-turut.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-1.5">
-                    {recoveryList.map((h) => (
-                      <div
-                        key={h.id}
-                        className="flex items-center gap-3 rounded-lg border border-gold/30 bg-surface-primary/70 px-3 py-1.5"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-note font-semibold text-content-primary">
-                          {h.title}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            toggleHabit(h.id, today)
-                            /* v2.45 (audit): jangan janjikan streak — hari
-                               jadwal yang terlewat kemarin sudah putus;
-                               menyelesaikannya hari ini memulai runtun baru
-                               besok. */
-                            toast.success(
-                              `"${h.title}" tercatat untuk hari ini.`,
-                            )
-                          }}
-                          className="h-11 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-eyebrow font-semibold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        >
-                          Selesaikan sekarang
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </m.section>
-            )}
-
-            {/* Saran Coach — Goldilocks terkonsolidasi: satu kartu per inti
-                saran (perkecil / naikkan), dari hasil pekan */}
-            {coachGroups.length > 0 && (
-              <m.section
-                initial={playEntrance ? { opacity: 0, y: 16 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  ...motionTokens.preset.data,
-                  delay: motionTokens.delay.tight,
-                }}
-                aria-label="Saran Coach"
-              >
-                <RutinaSectionHeader
-                  title="Saran Coach"
-                  description="Penyesuaian kecil dari hasil pekan ini"
-                />
-                <div className="mt-3 space-y-2.5">
-                  {coachGroups.map((group) => (
-                    <CoachGroupCard key={group.tone} group={group} />
-                  ))}
-                </div>
-              </m.section>
-            )}
+            <ForTodaySection
+              recovery={attention.recovery}
+              excludeHabitIds={attention.actionIds}
+            />
           </RutinaBentoItem>
         </RutinaBentoGrid>
       </m.div>

@@ -70,6 +70,18 @@ ulangan otomatis, status 'gagal' menggantung sampai suntingan berikutnya.
 | **401 ditangani eksplisit** | Produksi tanpa `SYNC_TOKEN` (middleware fail-closed v2.45) menolak seluruh /api/* — dulu terbaca sebagai "gagal menyinkronkan ke cloud" + ulangan sia-sia tanpa akhir. Kini pesan khusus: "Sinkronisasi ditolak server — konfigurasi SYNC_TOKEN belum cocok", tanpa membakar jatah ulangan. **DEPLOY.md diperbarui**: SYNC_TOKEN + NEXT_PUBLIC_SYNC_TOKEN kini WAJIB (dulu salah tulis "opsional") + checklist pasca-deploy. |
 | **Pembuktian mutu** | E2E live dengan /api/state diblokir: (1) kegagalan boot PERTAMA & KEDUA senyap — nol toast; (2) API dipulihkan sebelum ulangan kedua → snapshot tersinkron OTOMATIS tanpa sentuhan; (3) blokir dibiarkan → toast muncul tepat pada kegagalan ke-3 (±18 dtk) dengan pesan jujur "akan dicoba lagi otomatis"; (4) hitungan kegagalan terkonfirmasi lewat log konsol. tsc & lint hijau; 156/156 test lulus. |
 
+## [2.56] — Stage 2 Home: Satu Rekomendasi "Untuk Hari Ini", Tanpa Petak Misi Ganda
+
+Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P0 Beranda.
+
+| Perbaikan | Rincian |
+|---|---|
+| **Petak misi (MissionSteps) dihapus dari hero** | Dua indikator visual progres harian (petak kebun di hero + Jalur Misi di kepala Agenda) menggambarkan informasi yang sama persis — "X dari Y misi". Hero kini cukup membawa narasi angka + persen di kanan; Jalur Misi (checkpoint aktif, urutan kronologis) tetap hidup di planner Agenda — SATU perjalanan, SATU tempat. Berkas `mission-steps.tsx` dipensiunkan (nol importer). Teks "X dari Y misi", persen, streak, misi pekan, strip Level/XP semuanya utuh. |
+| **Tiga blok rekomendasi → SATU "Untuk Hari Ini"** | Kolom samping agenda dulu menumpuk TIGA blok yang bisa tampil BERSAMAAN (Sorotan Hari Ini + kartu pemulihan "Jangan Bolong Dua Kali" + deretan kartu Saran Coach) — tiga suara berebut perhatian di layar pertama. Komponen baru `ForTodaySection` memilih SATU rekomendasi paling relevan dengan urutan prioritas eksplisit: (1) pemulihan — kebiasaan terlewat kemarin yang tidak terjadwal hari ini (satu-satunya tempatnya bisa dicentang), (2) sorotan mendesak lintas modul (streak-risk/budget-warning/workout-stale/goal-near — kunci `nearly-done`/`bonus` sengaja dikecualikan karena sudah terwakili hero persen & seksi Bonus harian), (3) pratinjau coach — satu inti saran + tombol "Buka saran lengkap" ke Kebiasaan, (4) sorotan netral sebagai pengisi tenang. Detail kartu Saran Coach (Goldilocks) tetap hidup penuh di layar Kebiasaan — Beranda hanya pratampil (aturan sprint). |
+| **Panel FLAT, tanpa kartu-bersarang** | Panel pemulihan diratakan: baris kebiasaan dengan pembatas hairline `divide-gold/20` menggantikan kotak-dalam-kotak; panel pratinjau coach satu permukaan `border-border` tenang tanpa bayangan. Hierarki: judul seksi "Untuk Hari Ini" → judul panel → isi. |
+| **Layout stabil** | Agenda tidak lagi bercabang melebar penuh saat kolom samping kosong (kondisional v2.13 dipensiunkan) — kolom rekomendasi kini SELALU terisi (paling buruk: sorotan netral), komposisi bento stabil tanpa pergeseran layout antar-keadaan. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live ketiga keadaan prioritas: pratinjau coach (default) → sorotan streak-risk → pemulihan "Rapikan meja kerja" (dibuat via uncheck Jumat) → klik "Selesaikan" → toast + rotasi otomatis ke rekomendasi berikutnya. Screenshot 390px & 1440px dicek visual: hero tanpa petak, agenda ↔ satu kolom rekomendasi, tanpa defect. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas
