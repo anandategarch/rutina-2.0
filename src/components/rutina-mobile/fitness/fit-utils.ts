@@ -78,13 +78,22 @@ export function bestE1rmIn(w: Workout): number {
   return Math.max(...w.sets.map((s) => e1rmOf(s.weight, s.reps)))
 }
 
+/** Format nilai pace numerik (menit per km, mis. 6,53) → "6'32\"" —
+ *  satu sumber untuk semua permukaan (revisi audit F5: dua pemformat
+ *  pace tersisa di kalender latihan & grafik tren memakai format
+ *  "6:32" yang berbeda; sekarang semuanya satu format & satu pembulatan
+ *  ber-clamp — 59,6\" detik tidak pernah menjadi "6'60\""). */
+export function paceLabelOf(minPerKm: number): string {
+  const secPerKm = Math.round(minPerKm * 60)
+  const min = Math.floor(secPerKm / 60)
+  const sec = secPerKm % 60
+  return `${min}'${String(sec).padStart(2, '0')}"`
+}
+
 /** Pace kardio: menit per km — "6'32\"" atau null bila data kurang. */
 export function paceOf(duration: number, distance: number): string | null {
   if (distance <= 0 || duration <= 0) return null
-  const secPerKm = (duration * 60) / distance
-  const min = Math.floor(secPerKm / 60)
-  const sec = Math.round(secPerKm % 60)
-  return `${min}'${String(sec).padStart(2, '0')}"`
+  return paceLabelOf(duration / distance)
 }
 
 /* ===== Statistik lintas sesi ===== */
@@ -599,8 +608,10 @@ export function cardioGuard(
   return {
     tooMuch,
     cardioCount7d,
+    /* v2.45 (audit F10): hitungan memuat badminton juga (semua non-barbel)
+       — salinan dulu menyebut "kardio padat" untuk 5 sesi badminton. */
     suggestion: tooMuch
-      ? 'Kardio cukup padat pekan ini — imbangi dengan latihan beban atau mobilitas agar pemulihan tetap seimbang.'
+      ? 'Olahraga non-barbel cukup padat 7 hari terakhir — imbangi dengan latihan beban atau mobilitas agar pemulihan tetap seimbang.'
       : null,
   }
 }

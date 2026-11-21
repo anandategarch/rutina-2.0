@@ -38,8 +38,13 @@ import { todayISO, useRutina } from './store'
  */
 export function PlantGarden({
   variant = 'strip',
+  onSelect,
 }: {
   variant?: 'strip' | 'beds'
+  /** v2.45 (review Tahap 2): ketukan kartu tanaman membuka detail
+   *  kebiasaannya — "setiap visualisasi bisa dibedah" (pola matriks
+   *  konsistensi); tanpa handler, kartu tetap non-interaktif. */
+  onSelect?: (habitId: string) => void
 }) {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
@@ -131,6 +136,7 @@ export function PlantGarden({
                 counter={counter}
                 pct={pct}
                 bed={beds}
+                onSelect={onSelect ? () => onSelect(h.id) : undefined}
               />
             )
           })}
@@ -154,7 +160,8 @@ export function PlantGarden({
   )
 }
 
-/** Satu kartu tanaman — dipisah agar usePlantGrowth hidup per tanaman. */
+/** Satu kartu tanaman — dipisah agar usePlantGrowth hidup per tanaman.
+ *  v2.45: jadi tombol penuh bila dibedah-kan (onSelect). */
 function PlantCard({
   title,
   stage,
@@ -162,6 +169,7 @@ function PlantCard({
   counter,
   pct,
   bed = false,
+  onSelect,
 }: {
   title: string
   stage: PlantStageKey
@@ -170,18 +178,16 @@ function PlantCard({
   pct: number
   /** Mode bedeng: kartu sedikit lebih lebar di ruang kerja lebar. */
   bed?: boolean
+  onSelect?: () => void
 }) {
   /* Milestone: naik tahap memicu koreografi pertumbuhan anime.js. */
   const glyphRef = usePlantGrowth<HTMLDivElement>(null, stage)
 
-  return (
-    <div
-      role="listitem"
-      className={
-        'w-[156px] shrink-0 snap-start rounded-xl border border-border bg-surface-primary p-3 shadow-soft transition-transform duration-300 hover:-translate-y-0.5' +
-        (bed ? ' @[52rem]:w-[168px]' : '')
-      }
-    >
+  const cls =
+    'w-[156px] shrink-0 snap-start rounded-xl border border-border bg-surface-primary p-3 shadow-soft transition-transform duration-300 hover:-translate-y-0.5' +
+    (bed ? ' @[52rem]:w-[168px]' : '')
+  const inner = (
+    <>
       <div
         ref={glyphRef}
         className="grid h-11 w-11 place-items-center rounded-full bg-module-accent-soft text-module-accent-strong"
@@ -199,6 +205,27 @@ function PlantCard({
         className="mt-2.5 h-1 bg-surface-sunken"
         aria-label={`Progres ${title} — ${stageLabel}, ${counter}`}
       />
+    </>
+  )
+  if (onSelect) {
+    return (
+      <button
+        type="button"
+        role="listitem"
+        onClick={onSelect}
+        aria-label={`Buka detail ${title} — tahap ${stageLabel}, ${counter}`}
+        className={
+          cls +
+          ' cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+        }
+      >
+        {inner}
+      </button>
+    )
+  }
+  return (
+    <div role="listitem" className={cls}>
+      {inner}
     </div>
   )
 }

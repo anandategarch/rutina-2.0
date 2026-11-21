@@ -14,7 +14,7 @@ import {
 
 import { monthLabel, shiftMonthKey } from '../finance/utils'
 import { DAYS, fromISO, isoOf, shortDateLabel, todayISO, useRutina, type Workout } from '../store'
-import { KIND_LABEL, durationLabel, isCardioKind, tonaseOf } from './fit-utils'
+import { KIND_LABEL, durationLabel, isCardioKind, paceOf, tonaseOf } from './fit-utils'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
@@ -63,14 +63,11 @@ function dayDotClasses(list: Workout[], sel: boolean): string[] {
   return sel ? dots.map(() => 'bg-primary-foreground/80') : dots
 }
 
-/** Pace kardio "6:32" per km — menit:detik dari durasi/jarak. */
+/** Pace kardio per km untuk detail hari — paceOf tunggal dari fit-utils
+ *  (revisi audit F5: format "6:32" lokal dulunya berbeda dari baris
+ *  lataman; kini satu format "6'32\"" di seluruh Bugar). */
 function paceLabel(w: Workout): string | null {
-  const km = w.distance ?? 0
-  if (km <= 0 || w.duration <= 0) return null
-  const secPerKm = (w.duration * 60) / km
-  const mm = Math.floor(secPerKm / 60)
-  const ss = Math.round(secPerKm % 60)
-  return ss === 60 ? `${mm + 1}:00` : `${mm}:${String(ss).padStart(2, '0')}`
+  return paceOf(w.duration, w.distance ?? 0)
 }
 
 /** Warna ikon jenis aktivitas pada detail hari — selaras WeekActivityCard. */
@@ -111,7 +108,11 @@ export function TrainingCalendar() {
   const headerRight =
     monthWorkouts.length === 0
       ? 'bulan ini belum ada sesi'
-      : `${monthWorkouts.length} sesi · ${Math.floor(totalMin / 60)}j ${totalMin % 60}m`
+      : /* v2.45 (audit F13): sub-jam tanpa "0j" — konsisten konvensi
+           durationLabel ("45 mnt", bukan "0j 45m"). */
+        totalMin < 60
+        ? `${monthWorkouts.length} sesi · ${totalMin} mnt`
+        : `${monthWorkouts.length} sesi · ${Math.floor(totalMin / 60)}j ${totalMin % 60}m`
 
   /* Kisi bulanan — penggenap kolom sebelum tanggal 1 (Senin = kolom 0),
      pola MonthCalendar. */

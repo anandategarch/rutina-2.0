@@ -21,6 +21,7 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { useCheckInSheet } from '../checkin-sheet'
 import {
+  addDaysISO,
   FIT_TARGETS_DEFAULT,
   todayISO,
   useRutina,
@@ -52,9 +53,27 @@ const ENERGY_OPTIONS: { v: number; label: string }[] = [
  *  terhadap catatan pertama rentang, tanggal awal–akhir ditampilkan, dan
  *  label rentang nilai menjelaskan dramatisme skala. 2 catatan = perbandingan
  *  angka (dua titik belum meyakinkan sebagai "tren"); warna netral —
- *  naik/turun berat belum tentu baik/buruk tanpa konteks target. */
-function WeightSpark({ logs }: { logs: BodyLogs }) {
-  const series = useMemo(() => weightSeries(logs).slice(-14), [logs])
+ *  naik/turun berat belum tentu baik/buruk tanpa konteks target.
+ *
+ *  v2.45 (review Tahap 2 — F3/F4): jendela waktu **30/90/365 hari**
+ *  (ekstrem & perubahan total mengikuti jendela aktif) + **garis tujuan
+ *  berat** putus-putus dari sasaran bugar — "apakah jarakku menutup?"
+ *  tanpa prediksi tanggal. */
+const WEIGHT_WINDOWS: readonly ['30' | '90' | '365', string][] = [
+  ['30', '30 hari'],
+  ['90', '90 hari'],
+  ['365', '1 tahun'],
+]
+
+function WeightSpark({ logs, weightGoal }: { logs: BodyLogs; weightGoal: number }) {
+  const [win, setWin] = useState<'30' | '90' | '365'>('90')
+  const today = todayISO()
+  /* Deret jendela aktif — dipotong tanggal, bukan jumlah catatan. */
+  const series = useMemo(() => {
+    const cutoff = addDaysISO(today, -(Number(win) - 1))
+    return weightSeries(logs).filter((s) => s.date >= cutoff)
+  }, [logs, win, today])
+  const totalRecords = useMemo(() => weightSeries(logs).length, [logs])
   /* Id gradient isian — dibersihkan dari “:” useId agar aman dipakai
      sebagai fragmen url(#…) SVG di semua browser. Dipanggil di puncak
      komponen (sebelum return awal) demi aturan urutan hook. */
@@ -69,9 +88,16 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
 
   if (series.length < 2) {
     return (
-      <p className="text-meta font-medium text-content-muted">
-        Catat berat minimal dua kali untuk melihat tren.
-      </p>
+      <div>
+        {/* v2.45: pemilih jendela tetap tampil — pengguna paham kenapa
+            kosong dan bisa memperlebar rentangnya. */}
+        <WeightWindowPicker win={win} setWin={setWin} />
+        <p className="mt-2 text-meta font-medium text-content-muted">
+          {totalRecords < 2
+            ? 'Catat berat minimal dua kali untuk melihat tren.'
+            : `Belum ada cukup catatan dalam ${win === '365' ? 'setahun' : `${win} hari`} terakhir — perlebar jendela di atas.`}
+        </p>
+      </div>
     )
   }
 
@@ -89,7 +115,8 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
   if (series.length === 2) {
     return (
       <div>
-        <p className="flex items-baseline gap-2">
+        <WeightWindowPicker win={win} setWin={setWin} />
+        <p className="mt-2 flex items-baseline gap-2">
           <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
             {fmtKg(last.kg)} kg
           </span>
@@ -105,8 +132,11 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
   }
 
   const kgs = series.map((s) => s.kg)
-  const min = Math.min(...kgs)
-  const max = Math.max(...kgs)
+  /* v2.45 (F4): garis tujuan ikut menentukan skala — jarak menuju
+     sasaran terbaca JUJUR di grafik (pola target-line asupan). */
+  const hasGoal = weightGoal > 0
+  const min = hasGoal ? Math.min(...kgs, weightGoal) : Math.min(...kgs)
+  const max = hasGoal ? Math.max(...kgs, weightGoal) : Math.max(...kgs)
   const span = Math.max(max - min, 0.5)
   const W = 260
   const H = 56
@@ -115,6 +145,7 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
     const y = H - 6 - ((s.kg - min) / span) * (H - 14)
     return { x, y }
   })
+  const goalY = hasGoal ? H - 6 - ((weightGoal - min) / span) * (H - 14) : null
   const path = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
   /* Isian lembut di bawah garis (audit Tahap 2): gradasi vertikal dari
      chart-stroke-1 pekat 20% menjadi transparan — garis tetap tegas
@@ -127,8 +158,9 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
 
   return (
     <div>
+      <WeightWindowPicker win={win} setWin={setWin} />
       {/* Baris nilai — terbaru menonjol + perubahan rentang + tanggal. */}
-      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className="text-kpi-sm font-semibold leading-none tabular-nums text-content-primary">
           {fmtKg(last.kg)} kg
         </span>
@@ -136,8 +168,13 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
           {deltaText}
         </span>
         <span className="text-eyebrow font-medium tabular-nums text-content-muted">
-          {dateShort(first.date)} – {dateShort(last.date)}
+          {dateShort(first.date)} – {dateShort(last.date)} · {series.length} catatan
         </span>
+        {hasGoal && (
+          <span className="text-eyebrow font-medium tabular-nums text-content-muted">
+            · tujuan {fmtKg(weightGoal)} kg
+          </span>
+        )}
       </p>
       {/* Sparkline + label rentang nilai kiri (atas = terberat, bawah =
           teringan) — pembaca tahu seberapa lebar skala yang digambar. */}
@@ -153,7 +190,7 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
           viewBox={`0 0 ${W} ${H}`}
           className="h-14 min-w-0 flex-1"
           role="img"
-          aria-label={`Tren berat badan ${series.length} catatan terakhir: dari ${fmtKg(first.kg)} kg menjadi ${fmtKg(last.kg)} kg, ${deltaText}. Rentang ${fmtKg(min)}–${fmtKg(max)} kg`}
+          aria-label={`Tren berat badan ${series.length} catatan dalam ${win === '365' ? 'setahun' : `${win} hari`}: dari ${fmtKg(first.kg)} kg menjadi ${fmtKg(last.kg)} kg, ${deltaText}. Rentang ${fmtKg(min)}–${fmtKg(max)} kg${hasGoal ? `, garis tujuan ${fmtKg(weightGoal)} kg` : ''}`}
         >
           <defs>
             <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
@@ -170,6 +207,30 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
             </linearGradient>
           </defs>
           <path d={area} fill={`url(#${fillId})`} />
+          {/* v2.45 (F4): garis tujuan — putus-putus, di belakang deret. */}
+          {hasGoal && goalY != null && (
+            <g>
+              <line
+                x1="4"
+                x2={W - 4}
+                y1={goalY}
+                y2={goalY}
+                stroke="var(--chart-stroke-2, var(--primary))"
+                strokeWidth="1.5"
+                strokeDasharray="5 4"
+                strokeLinecap="round"
+              />
+              <text
+                x={W - 4}
+                y={goalY - 3}
+                textAnchor="end"
+                className="fill-content-muted"
+                style={{ fontSize: 8.5, fontWeight: 600 }}
+              >
+                tujuan {fmtKg(weightGoal)}
+              </text>
+            </g>
+          )}
           <polyline
             points={path}
             fill="none"
@@ -189,6 +250,39 @@ function WeightSpark({ logs }: { logs: BodyLogs }) {
           ))}
         </svg>
       </div>
+    </div>
+  )
+}
+
+/** Pemilih jendela tren berat (v2.45 — F3): 30/90/365 hari. */
+function WeightWindowPicker({
+  win,
+  setWin,
+}: {
+  win: '30' | '90' | '365'
+  setWin: (w: '30' | '90' | '365') => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Rentang tren berat badan"
+      className="flex gap-0.5 rounded-full border border-border bg-surface-sunken p-0.5"
+    >
+      {WEIGHT_WINDOWS.map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={win === id}
+          onClick={() => setWin(id)}
+          className={`interactive h-7 flex-1 cursor-pointer rounded-full px-2.5 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            win === id
+              ? 'bg-primary text-primary-foreground'
+              : 'text-content-secondary hover:text-content-primary'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   )
 }
@@ -1013,7 +1107,7 @@ export function TubuhPanel() {
 
         {/* Tren */}
         <div className="mt-4">
-          <WeightSpark logs={bodyLogs} />
+          <WeightSpark logs={bodyLogs} weightGoal={fitTargets.weightGoal} />
         </div>
       </m.section>
 

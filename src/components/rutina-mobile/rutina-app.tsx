@@ -29,6 +29,8 @@ import { AddTxSheet } from './finance/add-tx-sheet'
 import { TransferSheet } from './finance/transfer-sheet'
 import { ContributeGoalSheet, EditGoalDialog, NewGoalDialog } from './finance/goal-sheets'
 import { HabitSheet } from './habit-sheet'
+import { useJournalUi } from './journal-ui'
+import { useSessionStore } from './fitness/session-store'
 import { useSyncEngine } from './sync-engine'
 import dynamic from 'next/dynamic'
 import { WorkoutSheet } from './fitness/workout-sheet'
@@ -126,7 +128,9 @@ export function RutinaApp() {
   const screen = useRutina((s) => s.screen)
   const prevScreen = useRutina((s) => s.prevScreen)
   const celebrating = useRutina((s) => s.celebrating)
-  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
+  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
+  const bonusClaimed = bonusClaimedOn === todayISO()
   const completions = useRutina((s) => s.completions)
   const boardOpen = useRutina((s) => s.boardOpen)
   const closeBoard = useRutina((s) => s.closeBoard)
@@ -163,6 +167,35 @@ export function RutinaApp() {
      server, lalu kirim setiap perubahan domain secara ter-debounce.
      materializeRecurring dijalankan engine setelah sinkronisasi awal. */
   useSyncEngine()
+
+  /* v2.45 (audit J1 — P0): rehidrasi mood catatan DI SHELL — selama ini
+     hanya layar Jurnal yang memanggilnya; membuka catatan lewat Hub atau
+     chip "Lanjutkan draft" Beranda SEBELUM mengunjungi Jurnal berarti
+     noteMoods masih kosong → kanvas menyimpan mood null dan MENGHAPUS
+     mood yang tercatat. Juga sesi gym aktif (persist v2.45) dipulihkan
+     di sini — selamat dari refresh. */
+  useEffect(() => {
+    /* rehydrate() mengembalikan void | Promise<void> (tipe zustand) —
+       dibungkus Promise.resolve agar migrasi tunggu sampai selesai. */
+    void Promise.resolve(useJournalUi.persist.rehydrate()).then(() => {
+      /* Migrasi sekali-jalan (revisi audit J3): preferensi mode Aktivitas
+         Menulis dulunya key localStorage mandiri; kini hidup di persist
+         journal-ui. Nilai lama dipindahkan bila ada, lalu key dibersihkan
+         agar tidak menjadi sampah abadi. */
+      try {
+        const legacy = localStorage.getItem('rutina-2.0-journal-activity-view')
+        if (legacy != null) {
+          if (legacy === 'kata' || legacy === 'kalender') {
+            useJournalUi.setState({ activityView: legacy })
+          }
+          localStorage.removeItem('rutina-2.0-journal-activity-view')
+        }
+      } catch {
+        /* localStorage tidak tersedia — preferensi lama diabaikan. */
+      }
+    })
+    void useSessionStore.persist.rehydrate()
+  }, [])
 
   /* PWA — daftarkan service worker offline shell HANYA di production.
      Di dev, strategi stale-while-revalidate SW untuk chunk /_next/static

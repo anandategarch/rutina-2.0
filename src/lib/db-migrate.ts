@@ -7,9 +7,10 @@ import { db, libsql } from '@/lib/db'
  * `distance`/`kcal` pada `rutina_workout_sessions`, tetapi DDL-nya
  * tidak pernah sampai ke Turso produksi (kredensial push hilang dari
  * sandbox). Akibatnya seluruh query Prisma yang menyentuh tabel/kolom
- * itu gagal ("no such column") — /api/transactions, /api/workouts,
- * dan /api/state produksi mati, sehingga histori Rutina 1.0 milik
- * pengguna (yang sudah tersimpan di Turso) tampak hilang.
+ * itu gagal ("no such column") — /api/state produksi mati, sehingga
+ * histori Rutina 1.0 milik pengguna (yang sudah tersimpan di Turso)
+ * tampak hilang. (Endpoint per-domain seperti /api/transactions sudah
+ * lama dipensiunkan — sejak v2.45 hanya /api/state + /api/health.)
  *
  * Solusi: DDL idempoten dijalankan otomatis sekali per proses server
  * sebelum query pertama. Karena prisma db push membutuhkan token yang
@@ -87,6 +88,9 @@ async function runDdl(): Promise<void> {
     ['rutina_habits', 'linkedActivity'],
     ['rutina_habit_logs', 'autoBase'],
     ['rutina_habit_logs', 'autoWo'],
+    /* v2.45 (audit sinkronisasi): log kontribusi target tabungan —
+       tanpa kolom ini round-trip server menghapus histori setor. */
+    ['rutina_goals', 'contributions'],
   ]
   const COL_TYPES: Record<string, string> = {
     distance: 'REAL',
@@ -97,6 +101,7 @@ async function runDdl(): Promise<void> {
     linkedActivity: 'TEXT',
     autoBase: 'TEXT',
     autoWo: "TEXT NOT NULL DEFAULT '[]'",
+    contributions: "TEXT NOT NULL DEFAULT '[]'",
   }
   for (const [table, column] of cardioCols) {
     if (await hasColumn(table, column)) continue

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, useDragControls } from 'motion/react'
 import * as m from 'motion/react-m'
 import { CheckCircle2, Pencil, Sparkles, Trash2 } from 'lucide-react'
@@ -78,8 +78,34 @@ export function ContributeGoalSheet() {
   const open = Boolean(goal)
   const complete = goal ? goal.saved >= goal.target : false
   const after = goal ? Math.min(goal.target, goal.saved + amount) : 0
-  const afterPct = goal ? Math.min(100, Math.round((after / goal.target) * 100)) : 0
-  const beforePct = goal ? Math.min(100, Math.round((goal.saved / goal.target) * 100)) : 0
+  /* v2.45 (audit K14): target 0 (data tersinkron/impor) tak boleh
+     membagi NaN — guard sekali di sini. */
+  const safeTarget = goal ? Math.max(1, goal.target) : 1
+  const afterPct = goal ? Math.min(100, Math.round((after / safeTarget) * 100)) : 0
+  const beforePct = goal ? Math.min(100, Math.round((goal.saved / safeTarget) * 100)) : 0
+
+  /* v2.45 (review Tahap 2): agregasi kontribusi per bulan dari LOG
+     NYATA {ts, amount} — tanpa prediksi tanggal penyelesaian; data lama
+     pra-v2.45 belum berlog sehingga bagian ini jujur disembunyikan. */
+  const contribMonths = useMemo(() => {
+    const cs = goal?.contributions
+    if (!cs || cs.length === 0) return []
+    const byMonth = new Map<string, number>()
+    for (const c of cs) {
+      const key = c.ts.slice(0, 7)
+      byMonth.set(key, (byMonth.get(key) ?? 0) + c.amount)
+    }
+    return [...byMonth.entries()]
+      .map(([key, sum]) => ({ key, sum }))
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .slice(-6)
+  }, [goal?.contributions])
+  const contribMax = Math.max(1, ...contribMonths.map((m) => Math.abs(m.sum)))
+  const monthLabel = (key: string) =>
+    new Date(`${key}-01`).toLocaleDateString('id-ID', {
+      month: 'short',
+      year: '2-digit',
+    })
 
   const submit = () => {
     if (!goal || complete) return
@@ -223,6 +249,57 @@ export function ContributeGoalSheet() {
                   </p>
                 </div>
               </>
+            )}
+
+            {/* Riwayat kontribusi nyata (v2.45) — jumlah setor + batang
+                bulanan; hanya bila log ada (kontribusi pra-v2.45 tidak
+                direkam — bukan data karangan). */}
+            {goal.contributions && goal.contributions.length > 0 && (
+              <div className="mt-4 rounded-2xl bg-surface-sunken px-4 py-3.5 text-left">
+                <div className="flex items-baseline justify-between">
+                  <p className="text-meta font-semibold text-content-primary">
+                    Riwayat kontribusi
+                  </p>
+                  <p className="text-eyebrow font-medium tabular-nums text-content-muted">
+                    {goal.contributions.length} kali setor
+                  </p>
+                </div>
+                <div
+                  className="mt-2.5 flex items-end gap-1.5"
+                  role="img"
+                  aria-label={`Riwayat kontribusi bulanan: ${contribMonths
+                    .map((m) => `${monthLabel(m.key)} ${formatIDRShort(m.sum)}`)
+                    .join(', ')}`}
+                >
+                  {contribMonths.map((mo) => (
+                    <div
+                      key={mo.key}
+                      className="flex-1 text-center"
+                      title={`${monthLabel(mo.key)}: ${formatIDRShort(mo.sum)}`}
+                    >
+                      <div className="flex h-14 items-end justify-center">
+                        <m.div
+                          initial={false}
+                          animate={{
+                            height: `${Math.max(6, (Math.abs(mo.sum) / contribMax) * 100)}%`,
+                          }}
+                          transition={barFill}
+                          className={
+                            'w-full rounded-t-md ' +
+                            (mo.sum < 0 ? 'bg-warning/70' : 'bg-primary/80')
+                          }
+                        />
+                      </div>
+                      <p className="mt-1 truncate text-chart-label font-medium tabular-nums text-content-muted">
+                        {formatIDRShort(mo.sum)}
+                      </p>
+                      <p className="truncate text-chart-label text-content-muted">
+                        {monthLabel(mo.key)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             <div className="mt-5 flex gap-2">

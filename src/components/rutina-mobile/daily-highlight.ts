@@ -214,7 +214,12 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
       key: 'budget-warning',
       module: 'keuangan',
       title: `Anggaran ${CAT_META[worst.cat as keyof typeof CAT_META]?.label ?? worst.cat} hampir habis`,
-      text: `Sudah terpakai ${Math.round(worst.pct * 100)}% dari batas bulan ini — sisa Rp${(worst.limit - worst.spent).toLocaleString('id-ID')}.`,
+      /* v2.45 (audit): lewat batas TIDAK ditulis sebagai "sisa Rp-25.000"
+         — sisa negatif adalah kelebihan pakai, ucapkan apa adanya. */
+      text:
+        worst.spent > worst.limit
+          ? `Sudah melewati batas bulan ini sebesar Rp${(worst.spent - worst.limit).toLocaleString('id-ID')} — saatnya tarik napas dan tinjau anggarannya.`
+          : `Sudah terpakai ${Math.round(worst.pct * 100)}% dari batas bulan ini — sisa Rp${(worst.limit - worst.spent).toLocaleString('id-ID')}.`,
       cta: 'open-budget',
       visual: {
         kind: 'budget',

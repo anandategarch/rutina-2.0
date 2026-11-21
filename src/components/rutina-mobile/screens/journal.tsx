@@ -12,7 +12,7 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { playfair } from '../serif'
-import { MOOD_DOT, isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
+import { MOOD_DOT, countWords, isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
 import {
   FOLDERS,
   FOLDER_SHORT,
@@ -21,6 +21,7 @@ import {
   longDateLabel,
   noteDateISO,
   noteDateLabel,
+  shortDateLabel,
   todayISO,
   weekStartISO,
   useRutina,
@@ -63,17 +64,27 @@ function WritingActivityCard({
   noteMoods,
   dayFilter,
   onPickDay,
+  weekFilter,
+  onPickWeek,
 }: {
   notes: Note[]
   noteMoods: Record<string, string>
   dayFilter: string | null
   onPickDay: (iso: string | null) => void
+  /** v2.45 (review — J4): batang kata bisa dibedah → filter daftar ke
+   *  rentang pekan itu. */
+  weekFilter: string | null
+  onPickWeek: (start: string | null) => void
 }) {
   const today = todayISO()
   const [viewYm, setViewYm] = useState(today.slice(0, 7))
   /* Mode baca (review UI/UX v2.44): kalender jumlah catatan (lama) /
-     volume KATA per pekan — jumlah catatan ≠ produktivitas menulis. */
-  const [view, setView] = useState<'kalender' | 'kata'>('kalender')
+     volume KATA per pekan — jumlah catatan ≠ produktivitas menulis.
+     v2.45 (audit J3): mode terakhir DIINGAT antar kunjungan via toko
+     persist journal-ui — rehidrasi pasca-mount ditangani shell
+     (rutina-app), bukan setState dalam efek di sini. */
+  const view = useJournalUi((s) => s.activityView)
+  const setView = useJournalUi((s) => s.setActivityView)
   /* v2.37 P1 (audit UX density): kartu dilipat secara default — pemicu
      selalu menampilkan ringkasan satu baris. Dipaksa tetap terbuka selama
      filter tanggal aktif agar chip penghapusnya tidak tersembunyi. */
@@ -162,7 +173,9 @@ function WritingActivityCard({
     for (const n of notes) {
       const iso = noteDateISO(n)
       if (iso == null) continue
-      const words = n.body.trim() ? n.body.trim().split(/\s+/).length : 0
+      /* v2.45 (audit J5): hitung kata via countWords bersama — simbol
+         markdown bukan kata (toolbar kanvas menyisipkannya). */
+      const words = countWords(n.body)
       wordsByDate.set(iso, (wordsByDate.get(iso) ?? 0) + words)
       notesByDate.set(iso, (notesByDate.get(iso) ?? 0) + 1)
     }
@@ -372,14 +385,16 @@ function WritingActivityCard({
                 <div className="mt-3">
                   <div
                     className="flex h-24 gap-1.5"
-                    role="img"
+                    role="group"
                     aria-label={`Jumlah kata per pekan: ${wordWeeks
                       .map(
                         (w, i) =>
                           `${
                             i === wordWeeks.length - 1
                               ? 'pekan ini'
-                              : `pekan ${w.start}`
+                              : /* v2.45 (audit J7): tanggal pendek yang
+                                   terbaca — bukan ISO mentah. */
+                                `pekan ${shortDateLabel(w.start)}`
                           } ${w.words} kata di ${w.days} hari aktif`,
                       )
                       .join(', ')}`}
@@ -390,10 +405,23 @@ function WritingActivityCard({
                         w.words <= 0
                           ? 4
                           : Math.max(10, Math.round((w.words / max) * 100))
+                      const isSel = weekFilter === w.start
                       return (
-                        <div
+                        <button
                           key={w.start}
-                          className="flex h-full min-w-0 flex-1 flex-col gap-1"
+                          type="button"
+                          /* v2.45 (review — J4): batang bisa dibedah — ketuk
+                             memfilter daftar catatan ke rentang pekan itu
+                             (ketuk ulang untuk melepas). */
+                          aria-pressed={isSel}
+                          aria-label={`Pekan ${shortDateLabel(w.start)} — ${w.words} kata di ${w.days} hari aktif${isSel ? ', filter aktif' : ''}`}
+                          onClick={() =>
+                            onPickWeek(isSel ? null : w.start)
+                          }
+                          className={
+                            'group flex h-full min-w-0 flex-1 cursor-pointer flex-col gap-1 rounded-lg p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                            (isSel ? 'bg-module-accent/10' : 'hover:bg-surface-sunken/70')
+                          }
                         >
                           <div className="flex w-full flex-1 items-end">
                             <m.div
@@ -411,7 +439,8 @@ function WritingActivityCard({
                                   ? 'bg-module-accent-strong'
                                   : w.words > 0
                                     ? 'bg-module-accent/60'
-                                    : 'bg-module-accent/15')
+                                    : 'bg-module-accent/15') +
+                                (isSel ? ' ring-2 ring-primary' : '')
                               }
                             />
                           </div>
@@ -425,7 +454,7 @@ function WritingActivityCard({
                           >
                             {isCurrent ? 'ini' : `P${i + 1}`}
                           </span>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -537,6 +566,21 @@ function WritingActivityCard({
               <span className="sr-only">Hapus filter tanggal</span>
             </button>
           )}
+
+          {/* v2.45 (review — J4): chip penghapus filter pekan (dari batang
+              kata) — pekan Senin–Minggu, label pendek terbaca. */}
+          {weekFilter && (
+            <button
+              type="button"
+              onClick={() => onPickWeek(null)}
+              className="interactive mt-3 ml-2 flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Filter pekan: {shortDateLabel(weekFilter)}–
+              {shortDateLabel(addDaysISO(weekFilter, 6))}
+              <span aria-hidden="true">✕</span>
+              <span className="sr-only">Hapus filter pekan</span>
+            </button>
+          )}
         </CollapsibleContent>
       </Collapsible>
     </section>
@@ -564,6 +608,10 @@ export default function JournalScreen() {
   const [query, setQuery] = useState('')
   /* v2.36: filter tanggal dari kalender aktivitas menulis — null = semua. */
   const [dayFilter, setDayFilter] = useState<string | null>(null)
+  /* v2.45 (review — J4): filter rentang PEKAN dari batang kata — Senin
+     s.d. Minggu pekan terpilih. */
+  const [weekFilter, setWeekFilter] = useState<string | null>(null)
+  const weekEnd = weekFilter ? addDaysISO(weekFilter, 6) : null
   /* Filter mood (review UI/UX v2.44 Tahap 2) — null = semua mood;
      hanya mood yang benar-benar tercatat pada catatan hidup. */
   const [moodFilter, setMoodFilter] = useState<string | null>(null)
@@ -614,6 +662,11 @@ export default function JournalScreen() {
       (n) =>
         (journalFilter === 'semua' || n.folder === journalFilter) &&
         (dayFilter === null || noteDateISO(n) === dayFilter) &&
+        (weekFilter === null ||
+          (() => {
+            const iso = noteDateISO(n)
+            return iso != null && iso >= weekFilter && iso <= weekEnd!
+          })()) &&
         (moodFilter === null || noteMoods[n.id] === moodFilter) &&
         (q === '' ||
           (n.title + ' ' + n.body).toLowerCase().includes(q)),
@@ -623,7 +676,7 @@ export default function JournalScreen() {
       drafts: filtered.filter((n) => !n.pinned && isDraftNote(n)),
       rest: filtered.filter((n) => !n.pinned && !isDraftNote(n)),
     }
-  }, [notes, journalFilter, query, dayFilter, moodFilter, noteMoods])
+  }, [notes, journalFilter, query, dayFilter, weekFilter, weekEnd, moodFilter, noteMoods])
 
   /* v2.37 P1: pagar densitas hanya hidup di kondisi awal (tanpa pencarian,
      tanpa filter folder/tanggal/mood) — total kartu awal maksimal 10.
@@ -632,6 +685,7 @@ export default function JournalScreen() {
     query.trim() !== '' ||
     journalFilter !== 'semua' ||
     dayFilter !== null ||
+    weekFilter !== null ||
     moodFilter !== null
   const pinnedLimit = fenceRelaxed ? undefined : Math.min(pinned.length, PINNED_CAP)
   const draftsLimit = fenceRelaxed ? undefined : Math.min(drafts.length, DRAFT_CAP)
@@ -810,6 +864,8 @@ export default function JournalScreen() {
           notes={notes}
           noteMoods={noteMoods}
           dayFilter={dayFilter}
+          weekFilter={weekFilter}
+          onPickWeek={setWeekFilter}
           onPickDay={setDayFilter}
         />
       )}
@@ -1116,7 +1172,8 @@ function NoteCard({
           {draft && (
             <span className="flex items-center gap-1 rounded-full bg-module-accent-soft px-2 py-0.5 text-chart-label font-semibold uppercase tracking-[0.1em] text-module-accent-strong">
               <PenLine className="h-3 w-3" aria-hidden="true" />
-              Draft
+              {/* v2.45 (audit J8): konsisten — di mana-mana "draf". */}
+              Draf
             </span>
           )}
           {mood ? (

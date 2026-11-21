@@ -768,7 +768,9 @@ export function HabitSheet() {
                       </Button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {['gelas', 'halaman', 'menit', 'langkah', 'kali'].map(
+                      {/* v2.45 (audit): 'km' ditambahkan — integrasi otomatis
+                          Bugar membaca unit km untuk jarak (lari/jalan). */}
+                      {['gelas', 'halaman', 'menit', 'km', 'langkah', 'kali'].map(
                         (u) => (
                           <button
                             key={u}

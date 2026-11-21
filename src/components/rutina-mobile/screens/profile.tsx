@@ -206,7 +206,9 @@ export default function ProfileScreen() {
   const customCats = useRutina((s) => s.customCats)
   const catRenames = useRutina((s) => s.catRenames)
   const completions = useRutina((s) => s.completions)
-  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
+  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
+  const bonusClaimed = bonusClaimedOn === todayISO()
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const setDailyGoal = useRutina((s) => s.setDailyGoal)
   const openBoard = useRutina((s) => s.openBoard)

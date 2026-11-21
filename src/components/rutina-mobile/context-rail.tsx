@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  useMemo,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -163,7 +164,12 @@ function WeekSummaryCard() {
   const txs = useRutina((s) => s.txs)
 
   const today = todayISO()
-  const streak = bestStreak(habits, completions, today).streak
+  /* v2.45 (audit perf): bestStreak O(habits×800) — useMemo, bukan
+     tiap render (pola hero Beranda). */
+  const streak = useMemo(
+    () => bestStreak(habits, completions, today).streak,
+    [habits, completions, today],
+  )
   const weekMissions = dayCounts(completions, today, 7).reduce(
     (a, b) => a + b.count,
     0,
@@ -177,13 +183,13 @@ function WeekSummaryCard() {
 
   return (
     <RutinaCard radius="lg">
-      <RutinaSectionHeader title="Ringkasan pekan ini" />
+      <RutinaSectionHeader title="Ringkasan 7 hari terakhir" />
       <ul className="mt-4 flex flex-col gap-3.5">
         <MetricRow
           icon={Timer}
           iconClass="bg-cocoa/10 text-content-secondary"
           value={String(weekMissions)}
-          label="Misi selesai pekan ini"
+          label="Misi selesai 7 hari terakhir"
         />
         <MetricRow
           icon={Flame}
@@ -370,6 +376,10 @@ function PrCard() {
 
 function HydrationCard() {
   const bodyLogs = useRutina((s) => s.bodyLogs)
+  /* v2.45 (audit): target air NYATA dari sasaran bugar pengguna —
+     "8 gelas" yang dikerasangkan untuk semua orang adalah data
+     karangan (melanggar prinsip data-nyata review). */
+  const waterTarget = Math.max(1, useRutina((s) => s.fitTargets.water) || 8)
   const today = todayISO()
   const latest = Object.entries(bodyLogs).sort((a, b) => (a[0] < b[0] ? 1 : -1))[0]
   const log = bodyLogs[today] ?? latest?.[1]
@@ -384,13 +394,18 @@ function HydrationCard() {
             <MetricRow
               icon={Droplets}
               iconClass={MODULE_TINT.bugar}
-              value={`${log.water}/8 gelas`}
+              value={`${log.water}/${waterTarget} gelas`}
               label={isToday ? 'Hidrasi hari ini' : 'Catatan terakhir'}
             />
           </ul>
-          {log.water < 8 && (
+          {log.water < waterTarget && (
             <p className="mt-3 text-eyebrow font-medium leading-relaxed text-content-muted">
-              Tambah {8 - log.water} gelas lagi untuk mencapai target harian.
+              Tambah {waterTarget - log.water} gelas lagi untuk mencapai target harian.
+            </p>
+          )}
+          {log.water >= waterTarget && (
+            <p className="mt-3 text-eyebrow font-medium leading-relaxed text-success">
+              Target hidrasi tercapai — kerja bagus.
             </p>
           )}
         </>
@@ -398,7 +413,7 @@ function HydrationCard() {
         <RailCalm
           icon={Droplets}
           iconClass={MODULE_TINT.bugar}
-          text="Target delapan gelas sehari — mulai dari satu gelas."
+          text={`Target ${waterTarget} gelas sehari — mulai dari satu gelas.`}
         />
       )}
     </RutinaCard>
@@ -544,7 +559,10 @@ function ConsistencyCard() {
   const completions = useRutina((s) => s.completions)
 
   const today = todayISO()
-  const streak = bestStreak(habits, completions, today).streak
+  const streak = useMemo(
+    () => bestStreak(habits, completions, today).streak,
+    [habits, completions, today],
+  )
   const weekMissions = dayCounts(completions, today, 7).reduce(
     (a, b) => a + b.count,
     0,
@@ -564,7 +582,7 @@ function ConsistencyCard() {
           icon={Timer}
           iconClass={MODULE_TINT.kebiasaan}
           value={`${weekMissions} misi`}
-          label="Selesai pekan ini"
+          label="Selesai 7 hari terakhir"
         />
       </ul>
     </RutinaCard>
@@ -619,7 +637,7 @@ function InsightCard() {
             icon={BarChart3}
             iconClass={MODULE_TINT.stats}
             value={`${thisWeek} misi`}
-            label="Selesai pekan ini"
+            label="Selesai 7 hari terakhir"
           />
           <MetricRow
             icon={DeltaIcon}
@@ -630,14 +648,14 @@ function InsightCard() {
                 : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} misi`
             }
             valueClass={MODULE_TEXT.stats}
-            label="Dibanding pekan lalu"
+            label="Dibanding 7 hari sebelumnya"
           />
         </ul>
       ) : (
         <RailCalm
           icon={BarChart3}
           iconClass={MODULE_TINT.stats}
-          text="Belum ada misi selesai pekan ini."
+          text="Belum ada misi selesai dalam 7 hari terakhir."
         />
       )}
     </RutinaCard>
@@ -672,7 +690,7 @@ function FocusCard() {
             icon={Target}
             iconClass={MODULE_TINT.stats}
             value={focus.habit.title}
-            label={`${focus.count} misi selesai pekan ini`}
+            label={`${focus.count} misi selesai 7 hari terakhir`}
           />
         </ul>
       ) : activeCount > 0 ? (
@@ -700,7 +718,9 @@ function FocusCard() {
 function AchievementCard() {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
-  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
+  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
+  const bonusClaimed = bonusClaimedOn === todayISO()
 
   const today = todayISO()
   const xp = computeXp(doneCountOn(completions, today), bonusClaimed)
@@ -788,7 +808,10 @@ function PreferencesRailCard() {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
 
-  const streak = bestStreak(habits, completions, todayISO()).streak
+  const streak = useMemo(
+    () => bestStreak(habits, completions, todayISO()).streak,
+    [habits, completions],
+  )
 
   return (
     <RutinaCard radius="lg">

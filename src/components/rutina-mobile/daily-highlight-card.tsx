@@ -90,7 +90,9 @@ export function DailyHighlightCard({
   const budgets = useRutina((s) => s.budgets)
   const goals = useRutina((s) => s.goals)
   const workouts = useRutina((s) => s.workouts)
-  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
+  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
+  const bonusClaimed = bonusClaimedOn === todayISO()
 
   /* v2.27 Daybook: kunjungan ulang tidak mengulang entrance Sorotan. */
   const playEntrance = useFirstVisit('home-sorotan')

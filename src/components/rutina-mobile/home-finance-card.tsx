@@ -156,9 +156,11 @@ export function HomeFinanceCard() {
             }}
             aria-label={`Peringatan anggaran: ${catMeta(budgetAlert.cat).label} terpakai ${Math.round(
               budgetAlert.pct * 100,
-            )} persen dari batas ${formatIDRShort(budgetAlert.limit)}, sisa ${formatIDRShort(
-              budgetAlert.limit - budgetAlert.spent,
-            )} — buka tab anggaran di Keuangan`}
+            )} persen dari batas ${formatIDRShort(budgetAlert.limit)}, ${
+              budgetAlert.spent > budgetAlert.limit
+                ? `lewat batas ${formatIDRShort(budgetAlert.spent - budgetAlert.limit)}`
+                : `sisa ${formatIDRShort(budgetAlert.limit - budgetAlert.spent)}`
+            } — buka tab anggaran di Keuangan`}
             className={
               'mb-4 flex w-full cursor-pointer items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
               (budgetAlert.pct >= 1
@@ -178,7 +180,10 @@ export function HomeFinanceCard() {
               Anggaran {catMeta(budgetAlert.cat).label} terpakai{' '}
               {Math.round(budgetAlert.pct * 100)}%
               <span className="text-meta font-medium text-content-muted">
-                {' '}— sisa {formatIDRShort(budgetAlert.limit - budgetAlert.spent)}
+                {' '}
+                {budgetAlert.spent > budgetAlert.limit
+                  ? `— lewat batas ${formatIDRShort(budgetAlert.spent - budgetAlert.limit)}`
+                  : `— sisa ${formatIDRShort(budgetAlert.limit - budgetAlert.spent)}`}
               </span>
             </span>
           </button>

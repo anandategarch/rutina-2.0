@@ -273,7 +273,9 @@ function buildPeriodDetails(period: ChartPeriod, txs: Tx[]): string[] {
     const days = new Date(y, mo + 1, 0).getDate()
     return [0, 1, 2, 3].map((n) => {
       const from = n * 7 + 1
-      const to = Math.min(n * 7 + 7, days)
+      /* v2.45 (audit K9): ember terakhir menampung sisa bulan — label
+         "22–28" menyangkal hari 29–31 yang ikut terhitung di ember itu. */
+      const to = n === 3 ? days : Math.min(n * 7 + 7, days)
       const toISO = today.slice(0, 8) + String(to).padStart(2, '0')
       return `Pekan ${n + 1} · ${from}–${fmtDate(toISO)}`
     })
@@ -330,7 +332,12 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
      pertama Vault; kontribusi baru tetap bermorf lewat animate ring. */
   const playEntrance = useFirstVisit('fin-goal-card')
   const openGoalSheet = useRutina((s) => s.openGoalSheet)
-  const pct = Math.min(100, Math.round((goal.saved / goal.target) * 100))
+  /* v2.45 (audit K14): target 0 (data tersinkron/impor) tak boleh
+     membagi NaN pada cincin/persen. */
+  const safeTarget = Math.max(1, goal.target)
+  const pct = Math.min(100, Math.round((goal.saved / safeTarget) * 100))
+  const safeRatio = Math.min(1, goal.saved / safeTarget)
+  const nContrib = goal.contributions?.length ?? 0
   const complete = goal.saved >= goal.target
   /* Hampir tercapai (audit Tahap 2): cincin bernapas lembut — rayuan
      kecil untuk menuntaskan sisa langkah, tanpa konfeti berlebihan. */
@@ -388,7 +395,7 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
                   playEntrance ? { strokeDashoffset: C } : false
                 }
                 animate={{
-                  strokeDashoffset: C * (1 - Math.min(1, goal.saved / goal.target)),
+                  strokeDashoffset: C * (1 - safeRatio),
                 }}
                 transition={barFill}
               />
@@ -412,8 +419,17 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
           <span className="text-content-muted">dari {formatIDRShort(goal.target)}</span>
         </p>
         <p className="mt-0.5 text-meta tabular-nums text-content-muted">
-          {complete ? 'Target tercapai' : `Sisa ${formatIDRShort(remaining)} lagi`}
+          {complete
+            ? 'Target tercapai'
+            : `Sisa ${formatIDRShort(remaining)} lagi`}
         </p>
+        {/* v2.45 (review Tahap 2): jumlah setor NYATA — dari log kontribusi
+            (data lama pra-v2.45 belum berlog → baris disembunyikan). */}
+        {nContrib > 0 && (
+          <p className="mt-0.5 text-meta tabular-nums text-content-muted">
+            {nContrib} kali setor tercatat
+          </p>
+        )}
 
         <div className="mt-auto pt-3">
           {complete ? (
@@ -1218,6 +1234,7 @@ const catMeta = useCatMeta()
 function SaldoCard({
   saldo,
   txCount,
+  walletCount,
   delta,
   deltaSuffix,
   spark,
@@ -1227,6 +1244,8 @@ function SaldoCard({
   saldo: number
   /** Jumlah transaksi bulan berjalan — dari data nyata, bukan angka statis. */
   txCount: number
+  /** Jumlah dompet aktif — data nyata (mengganti nama pemegang karangan). */
+  walletCount: number
   /** Perubahan net arus kas vs periode sebelumnya — null bila tak berlaku. */
   delta: number | null
   deltaSuffix: string | null
@@ -1420,7 +1439,9 @@ function SaldoCard({
         )}
       </div>
 
-      {/* Transaksi bulan ini + pemegang */}
+      {/* Transaksi bulan ini + jumlah dompet — data NYATA (v2.45 audit:
+          "ANANDA" adalah nama pemegang karangan — tidak ada isian nama
+          di mana pun; pengganti yang jujur & tetap informatif). */}
       <div className="relative z-10 mt-4 flex items-end justify-between gap-3">
         <div>
           <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
@@ -1432,10 +1453,10 @@ function SaldoCard({
         </div>
         <div className="text-right">
           <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-            Pemegang
+            Dompet aktif
           </p>
           <p className="mt-0.5 text-note font-bold tracking-tight text-hero-accent">
-            ANANDA
+            {walletCount}
           </p>
         </div>
       </div>
@@ -1470,6 +1491,12 @@ const catMeta = useCatMeta()
   const removeBudget = useRutina((s) => s.removeBudget)
   const [draft, setDraft] = useState('')
   const [editOpen, setEditOpen] = useState(false)
+  /* v2.45 (audit): buka dialog selalu mulai dari nilai TERKINI — dulu
+     draf sesi sebelumnya menempel (Sisa/Simpan tak menghapusnya). */
+  const openEditor = () => {
+    setDraft(String(limit))
+    setEditOpen(true)
+  }
   /* v2.35 anti-replay: batang anggaran terisi hanya kunjungan pertama;
      suntingan limit tetap bermorf lewat animate. */
   const playEntrance = useFirstVisit('fin-budget-row')
@@ -1572,7 +1599,9 @@ const catMeta = useCatMeta()
             ? `Lewat ${formatIDRShort(used - limit)} dari batas`
             : remaining > 0
               ? `Sisa ${formatIDRShort(remaining)} bulan ini · ±${formatIDRShort(daily)}/hari (${daysLeft} hari)`
-              : `Sisa ${formatIDRShort(remaining)} bulan ini`}
+              : /* v2.45 (audit): 0 tersisa = pas di batas — bukan "Sisa Rp0"
+                   yang terdengar seperti kesalahan. */
+                'Pas di batas — habis tepat bulan ini'}
           {paceBadge}
         </p>
       </div>
@@ -1582,7 +1611,7 @@ const catMeta = useCatMeta()
       <button
         type="button"
         aria-label={`Sunting anggaran ${catMeta(cat).label}`}
-        onClick={() => setEditOpen(true)}
+        onClick={openEditor}
         className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
       >
         <Pencil className="h-4 w-4" />
@@ -1953,7 +1982,10 @@ function CompositionDonut() {
     }))
     if (rest > 0)
       slices.push({
-        cat: 'lainnya',
+        /* v2.45 (audit K4): sentinel — 'lainnya' bertabrakan dengan
+           kategori Lainnya NYATA (kunci React kembar + drill yang
+           membuktikan dirinya sendiri salah). */
+        cat: '__rest__',
         value: rest,
         color: DONUT_COLORS[6],
       })
@@ -1980,6 +2012,9 @@ function CompositionDonut() {
     )
 
   const active = hovered != null ? slices[hovered] : null
+  /* Label irisan — sentinel agregat punya nama sendiri. */
+  const labelOf = (cat: string) =>
+    cat === '__rest__' ? 'Kategori lain' : catMeta(cat).label
 
   return (
     <>
@@ -2013,7 +2048,8 @@ function CompositionDonut() {
                 onMouseLeave={() => setHovered(null)}
                 onClick={(_, i) => {
                   const s = slices[i]
-                  if (s) openFinDrill('cat', s.cat)
+                  /* Sentinel agregat tak bisa di-drill ke satu kategori. */
+                  if (s && s.cat !== '__rest__') openFinDrill('cat', s.cat)
                 }}
               >
                 {slices.map((s) => (
@@ -2038,7 +2074,7 @@ function CompositionDonut() {
                 className="flex max-w-full flex-col items-center px-2"
               >
                 <span className="max-w-full truncate text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-                  {active ? catMeta(active.cat).label : 'Total'}
+                  {active ? labelOf(active.cat) : 'Total'}
                 </span>
                 <span className="text-kpi-sm font-bold tabular-nums text-content-primary">
                   {formatIDRShort(active?.value ?? total)}
@@ -2055,7 +2091,9 @@ function CompositionDonut() {
                 type="button"
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => openFinDrill('cat', s.cat)}
+                onClick={() => {
+                  if (s.cat !== '__rest__') openFinDrill('cat', s.cat)
+                }}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
               >
                 <span
@@ -2064,7 +2102,7 @@ function CompositionDonut() {
                   style={{ backgroundColor: s.color }}
                 />
                 <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
-                  {catMeta(s.cat).label}
+                  {labelOf(s.cat)}
                 </span>
                 <span className="shrink-0 text-eyebrow font-semibold tabular-nums text-content-muted">
                   {total > 0 ? Math.round((s.value / total) * 100) : 0}%
@@ -2228,6 +2266,7 @@ export default function KeuanganScreen() {
   const catMeta = useCatMeta()
   const txs = useRutina((s) => s.txs)
   const customCats = useRutina((s) => s.customCats)
+  const hiddenCats = useRutina((s) => s.hiddenCats)
   const goals = useRutina((s) => s.goals)
   const wallets = useRutina((s) => s.wallets)
   const budgets = useRutina((s) => s.budgets)
@@ -2353,12 +2392,24 @@ export default function KeuanganScreen() {
     () => txs.filter((t) => t.ts.startsWith(currentMonthKey())).length,
     [txs],
   )
+  /* v2.45 (audit K2): SATU definisi "dapat-dianggarkan" — kategori
+     bawaan + kategori buatan keluar; dipakai budgetRows, temuan, dan
+     chip "tambah kategori" (dulu kategori kustom bisa diberi anggaran
+     dari chip lalu LENYAP dari daftar — dua total bertentangan di satu
+     layar). */
+  const budgetableIds = useMemo(() => {
+    const ids = new Set<string>(BUDGETABLE_CATS)
+    for (const cc of customCats) {
+      if (cc.type === 'keluar') ids.add(cc.id)
+    }
+    return ids
+  }, [customCats])
   const budgetRows = useMemo(
     () =>
       Object.entries(budgets)
-        .filter(([cat]) => BUDGETABLE_CATS.includes(cat as FinCat))
+        .filter(([cat]) => budgetableIds.has(cat))
         .map(([cat, limit]) => ({ cat: cat as FinCat, limit })),
-    [budgets],
+    [budgets, budgetableIds],
   )
   const spentTotal = useMemo(
     () => budgetRows.reduce((a, b) => a + (spent[b.cat] ?? 0), 0),
@@ -2372,6 +2423,13 @@ export default function KeuanganScreen() {
     totalLimit > 0
       ? Math.min(100, Math.round((spentTotal / totalLimit) * 100))
       : 0
+  /* v2.45 (audit K1 — P0): persen TANPA clamp untuk vonis laju & label
+     "Aktual" — clamp 100% membuat diff = 100−ideal, sehingga di 3 hari
+     terakhir bulan (ideal ≥ 93%) overspend 200% terbaca "Selaras"
+     tepat saat peringatan paling dibutuhkan. Clamp tetap dipakai HANYA
+     untuk lebar batang (scaleX). */
+  const rawTotalPct =
+    totalLimit > 0 ? Math.round((spentTotal / totalLimit) * 100) : 0
   /* Laju anggaran vs waktu bulan (review UI/UX v2.44): pemakaian total
      dibandingkan laju ideal hari ke-N — menjawab "apakah kecepatan
      pengeluaran terlalu tinggi untuk sisa bulan ini?" */
@@ -2383,9 +2441,9 @@ export default function KeuanganScreen() {
     const daysLeft = dim - elapsed + 1
     const remainingTotal = Math.max(0, totalLimit - spentTotal)
     const daily = Math.round(remainingTotal / daysLeft)
-    const diff = totalPct - idealPct
+    const diff = rawTotalPct - idealPct
     return { elapsed, dim, idealPct, daysLeft, remainingTotal, daily, diff }
-  }, [totalLimit, spentTotal, totalPct])
+  }, [totalLimit, spentTotal, rawTotalPct])
   /* Ringkasan anggaran di Beranda: tiga kategori paling terbebani. */
   const topBudgets = useMemo(
     () =>
@@ -2437,7 +2495,7 @@ export default function KeuanganScreen() {
 
     /* 1 — kategori over-anggaran bulan berjalan. */
     for (const [cat, limit] of Object.entries(budgets)) {
-      if (!BUDGETABLE_CATS.includes(cat as FinCat) || limit <= 0) continue
+      if (!budgetableIds.has(cat) || limit <= 0) continue
       const used = byCat[cat] ?? 0
       if (used <= limit) continue
       const label = catMeta(cat).label
@@ -2524,7 +2582,9 @@ export default function KeuanganScreen() {
     }
 
     return out.sort((a, b) => a.weight - b.weight).slice(0, 4)
-  }, [txs, budgets, catMeta])
+    /* budgetableIds ikut deps: penyaring kategori anggaran dibaca langsung
+       di dalam (turunan customCats) — compiler mensyaratkannya eksplisit. */
+  }, [txs, budgets, catMeta, budgetableIds])
 
   /* Subjudul pemicu "Analisis Pengeluaran" (audit UX density v2.37 P1) —
      hitungan murah dari data bulan berjalan: jumlah kategori terpakai +
@@ -2645,6 +2705,7 @@ export default function KeuanganScreen() {
           <SaldoCard
             saldo={saldo}
             txCount={txCount}
+            walletCount={wallets.length}
             delta={periodDelta}
             deltaSuffix={PREV_SUFFIX[period]}
             spark={saldoSpark}
@@ -3328,11 +3389,12 @@ export default function KeuanganScreen() {
                         transition={barFill}
                         className={
                           'h-full origin-left rounded-full ' +
+                          /* v2.45 (audit K12): ambang warna = ambang vonis
+                             (±10) — dulu batang menguning di diff 1-10
+                             sementara salinan masih "Selaras". */
                           (pace.diff > 10
                             ? 'bg-destructive'
-                            : pace.diff > 0
-                              ? 'bg-warning'
-                              : 'bg-primary')
+                            : 'bg-primary')
                         }
                         style={{ width: '100%' }}
                       />
@@ -3344,7 +3406,7 @@ export default function KeuanganScreen() {
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-eyebrow tabular-nums">
                       <span className="font-semibold text-content-secondary">
-                        Aktual {totalPct}%
+                        Aktual {rawTotalPct}%
                       </span>
                       <span className="text-content-muted">
                         Ideal {pace.idealPct}% · tanda pada batang
@@ -3391,12 +3453,13 @@ export default function KeuanganScreen() {
               )}
 
               {/* Tambah kategori yang belum dianggarkan — bawaan +
-                  kategori buatan pengguna, satu sistem (v2.17) */}
+                  kategori buatan pengguna, satu sistem (v2.17). v2.45
+                  (audit K15): kategori tersembunyi tidak ditawarkan. */}
               {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id)]
-                .filter((c) => !(c in budgets)).length > 0 && (
+                .filter((c) => !(c in budgets) && !hiddenCats.includes(c)).length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2 pt-1">
                   {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id)]
-                    .filter((c) => !(c in budgets)).map((c) => (
+                    .filter((c) => !(c in budgets) && !hiddenCats.includes(c)).map((c) => (
                     <button
                       key={c}
                       type="button"

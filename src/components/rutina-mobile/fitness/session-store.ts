@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { exStatOf } from './fit-utils'
 import {
@@ -13,8 +14,15 @@ import {
    STORE SESI LATIHAN IMERSIF — sengaja TERPISAH dari store
    utama (store.ts): sesi bersifat in-flight dan harus tetap
    hidup ketika layar Bugar unmount (pindah tab / transisi
-   layar). Tidak dipersist — sesi yang belum disimpan memang
-   tidak pernah masuk histori maupun mesin sinkronisasi.
+   layar).
+
+   v2.45 (audit): kini DIPERSIST (persist + skipHydration, key
+   `rutina-2.0-active-session`, rehidrasi dari shell rutina-app)
+   — sesi imersif yang sedang berjalan SELAMAT dari refresh
+   halaman/kepindahan aplikasi, bukan hilang diam-diam. Sesi
+   yang belum disimpan tetap tidak pernah masuk histori
+   maupun mesin sinkronisasi — persistensi ini hanya soal
+   kelangsungan kerja, bukan pencatatan.
    ============================================================ */
 
 /** Durasi istirahat default antar set (ms epoch). */
@@ -87,7 +95,9 @@ const toExercise = (item: SessionSeedItem): SessionExercise => ({
   hintReps: Math.max(0, item.hintReps),
 })
 
-export const useSessionStore = create<SessionStore>((set, get) => ({
+export const useSessionStore = create<SessionStore>()(
+  persist(
+    (set, get) => ({
   session: null,
 
   startSession: (items) =>
@@ -210,7 +220,13 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         reps: set.reps,
       })),
     )
-    const duration = Math.max(1, Math.round((Date.now() - s.startedAt) / 60_000))
+    /* v2.45 (audit): clamp 24 jam — durasi jam dinding mentah tanpa batas
+       bisa melampaui cap skema sync (max 1440) lalu menumbangkan setiap
+       push (422 abadi). Sesi >24 j hampir pasti lupa ditutup. */
+    const duration = Math.min(
+      1440,
+      Math.max(1, Math.round((Date.now() - s.startedAt) / 60_000)),
+    )
     set({ session: null })
     if (sets.length === 0) return null
     return {
@@ -225,7 +241,36 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   reset: () => set({ session: null }),
-}))
+    }),
+    {
+      /* v2.45 (audit): sesi imersif yang sedang berjalan SELAMAT dari
+         refresh/kecelakaan tab — key tersendiri (kecil, terpisah dari
+         store utama); histori & sync tetap hanya menerima sesi yang
+         memang diselesaikan pengguna. */
+      name: 'rutina-2.0-active-session',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      /* Pola skipHydration (SSR-aman) — RutinaApp merehidrasi pasca-mount. */
+      skipHydration: true,
+      partialize: (s) => {
+        /* Timer istirahat TIDAK ikut — patokan epoch dari hidup halaman
+           sebelumnya sudah tidak berarti setelah reload. */
+        if (!s.session) return { session: null } as unknown as SessionStore
+        const { restingUntil: _expired, ...rest } = s.session
+        return { session: { ...rest, restingUntil: null } } as unknown as SessionStore
+      },
+      merge: (persisted, current) => {
+        /* Sesi terbengkalai >24 jam dibuang — jangan hidupkan ulang
+           latihan kemarin-kemarin saat aplikasi dibuka lagi. */
+        const p = persisted as { session?: ActiveSession | null } | undefined
+        const restored = p?.session ?? null
+        const stale =
+          restored !== null && Date.now() - restored.startedAt > 24 * 60 * 60 * 1000
+        return { ...current, session: stale ? null : restored }
+      },
+    },
+  ),
+)
 
 /** Mulai sesi dari praisai program/pustaka (WorkoutSeed) — beban &
  *  repetisi terakhir dari histori dipakai sebagai pra-isi stepper. */

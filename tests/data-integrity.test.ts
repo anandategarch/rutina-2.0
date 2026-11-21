@@ -174,7 +174,7 @@ describe('daySchedules', () => {
   })
 })
 
-/* ===== habitStatusOn — lima status hari ===== */
+/* ===== habitStatusOn — enam status hari ===== */
 
 describe('habitStatusOn', () => {
   const h = mkHabit({ id: 'a', schedule: [2, 3] }) // Selasa & Rabu
@@ -182,8 +182,11 @@ describe('habitStatusOn', () => {
   test('done: terjadwal & selesai', () => {
     expect(habitStatusOn(h, { '2026-02-11': { a: true } }, '2026-02-11', T0)).toBe('done')
   })
-  test('missed: terjadwal tapi belum', () => {
-    expect(habitStatusOn(h, {}, '2026-02-11', T0)).toBe('missed')
+  test('missed: terjadwal tapi belum — hari SUDAH LEWAT', () => {
+    expect(habitStatusOn(h, {}, '2026-02-10', T0)).toBe('missed') // Selasa lampau
+  })
+  test('pending: HARI INI terjadwal tapi belum — hari masih berjalan (v2.45)', () => {
+    expect(habitStatusOn(h, {}, '2026-02-11', T0)).toBe('pending')
   })
   test('unscheduled: hari tanpa jadwal', () => {
     expect(habitStatusOn(h, {}, '2026-02-09', T0)).toBe('unscheduled') // Senin

@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 
 import { motionTokens } from '@/lib/motion/tokens'
 
-import { createNote, patchNote, useJournalUi } from './journal-ui'
+import { countWords, createNote, patchNote, useJournalUi } from './journal-ui'
 import {
   FOLDERS,
   FOLDER_SHORT,
@@ -325,8 +325,10 @@ function CanvasPanel() {
     }
   }, [session.editing])
 
-  const wordCount =
-    body.trim() === '' ? 0 : body.trim().split(/\s+/).length
+  /* v2.45 (audit J5): penghitung kanvas memakai countWords bersama —
+     simbol markdown (#, -, **) yang toolbar ini sendiri sisipkan
+     tidak dihitung sebagai kata. */
+  const wordCount = countWords(body)
 
   /** Bungkus teks terpilih dengan penanda markdown (tebal/miring). */
   const wrapSelection = (marker: string) => {

@@ -6,8 +6,29 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.44.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.45.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.45 — Deep Audit Menyeluruh: Kejujuran Data, Sinkronisasi Kokoh, dan Konsistensi
+
+Audit mendalam SEMUA modul dengan satu tema: angka yang tampil harus JUJUR
+terhadap data nyata, dan data pengguna tidak boleh hilang diam-diam. Celah
+kritis ditutup: log kontribusi target tabungan kini SELAMAT dari round-trip
+server (kolom Prisma + pemetaan dua arah — sebelumnya terhapus di boot
+berikutnya), dan `keepalive` tak lagi menolak push snapshot besar (batas
+64 KiB spek Fetch). Heatmap kini kolom-PEKAN sejati (Senin tiap kolom) dengan
+sel yang bisa dibedah; hari berjalan berstatus `pending`, bukan "terlewat"
+(jam 08.00 pagi bukan vonis). Bonus harian ber-tanggal (reset alami per hari,
+bukan boolean seumur hidup). Pace SATU format `6'32"` di seluruh Bugar
+(baris latihan, kalender, grafik tren). Persen anggaran tanpa clamp
+("terpakai 367%" jujur tampil), minus tipografis "−Rp25.000", grafik arus
+kas 4 mode baca, riwayat setor target dari log nyata. Jurnal: mood aman dari
+pintu mana pun (rehidrasi di shell), penghitung kata satu implementasi,
+filter pekan dari batang kata, mode baca diingat antar kunjungan. Mesin
+sinkronisasi memvalidasi snapshot server sebelum menerapkan + transaksi
+berulang tetap dimaterialisasi di semua cabang; produksi tanpa SYNC_TOKEN
+fail-closed; 17 endpoint API per-domain lama dipensiunkan; 157/157 test
+lulus + E2E browser 390px & 1280px nol error.
 
 ## v2.44 — Review UI/UX: Fitness Intelligence, Laju Anggaran, dan Jalur Jurnal
 

@@ -69,6 +69,7 @@ import {
   KIND_LABEL,
   latestWeight,
   paceOf,
+  paceLabelOf,
   prBoard,
   readinessOf,
   tonaseOf,
@@ -305,11 +306,11 @@ function WorkoutRow({
   const best = bestE1rmIn(w)
   const kcal = kcalOf(w, bodyWeight)
   const { Icon, cls } = kindVisual(w)
+  /* v2.45 (audit F5): pakai paceOf tunggal — implementasi ganda bisa
+     melahirkan "6'60"" (pembulatan tanpa clamp). */
   const pace =
     isCardio && (w.distance ?? 0) > 0 && w.duration > 0
-      ? `${Math.floor((w.duration * 60) / w.distance! / 60)}'${String(
-          Math.round(((w.duration * 60) / w.distance!) % 60),
-        ).padStart(2, '0')}"`
+      ? paceOf(w.duration, w.distance!)
       : null
   const uniqueMoves = new Set(w.sets.map((s) => s.exercise)).size
 
@@ -839,7 +840,12 @@ function WeekActivityCard() {
         ? `${fmtKm(total)} · ${sessionCount} sesi${deltaTxt}`
         : mode === 'badminton'
           ? `${sessionCount} sesi · ${durationLabel(totalMinutes)}`
-          : `${fmtKg(total)} · ${sessionCount} sesi${deltaTxt}`
+          : /* v2.45 (audit F9): pekan kardio/badminton murni dalam mode
+             Semua — "0 kg · 3 sesi" terbaca seperti error; tonase memang
+             tak relevan tanpa sesi beban. */
+            total === 0 && sessionCount > 0
+            ? `${sessionCount} sesi · ${durationLabel(totalMinutes)}`
+            : `${fmtKg(total)} · ${sessionCount} sesi${deltaTxt}`
 
   /* KPI mini per mode (review v2.44) — metrik yang relevan untuk
      olahraganya: sesi/hari aktif/durasi untuk Semua; jarak-durasi-pace
@@ -955,7 +961,9 @@ function WeekActivityCard() {
       <div
         className="mt-3 flex gap-1.5"
         role="group"
-        aria-label="Jenis aktivitas dan tonase per hari, Senin sampai Minggu"
+        /* v2.45 (audit F8): label sadar-mode — "tonase" hanya benar untuk
+           barbel/semua; kardio = jarak, badminton = durasi. */
+        aria-label={`Jenis aktivitas dan ${meta.metricName} per hari, Senin sampai Minggu`}
       >
         {days.map((iso, i) => {
           const isFuture = iso > today
@@ -1324,11 +1332,11 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
     return { x, y }
   })
   const path = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  const fmtPace = (p: number) => {
-    const mm = Math.floor(p)
-    const ss = Math.round((p - mm) * 60)
-    return ss === 60 ? `${mm + 1}:00` : `${mm}:${String(ss).padStart(2, '0')}`
-  }
+  /* Revisi audit F5: pemformat pace grafik tren dulunya lokal dengan
+     format "6:32" — kini paceLabelOf bersama dari fit-utils (format
+     "6'32\"" yang sama dengan baris lataman & kalender, pembulatan
+     ber-clamp tunggal). */
+  const fmtPace = (p: number) => paceLabelOf(p)
   const paceSel =
     activeMetric === 'pace' && selIdx !== null ? (paceSeries[selIdx] ?? null) : null
 

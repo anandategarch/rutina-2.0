@@ -96,9 +96,12 @@ function entriesOn(entries: FoodEntry[], date: string): FoodEntry[] {
 
 function FoodRow({ entry }: { entry: FoodEntry }) {
   const deleteFoodEntry = useRutina((s) => s.deleteFoodEntry)
+  /* v2.45 (audit F2): label porsi SEKALI dengan spasi yang benar —
+     dulu "½1 piring (½)" / "1½× 1 piring (1½×)" tercetak dua kali
+     tanpa spasi (baris terbaca di setiap entri non-default). */
   const portionLabel =
     entry.portion === 0.5
-      ? '½'
+      ? '½ '
       : entry.portion === 1
         ? ''
         : entry.portion === 1.5
@@ -122,9 +125,7 @@ function FoodRow({ entry }: { entry: FoodEntry }) {
         </p>
         <p className="text-eyebrow font-medium text-content-muted">
           {portionLabel}
-          {portionLabel ? '' : ''}
           {entry.unit}
-          {entry.portion !== 1 ? ` (${portionLabel.trim()})` : ''}
         </p>
       </div>
       <span className="shrink-0 text-note font-bold tabular-nums text-content-primary">
@@ -783,12 +784,35 @@ export function AsupanPanel() {
                   : diff > 0
                     ? `+${fmt(diff)} di atas target`
                     : `−${fmt(-diff)} di bawah target`
+            /* v2.45 (review Tahap 2 — F6): agregat jujur seluruh deret —
+               kumulatif ± vs target HANYA dari hari yang benar-benar
+               tercatat (hari kosong tidak dihitung defisit penuh). */
+            const recorded = week.days.filter(
+              (_, i) => week.kcalByDay[i] > 0,
+            ).length
+            const weekNet = week.days.reduce(
+              (a, _, i) =>
+                a + (week.kcalByDay[i] > 0 ? week.kcalByDay[i] - calorieTarget : 0),
+              0,
+            )
             return (
-              <p className="mt-3 border-t border-border pt-2.5 text-center text-eyebrow font-medium tabular-nums text-content-muted">
-                {dayLongLabel(selDay ?? today)} —{' '}
-                {kcal > 0 ? `${fmt(kcal)} kkal` : 'belum ada catatan'} ·{' '}
-                {diffText}
-              </p>
+              <>
+                <p className="mt-3 border-t border-border pt-2.5 text-center text-eyebrow font-medium tabular-nums text-content-muted">
+                  {dayLongLabel(selDay ?? today)} —{' '}
+                  {kcal > 0 ? `${fmt(kcal)} kkal` : 'belum ada catatan'} ·{' '}
+                  {diffText}
+                </p>
+                {recorded > 0 && (
+                  <p className="mt-1 text-center text-eyebrow font-medium tabular-nums text-content-muted">
+                    Total 7 hari ({recorded} hari tercatat):{' '}
+                    {weekNet === 0
+                      ? 'pas di target'
+                      : weekNet > 0
+                        ? `+${fmt(weekNet)} kkal vs target`
+                        : `−${fmt(-weekNet)} kkal vs target`}
+                  </p>
+                )}
+              </>
             )
           })()}
         </div>

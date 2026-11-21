@@ -45,9 +45,15 @@ interface JournalUiState {
   editing: Note | null
   /** Metadata suasana hati per catatan (id catatan → label mood). */
   noteMoods: Record<string, string>
+  /** Mode kartu Aktivitas Menulis (v2.45 audit J3): kalender jumlah
+   *  catatan / volume kata — DIINGAT antar kunjungan. Disimpan di sini
+   *  (bukan useState + useEffect) agar rehidrasi pasca-mount ikut pola
+   *  toko persist yang sama — bebas aturan setState-sinkron-dalam-efek. */
+  activityView: 'kalender' | 'kata'
   openCanvas: (note?: Note | null) => void
   closeCanvas: () => void
   setNoteMood: (id: string, mood: string | null) => void
+  setActivityView: (v: 'kalender' | 'kata') => void
 }
 
 export const useJournalUi = create<JournalUiState>()(
@@ -56,8 +62,11 @@ export const useJournalUi = create<JournalUiState>()(
       canvasOpen: false,
       editing: null,
       noteMoods: {},
+      activityView: 'kalender',
 
       openCanvas: (note) => set({ canvasOpen: true, editing: note ?? null }),
+
+      setActivityView: (v) => set({ activityView: v }),
 
       closeCanvas: () =>
         set((s) => {
@@ -87,8 +96,13 @@ export const useJournalUi = create<JournalUiState>()(
       /* Rehidrasi manual pasca-mount — pola yang sama dengan store utama
          agar render SSR tidak mismatch; dipanggil dari JournalScreen. */
       skipHydration: true,
-      /* Hanya metadata yang dipersist — state kanvas selalu mulai segar. */
-      partialize: (s) => ({ noteMoods: s.noteMoods }),
+      /* Metadata + preferensi tampilan yang dipersist — state kanvas
+         selalu mulai segar. activityView absen di data lama → default
+         'kalender' tetap dipakai (penggabungan shallow zustand). */
+      partialize: (s) => ({
+        noteMoods: s.noteMoods,
+        activityView: s.activityView,
+      }),
     },
   ),
 )
@@ -111,6 +125,17 @@ export function isDraftNote(note: Note): boolean {
  *  (pola aplikasi catatan premium: baris pertama = judul). */
 export function noteFirstLine(note: Note): string {
   return note.body.trim().split('\n')[0]?.trim() ?? ''
+}
+
+/** Jumlah kata isi catatan (v2.45 — audit J5): simbol markdown (#, >, *,
+ *  _, `, ~, kurung) BUKAN kata — toolbar kanvas justru menyisipkannya,
+ *  menghitungnya menggelembungkan metrik volume kata & penghitung kanvas
+ *  secara seragam (satu implementasi untuk keduanya). */
+export function countWords(body: string): number {
+  const t = body
+    .replace(/[#>*_`~[\]()]/g, ' ')
+    .trim()
+  return t === '' ? 0 : t.split(/\s+/).length
 }
 
 /**

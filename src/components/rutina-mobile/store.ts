@@ -102,10 +102,6 @@ export const DAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 
 export const MOODS = ['Ceria', 'Baik', 'Biasa', 'Lelah']
 
-export const QUOTE_TEXT =
-  'Kebiasaan kecil yang konsisten akan mengalahkan motivasi besar yang sesaat.'
-export const QUOTE_AUTHOR = 'James Clear, Atomic Habits'
-
 /* ===== Semangat Hari Ini — kutipan harian bergilir (deterministik) ===== */
 
 export const DAILY_QUOTES: { text: string; author: string }[] = [
@@ -568,6 +564,13 @@ export function todayISO(): string {
   return isoOf(new Date())
 }
 
+/** v2.45 (audit): entropi ID — `Date.now()` telanjang beradu dalam
+ *  milidetik yang sama (ketuk ganda, impor) → PK kembar menumbangkan
+ *  `createMany` di snapshot sync. Tambahan acak pendek menuntaskannya. */
+export function uid(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 export function fromISO(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, (m ?? 1) - 1, d ?? 1)
@@ -837,6 +840,9 @@ export type HabitDayStatus =
   | 'rest'
   | 'unscheduled'
   | 'future'
+  /** v2.45 (audit): HARI INI terjadwal tapi belum selesai — hari masih
+   *  berjalan; menghitungnya "terlewat" di 08.00 pagi adalah data bohong. */
+  | 'pending'
 
 export function habitStatusOn(
   h: Habit,
@@ -848,6 +854,8 @@ export function habitStatusOn(
   if (!scheduledOn(h, iso) || iso < h.createdAt) return 'unscheduled'
   if ((h.restDays ?? []).includes(iso)) return 'rest'
   if (isDoneOn(c, iso, h.id)) return 'done'
+  /* Hari berjalan belum terlewat — vonis menunggu sampai tengah malam. */
+  if (iso === today) return 'pending'
   return 'missed'
 }
 
@@ -1057,6 +1065,10 @@ export interface Goal {
   name: string
   target: number
   saved: number
+  /** v2.45 (review Tahap 2): log kontribusi nyata — dasar "N kali
+   *  menabung" + riwayat bulanan di lembar kontribusi. Opsional demi
+   *  kompatibilitas data lama (entri lama: belum ada log). */
+  contributions?: { ts: string; amount: number }[]
 }
 
 /* ===== Domain Bugar — latihan beban & kardio (dari Rutina v3) ===== */
@@ -1350,7 +1362,11 @@ interface RutinaState {
   expandedTaskId: string | null
   readingNoteId: string | null
   celebrating: boolean
-  bonusClaimed: boolean
+  /** Tanggal (ISO) bonus harian terakhir diklaim — null bila belum.
+   *  v2.45: ber-tanggal (pola celebratedOn) agar reset tiap ganti hari;
+   *  boolean lama menempel selamanya sehingga bonus cuma bisa diklaim
+   *  sekali seumur hidup. */
+  bonusClaimedOn: string | null
   dailyGoal: number
   /* Keuangan */
   txs: Tx[]
@@ -1602,7 +1618,7 @@ type DomainSlice = Pick<
   | 'moodLogs'
   | 'identityText'
   | 'deloadUntil'
-  | 'bonusClaimed'
+  | 'bonusClaimedOn'
   | 'quoteSaved'
   | 'quoteSavedDate'
 >
@@ -1637,7 +1653,7 @@ function initialDomainState(): DomainSlice {
     moodLogs: {},
     identityText: '',
     deloadUntil: null,
-    bonusClaimed: false,
+    bonusClaimedOn: null,
     quoteSaved: false,
     quoteSavedDate: null,
   }
@@ -1832,7 +1848,7 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({
       wallets: [
         ...s.wallets,
-        { id: `w-${Date.now()}`, name: name.trim(), initial },
+        { id: `wl-${uid()}`, name: name.trim().slice(0, 40), initial },
       ],
       walletDialogOpen: false,
       walletEditId: null,
@@ -1857,16 +1873,47 @@ export const useRutina = create<RutinaState>()(
       walletEditId: null,
     })),
 
-  /* Hapus dompet (v2.22) — transaksi terkait menjadi "tanpa dompet"
-     (walletId/toWalletId dibersihkan); tidak ada catatan yang hilang. */
+  /* Hapus dompet (v2.22). v2.45 (audit): kaki transfer yatim TIDAK lagi
+     dibiarkan bermuatan setengah — itu merusak matematika saldo (kaki
+     lawan tetap dihitung → saldo total menggelembung). Kaki yang
+     kehilangan pasangan dikonversi jujur: sumber hilang → pemasukan di
+     dompet tujuan (uang "dari luar"); tujuan hilang → pengeluaran di
+     dompet sumber; keduanya hilang → transaksi dibuang. */
   deleteWallet: (id) =>
     set((s) => ({
       wallets: s.wallets.filter((w) => w.id !== id),
-      txs: s.txs.map((t) => ({
-        ...t,
-        ...(t.walletId === id ? { walletId: undefined } : {}),
-        ...(t.toWalletId === id ? { toWalletId: undefined } : {}),
-      })),
+      txs: s.txs.flatMap((t) => {
+        if (t.type !== 'transfer') {
+          return [
+            {
+              ...t,
+              ...(t.walletId === id ? { walletId: undefined } : {}),
+            },
+          ]
+        }
+        const srcGone = t.walletId === id
+        const dstGone = t.toWalletId === id
+        if (srcGone && dstGone) return []
+        if (srcGone)
+          return [
+            {
+              ...t,
+              type: 'masuk' as const,
+              walletId: t.toWalletId,
+              toWalletId: undefined,
+            },
+          ]
+        if (dstGone)
+          return [
+            {
+              ...t,
+              type: 'keluar' as const,
+              walletId: t.walletId,
+              toWalletId: undefined,
+            },
+          ]
+        return [t]
+      }),
       walletDialogOpen: false,
       walletEditId: null,
       finDrill:
@@ -1980,7 +2027,7 @@ export const useRutina = create<RutinaState>()(
   /* Sunting transaksi yang sudah ada (v2.22) — arus boleh berubah
      (keluar↔masuk); salinan otomatis berulang ikut membawa kategori &
      nominal baru saat materialisasi berikutnya. */
-  updateTx: (id, patch) =>
+  updateTx: (id, patch) => {
     set((s) => ({
       txs: s.txs.map((t) =>
         t.id === id
@@ -2005,7 +2052,14 @@ export const useRutina = create<RutinaState>()(
       ),
       txSheetOpen: false,
       txEditId: null,
-    })),
+    }))
+    /* v2.45 (audit): suntingan templat berulang / perpindahan tanggal
+       memicu materialisasi ulang — salinan yang jatuh tempo tercipta
+       dalam sesi yang sama, bukan menunggu boot berikutnya. */
+    if (patch.recurrence !== undefined || patch.ts !== undefined) {
+      get().materializeRecurring()
+    }
+  },
 
   deleteTx: (id) =>
     set((s) => ({
@@ -2025,7 +2079,18 @@ export const useRutina = create<RutinaState>()(
   contributeGoal: (id, amount) =>
     set((s) => ({
       goals: s.goals.map((g) =>
-        g.id === id ? { ...g, saved: g.saved + amount } : g,
+        g.id === id
+          ? {
+              ...g,
+              saved: g.saved + amount,
+              /* v2.45: catat kejadian kontribusi (audit — data nyata,
+               *  bukan hanya penghitung kumulatif). */
+              contributions: [
+                ...(g.contributions ?? []),
+                { ts: new Date().toISOString(), amount },
+              ].slice(-500),
+            }
+          : g,
       ),
     })),
 
@@ -2037,7 +2102,15 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({
       goals: [
         ...s.goals,
-        { id: `goal-${Date.now()}`, name: name.trim(), target, saved: 0 },
+        {
+          id: `goal-${uid()}`,
+          name: name.trim().slice(0, 120),
+          /* v2.45 (audit): clamp di batas domain — UI membatasi 100 rb,
+             tapi data tersinkron/impor bisa 0 → pembagian NaN. */
+          target: Math.max(1000, Math.round(target)),
+          saved: 0,
+          contributions: [],
+        },
       ],
     })),
 
@@ -2224,7 +2297,10 @@ export const useRutina = create<RutinaState>()(
     if (dateISO > todayISO()) return
     set((s) => {
       const day = { ...(s.completions[dateISO] ?? {}) }
-      if (day[id]) {
+      /* v2.45 (audit): ketuk pada progres PARSIAL (angka) menuntaskan
+       *  menjadi selesai — BUKAN menghapus progresnya. Hanya `true`
+       *  (selesai penuh) yang bisa dibatalkan. */
+      if (day[id] === true) {
         delete day[id]
       } else {
         day[id] = true
@@ -2263,16 +2339,18 @@ export const useRutina = create<RutinaState>()(
       habits: [
         ...s.habits,
         {
-          id: `habit-${Date.now()}`,
-          title: input.title.trim(),
-          desc: input.desc.trim(),
+          id: `habit-${uid()}`,
+          /* v2.45 (audit): clamp panjang di batas domain — selaras cap
+           *  skema sinkronisasi (Zod) agar push tidak pernah 422. */
+          title: input.title.trim().slice(0, 200),
+          desc: input.desc.trim().slice(0, 4000),
           cat: input.cat,
           schedule: [...input.schedule].sort((a, b) => a - b),
           weeklyTarget: input.weeklyTarget,
           reminder: input.reminder,
           restDays: [...(input.restDays ?? [])].sort(),
           afterId: input.afterId || null,
-          mini: (input.mini ?? '').trim(),
+          mini: (input.mini ?? '').trim().slice(0, 300),
           target: input.target && input.target > 0 ? input.target : null,
           unit: input.target && input.target > 0 ? (input.unit ?? '').trim() || null : null,
           groupId: input.groupId || null,
@@ -2291,9 +2369,13 @@ export const useRutina = create<RutinaState>()(
         if (patch.schedule) {
           next.schedule = [...patch.schedule].sort((a, b) => a - b)
         }
-        if (patch.title !== undefined) next.title = patch.title.trim()
-        if (patch.desc !== undefined) next.desc = patch.desc.trim()
-        if (patch.mini !== undefined) next.mini = patch.mini.trim()
+        /* v2.45: clamp suntingan juga (pola addHabit). */
+        if (patch.title !== undefined)
+          next.title = patch.title.trim().slice(0, 200)
+        if (patch.desc !== undefined)
+          next.desc = patch.desc.trim().slice(0, 4000)
+        if (patch.mini !== undefined)
+          next.mini = patch.mini.trim().slice(0, 300)
         if (patch.afterId !== undefined) next.afterId = patch.afterId || null
         if (patch.target !== undefined)
           next.target = patch.target && patch.target > 0 ? patch.target : null
@@ -2432,9 +2514,12 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({
       notes: [
         {
-          id: `note-${Date.now()}`,
-          title,
-          body: body || 'Catatan kosong — lanjutkan menulis nanti.',
+          id: `note-${uid()}`,
+          /* v2.45 (audit): tanpa teks pengisi pabrik — 8 kata hantu
+           *  "Catatan kosong…" mencemari metrik Jumlah Kata (v2.44).
+           *  Tampilan sudah menghandle isi kosong dengan jujur. */
+          title: (title ?? '').slice(0, 200),
+          body: (body ?? '').slice(0, 20_000),
           /* v2.36: ISO yyyy-mm-dd — selaras skema JournalNote; label
              tampilan ("Hari ini") diturunkan, bukan disimpan. */
           date: todayISO(),
@@ -2528,8 +2613,11 @@ export const useRutina = create<RutinaState>()(
   setCelebrating: (celebrating) => set({ celebrating }),
 
   claimBonus: () => {
-    if (get().bonusClaimed) return
-    set({ bonusClaimed: true })
+    /* v2.45: gerbang per-tanggal — klaim hari ini tidak memblokir klaim
+     *  besok (boolean lama menempel permanen — audit). */
+    const today = todayISO()
+    if (get().bonusClaimedOn === today) return
+    set({ bonusClaimedOn: today })
   },
 
   setDailyGoal: (dailyGoal) => set({ dailyGoal }),
@@ -2599,6 +2687,17 @@ export const useRutina = create<RutinaState>()(
         if (typeof p.identityText !== 'string') p.identityText = ''
         if (typeof p.deloadUntil !== 'string') p.deloadUntil = null
         if (typeof p.quoteSavedDate !== 'string') p.quoteSavedDate = null
+        /* v2.45: boolean lama dijatuhkan — klaim lampau tak bertanggal
+           tidak boleh memblokir hari ini (bug bonus sekali-seumur). */
+        if (typeof p.bonusClaimedOn !== 'string') p.bonusClaimedOn = null
+        /* v2.45: sane-kan chartPeriod warisan build lama ('tahun' sudah
+           bukan tab yang ada — tab tak tersorot tanpa ini). */
+        const prefs = p.uiPrefs as Record<string, unknown> | undefined
+        if (
+          prefs &&
+          !['minggu', 'bulan', 'semua'].includes(String(prefs.chartPeriod))
+        )
+          prefs.chartPeriod = 'bulan'
         if (!Array.isArray(p.habitGroups)) p.habitGroups = []
         if (!p.catRenames || typeof p.catRenames !== 'object') p.catRenames = {}
         if (!Array.isArray(p.hiddenCats)) p.hiddenCats = []
@@ -2633,7 +2732,7 @@ export const useRutina = create<RutinaState>()(
         moodLogs: s.moodLogs,
         identityText: s.identityText,
         deloadUntil: s.deloadUntil,
-        bonusClaimed: s.bonusClaimed,
+        bonusClaimedOn: s.bonusClaimedOn,
         quoteSaved: s.quoteSaved,
         quoteSavedDate: s.quoteSavedDate,
         quoteOffset: s.quoteOffset,

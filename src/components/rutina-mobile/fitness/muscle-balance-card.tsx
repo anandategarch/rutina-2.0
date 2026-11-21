@@ -32,6 +32,10 @@ const WINDOWS: { id: 7 | 30; label: string }[] = [
   { id: 7, label: '7 hari' },
 ]
 
+/* v2.45 (audit F14): peta nama → otot utama sekali di level modul —
+   bukan EX_LIB.find O(31) per set di dalam jendela. */
+const MUSCLE_BY_NAME = new Map(EX_LIB.map((e) => [e.name, e.muscle] as const))
+
 export function MuscleBalanceCard() {
   const workouts = useRutina((s) => s.workouts)
   const reducedEntrance = useFirstVisit('bugar-muscle-balance')
@@ -49,7 +53,7 @@ export function MuscleBalanceCard() {
     }
     for (const w of inWindow) {
       for (const s of w.sets) {
-        const muscle = EX_LIB.find((e) => e.name === s.exercise)?.muscle
+        const muscle = MUSCLE_BY_NAME.get(s.exercise)
         if (!muscle) continue
         const bar = byGroup.get(muscle)
         if (!bar) continue
@@ -188,7 +192,7 @@ export function MuscleBalanceCard() {
             })}
           </div>
 
-          {/* Catatan kaki — kelompot terlatih + disclaimer otot utama. */}
+          {/* Catatan kaki — kelompok terlatih + disclaimer otot utama. */}
           {top && (
             <p className="mt-3 border-t border-border-default pt-2.5 px-0.5 text-eyebrow leading-snug text-content-muted">
               Paling banyak dilatih:{' '}

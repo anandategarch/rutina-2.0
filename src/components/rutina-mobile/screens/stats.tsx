@@ -286,7 +286,9 @@ export default function StatsScreen() {
   const mood = useRutina((s) => s.mood)
   const setMood = useRutina((s) => s.setMood)
   const moodLogs = useRutina((s) => s.moodLogs)
-  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
+  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
+  const bonusClaimed = bonusClaimedOn === todayISO()
   const workouts = useRutina((s) => s.workouts)
   const bodyLogs = useRutina((s) => s.bodyLogs)
   const txs = useRutina((s) => s.txs)

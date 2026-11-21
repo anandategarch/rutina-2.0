@@ -333,9 +333,12 @@ export function ExerciseDetailSheet({
                       {[...sessions]
                         .reverse()
                         .slice(0, 10)
-                        .map((s) => (
+                        .map((s, si) => (
                           <li
-                            key={s.date}
+                            /* v2.45 (audit F1): dua sesi beban pada tanggal
+                               yang sama dengan gerakan sama → kunci kembar,
+                               satu baris riwayat lenyap diam-diam. */
+                            key={`${s.date}-${si}`}
                             className="flex items-center gap-3 py-2.5 text-meta tabular-nums"
                           >
                             <span className="w-24 shrink-0 font-semibold text-content-secondary">

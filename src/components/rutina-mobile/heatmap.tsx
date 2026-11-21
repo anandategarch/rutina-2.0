@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInView, useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import { animate, stagger } from 'animejs'
 
 import {
+  addDaysISO,
   dayCounts,
   daySchedules,
   fromISO,
   todayISO,
   useRutina,
+  weekStartISO,
 } from './store'
+import { DayDetailSheet } from './day-detail-sheet'
 
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
@@ -88,11 +91,40 @@ export default function Heatmap({
   const first = useFirstVisit(visitKey)
   const play = visitKey ? first : true
 
-  /** 84 hari terakhir diakhiri hari ini — kolom terakhir grid adalah
-      pekan berjalan dan sel terakhir adalah hari ini. */
-  const countDays = dayCounts(completions, today, WEEKS * 7)
+  /* v2.45 (audit perf): deret 84 hari dibungkus useMemo — sebelumnya
+     dihitung ulang tiap render (toggle centang kebiasaan pun). */
+  const countDays = useMemo(
+    () => dayCounts(completions, today, WEEKS * 7),
+    [completions, today],
+  )
   /* Kepatuhan sadar-jadwal — hari tanpa jadwal ber-pct null. */
-  const schedDays = daySchedules(habits, completions, today, WEEKS * 7)
+  const schedDays = useMemo(
+    () => daySchedules(habits, completions, today, WEEKS * 7),
+    [habits, completions, today],
+  )
+
+  /* v2.45 (audit P0): GRID KOLOM-PEKAN SEJATI — Senin tiap kolom,
+     kolom terakhir = pekan berjalan, sel = tanggal nyata per (pekan,
+     hari). Dulu: deret 84 hari kronologis dipotong 12 per BARIS — tiap
+     baris adalah 12 hari berturut-turut, "kolom pekan" hanya ilusi, dan
+     prefiks "Pekan N" salah untuk ~85% sel (pola SpendHeatmap yang
+     benar sudah ada sejak lama). */
+  const mondays = useMemo(
+    () =>
+      Array.from(
+        { length: WEEKS },
+        (_, w) => addDaysISO(weekStartISO(today), (w - (WEEKS - 1)) * 7),
+      ),
+    [today],
+  )
+  const countBy = useMemo(
+    () => new Map(countDays.map((cd) => [cd.date, cd] as const)),
+    [countDays],
+  )
+  const schedBy = useMemo(
+    () => new Map(schedDays.map((sd) => [sd.date, sd] as const)),
+    [schedDays],
+  )
 
   /* SATU observer untuk seluruh kartu: entrance Motion dan gelombang
       sel anime.js dipicu `inView` yang sama — sebelumnya whileInView
@@ -100,7 +132,10 @@ export default function Heatmap({
   const rootRef = useRef<HTMLDivElement>(null)
   const inView = useInView(rootRef, { once: true, margin: '-40px' })
 
-  const [sel, setSel] = useState<{ w: number; d: number } | null>(null)
+  /* v2.45 (drilldown review): sel terpilih = tanggal nyata — ketukan
+     membuka DayDetailSheet (tanggal, X dari Y selesai, status per
+     kebiasaan Selesai/Jeda/Belum) — bukan lagi satu baris teks saja. */
+  const [selIso, setSelIso] = useState<string | null>(null)
 
   // anime.js — sel heatmap bermunculan bergelombang saat terlihat.
   // Kebijakan reduced-motion: sel langsung tampil tanpa gelombang.
@@ -143,24 +178,23 @@ export default function Heatmap({
     }
   }, [inView, reducedMotion])
 
-  const selEntry = sel ? schedDays[sel.d * WEEKS + sel.w] : null
-
   /** Teks aksesibel sel: tanggal + nilai — intensitas tidak disampaikan
-      lewat warna saja. */
-  const cellText = (idx: number) => {
-    const cd = countDays[idx]
+      lewat warna saja. v2.45: prefiks "Pekan N" dijatuhkan — tanggal
+      nyata lebih jelas dan tak mungkin salah-label. */
+  const cellText = (iso: string) => {
+    const cd = countBy.get(iso)
     if (mode === 'jumlah') {
-      return `${cd.label}, ${fmtDate(cd.date)} — ${
-        cd.count === 0
+      return `${cd?.label ?? ''}, ${fmtDate(iso)} — ${
+        !cd || cd.count === 0
           ? 'tidak ada aktivitas'
           : `${cd.count} kebiasaan selesai`
       }`
     }
-    const sd = schedDays[idx]
-    if (sd.pct == null) {
-      return `${sd.label}, ${fmtDate(sd.date)} — tanpa kebiasaan terjadwal`
+    const sd = schedBy.get(iso)
+    if (!sd || sd.pct == null) {
+      return `${cd?.label ?? ''}, ${fmtDate(iso)} — tanpa kebiasaan terjadwal`
     }
-    return `${sd.label}, ${fmtDate(sd.date)} — kepatuhan ${sd.pct}% (${sd.done} dari ${sd.scheduled} terjadwal)${sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''}`
+    return `${sd.label}, ${fmtDate(iso)} — kepatuhan ${sd.pct}% (${sd.done} dari ${sd.scheduled} terjadwal)${sd.rest > 0 ? `, ${sd.rest} hari jeda diampuni` : ''}`
   }
 
   return (
@@ -222,32 +256,44 @@ export default function Heatmap({
         </p>
       )}
 
-      {/* Baris = hari (d), kolom = pekan (w); auto-placement row-major.
-          Data dipetakan berurutan: kolom terakhir = pekan berjalan,
-          sel terakhir = hari ini. */}
+      {/* Baris = hari (Senin–Minggu), kolom = pekan (kolom terakhir =
+          pekan berjalan); auto-placement row-major — sel = tanggal nyata
+          (v2.45: kolom kini benar-benar pekan, bukan 12 hari berurutan).
+          Sel masa depan = span inert (belum terjadi, tak bisa dibuka). */}
       <div
         className="mt-3 grid grid-cols-[repeat(12,minmax(0,1fr))] gap-1"
       >
         {Array.from({ length: 7 }, (_, d) =>
           Array.from({ length: WEEKS }, (_, w) => {
-            const idx = d * WEEKS + w
-            const sd = schedDays[idx]
+            const iso = addDaysISO(mondays[w]!, d)
+            const future = iso > today
+            if (future) {
+              return (
+                <span
+                  key={`${d}-${w}`}
+                  aria-hidden="true"
+                  className="h-6 w-full rounded-[5px] bg-surface-primary/40 shadow-[inset_0_0_0_1px_var(--border)]"
+                />
+              )
+            }
+            const cd = countBy.get(iso)
+            const sd = schedBy.get(iso)
             /* Mode kepatuhan: hari tanpa jadwal = soket kosong (outline),
                bukan warna level-0 — beda dari 0% sungguhan. */
-            const unscheduled = mode === 'kepatuhan' && sd.pct == null
+            const unscheduled = mode === 'kepatuhan' && (sd?.pct == null)
             const level =
               mode === 'jumlah'
-                ? levelOf(countDays[idx].count)
-                : levelOfPct(sd.pct ?? 0)
-            const isToday = w === WEEKS - 1 && d === 6
+                ? levelOf(cd?.count ?? 0)
+                : levelOfPct(sd?.pct ?? 0)
+            const isToday = iso === today
             return (
               <button
                 key={`${d}-${w}`}
                 type="button"
                 data-cell
-                aria-label={`Pekan ${WEEKS - w}, ${cellText(idx)}`}
-                title={`Pekan ${WEEKS - w}, ${cellText(idx)}`}
-                onClick={() => setSel({ w, d })}
+                aria-label={cellText(iso)}
+                title={cellText(iso)}
+                onClick={() => setSelIso(iso)}
                 className={
                   'h-6 w-full cursor-pointer rounded-[5px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                   (isToday
@@ -267,10 +313,13 @@ export default function Heatmap({
       {/* v2.16 (audit T5-d #5): umumkan pilihan sel ke pembaca layar —
           selaras dengan spend-heatmap & month-calendar. */}
       <p aria-live="polite" className="mt-3 text-eyebrow font-medium text-content-muted">
-        {sel && selEntry
-          ? `Pekan ${WEEKS - sel.w}, ${cellText(sel.d * WEEKS + sel.w)}`
-          : 'Ketuk sel untuk melihat detail hari.'}
+        {selIso ? cellText(selIso) : 'Ketuk sel untuk melihat detail hari.'}
       </p>
+
+      {/* v2.45 (review Tahap 2): drilldown penuh — lembar hari membuka
+          tanggal, X dari Y selesai, dan status tiap kebiasaan
+          (Selesai/Jeda/Belum selesai — termasuk yang terlewat). */}
+      <DayDetailSheet date={selIso} onClose={() => setSelIso(null)} />
 
       {/* Legenda intensitas — berlabel sesuai mode (audit v2.36). */}
       <div

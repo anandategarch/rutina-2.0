@@ -153,7 +153,12 @@ function useDayData(shown: string): DayData | null {
   const today = todayISO()
 
   return useMemo<DayData | null>(() => {
-    const dayHabits = habitsOn(habits, shown)
+    /* v2.45 (audit): hanya kebiasaan yang SUDAH ADA pada tanggal itu —
+       hari sebelum kebiasaan diciptakan tidak menampilkannya sebagai
+       "seharusnya" (konsisten daySchedules & habitWeeklyRates). */
+    const dayHabits = habitsOn(habits, shown).filter(
+      (h) => h.createdAt <= shown,
+    )
     const habitRows: HabitRow[] = dayHabits.map((h) => ({
       id: h.id,
       title: h.title,

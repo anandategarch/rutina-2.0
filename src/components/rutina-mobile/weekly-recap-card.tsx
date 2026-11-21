@@ -9,6 +9,7 @@ import {
   BarChart3,
   CalendarCheck,
   CheckCircle2,
+  Crown,
   Dumbbell,
   Flame,
   Sprout,
@@ -47,13 +48,24 @@ interface ChipSpec {
   value: string
 }
 
-export function WeeklyRecapCard() {
+export function WeeklyRecapCard({
+  /** v2.45 (revisi audit): gulir ke atas SETELAH "Buka di Agenda" —
+   *  layar Beranda menggulir di kontainer sendiri (bukan window),
+   *  jadi window.scrollTo dulunya no-op; pemanggil yang tahu kontainer
+   *  yang menyediakan aksinya. */
+  onNavigateToAgenda,
+}: {
+  onNavigateToAgenda?: () => void
+} = {}) {
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const dailyGoal = useRutina((s) => s.dailyGoal)
   const workouts = useRutina((s) => s.workouts)
   const txs = useRutina((s) => s.txs)
   const setScreen = useRutina((s) => s.setScreen)
+  /* v2.45 (review): ketuk "Buka di Agenda" memindahkan DateStrip ke
+     tanggal itu — rekap jadi pintu masuk, bukan jalan buntu. */
+  const setSelectedDate = useRutina((s) => s.setSelectedDate)
 
   /* v2.27 audit motion: gerbang anti-replay entrance. */
   const playEntrance = useFirstVisit('home-recap')
@@ -75,6 +87,16 @@ export function WeeklyRecapCard() {
 
   /* Aktivitas hari terpilih — sesi latihan & arus kas nyata. */
   const sel = recap.days.find((d) => d.iso === selectedDay) ?? null
+  /* v2.45 (review Tahap 2): HARI TERBAIK pekan ini — misi terbanyak di
+     antara hari yang sudah berjalan (seri → terawal); tanpa misi sama
+     sekali = tidak ada mahkota (bukan 0 yang dipaksa). Tanpa useMemo:
+     rekayasa 7 hari murah, dan recap.days selalu array baru tiap render
+     sehingga memoisasi tidak pernah menghemat apa pun. */
+  const bestIso = (() => {
+    const eligible = recap.days.filter((d) => !d.isFuture && d.done > 0)
+    if (eligible.length === 0) return null
+    return eligible.reduce((a, b) => (b.done > a.done ? b : a)).iso
+  })()
   const selWorkouts = sel
     ? workouts.filter((w) => w.date === sel.iso).length
     : 0
@@ -210,6 +232,9 @@ export function WeeklyRecapCard() {
                 ? 'partial'
                 : 'none'
             const daySelected = selectedDay === d.iso
+            /* v2.45 (review): hari terbaik pekan ini — hari masa depan
+               tidak diperebutkan; seri dimenangkan hari terawal. */
+            const isBest = !d.isFuture && d.iso === bestIso
             return (
               <div
                 key={d.iso}
@@ -228,9 +253,18 @@ export function WeeklyRecapCard() {
                     aria-label={`${longDateLabel(d.iso)} — ${d.done} misi (${Math.min(
                       100,
                       Math.round((d.done / Math.max(dailyGoal, 1)) * 100),
-                    )}% dari target ${dailyGoal})${d.metGoal ? ', target tercapai' : ''}`}
-                    className="interactive flex cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    )}% dari target ${dailyGoal})${d.metGoal ? ', target tercapai' : ''}${isBest ? ' — hari terbaik pekan ini' : ''}`}
+                    className="interactive relative flex cursor-pointer flex-col items-center rounded-xl p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
+                    {isBest && (
+                      <span
+                        className="absolute -top-2 left-1/2 z-10 flex h-4 w-4 -translate-x-1/2 items-center justify-center rounded-full bg-secondary shadow-soft"
+                        aria-hidden="true"
+                        title="Hari terbaik pekan ini"
+                      >
+                        <Crown className="h-2.5 w-2.5 text-success" strokeWidth={2.6} />
+                      </span>
+                    )}
                     <m.div
                       initial={playEntrance ? { scale: 0, opacity: 0 } : false}
                       whileInView={{ scale: 1, opacity: 1 }}
@@ -380,14 +414,31 @@ export function WeeklyRecapCard() {
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => setSheetDay(sel.iso)}
-                className="interactive mt-2.5 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 text-eyebrow font-bold text-content-secondary hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                {sel.isToday ? 'Detail lengkap hari ini' : 'Lihat detail lengkap'}
-              </button>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSheetDay(sel.iso)}
+                  className="interactive flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 text-eyebrow font-bold text-content-secondary hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  {sel.isToday ? 'Detail lengkap hari ini' : 'Lihat detail lengkap'}
+                </button>
+                {/* v2.45 (review): ketuk → DateStrip & Agenda Beranda pindah
+                    ke tanggal itu (tidak untuk hari ini — sudah di sana). */}
+                {!sel.isToday && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDate(sel.iso)
+                      setSelectedDay(null)
+                      onNavigateToAgenda?.()
+                    }}
+                    className="interactive flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-3.5 text-eyebrow font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    Buka di Agenda
+                  </button>
+                )}
+              </div>
             </div>
           </m.div>
         )}

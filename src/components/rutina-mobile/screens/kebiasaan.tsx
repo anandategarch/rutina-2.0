@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LayoutGroup,
   useReducedMotion,
@@ -622,6 +622,9 @@ function HabitDetailPanel({
     history.filter((h) => h.status === s).length
   const nDone = statusCount('done')
   const nMissed = statusCount('missed')
+  /* v2.45 (audit): hari berjalan PENDING — hari ini yang belum selesai
+     di jam 08.00 bukan "terlewat"; vonis menunggu sampai tengah malam. */
+  const nPending = statusCount('pending')
   const nRest = statusCount('rest')
   const nUnscheduled = statusCount('unscheduled')
 
@@ -791,7 +794,7 @@ function HabitDetailPanel({
           </div>
           <div
             role="img"
-            aria-label={`Riwayat 30 hari: ${nDone} hari selesai sesuai jadwal, ${nMissed} terjadwal tapi terlewat, ${nRest} hari jeda diampuni, ${nUnscheduled} tanpa jadwal`}
+            aria-label={`Riwayat 30 hari: ${nDone} hari selesai sesuai jadwal, ${nMissed} terjadwal tapi terlewat, ${nPending} hari ini masih berjalan, ${nRest} hari jeda diampuni, ${nUnscheduled} tanpa jadwal`}
             className="mt-2 flex flex-wrap gap-1"
           >
             {history.map((h) => (
@@ -803,11 +806,13 @@ function HabitDetailPanel({
                     ? 'Selesai'
                     : h.status === 'missed'
                       ? 'Terjadwal, belum selesai'
-                      : h.status === 'rest'
-                        ? 'Hari jeda'
-                        : h.status === 'future'
-                          ? 'Akan datang'
-                          : 'Tanpa jadwal'
+                      : h.status === 'pending'
+                        ? 'Hari ini — masih ada waktu'
+                        : h.status === 'rest'
+                          ? 'Hari jeda'
+                          : h.status === 'future'
+                            ? 'Akan datang'
+                            : 'Tanpa jadwal'
                 }
                 className={
                   'h-2.5 w-2.5 rounded-full ' +
@@ -815,21 +820,24 @@ function HabitDetailPanel({
                     ? 'bg-module-accent'
                     : h.status === 'missed'
                       ? 'bg-clay'
-                      : h.status === 'rest'
-                        ? 'bg-module-accent/35'
-                        : h.status === 'future'
-                          ? 'bg-surface-sunken opacity-50'
-                          : 'bg-surface-sunken')
+                      : h.status === 'pending'
+                        ? 'bg-module-accent/50'
+                        : h.status === 'rest'
+                          ? 'bg-module-accent/35'
+                          : h.status === 'future'
+                            ? 'bg-surface-sunken opacity-50'
+                            : 'bg-surface-sunken')
                 }
               />
             ))}
           </div>
-          {/* Legenda lima status — hanya yang benar-benar ada. */}
+          {/* Legenda status — hanya yang benar-benar ada. */}
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
             {(
               [
                 ['done', 'bg-module-accent', 'selesai'],
                 ['missed', 'bg-clay', 'terlewat'],
+                ['pending', 'bg-module-accent/50', 'hari ini'],
                 ['rest', 'bg-module-accent/35', 'jeda'],
                 ['unscheduled', 'bg-surface-sunken', 'tanpa jadwal'],
               ] as const
@@ -1006,6 +1014,12 @@ export default function KebiasaanScreen() {
   /* Perpustakaan (audit v2.37): pencarian inventaris + grup collapsible. */
   const [libraryQuery, setLibraryQuery] = useState('')
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  /* v2.45 (review Tahap 2): filter pintar Perpustakaan — dihitung dari
+     data nyata (konsistensi 4 pekan, keberadaan target, tautan Bugar),
+     bukan label manual yang harus dirawat tangan. */
+  const [libFilter, setLibFilter] = useState<
+    'semua' | 'konsisten' | 'perhatian' | 'terukur' | 'bugar'
+  >('semua')
 
   /* Lebar konten nyata (ResizeObserver) — menentukan Panel Detail sebagai
      bottom sheet (sempit) atau kolom sticky (≥52rem). */
@@ -1099,7 +1113,11 @@ export default function KebiasaanScreen() {
     let schedRemaining = 0
     for (let i = 0; i < 7; i++) {
       const iso = addDaysISO(start, i)
-      const scheduled = habitsOn(habits, iso)
+      /* v2.45 (audit): hanya hitung hari SETELAH kebiasaan diciptakan —
+         kebiasaan baru Rabu tidak mengecilkan capaian pekan karena
+         Senin-Selasa "seharusnya" terjadwal (konsisten daySchedules &
+         habitWeeklyRates yang sudah sadar-createdAt). */
+      const scheduled = habitsOn(habits, iso).filter((h) => h.createdAt <= iso)
       if (iso <= today) {
         schedElapsed += scheduled.length
         doneElapsed += scheduled.filter((h) =>
@@ -1141,6 +1159,15 @@ export default function KebiasaanScreen() {
           (h) => !scheduledOn(h, today) && !isDoneOn(completions, today, h.id),
         )
         .slice(0, 2),
+    [habits, completions, today],
+  )
+  /* v2.45 (audit): total pemulihan SEBELUM dipangkas 2 — salinan kartu
+     jangan mengklaim "2 terlewat" saat kenyataannya 5. */
+  const missedCoachTotal = useMemo(
+    () =>
+      missedYesterday(habits, completions, today).filter(
+        (h) => !scheduledOn(h, today) && !isDoneOn(completions, today, h.id),
+      ).length,
     [habits, completions, today],
   )
   const coachGroups = useMemo(
@@ -1219,27 +1246,99 @@ export default function KebiasaanScreen() {
 
   /* Perpustakaan: pencarian inventaris (audit v2.37) — filter judul &
      kategori; saat mencari, semua grup dipaksa terbuka agar hasil
-     langsung terlihat. */
+     langsung terlihat. Filter pintar (v2.45) dihitung dari data nyata:
+     Konsisten = rata² kepatuhan 4 pekan ≥ 80%; Perlu perhatian < 50%
+     (pekan tanpa jadwal tidak dihitung); Terukur = punya target;
+     Terhubung Bugar = tertaut aktivitas latihan. */
   const normalizedQuery = libraryQuery.trim().toLowerCase()
+
+  /* Rata² kepatuhan 4 pekan satu kebiasaan — null bila tak ada pekan
+     berjadwal (belum bisa dinilai, bukan 0%). */
+  const avgCompliance = useCallback(
+    (h: Habit) => {
+      const rates = habitWeeklyRates(h, completions, today, 4).filter(
+        (r) => r.pct != null,
+      )
+      if (rates.length === 0) return null
+      return rates.reduce((a, r) => a + (r.pct ?? 0), 0) / rates.length
+    },
+    [completions, today],
+  )
+
+  const smartMatch = useCallback(
+    (h: Habit) => {
+      if (libFilter === 'semua') return true
+      if (libFilter === 'terukur') return h.target != null
+      if (libFilter === 'bugar') return h.linkedActivity != null
+      const avg = avgCompliance(h)
+      if (avg == null) return false
+      return libFilter === 'konsisten' ? avg >= 80 : avg < 50
+    },
+    [libFilter, avgCompliance],
+  )
+
+  const smartCounts = useMemo(() => {
+    let konsisten = 0
+    let perhatian = 0
+    let terukur = 0
+    let bugar = 0
+    for (const h of activeHabits) {
+      if (h.target != null) terukur++
+      if (h.linkedActivity != null) bugar++
+      const avg = avgCompliance(h)
+      if (avg != null) {
+        if (avg >= 80) konsisten++
+        else if (avg < 50) perhatian++
+      }
+    }
+    return { konsisten, perhatian, terukur, bugar }
+  }, [activeHabits, avgCompliance])
+
   const libraryGroups = useMemo(() => {
-    if (!normalizedQuery) return catGroups
-    return catGroups
-      .map((g) => ({
-        ...g,
-        items: g.items.filter(
-          (h) =>
-            h.title.toLowerCase().includes(normalizedQuery) ||
-            h.cat.toLowerCase().includes(normalizedQuery),
-        ),
-      }))
+    const base = !normalizedQuery
+      ? catGroups
+      : catGroups
+          .map((g) => ({
+            ...g,
+            items: g.items.filter(
+              (h) =>
+                h.title.toLowerCase().includes(normalizedQuery) ||
+                h.cat.toLowerCase().includes(normalizedQuery),
+            ),
+          }))
+          .filter((g) => g.items.length > 0)
+    /* Filter pintar diterapkan SETELAH pencarian — kombinasi keduanya
+       bekerja bersama. */
+    if (libFilter === 'semua') return base
+    return base
+      .map((g) => ({ ...g, items: g.items.filter(smartMatch) }))
       .filter((g) => g.items.length > 0)
-  }, [catGroups, normalizedQuery])
+  }, [catGroups, normalizedQuery, libFilter, smartMatch])
 
   const hasNoHabits = habits.length === 0
 
   /* Buka/tutup detail baris perpustakaan (ketuk ulang untuk menutup). */
   const toggleSelect = (id: string) =>
     setSelectedId((prev) => (prev === id ? null : id))
+
+  /* v2.45 (audit + review): satu jalur buka-detail dari semua bedeng
+     visual (matriks konsistensi, taman pertumbuhan) — di ruang kerja
+     lebar panel detail hidup jauh di bawah (seksi Perpustakaan): antar
+     pandangan pengguna ke sana, bukan diam-diam mengubah yang tak
+     terlihat. */
+  const openHabitDetail = useCallback(
+    (id: string) => {
+      setSelectedId(id)
+      if (libraryWide) {
+        requestAnimationFrame(() => {
+          document
+            .getElementById('detail-kebiasaan')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        })
+      }
+    },
+    [libraryWide],
+  )
 
   /* Buka/tutup grup perpustakaan (audit v2.37 — collapsible). */
   const toggleGroup = (key: string) =>
@@ -1650,7 +1749,11 @@ export default function KebiasaanScreen() {
                             ? missedCoach[0]!.mini
                               ? 'Terlewat kemarin — coba versi mininya dulu, atau centang kemarin di bawah.'
                               : 'Terlewat kemarin — satu centang kemarin menyelamatkan runtun.'
-                            : `${missedCoach.length} kebiasaan terlewat kemarin — satu centang kemarin per kebiasaan menyelamatkan runtunnya.`}
+                            : /* v2.45 (audit): akui pangkasan — "2 terlewat"
+                                 hanya jujur bila memang 2, bukan 5. */
+                              missedCoachTotal > missedCoach.length
+                              ? `${missedCoach.length} dari ${missedCoachTotal} kebiasaan terlewat kemarin — satu centang kemarin per kebiasaan menyelamatkan runtunnya.`
+                              : `${missedCoach.length} kebiasaan terlewat kemarin — satu centang kemarin per kebiasaan menyelamatkan runtunnya.`}
                         </p>
                       </div>
                     </div>
@@ -1832,7 +1935,7 @@ export default function KebiasaanScreen() {
                   Tahap 2): semua kebiasaan aktif × 4 pekan — menemukan
                   yang paling konsisten / menurun / membaik / butuh
                   perhatian dalam satu pandangan; ketuk baris buka detail. */}
-              <HabitComparisonMatrix onSelect={setSelectedId} />
+              <HabitComparisonMatrix onSelect={openHabitDetail} />
 
               {/* Taman Pertumbuhan — bedeng tanaman di dalam zona kebun
                   yang sama; mode 'beds' menanam kisi melipat di ruang
@@ -1849,7 +1952,7 @@ export default function KebiasaanScreen() {
                   />
                 </div>
                 <div className="mt-5">
-                  <PlantGarden variant="beds" />
+                  <PlantGarden variant="beds" onSelect={openHabitDetail} />
                 </div>
               </>
               )}
@@ -1890,6 +1993,55 @@ export default function KebiasaanScreen() {
                   aria-label="Cari kebiasaan di perpustakaan"
                   className="h-11 rounded-full border-border bg-surface-primary pl-10 pr-4 text-note shadow-soft placeholder:text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 />
+              </div>
+            )}
+
+            {/* v2.45 (review Tahap 2): chip filter pintar — dihitung dari
+                data nyata, sembunyikan chip kosong (bukan 0). */}
+            {activeHabits.length > 0 && (
+              <div
+                role="group"
+                aria-label="Filter pintar perpustakaan"
+                className="mt-2.5 flex flex-wrap items-center gap-1.5"
+              >
+                {(
+                  [
+                    ['semua', 'Semua', activeHabits.length],
+                    ['konsisten', 'Konsisten', smartCounts.konsisten],
+                    ['perhatian', 'Perlu perhatian', smartCounts.perhatian],
+                    ['terukur', 'Terukur', smartCounts.terukur],
+                    ['bugar', 'Terhubung Bugar', smartCounts.bugar],
+                  ] as const
+                ).map(([id, label, count]) =>
+                  count > 0 || id === 'semua' ? (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={libFilter === id}
+                      onClick={() =>
+                        setLibFilter((prev) => (prev === id ? 'semua' : id))
+                      }
+                      title={
+                        id === 'konsisten'
+                          ? 'Rata² kepatuhan 4 pekan ≥ 80%'
+                          : id === 'perhatian'
+                            ? 'Rata² kepatuhan 4 pekan < 50%'
+                            : id === 'terukur'
+                              ? 'Punya target terukur'
+                              : id === 'bugar'
+                                ? 'Tertaut aktivitas Bugar'
+                                : 'Semua kebiasaan aktif'
+                      }
+                      className={`interactive h-8 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        libFilter === id
+                          ? 'bg-primary text-primary-foreground shadow-soft'
+                          : 'border border-border bg-surface-primary text-content-secondary hover:bg-surface-secondary hover:text-content-primary'
+                      }`}
+                    >
+                      {label}{' '}<span className="tabular-nums opacity-70">{count}</span>
+                    </button>
+                  ) : null,
+                )}
               </div>
             )}
 
@@ -1992,8 +2144,9 @@ export default function KebiasaanScreen() {
                    lebih tinggi. */}
                 {selectedHabit && libraryWide && (
                   <aside
+                    id="detail-kebiasaan"
                     aria-label="Detail kebiasaan terpilih"
-                    className="self-start @[52rem]:sticky @[52rem]:top-0 @[52rem]:col-span-5 @[52rem]:mt-4 @[52rem]:max-h-[calc(100dvh-12rem)] @[52rem]:overflow-y-auto no-scrollbar"
+                    className="self-start @[52rem]:sticky @[52rem]:top-0 @[52rem]:col-span-5 @[52rem]:mt-4 @[52rem]:max-h-[calc(100dvh-12rem)] @[52rem]:overflow-y-auto no-scrollbar scroll-mt-20"
                   >
                     <HabitDetailPanel
                       key={selectedHabit.id}

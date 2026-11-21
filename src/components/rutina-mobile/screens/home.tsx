@@ -73,6 +73,7 @@ import {
   shortDateLabel,
   todayISO,
   useRutina,
+  weekStartISO,
   WEEKDAY_MIN,
   XP_BONUS,
   XP_PER_TASK,
@@ -116,13 +117,6 @@ function getClientGreeting(): string {
 }
 
 /* ===== Utilitas pekan (Senin = awal pekan) ===== */
-
-/** Senin pada pekan yang memuat tanggal ISO tersebut. */
-function weekStartISO(iso: string): string {
-  const day = fromISO(iso).getDay() // 0=Minggu..6=Sabtu
-  const diff = day === 0 ? -6 : 1 - day
-  return addDaysISO(iso, diff)
-}
 
 /** Jumlah selesai sepanjang pekan (sampai tanggal yang dilihat). */
 function weekDoneCount(c: Completions, habitId: string, iso: string): number {
@@ -401,7 +395,9 @@ export default function HomeScreen() {
   const openHabitEdit = useRutina((s) => s.openHabitEdit)
   const setHabitArchived = useRutina((s) => s.setHabitArchived)
   const setCelebrating = useRutina((s) => s.setCelebrating)
-  const bonusClaimed = useRutina((s) => s.bonusClaimed)
+  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
+  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
+  const bonusClaimed = bonusClaimedOn === todayISO()
   const claimBonus = useRutina((s) => s.claimBonus)
   const setScreen = useRutina((s) => s.setScreen)
   const txs = useRutina((s) => s.txs)
@@ -440,12 +436,22 @@ export default function HomeScreen() {
 
   /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
   const todayHabits = useMemo(() => habitsOn(habits, today), [habits, today])
+  /* v2.45 (audit P0): pembilang SADAR-JADWAL — kebiasaan yang selesai di
+     luar jadwal (kartu pemulihan, Sorotan risiko runtun) tidak lagi
+     membuat "4 dari 3 misi" + "hari yang sempurna" palsu saat masih ada
+     misi terjadwal yang menunggu; bonus luar jadwal tampil sebagai
+     chip "+N" terpisah. */
+  const schedDoneToday = useMemo(
+    () => todayHabits.filter((h) => isDoneOn(completions, today, h.id)).length,
+    [todayHabits, completions, today],
+  )
   const doneToday = doneCountOn(completions, today)
+  const extraDoneToday = Math.max(doneToday - schedDoneToday, 0)
   const pct =
     todayHabits.length > 0
-      ? Math.min(Math.round((doneToday / todayHabits.length) * 100), 100)
+      ? Math.min(Math.round((schedDoneToday / todayHabits.length) * 100), 100)
       : 0
-  const missionRemaining = Math.max(todayHabits.length - doneToday, 0)
+  const missionRemaining = Math.max(todayHabits.length - schedDoneToday, 0)
   const xp = computeXp(doneToday, bonusClaimed)
   const level = computeLevel(xp)
   const xpProgress = Math.min(xp / XP_TARGET, 1)
@@ -524,7 +530,6 @@ export default function HomeScreen() {
   const visibleAgenda = compactAgenda
     ? attention.items.slice(0, HOME_AGENDA_LIMIT)
     : attention.items
-  const hiddenAgendaCount = totalPending - visibleAgenda.length
 
   const doneHabits = useMemo(
     () => dayHabits.filter((h) => isDoneOn(completions, selectedDate, h.id)),
@@ -600,7 +605,12 @@ export default function HomeScreen() {
      instan (direktif: jangan animasikan seluruh layout tiap ganti tab). */
   const playEntrance = useFirstVisit('home-daybook')
 
-  /* Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali. */
+  /* Perayaan + toast saat SEMUA misi hari ini selesai — hanya sekali.
+     v2.45 (audit): reset saat ganti hari — sesi panjang lintas tengah
+     malam tetap merayakan hari kedua. */
+  useEffect(() => {
+    firedRef.current = false
+  }, [today])
   useEffect(() => {
     if (
       todayHabits.length > 0 &&
@@ -733,7 +743,12 @@ export default function HomeScreen() {
                         Progres hari ini
                       </p>
                       <p className="mt-1 text-lead font-bold leading-tight tabular-nums text-content-primary">
-                        {doneToday} dari {todayHabits.length} misi
+                        {schedDoneToday} dari {todayHabits.length} misi
+                        {extraDoneToday > 0 && (
+                          <span className="ml-1.5 align-middle text-meta font-semibold text-success">
+                            +{extraDoneToday} bonus
+                          </span>
+                        )}
                       </p>
                       <p
                         className={
@@ -762,7 +777,7 @@ export default function HomeScreen() {
                     </p>
                   </div>
                   <MissionSteps
-                    done={doneToday}
+                    done={schedDoneToday}
                     total={todayHabits.length}
                     entrance={playEntrance}
                     className="mt-4"
@@ -1050,12 +1065,6 @@ export default function HomeScreen() {
                           {compactAgenda
                             ? `${visibleAgenda.length} dari ${totalPending} tugas`
                             : `${totalPending} tugas terjadwal`}
-                          {hiddenAgendaCount > 0 && (
-                            <span className="font-medium text-content-muted">
-                              {' '}
-                              · {hiddenAgendaCount} menunggu
-                            </span>
-                          )}
                         </p>
                         <div className="flex shrink-0 items-center gap-2">
                           {compactAgenda ? (
@@ -1301,7 +1310,13 @@ export default function HomeScreen() {
                           type="button"
                           onClick={() => {
                             toggleHabit(h.id, today)
-                            toast.success(`"${h.title}" selesai — streak kembali berjalan.`)
+                            /* v2.45 (audit): jangan janjikan streak — hari
+                               jadwal yang terlewat kemarin sudah putus;
+                               menyelesaikannya hari ini memulai runtun baru
+                               besok. */
+                            toast.success(
+                              `"${h.title}" tercatat untuk hari ini.`,
+                            )
                           }}
                           className="h-11 shrink-0 cursor-pointer rounded-full bg-primary px-4 text-eyebrow font-semibold text-primary-foreground shadow-soft transition-all hover:bg-action-hover active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                         >
@@ -1422,7 +1437,14 @@ export default function HomeScreen() {
           strip perjalanan. */}
       <RutinaBentoGrid>
         <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
-          <WeeklyRecapCard />
+          {/* onNavigateToAgenda: Beranda menggulir di kontainer sendiri —
+              "Buka di Agenda" membawa pandangan pengguna ke DateStrip di
+              puncak layar (revisi audit v2.45; window.scrollTo no-op). */}
+          <WeeklyRecapCard
+            onNavigateToAgenda={() =>
+              scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+            }
+          />
         </RutinaBentoItem>
 
         <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5 [&>section]:mt-0">

@@ -32,7 +32,7 @@ import type {
   WorkoutKind,
 } from './store'
 import { FIT_TARGETS_DEFAULT } from './store'
-import type { SyncState } from '@/lib/sync-schema'
+import { syncPutSchema, syncStateSchema, type SyncState } from '@/lib/sync-schema'
 
 /* ===== Konfigurasi ===== */
 
@@ -61,7 +61,7 @@ const DOMAIN_KEYS = [
   'moodLogs',
   'identityText',
   'deloadUntil',
-  'bonusClaimed',
+  'bonusClaimedOn',
   'quoteSaved',
   'quoteSavedDate',
   /* v2.22 */
@@ -267,7 +267,7 @@ function applyServerState(remote: SyncState): void {
     moodLogs: { ...(remote.moodLogs ?? {}) },
     identityText: remote.identityText ?? '',
     deloadUntil: remote.deloadUntil ?? null,
-    bonusClaimed: remote.bonusClaimed,
+    bonusClaimedOn: remote.bonusClaimedOn ?? null,
     quoteSaved: remote.quoteSaved,
     quoteSavedDate: remote.quoteSavedDate ?? null,
     /* v2.22 */
@@ -280,7 +280,7 @@ function applyServerState(remote: SyncState): void {
 
 /* ===== Push (PUT /api/state) ===== */
 
-async function push(): Promise<void> {
+async function push(opts: { keepalive?: boolean } = {}): Promise<void> {
   if (inFlight) {
     queued = true
     return
@@ -288,10 +288,38 @@ async function push(): Promise<void> {
   inFlight = true
   setSyncKind('syncing')
   try {
+    const payload = { state: snapshot() }
+    /* v2.45 (audit): pra-validasi dengan skema yang sama dengan server
+       — field di luar batas (judul >200, isi catatan >20rb, durasi sesi
+       >24 j) berhenti di sini dengan pesan jelas, bukan 422 abadi yang
+       tiap 2 menit menelan setiap push tanpa penjelasan. */
+    const check = syncPutSchema.safeParse(payload)
+    if (!check.success) {
+      const issue = check.error.issues[0]
+      const where = issue.path.join('.') || 'snapshot'
+      console.warn(`[sync] snapshot lokal ditolak skema: ${where} — ${issue.message}`)
+      toast.error('Data tidak bisa disinkronkan', {
+        description: `Bidang "${where}" melebihi batas (${issue.message}). Perubahan tetap aman di perangkat ini.`,
+        duration: 6000,
+      })
+      setSyncKind('error')
+      return
+    }
+    const body = JSON.stringify(payload)
     const res = await fetch('/api/state', {
       method: 'PUT',
       headers: syncHeaders({ 'content-type': 'application/json' }),
-      body: JSON.stringify({ state: snapshot() }),
+      body,
+      /* v2.45 (audit, revisi): keepalive HANYA untuk bilasan pagehide
+         yang memintanya DAN body masih jauh di bawah batas ±64 KiB
+         spek Fetch — keepalive pada push rutin membuat setiap PUT
+         pengguna mapan (snapshot setahunan ±240 KB) ditolak browser
+         dengan "Failed to fetch". Jalur rutin tidak memakai flag ini;
+         pagehide dengan body besar jatuh ke fetch biasa (masih lebih
+         baik daripada TypeError yang pasti gagal). */
+      ...(opts.keepalive && body.length < 60_000
+        ? { keepalive: true }
+        : {}),
     })
     if (!res.ok) throw new Error(`PUT /api/state → HTTP ${res.status}`)
     const now = Date.now()
@@ -344,7 +372,10 @@ function flushPendingEdits(): void {
     clearTimeout(pushTimer)
     pushTimer = null
   }
-  void push()
+  /* keepalive: true diminta di sini — jendela pagehide bisa membekukan
+     tab sebelum respons tiba; push() sendiri yang menjatuhkan flag bila
+     body melebihi jatah 64 KiB spek (lihat catatan di sana). */
+  void push({ keepalive: true })
 }
 
 function notifyError(): void {
@@ -374,7 +405,11 @@ function hasLegacyDemoSeed(): boolean {
     s.habits.some((h) => /^h[1-6]$/.test(h.id)) ||
     s.notes.some((n) => /^n[1-6]$/.test(n.id)) ||
     s.txs.some((t) => t.id.startsWith('f-')) ||
-    s.wallets.some((w) => w.id.startsWith('w-')) ||
+    /* v2.45 (audit P0): hanya id demo WARISAN (angka pendek w-1..w-99)
+       yang dianggap seed — `w-<13 digit stempel waktu>` adalah dompet
+       nyata buatan pengguna; deteksi lama menandai SEMUA pengguna
+       dompet sebagai demo → suntingan offline ditimpa server. */
+    s.wallets.some((w) => /^w-\d{1,4}$/.test(w.id)) ||
     s.goals.some((g) => /^g-\d+$/.test(g.id))
   )
 }
@@ -435,6 +470,23 @@ async function boot(): Promise<void> {
   }
 
   if (remote?.initialized && remote.state) {
+    /* v2.45 (audit): baris server yang cacat (mis. kebiasaan tanpa
+       jadwal) tidak boleh menjatuhkan boot() — validasi dulu dengan
+       skema; gagal → data lokal dipertahankan & status error (bukan
+       sync mati senyap dengan rejection tak tertangani). */
+    const check = syncStateSchema.safeParse(remote.state)
+    if (!check.success) {
+      const issue = check.error.issues[0]
+      console.warn(
+        `[sync] snapshot server tidak sehat: ${issue.path.join('.')} — ${issue.message}`,
+      )
+      setSyncKind('error')
+      ready = true
+      /* Data lokal dipertahankan & mesin tetap hidup — transaksi
+         berulang yang jatuh tempo tetap dimaterialisasi. */
+      materializeDue()
+      return
+    }
     const meta = readMeta()
     const serverPushAt = remote.syncedAt ? Date.parse(remote.syncedAt) : 0
     /* Bandingkan dalam SATU ranah waktu: lastEditAt & lastSyncedAt
@@ -461,7 +513,7 @@ async function boot(): Promise<void> {
     const demoSeed = hasLegacyDemoSeed()
     const neverSynced = (meta?.lastSyncedAt ?? 0) === 0
     const localBeatsEmpty =
-      isRemoteEmpty(remote.state) && hasLocalData() && neverSynced && !demoSeed
+      isRemoteEmpty(check.data) && hasLocalData() && neverSynced && !demoSeed
     if ((localNewer && !demoSeed) || localBeatsEmpty) {
       /* Ada suntingan lokal yang belum sempat terkirim → unggahkan. */
       await push()
@@ -469,10 +521,17 @@ async function boot(): Promise<void> {
       /* Server lebih baru / sejajar → tarik (server-menang). */
       suppress = true
       try {
-        applyServerState(remote.state)
+        applyServerState(check.data)
         const now = Date.now()
         patchMeta({ lastSyncedAt: now })
         setSyncKind('synced', now)
+      } catch (error) {
+        /* v2.45 (audit): penerapan gagal → lokal utuh, status error
+           yang terlihat — bukan rejection tak tertangani yang membunuh
+           seluruh mesin sinkronisasi sampai reload (dan reload
+           mereproduksinya lagi). */
+        console.warn('[sync] applyServerState gagal:', error)
+        setSyncKind('error')
       } finally {
         suppress = false
       }
@@ -484,16 +543,24 @@ async function boot(): Promise<void> {
   /* remote === null → offline: tetap hidup dari localStorage. */
 
   /* 3. Transaksi berulang yang jadwalnya tiba (bisa memicu push). */
-  try {
-    useRutina.getState().materializeRecurring()
-  } catch (error) {
-    console.warn('[sync] materializeRecurring gagal:', error)
-  }
+  materializeDue()
 
   ready = true
 }
 
 /* ===== Hook ===== */
+
+/** Transaksi berulang yang jatuh tempo — aman dipanggil dari cabang
+ *  mana pun di akhir boot() (revisi audit v2.45: cabang snapshot server
+ *  cacat dulunya lompati langkah ini, menunda kemunculan salinan
+ *  transaksi berulang sampai boot sehat berikutnya). */
+function materializeDue(): void {
+  try {
+    useRutina.getState().materializeRecurring()
+  } catch (error) {
+    console.warn('[sync] materializeRecurring gagal:', error)
+  }
+}
 
 /** Pasang sekali di shell aplikasi (RutinaApp): boot + langganan push. */
 export function useSyncEngine(): void {
@@ -639,36 +706,56 @@ export async function importBackup(raw: string): Promise<string | null> {
   if (!c || typeof c !== 'object' || !Array.isArray(c.habits) || !Array.isArray(c.txs)) {
     return 'Berkas bukan cadangan Rutina yang dikenali.'
   }
+  /* v2.45 (audit): cadangan divalidasi PENUH dengan skema yang sama
+     dengan server SEBELUM disentuhkan ke store — entri sampah (objek
+     kosong dari JSON asing) tak lagi membocor masuk, mempersist, lalu
+     merusak UI sampai pull sehat berikutnya. Domain yang absen diisi
+     default jujur (cadangan parsial tetap diterima). */
+  const cleaned: Record<string, unknown> = { ...c }
+  for (const key of [
+    'habits',
+    'notes',
+    'txs',
+    'goals',
+    'wallets',
+    'customCats',
+    'workouts',
+    'foodEntries',
+    'habitGroups',
+    'hiddenCats',
+  ]) {
+    if (Array.isArray(cleaned[key])) {
+      cleaned[key] = (cleaned[key] as unknown[]).filter(
+        (x) => x !== null && typeof x === 'object' && !Array.isArray(x),
+      )
+    }
+  }
+  const candidateState = {
+    habits: [],
+    completions: {},
+    notes: [],
+    txs: [],
+    goals: [],
+    wallets: [],
+    budgets: {},
+    workouts: [],
+    foodEntries: [],
+    calorieTarget: c.calorieTarget ?? 2000,
+    bodyLogs: {},
+    dailyGoal: c.dailyGoal ?? 4,
+    mood: c.mood ?? null,
+    quoteSaved: c.quoteSaved ?? false,
+    ...cleaned,
+  }
+  const check = syncStateSchema.safeParse(candidateState)
+  if (!check.success) {
+    const issue = check.error.issues[0]
+    const where = issue.path.join('.')
+    return `Isi cadangan tidak sehat pada "${where || 'snapshot'}" — ${issue.message}.`
+  }
   suppress = true
   try {
-    applyServerState({
-      habits: [],
-      completions: {},
-      habitAuto: {},
-      notes: [],
-      txs: [],
-      goals: [],
-      wallets: [],
-      budgets: {},
-      customCats: [],
-      workouts: [],
-      foodEntries: [],
-      calorieTarget: c.calorieTarget ?? 2000,
-      bodyLogs: {},
-      dailyGoal: c.dailyGoal ?? 4,
-      mood: c.mood ?? null,
-      moodLogs: c.moodLogs ?? {},
-      identityText: c.identityText ?? '',
-      deloadUntil: c.deloadUntil ?? null,
-      bonusClaimed: c.bonusClaimed ?? false,
-      quoteSaved: c.quoteSaved ?? false,
-      quoteSavedDate: c.quoteSavedDate ?? null,
-      habitGroups: c.habitGroups ?? [],
-      catRenames: c.catRenames ?? {},
-      hiddenCats: c.hiddenCats ?? [],
-      fitTargets: c.fitTargets ?? FIT_TARGETS_DEFAULT,
-      ...c,
-    } as SyncState)
+    applyServerState(check.data)
     patchMeta({ lastEditAt: Date.now() })
   } finally {
     suppress = false

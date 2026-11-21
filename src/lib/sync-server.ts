@@ -67,6 +67,21 @@ function parseAutoWo(json: string | null | undefined): string[] {
   }
 }
 
+/** v2.45: aman baca log kontribusi target {ts, amount}[] dari kolom
+ *  JSON Goal.contributions — kolom lama/null/rusak jatuh ke []. */
+function parseContributions(
+  json: string | null | undefined,
+): { ts: string; amount: number }[] {
+  try {
+    const parsed = json ? JSON.parse(json) : []
+    return Array.isArray(parsed)
+      ? (parsed as { ts: string; amount: number }[])
+      : []
+  } catch {
+    return []
+  }
+}
+
 /** Aman baca nilai base provenance (boolean | number) dari kolom. */
 function parseAutoBase(
   json: string | null | undefined,
@@ -290,6 +305,10 @@ export async function readFullState(): Promise<FullStateResult> {
       name: g.name,
       target: g.target,
       saved: g.saved,
+      /* v2.45: log kontribusi ikut round-trip — tanpa ini applyServerState
+         mengganti goals lokal dengan versi TANPA log, menghapus histori
+         setor di perangkat asal sekalipun. */
+      contributions: parseContributions(g.contributions),
     })),
     wallets: wallets.map((w) => ({ id: w.id, name: w.name, initial: w.initial })),
     budgets: Object.fromEntries(budgets.map((b) => [b.cat, b.amount])),
@@ -303,7 +322,8 @@ export async function readFullState(): Promise<FullStateResult> {
     moodLogs: moodLogMap,
     identityText: settingsMap.get(SYNC_SETTING_KEYS.identityText) ?? '',
     deloadUntil: deloadRaw && deloadRaw.length > 0 ? deloadRaw : null,
-    bonusClaimed: settingsMap.get(SYNC_SETTING_KEYS.bonusClaimed) === 'true',
+    bonusClaimedOn:
+      (settingsMap.get(SYNC_SETTING_KEYS.bonusClaimedOn) ?? '') || null,
     quoteSaved: settingsMap.get(SYNC_SETTING_KEYS.quoteSaved) === 'true',
     quoteSavedDate:
       quoteDateRaw && quoteDateRaw.length > 0 ? quoteDateRaw : null,
@@ -405,7 +425,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
       key: SYNC_SETTING_KEYS.quoteSavedDate,
       value: state.quoteSavedDate ?? '',
     },
-    { key: SYNC_SETTING_KEYS.bonusClaimed, value: String(state.bonusClaimed) },
+    { key: SYNC_SETTING_KEYS.bonusClaimedOn, value: state.bonusClaimedOn ?? '' },
     { key: SYNC_SETTING_KEYS.quoteSaved, value: String(state.quoteSaved) },
     /* v2.22: ganti nama kategori, kategori tersembunyi, sasaran bugar. */
     {
@@ -541,6 +561,7 @@ export async function writeFullState(state: SyncState): Promise<WriteCounts> {
               name: g.name,
               target: g.target,
               saved: g.saved,
+              contributions: JSON.stringify(g.contributions ?? []),
             })),
           }),
         ]

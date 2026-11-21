@@ -10,19 +10,31 @@ import {
 
 /* ===== Format angka Rupiah ===== */
 
-/** "Rp8.500.000" — pemisah ribuan gaya Indonesia. */
+/** "Rp8.500.000" — pemisah ribuan gaya Indonesia; negatif memakai
+ *  tanda minus tipografis DI DEPAN "Rp" (v2.45: dulu "Rp-25.000"). */
 export function formatIDR(n: number): string {
-  return 'Rp' + n.toLocaleString('id-ID')
+  const sign = n < 0 ? '−' : ''
+  return sign + 'Rp' + Math.abs(n).toLocaleString('id-ID')
 }
 
-/** Bentuk ringkas untuk label kecil: 8.500.000 -> "8,5 jt", 250.000 -> "250 rb". */
+/** Bentuk ringkas untuk label kecil: 8.500.000 -> "8,5 jt", 250.000 ->
+ *  "250 rb", 2,5 miliar -> "2,5 M" (v2.45: tingkat miliar + tanda minus
+ *  di depan — dulu nominal ≥ 1 jt yang negatif jatuh ke cabang "rb"). */
 export function formatIDRShort(n: number): string {
-  if (n >= 1_000_000) {
-    const v = n / 1_000_000
-    return `${v.toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt`
+  const sign = n < 0 ? '−' : ''
+  const v = Math.abs(n)
+  if (v >= 1_000_000_000) {
+    return `${sign}${(v / 1_000_000_000).toLocaleString('id-ID', {
+      maximumFractionDigits: 1,
+    })} M`
   }
-  if (n >= 1_000) return `${Math.round(n / 1_000)} rb`
-  return String(n)
+  if (v >= 1_000_000) {
+    return `${sign}${(v / 1_000_000).toLocaleString('id-ID', {
+      maximumFractionDigits: 1,
+    })} jt`
+  }
+  if (v >= 1_000) return `${sign}${Math.round(v / 1_000)} rb`
+  return `${sign}${v}`
 }
 
 const MONTHS_ID = [

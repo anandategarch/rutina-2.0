@@ -160,6 +160,10 @@ model Goal {
   name   String
   target Int
   saved  Int    @default(0)
+  /// v2.45: JSON {ts, amount}[] — log kontribusi NYATA untuk riwayat
+  /// setor bulanan (sebelumnya hanya angka saved yang tersinkron,
+  /// sehingga log kontribusi baru terhapus pada round-trip server).
+  contributions String @default("[]")
 
   @@map("rutina_goals")
 }

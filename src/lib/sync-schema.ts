@@ -19,7 +19,8 @@ export const SYNC_SETTING_KEYS = {
   calorieTarget: 'app.calorieTarget',
   dailyGoal: 'app.dailyGoal',
   mood: 'app.mood',
-  bonusClaimed: 'app.bonusClaimed',
+  /** v2.45: tanggal (ISO) klaim bonus terakhir — null bila belum. */
+  bonusClaimedOn: 'app.bonusClaimedOn',
   quoteSaved: 'app.quoteSaved',
   /** Suara Identitas — teks identitas personal pengguna. */
   identityText: 'app.identityText',
@@ -178,6 +179,16 @@ export const goalSchema = z.object({
   name: z.string().min(1).max(120),
   target: z.number().int().min(0).max(1_000_000_000_000),
   saved: z.number().int().min(0).max(1_000_000_000_000),
+  /** v2.45: log kontribusi nyata {ts, amount} — opsional (data lama). */
+  contributions: z
+    .array(
+      z.object({
+        ts: z.string().min(1).max(40),
+        amount: z.number().int().min(-1_000_000_000).max(1_000_000_000),
+      }),
+    )
+    .max(500)
+    .optional(),
 })
 export const goalInputSchema = goalSchema.omit({ id: true, saved: true })
 export const goalPatchSchema = goalSchema.omit({ id: true }).partial()
@@ -294,7 +305,7 @@ export const syncStateSchema = z.object({
   identityText: z.string().max(600).default(''),
   /** Batas akhir deload (ISO), null bila tidak aktif. */
   deloadUntil: isoDate.nullable().default(null),
-  bonusClaimed: z.boolean(),
+  bonusClaimedOn: isoDate.nullable().default(null),
   quoteSaved: z.boolean(),
   /** Tanggal kutipan harian terakhir disimpan. */
   quoteSavedDate: isoDate.nullable().default(null),
