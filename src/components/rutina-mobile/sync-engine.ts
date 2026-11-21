@@ -41,6 +41,19 @@ const RETRY_QUEUED_MS = 1500
 const ERROR_TOAST_COOLDOWN_MS = 120_000
 const META_KEY = 'rutina-2.0-sync-meta'
 
+/* ===== Ulangan otomatis dengan backoff (v2.53) =====
+   Dulunya push yang gagal menunggu suntingan berikutnya / event online /
+   fokus — akibatnya kegagalan TRANSIEN saat membuka aplikasi (jaringan
+   ponsel baru bangun, cold start server) langsung memunculkan toast
+   "Gagal menyinkronkan ke cloud" sebagai hal pertama yang dilihat
+   pengguna, padahal datanya aman dan sebentar lagi pasti terkirim.
+   Kini setiap kegagalan push (perangkat tetap online) dijadwalkan ulang
+   otomatis: 4 dtk → 12 → 30 → 60 → 120; toast hanya muncul untuk
+   kegagalan PENETAP (percobaan ke-3+) atau yang dipicu suntingan
+   pengguna. Setelah jatah ulangan habis, mesin menunggu pemicu berikutnya
+   (suntingan / online / fokus). */
+const RETRY_DELAYS_MS = [4_000, 12_000, 30_000, 60_000, 120_000] as const
+
 /** Slice domain yang dipush ke server — selaras partialize store. */
 const DOMAIN_KEYS = [
   'habits',
@@ -100,8 +113,16 @@ let ready = false
 let suppress = false
 let pushTimer: ReturnType<typeof setTimeout> | null = null
 let inFlight = false
-let queued = false
+let queuedReason: PushReason | null = null
 let lastErrorToast = 0
+/* Bilangan kegagalan beruntun — nol saat sinkron sehat. */
+let retryAttempt = 0
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+/** Asal permintaan push — menentukan sopan-santun toast kegagalan:
+    'edit' (suntingan pengguna / tombol coba-lagi) → beri tahu segera;
+    'background' (bilasan boot/ulangan) → senyap sampai kegagalan menetap. */
+type PushReason = 'edit' | 'background'
 
 /* ===== Status sinkronisasi reaktif (v2.23) =====
    Empat keadaan yang dibaca UI indikator (sidebar desktop & rail Profil):
@@ -141,9 +162,10 @@ export function useSyncStatus(): SyncStatusState {
 }
 
 /** Aksi "Coba lagi" pada indikator gagal/offline — dorong snapshot
- *  sekarang; push() sendiri yang menuntaskan transisi status. */
+ *  sekarang; push() sendiri yang menuntaskan transisi status. Dipicu
+ *  pengguna → kegagalannya layak diberitahukan segera (reason 'edit'). */
 export function retrySync(): void {
-  schedulePush(0)
+  schedulePush(0, 'edit')
 }
 
 /* ===== Meta di localStorage ===== */
@@ -280,9 +302,28 @@ function applyServerState(remote: SyncState): void {
 
 /* ===== Push (PUT /api/state) ===== */
 
-async function push(opts: { keepalive?: boolean } = {}): Promise<void> {
+/** Jadwalkan ulangan otomatis — hanya bila masih ada jatah & ada
+ *  suntingan yang belum terkirim. */
+function scheduleRetry(delay: number): void {
+  if (retryTimer) clearTimeout(retryTimer)
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    void push({ reason: 'background' })
+  }, delay)
+}
+
+function clearRetry(): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+    retryTimer = null
+  }
+}
+
+async function push(opts: { keepalive?: boolean; reason?: PushReason } = {}): Promise<void> {
+  const reason: PushReason = opts.reason ?? 'background'
   if (inFlight) {
-    queued = true
+    /* Suntingan pengguna menang atas bilasan latar saat keduanya menunggu. */
+    queuedReason = queuedReason === 'edit' ? 'edit' : reason
     return
   }
   inFlight = true
@@ -321,32 +362,60 @@ async function push(opts: { keepalive?: boolean } = {}): Promise<void> {
         ? { keepalive: true }
         : {}),
     })
+    /* v2.53: 401 = server menolak (SYNC_TOKEN belum/kurang tepat di
+       sisi server) — mengulang tidak akan mengubah jawaban; berhenti
+       dengan pesan yang menjelaskan, tanpa membakar jatah ulangan. */
+    if (res.status === 401) {
+      console.warn('[sync] PUT /api/state ditolak 401 — periksa SYNC_TOKEN')
+      setSyncKind('error')
+      notifyError(true, 'Sinkronisasi ditolak server',
+        'Konfigurasi SYNC_TOKEN belum cocok — data tetap aman di perangkat ini.')
+      return
+    }
     if (!res.ok) throw new Error(`PUT /api/state → HTTP ${res.status}`)
     const now = Date.now()
+    /* Sehat kembali: ulangan beruntun ter-reset & timer ulangan dilepas. */
+    retryAttempt = 0
+    clearRetry()
     patchMeta({ lastSyncedAt: now })
     setSyncKind('synced', now)
   } catch (error) {
     console.warn('[sync] push gagal:', error)
-    setSyncKind(
+    const offline =
       typeof navigator !== 'undefined' && navigator.onLine === false
-        ? 'offline'
-        : 'error',
-    )
-    notifyError()
+    setSyncKind(offline ? 'offline' : 'error')
+    if (offline) {
+      /* Event `online` yang menegosiasi ulang — jangan bakar jatah
+         ulangan untuk perangkat yang memang sedang luring. */
+      return
+    }
+    /* Backoff: ulangi otomatis selama masih ada jatah & ada suntingan
+       yang menunggu; beri tahu pengguna hanya bila kegagalan menetap
+       (percobaan ke-3+) atau push-nya dipicu aksi pengguna. */
+    const willRetry = retryAttempt < RETRY_DELAYS_MS.length
+    if (willRetry && hasUnsyncedEdits()) {
+      scheduleRetry(RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)])
+    }
+    retryAttempt++
+    notifyError(reason === 'edit' || retryAttempt >= 3)
   } finally {
     inFlight = false
-    if (queued) {
-      queued = false
-      schedulePush(RETRY_QUEUED_MS)
+    if (queuedReason) {
+      const r = queuedReason
+      queuedReason = null
+      schedulePush(RETRY_QUEUED_MS, r)
     }
   }
 }
 
-function schedulePush(delay = DEBOUNCE_MS): void {
+function schedulePush(delay = DEBOUNCE_MS, reason: PushReason = 'background'): void {
   if (pushTimer) clearTimeout(pushTimer)
+  /* Permintaan baru menggantikan timer ulangan otomatis — push segar
+     akan menangani kegagalan (dan menjadwalkan ulang) sendiri. */
+  clearRetry()
   pushTimer = setTimeout(() => {
     pushTimer = null
-    void push()
+    void push({ reason })
   }, delay)
 }
 
@@ -382,13 +451,15 @@ function flushPendingEdits(): void {
   void push({ keepalive: true })
 }
 
-function notifyError(): void {
+function notifyError(
+  show: boolean,
+  title = 'Gagal menyinkronkan ke cloud',
+  description = 'Perubahan tetap tersimpan di perangkat — akan dicoba lagi otomatis.',
+): void {
+  if (!show) return
   if (Date.now() - lastErrorToast < ERROR_TOAST_COOLDOWN_MS) return
   lastErrorToast = Date.now()
-  toast.error('Gagal menyinkronkan ke cloud', {
-    description: 'Perubahan tetap tersimpan di perangkat — akan dicoba lagi.',
-    duration: 4000,
-  })
+  toast.error(title, { description, duration: 4000 })
 }
 
 /* ===== Boot ===== */
@@ -659,7 +730,8 @@ export function useSyncEngine(): void {
          berikutnya tahu ada perubahan yang mungkin belum terkirim. */
       if (!suppress) patchMeta({ lastEditAt: Date.now() })
       if (!ready || suppress) return
-      schedulePush()
+      /* Suntingan pengguna — bila push-nya gagal, beri tahu segera. */
+      schedulePush(DEBOUNCE_MS, 'edit')
     })
 
     /* Koneksi datang/pergi — indikator status ikut bernapas: saat kembali

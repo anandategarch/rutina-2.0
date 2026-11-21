@@ -53,6 +53,23 @@ buat kebiasaan inti → toast + muncul di daftar; sunting kebiasaan
 terukur → opsi lanjutan terbuka otomatis; hapus → bersih; tinggi
 konten diukur langsung di DOM (bukan diklaim).
 
+## [2.55] — Sinkronisasi Tangguh: Ulangan Backoff, Toast Disiplin, 401 Jelas
+
+Laporan pengguna: "waktu pertama buka aplikasi kenapa muncul pesan gagal
+tersinkron ke database?" — direproduksi live: perangkat dengan suntingan
+tertunda (sesi lalu ditutup sebelum bilas debounce, atau push terakhir
+gagal) menjalankan push SAAT BOOT; kegagalan transien pertama (jaringan
+ponsel baru bangun / cold start server) langsung memunculkan toast
+"Gagal menyinkronkan ke cloud" sebagai hal pertama yang dilihat — tanpa
+ulangan otomatis, status 'gagal' menggantung sampai suntingan berikutnya.
+
+| Perbaikan | Rincian |
+|---|---|
+| **Ulangan otomatis dengan backoff** | Setiap kegagalan push (perangkat tetap online) dijadwalkan ulang: 4 dtk → 12 → 30 → 60 → 120 detik; jatah habis → menunggu pemicu berikutnya (suntingan/online/fokus). Sukses me-reset hitungan & melepas timer. Perangkat LURING tidak membakar jatah (event `online` yang menegosiasi ulang). Permintaan push baru menggantikan timer ulangan. |
+| **Disiplin toast** | Toast kegagalan kini hanya muncul untuk kegagalan PENETAP (percobaan ke-3+ — jeda 4+12 dtk memberi waktu kegagalan transien sembuh sendiri secara senyap) ATAU push yang dipicu aksi pengguna (suntingan / tombol "Coba lagi"). Bilasan boot/latar senyap — indikator status (sidebar/rail Profil) tetap jujur menunjukkan keadaan. Cooldown 2 menit dipertahankan. |
+| **401 ditangani eksplisit** | Produksi tanpa `SYNC_TOKEN` (middleware fail-closed v2.45) menolak seluruh /api/* — dulu terbaca sebagai "gagal menyinkronkan ke cloud" + ulangan sia-sia tanpa akhir. Kini pesan khusus: "Sinkronisasi ditolak server — konfigurasi SYNC_TOKEN belum cocok", tanpa membakar jatah ulangan. **DEPLOY.md diperbarui**: SYNC_TOKEN + NEXT_PUBLIC_SYNC_TOKEN kini WAJIB (dulu salah tulis "opsional") + checklist pasca-deploy. |
+| **Pembuktian mutu** | E2E live dengan /api/state diblokir: (1) kegagalan boot PERTAMA & KEDUA senyap — nol toast; (2) API dipulihkan sebelum ulangan kedua → snapshot tersinkron OTOMATIS tanpa sentuhan; (3) blokir dibiarkan → toast muncul tepat pada kegagalan ke-3 (±18 dtk) dengan pesan jujur "akan dicoba lagi otomatis"; (4) hitungan kegagalan terkonfirmasi lewat log konsol. tsc & lint hijau; 156/156 test lulus. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas
