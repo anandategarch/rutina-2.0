@@ -139,6 +139,19 @@ Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P1 Keuangan.
 | **Seed alat dev dikoreksi** | `scripts/seed-preview.ts`: kunci anggaran & kategori transaksi memakai ID kategori app (makan/transport/…) — bukan label tampilan — sehingga Anggaran/struktur kategori terbaca benar saat peninjauan visual. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: lencana Terpakai 26% + baris inline + BudgetRunway AKTUAL; strip KPI satu baris terverifikasi visual; akordeon dompet buka/tutup + "Bedah arus" membuka drill; 320px tanpa overflow. |
 
+## [2.61] — Stage 2 Jurnal & Profil: Daftar Kertas, Ruang Kerja Identitas
+
+Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P2 Jurnal + Profil.
+
+| Area | Rincian |
+|---|---|
+| **Jurnal: Daftar Kertas** | NoteCard berubah dari tumpukan kartu berbingkai-berbayangan per catatan menjadi baris kertas dalam SATU permukaan per kelompok (`rounded-2xl border + divide-y divide-border/60`): judul Playfair tetap, cuplikan dua baris, metadata ringkas (kategori · draf · mood · tanggal), sematan ditandai sorot emas tipis `inset 3px` di sisi kiri baris (subtil), chip Draf tetap. Baca/sunting/sematkan + muat bertahap utuh; `[content-visibility]` per baris dipertahankan pada wadah. |
+| **Jurnal: filter mood jadi sekunder** | Deret chip mood (baris ketiga bilah menempel) kini tersembunyi default — pemicu "Suasana" di ujung baris folder membukanya (dua ketukan ke filter, bilah menempel default turun tiga → dua baris: 111px terukur); saringan aktif terbaca di pemicu ("Suasana · Ceria") + tombol hapus saringan. Pencarian, folder, tulis catatan tak tersentuh; WritingActivityCard sudah terlipat default. InkStroke/MoodWheel tetap. |
+| **Profil: Ruang Kerja Identitas** | Hero identitas (avatar + nama + lencana) dan kartu Suara Identitas melebur jadi SATU kartu: pernyataan identitas mengalir di bawah lencana dengan pembatas hairline hero, editor (textarea bertema hero + chip kata fokus + penghitung 600) menyunting DI TEMPAT; dua kartu bertumpuk menjadi satu. Nilai terhubung `identityText` store (tersinkron cloud) — terverifikasi: sunting di kartu → toast + teks baru langsung tampil. |
+| **Pratinjau kutipan identitas dihapus dari Statistik** | Laporan Bulanan (kini terintegrasi kalender) menampilkan salinan "Suara identitasmu: '…'" — duplikat permukaan pratinjau dengan Ruang Kerja Identitas; diganti blok runtun terbaik bersih. Profil = satu-satunya tempat pratinjau kutipan identitas. |
+| **Mood status tetap baris ringkas** | Chip suasana + pintu check-in/Statistik tetap satu baris (audit density v2.37 dipertahankan). |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: bilah menempel 111px dua baris (157px saat mood dibuka), pemicu Suasana membuka chip (Ceria 1 · Biasa 1), saringan memangkas daftar 2 → 1 catatan, daftar kertas dengan sorot emas sematan terverifikasi visual, Ruang Kerja Identitas satu kartu + alur sunting-simpan live, 320px tanpa overflow. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

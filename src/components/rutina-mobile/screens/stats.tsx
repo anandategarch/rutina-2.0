@@ -260,7 +260,6 @@ export default function StatsScreen() {
   const bodyLogs = useRutina((s) => s.bodyLogs)
   const txs = useRutina((s) => s.txs)
   const budgets = useRutina((s) => s.budgets)
-  const identityText = useRutina((s) => s.identityText)
   const setScreen = useRutina((s) => s.setScreen)
 
   /* Gerbang anti-replay (v2.35): koreografi pembuka Observatory hanya
@@ -1559,30 +1558,18 @@ export default function StatsScreen() {
                           </div>
                         </div>
 
-                        {/* Refleksi identitas + runtun terbaik. */}
+                        {/* v2.61 (audit Tahap 2): pratinjau kutipan identitas
+                            DIHAPUS dari laporan — duplikat permukaan dengan
+                            Ruang Kerja Identitas Profil (satu sumber
+                            pratinjau); runtun terbaik tetap dibaca. */}
                         <div className="rounded-2xl bg-surface-sunken p-4">
                           <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-                            <Sparkles aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
-                            Refleksi identitas
+                            <Flame aria-hidden="true" className="h-3.5 w-3.5 text-success" />
+                            Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
                           </p>
-                          {identityText ? (
-                            <p className="mt-2 text-note italic leading-relaxed text-content-secondary">
-                              Suara identitasmu: &ldquo;{identityText}&rdquo;
-                            </p>
-                          ) : (
-                            <p className="mt-2 text-note leading-relaxed text-content-muted">
-                              Belum ada suara identitas — atur di Profil.
-                            </p>
-                          )}
-                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-                            <p className="min-w-0 break-words text-meta font-semibold leading-snug text-content-secondary">
-                              Runtun terbaik{best.habit ? ` — ${best.habit.title}` : ''}
-                            </p>
-                            <p className="flex shrink-0 items-center gap-1 text-note font-semibold tabular-nums text-success">
-                              <Flame aria-hidden="true" className="h-3.5 w-3.5" />
-                              {best.streak} hari
-                            </p>
-                          </div>
+                          <p className="mt-2 text-right text-note font-semibold tabular-nums text-success">
+                            {best.streak} hari
+                          </p>
                         </div>
                       </div>
                     ) : (

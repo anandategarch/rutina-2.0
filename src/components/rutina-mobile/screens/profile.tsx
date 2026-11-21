@@ -701,44 +701,34 @@ export default function ProfileScreen() {
               tanpa kisi statistik (pelanggaran audit: 'tanpa KPI dashboard');
               progres penuh hidup di cincin XP Statistik. Level tetap tampil
               sebagai lencana. */}
-        </m.section>
 
-        {/* Suara Identitas (audit #23) — pernyataan editorial "aku menjadi
-            orang yang…": kutipan serif italic, disunting lewat textarea
-            dengan pembatas 600 karakter + chip kata kunci fokus cepat. */}
-        <m.section
-          variants={slideInRow}
-          aria-label="Suara identitas"
-          className="mt-3 rounded-xl border border-border bg-surface-primary p-5 shadow-soft"
-        >
-          <div className="flex items-center gap-3.5">
-            <span
-              aria-hidden="true"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
-            >
-              <Fingerprint className="h-4 w-4" />
-            </span>
-            <div className="flex-1">
-              <p className="text-body font-semibold text-content-primary">
+          {/* v2.61 (audit Tahap 2): RUANG KERJA IDENTITAS — hero & Suara
+              Identitas melebur jadi SATU kartu (dulu dua kartu bertumpuk:
+              hero espresso + kartu suara terpisah). Pernyataan identitas
+              kini mengalir langsung di bawah lencana dengan pembatas
+              hairline hero. */}
+          <div className="mt-4 w-full border-t border-hero-content/15 pt-4">
+            <div className="flex items-center justify-center gap-2">
+              <Fingerprint
+                className="h-3.5 w-3.5 shrink-0 text-hero-accent"
+                aria-hidden="true"
+              />
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-accent">
                 Suara Identitas
               </p>
-              <p className="text-eyebrow font-medium text-content-muted">
-                Deklarasi siapa dirimu, bukan sekadar target
-              </p>
+              {identityText !== '' && !editingIdentity && (
+                <button
+                  type="button"
+                  onClick={startEditIdentity}
+                  aria-label="Ubah suara identitas"
+                  className="interactive ml-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-hero-content-muted hover:bg-hero-content/10 hover:text-hero-content"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            {identityText !== '' && !editingIdentity && (
-              <button
-                type="button"
-                onClick={startEditIdentity}
-                aria-label="Ubah suara identitas"
-                className="interactive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-sunken text-content-secondary hover:bg-secondary"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-            )}
-          </div>
 
-          {editingIdentity ? (
+            {editingIdentity ? (
             <div className="mt-4">
               <textarea
                 value={identityDraft}
@@ -746,26 +736,26 @@ export default function ProfileScreen() {
                 placeholder="Aku menjadi orang yang…"
                 rows={4}
                 aria-label="Teks suara identitas"
-                className="w-full resize-none rounded-xl border border-border bg-surface-sunken px-3.5 py-3 text-body leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-muted focus-visible:border-primary"
+                className="w-full resize-none rounded-xl border border-hero-content/25 bg-hero-surface-raised px-3.5 py-3 text-body leading-relaxed text-hero-content outline-none transition-colors placeholder:text-hero-content-muted focus-visible:border-hero-accent"
               />
-              <p className="mt-2 text-eyebrow font-medium leading-relaxed text-content-muted">
+              <p className="mt-2 text-eyebrow font-medium leading-relaxed text-hero-content-muted">
                 Tulis identitas yang ingin kamu bangun — bukan target,
                 melainkan siapa dirimu. Butuh kata? ketuk chip di bawah.
               </p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
                 {FOCUS_WORDS.map((w) => (
                   <button
                     key={w}
                     type="button"
                     onClick={() => appendFocusWord(w)}
-                    className="interactive h-8 cursor-pointer rounded-full border border-module-accent/25 bg-module-accent-soft/60 px-3 text-eyebrow font-semibold text-module-accent-strong hover:bg-module-accent-soft"
+                    className="interactive h-8 cursor-pointer rounded-full border border-hero-accent/40 bg-hero-content/10 px-3 text-eyebrow font-semibold text-hero-accent hover:bg-hero-content/20"
                   >
                     + {w}
                   </button>
                 ))}
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
-                <span className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                <span className="text-eyebrow font-semibold tabular-nums text-hero-content-muted">
                   {identityDraft.length}/600
                 </span>
                 <div className="flex gap-2">
@@ -788,26 +778,20 @@ export default function ProfileScreen() {
               </div>
             </div>
           ) : identityText !== '' ? (
-            <figure className="relative mt-4 rounded-xl bg-secondary/50 px-5 pb-3.5 pt-5">
-              <span
-                aria-hidden="true"
-                className={`${playfair.className} pointer-events-none absolute -top-2 left-2.5 select-none text-[52px] leading-none text-primary/30`}
-              >
-                &ldquo;
-              </span>
+            <figure className="relative mx-auto mt-3 max-w-[520px] px-2 text-center">
               <blockquote
-                className={`${playfair.className} text-lead font-medium italic leading-relaxed text-content-primary`}
+                className={`${playfair.className} text-lead font-medium italic leading-relaxed text-hero-content`}
               >
-                {identityText}
+                &ldquo;{identityText}&rdquo;
               </blockquote>
-              <figcaption className="mt-2 text-right text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
+              <figcaption className="mt-2 text-eyebrow font-semibold uppercase tracking-[0.16em] text-hero-content-muted">
                 Suara identitasku
               </figcaption>
             </figure>
           ) : (
-            <div className="mt-4 rounded-xl bg-surface-sunken px-4 py-4">
+            <div className="mt-3 text-center">
               <p
-                className={`${playfair.className} text-section-lg font-medium italic leading-relaxed text-content-secondary`}
+                className={`${playfair.className} mx-auto max-w-[520px] text-section-lg font-medium italic leading-relaxed text-hero-content-muted`}
               >
                 Siapa yang ingin kamu jadi lewat kebiasaan ini?
               </p>
@@ -822,6 +806,7 @@ export default function ProfileScreen() {
               </RutinaButton>
             </div>
           )}
+          </div>
         </m.section>
 
         {/* ===== Suasana hari ini — ringkas (audit density v2.37 §9).

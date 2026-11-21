@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
-import { ChevronDown, Feather, PenLine, Pin, Search } from 'lucide-react'
+import { ChevronDown, Feather, PenLine, Pin, Search, Smile } from 'lucide-react'
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
@@ -637,6 +637,9 @@ export default function JournalScreen() {
   /* Filter mood (review UI/UX v2.44 Tahap 2) — null = semua mood;
      hanya mood yang benar-benar tercatat pada catatan hidup. */
   const [moodFilter, setMoodFilter] = useState<string | null>(null)
+  /* Filter suasana tersembunyi secara default (v2.61) — bilah menempel
+     cukup dua baris; chip mood dibuka lewat pemicu "Suasana". */
+  const [moodPickerOpen, setMoodPickerOpen] = useState(false)
   const notes = useRutina((s) => s.notes)
   const journalFilter = useRutina((s) => s.journalFilter)
   const setJournalFilter = useRutina((s) => s.setJournalFilter)
@@ -827,6 +830,30 @@ export default function JournalScreen() {
                 </m.button>
               )
             })}
+            {moodOptions.length > 0 && (
+              <button
+                type="button"
+                aria-pressed={moodPickerOpen}
+                aria-expanded={moodPickerOpen}
+                onClick={() => setMoodPickerOpen((v) => !v)}
+                className={
+                  'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                  (moodPickerOpen || moodFilter != null
+                    ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
+                    : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                }
+              >
+                <Smile
+                  className="mr-1 inline h-3.5 w-3.5"
+                  aria-hidden="true"
+                  strokeWidth={2.2}
+                />
+                Suasana
+                {moodFilter != null && (
+                  <span className="ml-1.5 opacity-70">· {moodFilter}</span>
+                )}
+              </button>
+            )}
           </div>
           <div
             aria-hidden="true"
@@ -834,9 +861,11 @@ export default function JournalScreen() {
           />
         </m.div>
 
-        {/* Filter mood (review v2.44 Tahap 2) — hanya mood tercatat;
-            ketuk chip aktif untuk menghapus saringan. */}
-        {moodOptions.length > 0 && (
+        {/* v2.61 (audit Tahap 2): filter mood jadi FILTER SEKUNDER —
+            pemicu "Suasana" di baris folder membuka deret chip-nya; baris
+            menempel default kini dua baris (pencarian + folder), tidak
+            tiga. */}
+        {moodPickerOpen && moodOptions.length > 0 && (
           <div
             role="group"
             aria-label="Filter suasana hati catatan"
@@ -868,6 +897,15 @@ export default function JournalScreen() {
                 </button>
               )
             })}
+            {moodFilter != null && (
+              <button
+                type="button"
+                onClick={() => setMoodFilter(null)}
+                className="interactive h-9 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3 text-chart-label font-bold text-content-muted hover:bg-secondary"
+              >
+                Hapus saringan
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1048,7 +1086,10 @@ function NoteList({
       /* Semantik daftar — pembaca layar mengumumkan jumlah item & memungkinkan
          navigasi penuh daftar; tiap kartu jadi listitem (lihat NoteCard). */
       role="list"
-      className="space-y-3"
+      /* v2.61 (audit Tahap 2): DAFTAR KERTAS — SATU permukaan kertas per
+         kelompok dengan pembatas hairline antar catatan; bukan tumpukan
+         kartu berbingkai-berbayang per catatan (aturan global sprint). */
+      className="divide-y divide-border/60 rounded-2xl border border-border bg-surface-primary px-1 shadow-soft"
     >
       {visible.map((n) => (
         <NoteCard
@@ -1063,11 +1104,11 @@ function NoteList({
       {hidden > 0 && (
         /* Pembungkus presentasional — tombol tetap dapat diakses namun
            tidak dihitung sebagai butir daftar catatan. */
-        <div role="presentation">
+        <div role="presentation" className="px-3 py-2.5">
           <button
             type="button"
             onClick={() => setExtra((e) => e + inc)}
-            className="interactive w-full cursor-pointer rounded-full border border-border py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
+            className="interactive w-full cursor-pointer rounded-full border border-border bg-surface-primary py-2.5 text-meta font-semibold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
           >
             Tampilkan {Math.min(inc, hidden)} catatan lagi
             {hidden > inc ? ` (${hidden} tersisa)` : ''}
@@ -1119,7 +1160,13 @@ function NoteCard({
       role="listitem"
       /* Tanpa whileTap pada article: Motion menyuntikkan tabindex pada
          elemen non-interaktif — umpan balik ketuk hidup di tombol buka. */
-      className="relative rounded-lg border border-border bg-surface-primary p-4 transition-shadow duration-300 hover:shadow-soft [content-visibility:auto] [contain-intrinsic-size:auto_120px]"
+      /* v2.61: baris kertas — tanpa bingkai/bayangan sendiri (permukaan
+         & pembatas hairline datang dari daftar); sematan ditandai sorot
+         emas tipis di sisi kiri baris (subtil, bukan blok). */
+      className={
+        'relative px-3.5 py-3.5 transition-colors duration-200 hover:bg-surface-sunken/40 ' +
+        (note.pinned ? 'shadow-[inset_3px_0_0_0_var(--palette-gold)]' : '')
+      }
     >
       {/* A11Y: tombol "baca catatan" absolut inset-0 (z-0) di bawah konten;
           tombol aksi relative z-10 — dua kontrol bersaudara tanpa tombol
@@ -1129,7 +1176,7 @@ function NoteCard({
         type="button"
         aria-label={`Baca catatan: ${note.title || firstLine || 'tanpa judul'}`}
         onClick={onOpen}
-        className="interactive absolute inset-0 z-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive absolute inset-0 z-0 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-primary"
       />
       <div className="pointer-events-none relative z-10">
         <div className="flex items-start justify-between gap-1">
