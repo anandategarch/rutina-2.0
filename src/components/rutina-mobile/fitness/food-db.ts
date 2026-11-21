@@ -203,6 +203,3 @@ export const FOOD_DB: FoodItem[] = [
   { name: "Es kopi coklat (umum)", cat: "Minuman", unit: "1 gelas", kcal: 210, protein: 4, carb: 33, fat: 6 },
   { name: "Kopi jahe (wedang kopi jahe)", cat: "Minuman", unit: "1 gelas", kcal: 80, protein: 0, carb: 20, fat: 0 },
 ]
-
-/** Daftar kategori unik (urutan kemunculan) untuk pengelompokan. */
-export const FOOD_CATS: string[] = [...new Set(FOOD_DB.map((f) => f.cat))]

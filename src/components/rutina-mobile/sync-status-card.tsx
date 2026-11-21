@@ -3,6 +3,7 @@
 import {
   CloudCheck,
   CloudOff,
+  KeyRound,
   Loader2,
   RefreshCw,
   Satellite,
@@ -74,6 +75,15 @@ const KIND_VIEW: Record<SyncKind, KindView> = {
     title: 'Sinkronisasi gagal',
     subtitle: () => 'Data belum terkirim ke cloud',
   },
+  /* v2.62 — server menolak 401: panduan perbaikan menetap dari
+     sync-engine (`message`), bukan teks generik; ikon kunci menegaskan
+     ini persoalan konfigurasi, bukan jaringan. */
+  rejected: {
+    icon: KeyRound,
+    tint: 'bg-destructive/10 text-content-danger',
+    title: 'Ditolak server',
+    subtitle: () => 'Konfigurasi token sinkronisasi belum tepat',
+  },
 }
 
 /** Tombol "Coba lagi" — muncul pada keadaan gagal & offline. */
@@ -95,9 +105,13 @@ export function SyncStatusCard({
 }: {
   variant?: 'sidebar' | 'rail'
 }) {
-  const { kind, lastSyncedAt } = useSyncStatus()
+  const { kind, lastSyncedAt, message } = useSyncStatus()
   const view = KIND_VIEW[kind]
-  const retryable = kind === 'error' || kind === 'offline'
+  /* v2.62: 'rejected' membawa panduan spesifik dari sync-engine —
+     tampilkan itu alih-alih subjudul generik. */
+  const subtitle =
+    kind === 'rejected' && message ? message : view.subtitle(lastSyncedAt)
+  const retryable = kind === 'error' || kind === 'offline' || kind === 'rejected'
 
   if (variant === 'sidebar') {
     return (
@@ -117,7 +131,7 @@ export function SyncStatusCard({
               {view.title}
             </span>
             <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
-              {view.subtitle(lastSyncedAt)}
+              {subtitle}
             </span>
           </span>
         </div>
@@ -151,7 +165,7 @@ export function SyncStatusCard({
             {view.title}
           </span>
           <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
-            {view.subtitle(lastSyncedAt)}
+            {subtitle}
           </span>
         </span>
       </div>

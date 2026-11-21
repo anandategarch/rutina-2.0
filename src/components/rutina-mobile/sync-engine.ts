@@ -94,9 +94,9 @@ interface SyncMeta {
 
 /* ===== Shared secret opsional (audit v2.16 T5-b #2) =====
    Bila NEXT_PUBLIC_SYNC_TOKEN (klien) & SYNC_TOKEN (server, lihat
-   middleware.ts) diisi, seluruh permintaan /api/* membawa header
-   x-sync-token. Kosong di sandbox/preview → autentikasi mati
-   (perilaku lama tetap). */
+   proxy.ts — dulu middleware.ts) diisi, seluruh permintaan /api/*
+   membawa header x-sync-token. Kosong di sandbox/preview →
+   autentikasi mati (perilaku lama tetap). */
 const SYNC_TOKEN = process.env.NEXT_PUBLIC_SYNC_TOKEN ?? ''
 
 function syncHeaders(extra?: Record<string, string>): Record<string, string> {
@@ -124,18 +124,30 @@ let retryTimer: ReturnType<typeof setTimeout> | null = null
     'background' (bilasan boot/ulangan) → senyap sampai kegagalan menetap. */
 type PushReason = 'edit' | 'background'
 
-/* ===== Status sinkronisasi reaktif (v2.23) =====
-   Empat keadaan yang dibaca UI indikator (sidebar desktop & rail Profil):
-     'synced'  — snapshot terakhir berhasil dikirim/ditarik
-     'syncing' — perubahan sedang dikirim (push berjalan)
-     'offline' — perangkat tanpa koneksi; data aman di localStorage
-     'error'   — server merespons gagal / jaringan drop mid-push
+/* ===== Status sinkronisasi reaktif (v2.23; 'rejected' v2.62) =====
+   Keadaan yang dibaca UI indikator (sidebar desktop & rail Profil):
+     'synced'   — snapshot terakhir berhasil dikirim/ditarik
+     'syncing'  — perubahan sedang dikirim (push berjalan)
+     'offline'  — perangkat tanpa koneksi; data aman di localStorage
+     'error'    — server merespons gagal / jaringan drop mid-push
+     'rejected' — server menolak 401 (token sinkronisasi) — v2.62:
+                  keadaan DETERMINISTIK; mengulang tidak mengubah jawaban,
+                  pesan panduan perbaikan tersimpan di `message`.
    'boot' hanyalah keadaan awal sebelum GET pertama selesai. */
-export type SyncKind = 'boot' | 'syncing' | 'synced' | 'offline' | 'error'
+export type SyncKind =
+  | 'boot'
+  | 'syncing'
+  | 'synced'
+  | 'offline'
+  | 'error'
+  | 'rejected'
 
 export interface SyncStatusState {
   kind: SyncKind
   lastSyncedAt: number | null
+  /** Subjudul spesifik untuk keadaan 'rejected' (panduan perbaikan,
+      v2.62) — tidak dipakai kind lain. */
+  message?: string
 }
 
 /* Store vanilla (bukan slice useRutina) — status sinkron bukan data domain
@@ -145,10 +157,19 @@ export const syncStatusStore = createStore<SyncStatusState>()(() => ({
   lastSyncedAt: null,
 }))
 
-function setSyncKind(kind: SyncKind, lastSyncedAt?: number): void {
+function setSyncKind(
+  kind: SyncKind,
+  lastSyncedAt?: number,
+  message?: string,
+): void {
   syncStatusStore.setState({
     kind,
     lastSyncedAt: lastSyncedAt ?? syncStatusStore.getState().lastSyncedAt,
+    /* Pesan hanya milik 'rejected'; kind lain menghapusnya. */
+    message:
+      kind === 'rejected'
+        ? (message ?? syncStatusStore.getState().message)
+        : undefined,
   })
 }
 
@@ -161,11 +182,13 @@ export function useSyncStatus(): SyncStatusState {
   )
 }
 
-/** Aksi "Coba lagi" pada indikator gagal/offline — dorong snapshot
- *  sekarang; push() sendiri yang menuntaskan transisi status. Dipicu
- *  pengguna → kegagalannya layak diberitahukan segera (reason 'edit'). */
+/** Aksi "Coba lagi" pada indikator gagal/offline/ditolak — NEGOSIASIKAN
+ *  dulu dengan server (GET + bandingkan stempel) alih-alih dorong buta;
+ *  negotiate() sendiri yang memutuskan dorong vs tarik dan menuntaskan
+ *  transisi status. Bila penolakan 401 sudah berlalu (mis. setelah env
+ *  diperbaiki + redeploy), tarikan pertama menyembuhkan status. */
 export function retrySync(): void {
-  schedulePush(0, 'edit')
+  void negotiate()
 }
 
 /* ===== Meta di localStorage ===== */
@@ -362,14 +385,13 @@ async function push(opts: { keepalive?: boolean; reason?: PushReason } = {}): Pr
         ? { keepalive: true }
         : {}),
     })
-    /* v2.53: 401 = server menolak (SYNC_TOKEN belum/kurang tepat di
-       sisi server) — mengulang tidak akan mengubah jawaban; berhenti
-       dengan pesan yang menjelaskan, tanpa membakar jatah ulangan. */
+    /* v2.53/v2.62: 401 = server menolak (konfigurasi token di sisi
+       server) — mengulang tidak akan mengubah jawaban; berhenti dengan
+       diagnosis + panduan perbaikan presisi (applyReject), tanpa
+       membakar jatah ulangan. */
     if (res.status === 401) {
-      console.warn('[sync] PUT /api/state ditolak 401 — periksa SYNC_TOKEN')
-      setSyncKind('error')
-      notifyError(true, 'Sinkronisasi ditolak server',
-        'Konfigurasi SYNC_TOKEN belum cocok — data tetap aman di perangkat ini.')
+      console.warn('[sync] PUT /api/state ditolak 401 — periksa konfigurasi token')
+      await applyReject(res)
       return
     }
     if (!res.ok) throw new Error(`PUT /api/state → HTTP ${res.status}`)
@@ -462,6 +484,71 @@ function notifyError(
   toast.error(title, { description, duration: 4000 })
 }
 
+/* ===== Penolakan 401 — panduan perbaikan presisi (v2.62) =====
+   Middleware (v2.62) menyertakan `code` pada body 401:
+     · sync_token_unconfigured — produksi tanpa token sama sekali;
+     · sync_token_mismatch     — header tidak cocok / tidak dikirim.
+   Dipakai bersama pengetahuan klien (aplikasi ini membawa token atau
+   tidak) untuk menampilkan LANGKAH perbaikan yang tepat, bukan tebak-tebakan.
+   Keadaan 'rejected' juga disetor ke syncStatusStore agar kartu status
+   menampilkan panduan yang sama secara menetap (bukan hanya toast 4 dtk). */
+
+interface RejectInfo {
+  kind: SyncKind
+  title: string
+  message: string
+}
+
+/** Diagnosis 401 → status + pesan yang dapat ditindaklanjuti pengguna. */
+function diagnoseReject(code: string | null): RejectInfo {
+  if (code === 'sync_token_unconfigured') {
+    return {
+      kind: 'rejected',
+      title: 'Sinkronisasi belum aktif di server',
+      message:
+        'Server belum punya token — tambahkan NEXT_PUBLIC_SYNC_TOKEN di Vercel (Production & Preview) lalu redeploy.',
+    }
+  }
+  /* mismatch — dua kemungkinan tergantung apakah aplikasi membawa token. */
+  if (!SYNC_TOKEN) {
+    return {
+      kind: 'rejected',
+      title: 'Sinkronisasi ditolak server',
+      message:
+        'Aplikasi tidak membawa token — tambahkan NEXT_PUBLIC_SYNC_TOKEN (nilai sama dengan SYNC_TOKEN) di Vercel lalu redeploy.',
+    }
+  }
+  return {
+    kind: 'rejected',
+    title: 'Sinkronisasi ditolak server',
+    message:
+      'Token aplikasi tidak cocok dengan server — samakan SYNC_TOKEN & NEXT_PUBLIC_SYNC_TOKEN (tanpa spasi) lalu redeploy.',
+  }
+}
+
+/** Baca `code` dari body 401 middleware — null bila bentuk tak terduga. */
+async function readRejectCode(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.json()) as { code?: unknown }
+    return typeof body.code === 'string' ? body.code : null
+  } catch {
+    return null
+  }
+}
+
+/** Terapkan penolakan 401: status 'rejected' menetap + satu toast berjeda
+ *  (cooldown 2 menit — sama dengan notifyError). */
+async function applyReject(res: Response): Promise<void> {
+  const info = diagnoseReject(await readRejectCode(res))
+  setSyncKind(info.kind, undefined, info.message)
+  if (Date.now() - lastErrorToast < ERROR_TOAST_COOLDOWN_MS) return
+  lastErrorToast = Date.now()
+  toast.error(info.title, {
+    description: `${info.message} Data tetap aman di perangkat ini.`,
+    duration: 6000,
+  })
+}
+
 /* ===== Boot ===== */
 
 interface StateResponse {
@@ -538,7 +625,22 @@ async function negotiate(): Promise<void> {
         cache: 'no-store',
         headers: syncHeaders(),
       })
-      if (res.ok) remote = (await res.json()) as StateResponse
+      if (res.ok) {
+        remote = (await res.json()) as StateResponse
+        /* v2.62 (pemulihan): GET diterima = penolakan sudah berlalu
+           (mis. env diperbaiki + redeploy, lalu "Coba lagi"). Tanpa ini,
+           cabang "tidak ada yang perlu dilakukan" (tanpa suntingan
+           tertunda & server tak bergerak) membiarkan status 'rejected'
+           basi meski koneksi sehat. */
+        if (syncStatusStore.getState().kind === 'rejected') {
+          setSyncKind('synced')
+        }
+      } else if (res.status === 401) {
+        /* v2.62: penolakan deterministis — diagnosis menetap di kartu
+           status; jangan lanjut negosiasi dengan server yang menolak. */
+        await applyReject(res)
+        return
+      }
     } catch {
       /* Offline di tengah jalan — biarkan penjadwal biasa mencoba lagi. */
       return
@@ -596,6 +698,7 @@ async function boot(): Promise<void> {
 
   /* 2. Tarik status server. */
   let remote: StateResponse | null = null
+  let rejected = false
   try {
     const res = await fetch('/api/state', {
       cache: 'no-store',
@@ -603,12 +706,29 @@ async function boot(): Promise<void> {
     })
     if (res.ok) {
       remote = (await res.json()) as StateResponse
+    } else if (res.status === 401) {
+      /* v2.62: 401 pada GET pembuka — inilah jendela ketika pengguna
+         BARU membuka aplikasi di deployment yang token-nya belum
+         terpasang. Diagnosis + panduan langsung (toast sekali, jeda 2
+         menit) alih-alih 'error' generik yang baru menjelaskan diri
+         via toast push berikutnya. */
+      rejected = true
+      await applyReject(res)
     } else {
       setSyncKind('error')
     }
   } catch (error) {
     console.warn('[sync] GET /api/state gagal (mode offline):', error)
     setSyncKind('offline')
+  }
+  /* Server menolak — suntingan lokal tetap aman; jangan coba push
+     (PUT pasti ditolak dengan alasan yang sama). Transaksi berulang
+     yang jatuh tempo tetap dimaterialisasi — itu operasi lokal murni
+     (audit v2.45: jangan tunda kemunculannya sampai boot sehat). */
+  if (rejected) {
+    materializeDue()
+    ready = true
+    return
   }
 
   if (remote?.initialized && remote.state) {
@@ -791,6 +911,11 @@ export async function forcePull(): Promise<boolean> {
       cache: 'no-store',
       headers: syncHeaders(),
     })
+    if (res.status === 401) {
+      /* v2.62: diagnosis menetap + panduan (bukan 'error' generik). */
+      await applyReject(res)
+      return false
+    }
     if (!res.ok) {
       setSyncKind('error')
       return false

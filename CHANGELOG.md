@@ -152,6 +152,28 @@ Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P2 Jurnal + Profil.
 | **Mood status tetap baris ringkas** | Chip suasana + pintu check-in/Statistik tetap satu baris (audit density v2.37 dipertahankan). |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: bilah menempel 111px dua baris (157px saat mood dibuka), pemicu Suasana membuka chip (Ceria 1 · Biasa 1), saringan memangkas daftar 2 → 1 catatan, daftar kertas dengan sorot emas sematan terverifikasi visual, Ruang Kerja Identitas satu kartu + alur sunting-simpan live, 320px tanpa overflow. |
 
+## [2.62] — Penolakan Sinkronisasi 401: Akar Masalah Konfigurasi Token Ditutup + Sapu Bersih Dead Code
+
+Laporan pengguna: "Sinkronisasi ditolak server — Konfigurasi SYNC_TOKEN
+belum cocok — data tetap aman di perangkat ini." Terverifikasi live pada
+produksi: `GET /api/state` → 401 `{"error":"Server belum dikonfigurasi
+untuk sinkronisasi"}` — deployment Vercel belum memasang token apa pun,
+dan middleware fail-closed v2.45 menolak seluruh `/api/*`. Deep audit
+menemukan bukan sekadar env-var-kurang-terpasang, melainkan celah desain
+yang membuat kelas kegagalan ini mudah terjadi dan sulit didiagnosis.
+
+| Perbaikan | Rincian |
+|---|---|
+| **P0 — Konfigurasi SATU variabel kini sah** | Desain lama butuh DUA env var bernilai persis sama: server hanya mengenali `SYNC_TOKEN`, klien hanya bisa mengirim nilai `NEXT_PUBLIC_SYNC_TOKEN` — pasang satu saja = 401 selamanya. Kini token efektif server = `SYNC_TOKEN` bila terpasang, ATAU `NEXT_PUBLIC_SYNC_TOKEN` sebagai fallback (di Vercel bundle klien & env server lahir dari deployment yang sama, jadi satu variabel cukup). `SYNC_TOKEN` tetap diutamakan: begitu terpasang, hanya nilai itu yang diterima — rahasia kuat tidak tergerus fallback publik. Fail-closed produksi tanpa token sama sekali tetap (GET /api/state adalah bukaan seluruh data pribadi). |
+| **Whitespace di-trim kedua sisi** | Nilai env hasil salin-tempel di dashboard sering membawa spasi/baris-akhir tersembunyi — sumber klasik "sudah sama tapi tetap tidak cocok". Header klien & nilai server keduanya dirapikan sebelum dibandingkan. |
+| **Perbandingan konstan-waktu** | `tokenEquals()` XOR penuh panjang maksimum (edge-runtime safe, tanpa node:crypto) menggantikan `===` — menutup vektor teoretis timing attack pada perbandingan rahasia. |
+| **401 kini ber-diagnosis presisi** | Body 401 middleware membawa `code` (`sync_token_unconfigured` \| `sync_token_mismatch`); klien menggabungkannya dengan pengetahuan lokal (aplikasi membawa token atau tidak) → tiga pesan berbeda, masing-masing dengan LANGKAH perbaikan eksplisit (variabel apa yang ditambah di Vercel, lalu redeploy) — bukan lagi "Konfigurasi SYNC_TOKEN belum cocok" yang menebak-nebak. |
+| **Status `rejected` menetap di UI** | Keadaan deterministik baru di sync engine (di luar `error`): 401 kini ditangani di SEMUA jalur — boot GET (dulu senyap, baru menjelaskan via toast push berikutnya), negotiate, forcePull, dan PUT — dengan status menetap + ikon kunci "Ditolak server" di kartu sinkronisasi (sidebar & rail Profil) yang memuat panduan perbaikan, bukan hanya toast 4 detik. Transaksi berulang tetap dimaterialisasi di cabang rejected (operasi lokal murni); tombol "Coba lagi" kini menegosiasikan (GET dulu) alih-alih dorong buta — menyembuhkan otomatis begitu env diperbaiki + redeploy. |
+| **Diagnosis di `/api/health`** | Respons kini menyertakan `syncToken: "configured" \| "unconfigured"` (tanpa membocorkan nilai) — verifikasi pasca-deploy satu curl: penyebab paling umum toast "ditolak server" langsung terlihat. |
+| **Migrasi konvensi Next 16: `middleware.ts` → `proxy.ts`** | Next 16 mendepresiasi konvensi `middleware` (peringatan di setiap start dev). Berkas dipindah + fungsi diekspor ulang sebagai `proxy()` — perilaku identik (terverifikasi ulang seluruh alur token), peringatan hilang. |
+| **Sapu bersih dead code (permintaan audit)** | Sisa lapisan REST v2.45 yang tak pernah dibersihkan: 13 skema input/patch (`habitInputSchema`…`foodEntryPatchSchema`) + 5 alias tipe wire (`HabitGroupWire` dll.) di `sync-schema.ts`; helper route `todayJakartaISO`/`newId`/`guard` di `lib/api.ts`; `FOOD_CATS` (food-db); `ChartFrame`+`ChartFrameProps` (perancah v2.48 tak pernah diadopsi); `RutinaTabsContent` + re-ekspor varian (rutina-tabs); berkas `src/hooks/use-mobile.ts` (nol pengimpor). Semua terverifikasi nol referensi lintas src/tests/scripts sebelum dihapus; riwayat utuh di git. DEPLOY.md: tabel 17 endpoint fiktif diganti dua route nyata + panduan token satu-variabel. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. Uji runtime sandbox: alur tanpa token (dev) tetap lolos; alur dengan `SYNC_TOKEN` terpasang — header salah → 401 `sync_token_mismatch` + kartu status "Ditolak server"; header benar → 200 penuh. E2E browser: boot, toast diagnosis, tombol Coba lagi, pulih setelah token dicabut. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

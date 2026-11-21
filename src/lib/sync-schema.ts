@@ -81,8 +81,6 @@ export const habitSchema = z.object({
   archived: z.boolean(),
   createdAt: isoDate,
 })
-export const habitInputSchema = habitSchema.omit({ id: true, archived: true, createdAt: true })
-export const habitPatchSchema = habitInputSchema.partial()
 
 /** Kelompok kebiasaan buatan pengguna (v2.22). */
 export const habitGroupSchema = z.object({
@@ -131,8 +129,6 @@ export const noteSchema = z.object({
   tone: z.number().int().min(0).max(2),
   folder: z.string().min(1).max(16),
 })
-export const noteInputSchema = noteSchema.omit({ id: true, tone: true })
-export const notePatchSchema = noteSchema.omit({ id: true }).partial()
 
 /* ===== Domain: keuangan ===== */
 
@@ -148,17 +144,12 @@ export const txSchema = z.object({
   recurrence: z.enum(['mingguan', 'bulanan']).nullable().optional(),
   recurOf: z.string().max(64).nullable().optional(),
 })
-/** Input POST — id & tanggal dibuat server bila absen. */
-export const txInputSchema = txSchema.omit({ id: true }).extend({
-  ts: isoDate.optional(),
-})
 
 export const walletSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(60),
   initial: z.number().int().min(0).max(1_000_000_000_000),
 })
-export const walletInputSchema = walletSchema.omit({ id: true })
 
 /** Kategori keuangan buatan pengguna (v2.17) — satu sistem terpadu
  *  bersama kategori bawaan + impor Rutina 1.0. v2.18: FLAT, tanpa
@@ -168,7 +159,6 @@ export const customCatSchema = z.object({
   name: z.string().min(1).max(60),
   type: z.enum(['keluar', 'masuk']),
 })
-export const customCatInputSchema = customCatSchema.omit({ id: true })
 
 export const budgetsSchema = z
   .record(
@@ -197,8 +187,6 @@ export const goalSchema = z.object({
     .max(500)
     .optional(),
 })
-export const goalInputSchema = goalSchema.omit({ id: true, saved: true })
-export const goalPatchSchema = goalSchema.omit({ id: true }).partial()
 
 /* ===== Domain: bugar ===== */
 
@@ -222,11 +210,6 @@ export const workoutSchema = z.object({
   /** Kalori dari smartwatch (v2.17) — opsional. */
   kcal: z.number().int().min(0).max(50_000).nullable().optional(),
 })
-/** Input POST — id & tanggal dibuat server bila absen. */
-export const workoutInputSchema = workoutSchema.omit({ id: true }).extend({
-  date: isoDate.optional(),
-})
-export const workoutPatchSchema = workoutSchema.omit({ id: true }).partial()
 
 export const foodEntrySchema = z.object({
   id: z.string().min(1).max(64),
@@ -241,11 +224,6 @@ export const foodEntrySchema = z.object({
   carb: z.number().min(0).max(10_000).nullable(),
   fat: z.number().min(0).max(10_000).nullable(),
 })
-/** Input POST — id & tanggal dibuat server bila absen. */
-export const foodEntryInputSchema = foodEntrySchema.omit({ id: true }).extend({
-  date: isoDate.optional(),
-})
-export const foodEntryPatchSchema = foodEntrySchema.omit({ id: true }).partial()
 
 /** bodyLogs[tanggalISO] — satu catatan per hari. */
 export const bodyLogSchema = z.object({
@@ -346,13 +324,8 @@ export const syncPutSchema = z.object({ state: syncStateSchema })
 /** Bentuk TypeScript snapshot (hasil inferensi Zod). */
 export type SyncState = z.infer<typeof syncStateSchema>
 export type HabitWire = z.infer<typeof habitSchema>
-export type HabitGroupWire = z.infer<typeof habitGroupSchema>
 export type NoteWire = z.infer<typeof noteSchema>
 export type TxWire = z.infer<typeof txSchema>
-export type WalletWire = z.infer<typeof walletSchema>
 export type CustomCatWire = z.infer<typeof customCatSchema>
-export type GoalWire = z.infer<typeof goalSchema>
 export type WorkoutWire = z.infer<typeof workoutSchema>
 export type FoodEntryWire = z.infer<typeof foodEntrySchema>
-export type BodyLogWire = z.infer<typeof bodyLogSchema>
-export type FitTargetsWire = z.infer<typeof fitTargetsSchema>

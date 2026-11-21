@@ -137,29 +137,14 @@ curl https://rutina-2-0.vercel.app/api/health
 
 | Route | Metode | Fungsi |
 | --- | --- | --- |
-| `/api/state` | GET, PUT | Snapshot penuh — inti sync engine |
-| `/api/habits` | GET, POST | Daftar kebiasaan + histori / buat |
-| `/api/habits/[id]` | GET, PATCH, DELETE | Detail / sunting / hapus |
-| `/api/habits/[id]/toggle` | POST | Tandai selesai / batalkan per tanggal |
-| `/api/notes` | GET, POST | Catatan jurnal (`?folder=&limit=`) |
-| `/api/notes/[id]` | PATCH, DELETE | Sematkan / sunting / hapus |
-| `/api/transactions` | GET, POST | Transaksi (`?limit=&offset=&type=&walletId=`) |
-| `/api/transactions/[id]` | DELETE | Hapus transaksi |
-| `/api/wallets` | GET, POST | Dompet |
-| `/api/budgets` | GET, PUT | Anggaran per kategori (ganti massal) |
-| `/api/goals` | GET, POST | Target tabungan |
-| `/api/goals/[id]` | PATCH, DELETE | Sunting (`{contribute}` = setor) / hapus |
-| `/api/workouts` | GET, POST | Sesi latihan |
-| `/api/workouts/[id]` | DELETE | Hapus sesi |
-| `/api/foods` | GET, POST | Asupan makan (`?date=&limit=`) |
-| `/api/foods/[id]` | DELETE | Hapus asupan |
-| `/api/body` | GET, PUT | Catatan tubuh harian (UPSERT per tanggal) |
-| `/api/settings` | GET, PUT | Preferensi `app.*` (k-v) |
-| `/api/health` | GET | Health check database |
+| `/api/state` | GET, PUT | Snapshot penuh — inti sync engine (satu-satunya jalur data domain) |
+| `/api/health` | GET | Health check database + status konfigurasi token (`syncToken`) |
 
-Semua muatan tulis divalidasi Zod (`src/lib/sync-schema.ts`) dengan batas
-wajar (panjang string, jumlah item) — endpoint publik menolak muatan
-sampah. Respons seragam `{ ok: true, ... }` / `{ ok: false, error }`.
+> v2.45 memensiunkan 17 endpoint per-domain lama (`/api/habits`,
+> `/api/notes`, `/api/transactions`, dst.) — seluruh mutasi kini mengalir
+> lewat snapshot `/api/state` yang atomik. Muatan tulis divalidasi Zod
+> (`src/lib/sync-schema.ts`) dengan batas wajar (panjang string, jumlah
+> item); respons seragam `{ ok: true, … }` / `{ ok: false, error, code? }`.
 
 ## 6. Perintah database
 
@@ -180,15 +165,19 @@ sampah. Respons seragam `{ ok: true, ... }` / `{ ok: false, error }`.
   di riwayat git masih memuat snapshot lamanya — bila repo pernah
   publik, bersihkan riwayat dengan `git filter-repo --path db/custom.db
   --invert-paths` + force push, atau jadikan repo private.
-- **Shared secret API (v2.16, audit T5-b #2; WAJIB sejak v2.45):** `SYNC_TOKEN`
-  (server, `src/middleware.ts`) dan `NEXT_PUBLIC_SYNC_TOKEN` (klien,
-  `sync-engine.ts`) harus diisi dengan NILAI YANG SAMA di lingkungan
-  produksi — sejak v2.45 middleware bersifat fail-closed: tanpa
-  `SYNC_TOKEN`, seluruh `/api/*` (kecuali `/api/health`) ditolak 401,
-  sehingga sinkronisasi cloud MATI TOTAL dan aplikasi hanya hidup dari
-  localStorage (gejala: toast "sinkronisasi gagal/ditolak" tiap buka
-  aplikasi). Token DB Turso sebaiknya dibuat dengan kedaluwarsa
-  (mis. 90 hari) lalu dirotasi — jangan lagi "tahan lama".
+- **Shared secret API (v2.16, audit T5-b #2; WAJIB sejak v2.45):** produksi
+  wajib memasang token — tanpa itu, seluruh `/api/*` (kecuali `/api/health`)
+  ditolak 401 (fail-closed) dan aplikasi hanya hidup dari localStorage
+  (gejala: toast "Sinkronisasi ditolak server" tiap buka aplikasi).
+  **Sejak v2.62 cukup SATU variabel** — `NEXT_PUBLIC_SYNC_TOKEN` saja sudah
+  sah: server menerimanya sebagai token efektif bila `SYNC_TOKEN` tidak
+  terpasang (di Vercel, bundle klien & env server lahir dari deployment
+  yang sama). Bila `SYNC_TOKEN` terpasang, hanya nilai itu yang diterima.
+  Nilai kedua sisi di-trim otomatis (spasi tersembunyi hasil salin-tempel
+  tidak lagi merusak kecocokan). Verifikasi pasca-deploy:
+  `curl https://rutina-2-0.vercel.app/api/health` → `"syncToken":"configured"`.
+  Token DB Turso sebaiknya dibuat dengan kedaluwarsa (mis. 90 hari) lalu
+  dirotasi — jangan lagi "tahan lama".
 - **Header keamanan dasar (v2.16, audit T5-b #4):** `next.config.ts`
   mengirim `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`
   + CSP mode laporan (`Content-Security-Policy-Report-Only`).
@@ -200,10 +189,11 @@ sampah. Respons seragam `{ ok: true, ... }` / `{ ok: false, error }`.
 
 - [ ] `bun run verify` lulus lokal (typecheck + lint + seluruh tes).
 - [ ] `DATABASE_AUTH_TOKEN` di Vercel = token baru (bukan token 1 hari).
-- [ ] **`SYNC_TOKEN` + `NEXT_PUBLIC_SYNC_TOKEN` (nilai sama) terpasang di
-      Vercel** — tanpa ini produksi menolak seluruh /api/* (fail-closed
-      v2.45) dan sinkronisasi mati; cek `GET /api/health` tetap 200 tanpa
-      header, sedangkan `GET /api/state` tanpa header → 401.
+- [ ] **Token sinkronisasi terpasang di Vercel** — paling sederhana:
+      `NEXT_PUBLIC_SYNC_TOKEN=<nilai apa pun>` (Production & Preview) →
+      redeploy. Cek: `GET /api/health` → `"syncToken":"configured"`;
+      `GET /api/state` tanpa header → 401 dengan body ber-
+      `"code":"sync_token_mismatch"`.
 - [ ] `GET /api/health` → `connected: true, backend: turso`.
 - [ ] Buka aplikasi di ponsel → tab Profil → chip waktu sinkron terisi.
 - [ ] Centang satu misi → muat ulang di perangkat lain → tetap tercentang

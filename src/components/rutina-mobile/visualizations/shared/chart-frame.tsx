@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
-import { RutinaCard } from '../../rutina-card'
 
 /**
  * Fondasi visualisasi bersama — Warm Editorial Productivity:
@@ -17,12 +16,9 @@ import { RutinaCard } from '../../rutina-card'
  * 3. Aksesibilitas bukan tambahan: setiap grafik ilustratif wajib
  *    punya representasi tekstual (sr-only summary / label lengkap).
  *
- * Gunakan hanya jika berguna — untuk redesis dalam kartu yang sudah
- * ada (chrome tersendiri), cukup pakai ChartSrSummary + ChartLegend.
- * (v2.48: ChartFrame sendiri masih perancah — belum dipakai modul
- * mana pun; konsumen langsung saat ini hanya ChartSrSummary +
- * ChartLegend. Dipertahankan sebagai fondasi kartu grafik mandiri
- * berikutnya.)
+ * (v2.62 audit dead code: ChartFrame — perancah v2.48 yang tak pernah
+ * diadopsi modul mana pun — dipensiunkan; konsumen nyata fondasi ini
+ * hanya ChartSrSummary + ChartLegend. Riwayatnya ada di git.)
  *
  * Konvensi gerak standar (v2.48): komponen grafik ilustratif
  * menggabungkan gerbang first-visit DENGAN reduced-motion secara
@@ -77,67 +73,5 @@ export function ChartLegend({
         </li>
       ))}
     </ul>
-  )
-}
-
-export interface ChartFrameProps {
-  /** Label kecil di atas judul (text-eyebrow). */
-  eyebrow?: string
-  title: string
-  description?: string
-  /** Slot kanan header — pil mode, tombol, dsb. */
-  action?: ReactNode
-  /** Catatan kaki metodologi — penting untuk kejujuran data. */
-  footer?: ReactNode
-  children: ReactNode
-  className?: string
-  /** aria-label section; default ke title. */
-  'aria-label'?: string
-}
-
-/**
- * ChartFrame — bingkai panel analitik untuk grafik ilustratif BARU
- * (peta anatomi, konstelasi, dsb.). Kartu lama yang hanya mengganti
- * isi grafik tetap memakai chrome-nya sendiri — jangan dipaksa pindah.
- */
-export function ChartFrame({
-  eyebrow,
-  title,
-  description,
-  action,
-  footer,
-  children,
-  className,
-  'aria-label': ariaLabel,
-}: ChartFrameProps) {
-  return (
-    <section aria-label={ariaLabel ?? title} className={className}>
-      <RutinaCard variant="data" density="comfortable" className="h-full">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 px-0.5">
-          <div className="min-w-0">
-            {eyebrow && (
-              <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-                {eyebrow}
-              </p>
-            )}
-            <h2 className="text-section-lg font-semibold text-content-primary">
-              {title}
-            </h2>
-            {description && (
-              <p className="mt-0.5 text-meta text-content-muted">
-                {description}
-              </p>
-            )}
-          </div>
-          {action && <div className="shrink-0">{action}</div>}
-        </div>
-        <div className="mt-3">{children}</div>
-        {footer && (
-          <div className="mt-3 border-t border-border-default/60 px-0.5 pt-2.5 text-eyebrow leading-snug text-content-muted">
-            {footer}
-          </div>
-        )}
-      </RutinaCard>
-    </section>
   )
 }

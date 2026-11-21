@@ -150,7 +150,7 @@ export const RutinaTabsTrigger = forwardRef<
 })
 RutinaTabsTrigger.displayName = 'RutinaTabsTrigger'
 
-/** Konten tab — transparan; biarkan layar mengatur tata letaknya. */
-export const RutinaTabsContent = TabsPrimitive.Content
-
-export { listVariants, triggerVariants }
+/* v2.62 audit dead code: RutinaTabsContent (alias transparan
+   TabsPrimitive.Content) & re-ekspor listVariants/triggerVariants
+   dipensiunkan — layar memakai TabsPrimitive.Content langsung dan
+   varian hanya relevan di dalam berkas ini. */

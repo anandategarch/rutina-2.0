@@ -373,7 +373,7 @@ critical/major langsung diperbaiki dan diverifikasi ulang.
 | Perbaikan | Rincian |
 |---|---|
 | **Data tak lagi bisa hilang diam-diam** | Demo seed tidak bisa menimpa dataset nyata di cloud; reset "Mulai bersih" dari perangkat lain tidak dihidupkan ulang perangkat lama; salinan transaksi berulang yang dihapus tidak lahir kembali (`materializeRecurring` kini memajukan ts templat); `exStatOf` mengambil set terakhir dari sesi TERBARU (bukan terlama). |
-| **Keamanan** | `db/custom.db` (berisi data pribadi) di-untrack dari git; shared secret opsional `/api/*` (`x-sync-token`, `src/middleware.ts`); batas kunci `moodLogs`/`budgets`; header keamanan + CSP Report-Only; pesan error generik. |
+| **Keamanan** | `db/custom.db` (berisi data pribadi) di-untrack dari git; shared secret opsional `/api/*` (`x-sync-token`, `src/proxy.ts`); batas kunci `moodLogs`/`budgets`; header keamanan + CSP Report-Only; pesan error generik. |
 | **Aksesibilitas** | Focus trap di Quick Action Hub (satu-satunya dialog tanpa pengurungan Tab — terverifikasi 5× Tab di browser); nominal transaksi & caption heatmap `aria-live`; input cari makanan ber-label; seksi lembar transaksi jadi `role="group"`. |
 | **Performa** | Daftar Mutasi ponsel kini bertahap: 14 hari + "Muat lagi" (selaras ledger desktop); `bestStreak`/`netSaldo` Beranda memoized. |
 | **114 pengujian otomatis** | +5 tes: anti-resurreksi berulang, urutan produksi `exStatOf`, batas kunci record. Strict TypeScript penuh (`noImplicitAny` dihapus) + seluruh `scripts/` ikut typecheck. |
