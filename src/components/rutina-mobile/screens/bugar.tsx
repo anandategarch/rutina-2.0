@@ -62,11 +62,13 @@ import {
   detectPlateau,
   durationLabel,
   e1rmOf,
+  exStatOf,
   filterWorkouts,
   isCardioKind,
   kcalOf,
   KIND_LABEL,
   latestWeight,
+  paceOf,
   prBoard,
   readinessOf,
   tonaseOf,
@@ -93,6 +95,8 @@ import {
 } from '../fitness/workout-session'
 import { BarbellToolsSheet } from '../fitness/barbell-tools'
 import { TrainingCalendar } from '../fitness/training-calendar'
+import { ExerciseDetailSheet } from '../fitness/exercise-detail-sheet'
+import { MuscleBalanceCard } from '../fitness/muscle-balance-card'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -534,10 +538,23 @@ function WorkoutRow({
 
 /* ===== Kartu pustaka gerakan ===== */
 
-function ExerciseCard({ name }: { name: string }) {
+function ExerciseCard({
+  name,
+  onOpenDetail,
+}: {
+  name: string
+  onOpenDetail?: (name: string) => void
+}) {
   const openWorkoutSheet = useRutina((s) => s.openWorkoutSheet)
+  const workouts = useRutina((s) => s.workouts)
   const ex = EX_LIB.find((e) => e.name === name)
   const [expanded, setExpanded] = useState(false)
+  /* Riwayat nyata gerakan ini (review v2.44) — chip jumlah sesi di
+     baris utama + pintu riwayat/e1RM di detail. */
+  const recorded = useMemo(
+    () => (ex ? exStatOf(workouts, ex.name).sessions : 0),
+    [workouts, ex],
+  )
   if (!ex) return null
 
   return (
@@ -561,7 +578,13 @@ function ExerciseCard({ name }: { name: string }) {
         </span>
         {/* Chip kelas alat — kebutuhan alat terlihat tanpa expand
             (alat rumah pengguna: barbel saja, tanpa bangku/rak/bar
-            gantung); shrink-0 agar chip tidak tergencet nama. */}
+            gantung); shrink-0 agar chip tidak tergencet nama. Chip sesi
+            tercatat hanya muncul bila gerakan punya histori (v2.44). */}
+        {recorded > 0 && (
+          <span className="h-6 shrink-0 rounded-full bg-gold/20 px-2 text-[10px] font-bold leading-6 text-warning tabular-nums">
+            {recorded} sesi
+          </span>
+        )}
         <span
           className={`h-6 shrink-0 rounded-full px-2 text-[10px] font-bold leading-6 ${
             KIT_META[equipmentClass(ex)].chip
@@ -620,16 +643,29 @@ function ExerciseCard({ name }: { name: string }) {
                   {ex.mistakes}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  openWorkoutSheet([{ name: ex.name, count: 3, reps: 8 }])
-                }
-                className="interactive flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse text-note font-bold text-content-inverse hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Catat gerakan ini
-              </button>
+              <div className="flex gap-2">
+                {/* Pintu riwayat (review v2.44) — hanya bila gerakan
+                    ini punya histori tercatat. */}
+                {recorded > 0 && onOpenDetail && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenDetail(ex.name)}
+                    className="interactive h-9 flex-1 cursor-pointer rounded-full border border-border-strong text-note font-bold text-content-secondary transition-colors hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    Riwayat &amp; e1RM
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    openWorkoutSheet([{ name: ex.name, count: 3, reps: 8 }])
+                  }
+                  className="interactive flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-surface-inverse px-3 text-note font-bold text-content-inverse hover:bg-surface-inverse-raised focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Catat gerakan ini
+                </button>
+              </div>
             </div>
           </m.div>
         )}
@@ -663,38 +699,96 @@ const MIX_KIND_ICON = {
   badminton: Volleyball,
 } as const
 
-/* ===== Aktivitas pekan ini — SATU kartu, satu sumbu hari =====
-   (audit UX density v2.37: TonaseStrip + ActivityMixStrip digabung —
-   dua kartu dengan sumbu hari yang sama adalah duplikasi visual.)
-   Tiap kolom hari memuat ikon jenis aktivitas + batang tonase mini;
-   ketuk hari untuk detail yang tetap MEMBEDAKAN jenis aktivitas dan
-   satuannya (kg tonase / km / menit / jumlah sesi). */
+/* ===== Aktivitas pekan ini — mode per jenis olahraga (review UI/UX
+   v2.44) =====
+   SATU kartu, EMPAT mode baca: Semua / Lari & Jalan / Badminton / Barbel.
+   Tiap mode membawa metrik + satuan sendiri — km, menit, dan kg tidak
+   pernah berbagi satu sumbu (aturan review). Mode Semua mempertahankan
+   ikon jenis per hari + tonase mini (audit v2.37); mode fokus mengganti
+   batang ke satuan metriknya. Ketuk hari untuk detail sesi. */
+type WeekMode = 'semua' | 'kardio' | 'badminton' | 'beban'
+
+const WEEK_MODES: { id: WeekMode; label: string }[] = [
+  { id: 'semua', label: 'Semua' },
+  { id: 'kardio', label: 'Lari & Jalan' },
+  { id: 'badminton', label: 'Badminton' },
+  { id: 'beban', label: 'Barbel' },
+]
+
+/** Metrik & filter per mode — `of` adalah nilai sumbu hari/tren. */
+const WEEK_MODE_META: Record<
+  WeekMode,
+  {
+    unit: 'kg' | 'km' | 'mnt'
+    metricName: string
+    trendLabel: string
+    match: (w: Workout) => boolean
+    of: (w: Workout) => number
+  }
+> = {
+  semua: {
+    unit: 'kg',
+    metricName: 'tonase',
+    trendLabel: 'Tonase 6 pekan',
+    match: () => true,
+    of: (w) => tonaseOf(w),
+  },
+  kardio: {
+    unit: 'km',
+    metricName: 'jarak',
+    trendLabel: 'Jarak 6 pekan',
+    match: (w) => isCardioKind(w.kind),
+    of: (w) => (isCardioKind(w.kind) ? (w.distance ?? 0) : 0),
+  },
+  badminton: {
+    unit: 'mnt',
+    metricName: 'durasi',
+    trendLabel: 'Durasi 6 pekan',
+    match: (w) => w.kind === 'badminton',
+    of: (w) => (w.kind === 'badminton' ? w.duration || 0 : 0),
+  },
+  beban: {
+    unit: 'kg',
+    metricName: 'tonase',
+    trendLabel: 'Tonase 6 pekan',
+    match: (w) => w.kind === 'beban',
+    of: (w) => tonaseOf(w),
+  },
+}
+
 function WeekActivityCard() {
   const workouts = useRutina((s) => s.workouts)
   const reducedMotion = useReducedMotion()
   /* v2.35 anti-replay — pengungkapan hanya kunjungan pertama. */
   const playEntrance = useFirstVisit('bugar-studio-tonase')
   const [selIdx, setSelIdx] = useState<number | null>(null)
+  /* Mode baca (review v2.44) — default Semua (perilaku lama). */
+  const [mode, setMode] = useState<WeekMode>('semua')
+  const meta = WEEK_MODE_META[mode]
 
   const { days, sessions, values, lastValues, max, weeks } = useMemo(() => {
+    const M = WEEK_MODE_META[mode]
     const start = weekRange().start
     const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i))
-    const sessions = days.map((d) => workouts.filter((w) => w.date === d))
-    const tonaseOn = (list: Workout[]) =>
-      list.reduce((a, w) => a + tonaseOf(w), 0)
-    const values = sessions.map(tonaseOn)
-    const lastValues = days.map((d) =>
-      tonaseOn(workouts.filter((w) => w.date === addDaysISO(d, -7))),
+    const sessions = days.map((d) =>
+      workouts.filter((w) => w.date === d && M.match(w)),
     )
-    /* Tren tonase 6 pekan (v2.39 audit visual data) — satu angka per
-       pekan; footer hero hanya membawa angka pekan BERJALAN, tren
-       multi-pekan selama ini tak tergambar. */
+    const valueOn = (list: Workout[]) => list.reduce((a, w) => a + M.of(w), 0)
+    const values = sessions.map(valueOn)
+    const lastValues = days.map((d) =>
+      valueOn(
+        workouts.filter((w) => w.date === addDaysISO(d, -7) && M.match(w)),
+      ),
+    )
+    /* Tren 6 pekan (v2.39 audit visual data) — satu angka per pekan
+       dalam SATUAN MODE AKTIF; footer hero hanya membawa angka pekan
+       BERJALAN, tren multi-pekan selama ini tak tergambar. */
     const weeks = Array.from({ length: 6 }, (_, k) => {
       const wStart = addDaysISO(start, -7 * (5 - k))
       const wEnd = addDaysISO(wStart, 6)
       const total = workouts
-        .filter((w) => w.date >= wStart && w.date <= wEnd)
-        .reduce((a, w) => a + tonaseOf(w), 0)
+        .filter((w) => w.date >= wStart && w.date <= wEnd && M.match(w))
+        .reduce((a, w) => a + M.of(w), 0)
       return { start: wStart, total }
     })
     return {
@@ -705,26 +799,76 @@ function WeekActivityCard() {
       max: Math.max(...values, 0),
       weeks,
     }
-  }, [workouts])
+  }, [workouts, mode])
 
   const today = todayISO()
-  const todayIdx = (new Date(today + 'T00:00:00').getDay() + 6) % 7
   const fmtKg = (n: number) => `${Math.round(n).toLocaleString('id-ID')} kg`
+  const fmtKm = (n: number) => `${n.toFixed(1).replace('.', ',')} km`
+  const fmtMode = (n: number) =>
+    mode === 'kardio'
+      ? fmtKm(n)
+      : mode === 'badminton'
+        ? durationLabel(Math.round(n))
+        : fmtKg(n)
   const total = values.reduce((a, b) => a + b, 0)
   const lastTotal = lastValues.reduce((a, b) => a + b, 0)
   const sessionCount = sessions.reduce((a, s) => a + s.length, 0)
+  const activeDays = sessions.filter((s) => s.length > 0).length
+  const totalMinutes = sessions.reduce(
+    (a, s) => a + s.reduce((b, w) => b + (w.duration || 0), 0),
+    0,
+  )
+  const setCount = sessions.reduce(
+    (a, s) => a + s.reduce((b, w) => b + w.sets.length, 0),
+    0,
+  )
   const weekDelta =
     lastTotal > 0 ? Math.round(((total - lastTotal) / lastTotal) * 100) : null
+  const deltaTxt =
+    weekDelta != null
+      ? ` (${weekDelta >= 0 ? '+' : '−'}${Math.abs(weekDelta)}%)`
+      : ''
   const headerRight =
     sessionCount === 0
-      ? 'pekan ini belum ada sesi'
-      : total > 0
-        ? `${fmtKg(total)} · ${sessionCount} sesi${
-            weekDelta != null
-              ? ` (${weekDelta >= 0 ? '+' : '−'}${Math.abs(weekDelta)}%)`
-              : ''
+      ? mode === 'semua'
+        ? 'pekan ini belum ada sesi'
+        : `pekan ini belum ada ${
+            WEEK_MODES.find((x) => x.id === mode)?.label.toLowerCase() ?? 'sesi'
           }`
-        : `${sessionCount} sesi pekan ini`
+      : mode === 'kardio'
+        ? `${fmtKm(total)} · ${sessionCount} sesi${deltaTxt}`
+        : mode === 'badminton'
+          ? `${sessionCount} sesi · ${durationLabel(totalMinutes)}`
+          : `${fmtKg(total)} · ${sessionCount} sesi${deltaTxt}`
+
+  /* KPI mini per mode (review v2.44) — metrik yang relevan untuk
+     olahraganya: sesi/hari aktif/durasi untuk Semua; jarak-durasi-pace
+     untuk kardio; sesi-durasi untuk badminton; sesi-tonase-set barbel. */
+  const avgPace = paceOf(totalMinutes, total)
+  const kpis: { label: string; value: string }[] =
+    mode === 'kardio'
+      ? [
+          { label: 'Jarak', value: fmtKm(total) },
+          { label: 'Durasi', value: durationLabel(totalMinutes) },
+          { label: 'Pace rata²', value: avgPace ? `${avgPace} /km` : '—' },
+        ]
+      : mode === 'badminton'
+        ? [
+            { label: 'Sesi', value: String(sessionCount) },
+            { label: 'Total durasi', value: durationLabel(totalMinutes) },
+            { label: 'Hari aktif', value: `${activeDays}/7` },
+          ]
+        : mode === 'beban'
+          ? [
+              { label: 'Sesi', value: String(sessionCount) },
+              { label: 'Tonase', value: fmtKg(total) },
+              { label: 'Set', value: String(setCount) },
+            ]
+          : [
+              { label: 'Sesi', value: String(sessionCount) },
+              { label: 'Hari aktif', value: `${activeDays}/7` },
+              { label: 'Durasi', value: durationLabel(totalMinutes) },
+            ]
 
   const sel = selIdx != null ? { iso: days[selIdx]!, list: sessions[selIdx]! } : null
 
@@ -737,7 +881,9 @@ function WeekActivityCard() {
         ...motionTokens.preset.chipReveal,
         delay: motionTokens.delay.tight,
       }}
-      aria-label="Aktivitas pekan ini — jenis aktivitas dan tonase per hari"
+      aria-label={`Aktivitas pekan ini — mode ${
+        WEEK_MODES.find((x) => x.id === mode)?.label ?? 'Semua'
+      }`}
       className="mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
     >
       <div className="flex items-baseline justify-between gap-2 px-0.5">
@@ -751,6 +897,57 @@ function WeekActivityCard() {
         >
           {headerRight}
         </p>
+      </div>
+
+      {/* Mode baca (review v2.44) — Semua / Lari & Jalan / Badminton /
+          Barbel; tiap mode mengganti KPI, satuan batang, detail hari,
+          dan tren 6 pekan. */}
+      <RutinaTabs
+        value={mode}
+        onValueChange={(v) => {
+          setMode(v as WeekMode)
+          setSelIdx(null)
+        }}
+      >
+        <RutinaTabsList
+          variant="segment"
+          aria-label="Mode analisis aktivitas mingguan"
+          className="mt-3 h-9 w-full rounded-full border-transparent bg-surface-sunken p-1"
+        >
+          {WEEK_MODES.map((x) => (
+            <RutinaTabsTrigger
+              key={x.id}
+              value={x.id}
+              className="h-7 flex-1 px-1 text-eyebrow"
+            >
+              {x.label}
+            </RutinaTabsTrigger>
+          ))}
+        </RutinaTabsList>
+      </RutinaTabs>
+
+      {/* KPI mini per mode — angka utama kartu standar review
+          (metrik + satuan jelas sebelum membaca grafik). */}
+      <div
+        className="mt-3 grid grid-cols-3 gap-2"
+        role="group"
+        aria-label={`Ringkasan ${
+          WEEK_MODES.find((x) => x.id === mode)?.label ?? ''
+        } pekan ini`}
+      >
+        {kpis.map((k) => (
+          <div
+            key={k.label}
+            className="rounded-lg bg-surface-sunken px-2.5 py-2 text-center"
+          >
+            <p className="text-body font-bold leading-tight tabular-nums text-content-primary">
+              {k.value}
+            </p>
+            <p className="mt-0.5 text-chart-label font-medium uppercase tracking-[0.08em] text-content-muted">
+              {k.label}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Tujuh kolom hari — ikon jenis aktivitas di atas, batang tonase
@@ -786,7 +983,8 @@ function WeekActivityCard() {
                           (w) =>
                             `${KIND_LABEL[w.kind]} ${durationLabel(w.duration)}`,
                         )
-                        .join(', ') + (hasTonase ? `, tonase ${fmtKg(v)}` : '')
+                        .join(', ') +
+                      (v > 0 ? `, ${meta.metricName} ${fmtMode(v)}` : '')
               }`}
               onClick={() => setSelIdx(isSel ? null : i)}
               className="interactive group flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
@@ -930,21 +1128,30 @@ function WeekActivityCard() {
                 </ul>
               )}
               {(() => {
-                /* Baris tonase hari — hanya bila ada sesi beban. */
+                /* Baris metrik hari (satuan mode aktif) — muncul bila
+                    hari terpilih punya nilai pada mode itu. */
                 const v = values[selIdx ?? 0] ?? 0
                 const lv = lastValues[selIdx ?? 0] ?? 0
                 if (v === 0) return null
                 const d = lv > 0 ? Math.round(((v - lv) / lv) * 100) : null
+                const metricLabel =
+                  mode === 'kardio'
+                    ? 'Jarak'
+                    : mode === 'badminton'
+                      ? 'Durasi'
+                      : 'Tonase'
                 return (
                   <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-meta tabular-nums text-content-muted">
-                    <span>Tonase {fmtKg(v)}</span>
+                    <span>
+                      {metricLabel} {fmtMode(v)}
+                    </span>
                     {d == null ? (
                       <span className="text-success">
-                        pekan lalu 0 kg — baru tercatat
+                        pekan lalu 0 — baru tercatat
                       </span>
                     ) : (
                       <span className={d >= 0 ? 'text-success' : 'text-content-danger'}>
-                        vs hari sama lalu ({fmtKg(lv)}): {d >= 0 ? '+' : '−'}
+                        vs hari sama lalu ({fmtMode(lv)}): {d >= 0 ? '+' : '−'}
                         {Math.abs(d)}%
                       </span>
                     )}
@@ -956,16 +1163,16 @@ function WeekActivityCard() {
         )}
       </AnimatePresence>
 
-      {/* Tren tonase 6 pekan (v2.39 audit visual data) — satu bar per
-          pekan, pekan berjalan disorot; skala relatif pekan terberat.
-          Label kolom = tanggal Senin pekan itu (d/b), kolom akhir
-          “ini” berpasangan dengan angka kepala kartu. */}
+      {/* Tren 6 pekan (v2.39 audit visual data; satuan mode aktif sejak
+          review v2.44) — satu bar per pekan, pekan berjalan disorot;
+          skala relatif pekan terberat. Label kolom = tanggal Senin
+          pekan itu (d/b), kolom akhir “ini” berpasangan dengan KPI
+          mode di atas. */}
       {(() => {
         const weeksMax = Math.max(...weeks.map((w) => w.total), 0)
         if (weeksMax <= 0) return null
-        const weeksAvg = Math.round(
-          weeks.reduce((a, w) => a + w.total, 0) / weeks.length,
-        )
+        const weeksAvg =
+          weeks.reduce((a, w) => a + w.total, 0) / weeks.length
         const fmtMonday = (iso: string) => {
           const d = new Date(iso + 'T00:00:00')
           return `${d.getDate()}/${d.getMonth() + 1}`
@@ -974,20 +1181,23 @@ function WeekActivityCard() {
           <div className="mt-4 border-t border-border-default pt-3">
             <div className="flex items-baseline justify-between gap-2 px-0.5">
               <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-                Tonase 6 pekan
+                {meta.trendLabel}
               </p>
               <p className="text-eyebrow font-medium tabular-nums text-content-muted">
-                rata² {fmtKg(weeksAvg)}/pekan
+                rata² {fmtMode(weeksAvg)}/pekan
               </p>
             </div>
             <div
               className="mt-2 flex h-12 gap-1.5"
               role="img"
-              aria-label={`Tonase barbel per pekan: ${weeks
-                .map((wk, i) =>
-                  `${
-                    i === weeks.length - 1 ? 'pekan ini' : `pekan ${fmtMonday(wk.start)}`
-                  } ${fmtKg(wk.total)}`,
+              aria-label={`${meta.trendLabel} (${meta.unit}): ${weeks
+                .map(
+                  (wk, i) =>
+                    `${
+                      i === weeks.length - 1
+                        ? 'pekan ini'
+                        : `pekan ${fmtMonday(wk.start)}`
+                    } ${fmtMode(wk.total)}`,
                 )
                 .join(', ')}`}
             >
@@ -1412,6 +1622,9 @@ export default function BugarScreen() {
   const [openLibGroups, setOpenLibGroups] = useState<Set<string>>(new Set())
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
   const [barbellOpen, setBarbellOpen] = useState(false)
+  /* Detail progres satu gerakan (review v2.44) — nama gerakan yang
+     lembar detailnya terbuka; null = tertutup. */
+  const [exDetail, setExDetail] = useState<string | null>(null)
   const reducedMotion = useReducedMotion()
 
   const week = useMemo(() => activitySummary(workouts), [workouts])
@@ -2251,15 +2464,20 @@ export default function BugarScreen() {
         ) : (
           <div className="mt-3 space-y-2">
             {prs.map((r, i) => (
-              <m.div
+              <m.button
                 key={r.name}
+                type="button"
+                onClick={() => setExDetail(r.name)}
+                aria-label={`Buka perkembangan ${r.name} — rekor e1RM ${r.best
+                  .toFixed(1)
+                  .replace('.', ',')} kg dari ${r.sessions} sesi`}
                 initial={playEntrance ? { opacity: 0, y: 14 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
                   ...motionTokens.preset.chipReveal,
                   delay: Math.min(i * motionTokens.stagger.normal, 0.3),
                 }}
-                className={`flex items-center gap-3 rounded-lg border p-3.5 ${
+                className={`interactive flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary hover:bg-secondary/60 ${
                   i === 0
                     ? 'border-warning/40 bg-gold/25 shadow-soft'
                     : 'border-border bg-surface-primary shadow-soft'
@@ -2292,7 +2510,11 @@ export default function BugarScreen() {
                     kg · e1RM
                   </p>
                 </div>
-              </m.div>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted"
+                />
+              </m.button>
             ))}
           </div>
         )}
@@ -2358,7 +2580,11 @@ export default function BugarScreen() {
           {libFlatMode ? (
             <>
               {filteredLib.map((e) => (
-                <ExerciseCard key={e.name} name={e.name} />
+                <ExerciseCard
+                  key={e.name}
+                  name={e.name}
+                  onOpenDetail={setExDetail}
+                />
               ))}
               {filteredLib.length === 0 && (
                 <RutinaEmptyState
@@ -2387,7 +2613,11 @@ export default function BugarScreen() {
                     </div>
                     <div className="space-y-2.5">
                       {items.map((e) => (
-                        <ExerciseCard key={e.name} name={e.name} />
+                        <ExerciseCard
+                          key={e.name}
+                          name={e.name}
+                          onOpenDetail={setExDetail}
+                        />
                       ))}
                     </div>
                     {g.items.length > LIB_GROUP_PREVIEW && (
@@ -2416,6 +2646,13 @@ export default function BugarScreen() {
           )}
         </div>
       </section>
+
+      {/* ===== Neraca kelompok otot — baris penuh di bawah pasangan
+          Papan Rekor/Pustaka (review UI/UX v2.44): distribusi set per
+          kelompok otot utama, jendela 7/30 hari. ===== */}
+      <section aria-label="Neraca kelompok otot" className="@[52rem]:col-span-12">
+        <MuscleBalanceCard />
+      </section>
           </div>
         </div>
 
@@ -2435,6 +2672,12 @@ export default function BugarScreen() {
         onClose={() => setSessionPickerOpen(false)}
       />
       <BarbellToolsSheet open={barbellOpen} onClose={() => setBarbellOpen(false)} />
+      {/* Detail progres satu gerakan — dibuka dari Papan Rekor / Pustaka. */}
+      <ExerciseDetailSheet
+        open={exDetail != null}
+        name={exDetail}
+        onClose={() => setExDetail(null)}
+      />
       <WorkoutSessionOverlay />
     </div>
   )

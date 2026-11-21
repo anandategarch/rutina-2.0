@@ -22,6 +22,7 @@ import {
   noteDateISO,
   noteDateLabel,
   todayISO,
+  weekStartISO,
   useRutina,
   type FolderKey,
   type Note,
@@ -70,6 +71,9 @@ function WritingActivityCard({
 }) {
   const today = todayISO()
   const [viewYm, setViewYm] = useState(today.slice(0, 7))
+  /* Mode baca (review UI/UX v2.44): kalender jumlah catatan (lama) /
+     volume KATA per pekan — jumlah catatan ≠ produktivitas menulis. */
+  const [view, setView] = useState<'kalender' | 'kata'>('kalender')
   /* v2.37 P1 (audit UX density): kartu dilipat secara default — pemicu
      selalu menampilkan ringkasan satu baris. Dipaksa tetap terbuka selama
      filter tanggal aktif agar chip penghapusnya tidak tersembunyi. */
@@ -149,6 +153,43 @@ function WritingActivityCard({
     return n
   }, [byDate, today])
 
+  /* Volume kata per pekan (review v2.44) — 4 pekan Senin–Minggu,
+     pekan berjalan sampai hari ini; kata dihitung dari isi catatan
+     ber-tanggal pasti (impor lama tanpa tanggal tidak dikira-kira). */
+  const wordWeeks = useMemo(() => {
+    const wordsByDate = new Map<string, number>()
+    const notesByDate = new Map<string, number>()
+    for (const n of notes) {
+      const iso = noteDateISO(n)
+      if (iso == null) continue
+      const words = n.body.trim() ? n.body.trim().split(/\s+/).length : 0
+      wordsByDate.set(iso, (wordsByDate.get(iso) ?? 0) + words)
+      notesByDate.set(iso, (notesByDate.get(iso) ?? 0) + 1)
+    }
+    const weeks = []
+    for (let k = 3; k >= 0; k--) {
+      const start = weekStartISO(addDaysISO(today, -k * 7))
+      let words = 0
+      let days = 0
+      for (let d = 0; d < 7; d++) {
+        const iso = addDaysISO(start, d)
+        if (iso > today) break
+        if ((notesByDate.get(iso) ?? 0) > 0) {
+          days++
+          words += wordsByDate.get(iso) ?? 0
+        }
+      }
+      weeks.push({ start, words, days })
+    }
+    return weeks
+  }, [notes, today])
+  const totalWords = wordWeeks.reduce((a, w) => a + w.words, 0)
+  const activeWriteDays = wordWeeks.reduce((a, w) => a + w.days, 0)
+  const avgWordsPerDay =
+    activeWriteDays > 0 ? Math.round(totalWords / activeWriteDays) : 0
+  const fmtWords = (n: number) =>
+    n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} rb` : String(n)
+
   /* Tanggal terakhir menulis — pengganti streak bila masih pendek. */
   const lastWrite = useMemo(() => {
     let last: string | null = null
@@ -198,6 +239,38 @@ function WritingActivityCard({
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-3">
+          {/* Mode baca (review v2.44): kalender jumlah catatan / volume
+              kata per pekan — jumlah catatan ≠ produktivitas menulis. */}
+          <div
+            role="group"
+            aria-label="Mode aktivitas menulis"
+            className="flex justify-end"
+          >
+            <div className="flex gap-1 rounded-full bg-surface-sunken p-0.5">
+              {(['kalender', 'kata'] as const).map((v) => {
+                const on = view === v
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setView(v)}
+                    aria-pressed={on}
+                    className={
+                      'interactive h-6.5 cursor-pointer rounded-full px-3 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                      (on
+                        ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                        : 'text-content-secondary hover:text-content-primary')
+                    }
+                  >
+                    {v === 'kalender' ? 'Kalender' : 'Jumlah Kata'}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {view === 'kalender' ? (
+          <>
           {/* Navigasi bulan — ikut terlipat bersama kalendernya. */}
           <div className="flex items-center justify-end gap-1">
             <button
@@ -281,6 +354,98 @@ function WritingActivityCard({
               )
             })}
           </div>
+          </>
+          ) : (
+            (() => {
+              /* Mode kata — 4 batang kata per pekan; pekan berjalan
+                 dihitung sampai hari ini saja. */
+              const max = Math.max(...wordWeeks.map((w) => w.words), 0)
+              if (max <= 0) {
+                return (
+                  <p className="mt-3 rounded-lg bg-surface-sunken px-3.5 py-3 text-meta leading-relaxed text-content-muted">
+                    Belum ada tulisan ber-tanggal dalam 4 pekan terakhir —
+                    jumlah kata dihitung dari isi catatan tersimpan.
+                  </p>
+                )
+              }
+              return (
+                <div className="mt-3">
+                  <div
+                    className="flex h-24 gap-1.5"
+                    role="img"
+                    aria-label={`Jumlah kata per pekan: ${wordWeeks
+                      .map(
+                        (w, i) =>
+                          `${
+                            i === wordWeeks.length - 1
+                              ? 'pekan ini'
+                              : `pekan ${w.start}`
+                          } ${w.words} kata di ${w.days} hari aktif`,
+                      )
+                      .join(', ')}`}
+                  >
+                    {wordWeeks.map((w, i) => {
+                      const isCurrent = i === wordWeeks.length - 1
+                      const h =
+                        w.words <= 0
+                          ? 4
+                          : Math.max(10, Math.round((w.words / max) * 100))
+                      return (
+                        <div
+                          key={w.start}
+                          className="flex h-full min-w-0 flex-1 flex-col gap-1"
+                        >
+                          <div className="flex w-full flex-1 items-end">
+                            <m.div
+                              initial={{ scaleY: 0 }}
+                              animate={{ scaleY: 1 }}
+                              transition={{
+                                duration: 0.45,
+                                delay: i * 0.05,
+                                ease: motionTokens.easing.standard,
+                              }}
+                              style={{ height: `${h}%` }}
+                              className={
+                                'w-full origin-bottom rounded-full ' +
+                                (isCurrent
+                                  ? 'bg-module-accent-strong'
+                                  : w.words > 0
+                                    ? 'bg-module-accent/60'
+                                    : 'bg-module-accent/15')
+                              }
+                            />
+                          </div>
+                          <span
+                            className={
+                              'text-center text-chart-label font-semibold ' +
+                              (isCurrent
+                                ? 'text-module-accent-strong'
+                                : 'text-content-muted')
+                            }
+                          >
+                            {isCurrent ? 'ini' : `P${i + 1}`}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-1.5 text-chart-label tabular-nums text-content-muted">
+                    {wordWeeks
+                      .map(
+                        (w, i) =>
+                          `${i === wordWeeks.length - 1 ? 'ini' : `P${i + 1}`} ${fmtWords(w.words)}`,
+                      )
+                      .join(' · ')}{' '}
+                    kata
+                  </p>
+                  <p className="mt-1 text-meta text-content-muted">
+                    {fmtWords(totalWords)} kata · {activeWriteDays} hari aktif
+                    menulis · rata² {fmtWords(avgWordsPerDay)} kata/hari
+                  </p>
+                </div>
+              )
+            })()
+          )}
 
           {/* Distribusi folder — segmented bar kecil + label jumlah. */}
           {totalNotes > 0 && (
@@ -399,6 +564,9 @@ export default function JournalScreen() {
   const [query, setQuery] = useState('')
   /* v2.36: filter tanggal dari kalender aktivitas menulis — null = semua. */
   const [dayFilter, setDayFilter] = useState<string | null>(null)
+  /* Filter mood (review UI/UX v2.44 Tahap 2) — null = semua mood;
+     hanya mood yang benar-benar tercatat pada catatan hidup. */
+  const [moodFilter, setMoodFilter] = useState<string | null>(null)
   const notes = useRutina((s) => s.notes)
   const journalFilter = useRutina((s) => s.journalFilter)
   const setJournalFilter = useRutina((s) => s.setJournalFilter)
@@ -406,6 +574,17 @@ export default function JournalScreen() {
   const openReading = useRutina((s) => s.openReading)
   const noteMoods = useJournalUi((s) => s.noteMoods)
   const openCanvas = useJournalUi((s) => s.openCanvas)
+
+  /* Opsi mood dari catatan yang masih hidup — pasangan [mood, jumlah]. */
+  const moodOptions = useMemo(() => {
+    const live = new Set(notes.map((n) => n.id))
+    const m = new Map<string, number>()
+    for (const [id, mood] of Object.entries(noteMoods)) {
+      if (!live.has(id)) continue
+      m.set(mood, (m.get(mood) ?? 0) + 1)
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }, [notes, noteMoods])
 
   /* Pulihkan metadata suasana hati tersimpan (pola skipHydration —
      dipanggil pasca-mount agar tidak ada hydration mismatch). */
@@ -435,6 +614,7 @@ export default function JournalScreen() {
       (n) =>
         (journalFilter === 'semua' || n.folder === journalFilter) &&
         (dayFilter === null || noteDateISO(n) === dayFilter) &&
+        (moodFilter === null || noteMoods[n.id] === moodFilter) &&
         (q === '' ||
           (n.title + ' ' + n.body).toLowerCase().includes(q)),
     )
@@ -443,13 +623,16 @@ export default function JournalScreen() {
       drafts: filtered.filter((n) => !n.pinned && isDraftNote(n)),
       rest: filtered.filter((n) => !n.pinned && !isDraftNote(n)),
     }
-  }, [notes, journalFilter, query, dayFilter])
+  }, [notes, journalFilter, query, dayFilter, moodFilter, noteMoods])
 
   /* v2.37 P1: pagar densitas hanya hidup di kondisi awal (tanpa pencarian,
-     tanpa filter folder/tanggal) — total kartu awal maksimal 10. Pencarian
-     atau filter aktif melonggarkan pagar: seluruh hasil tampil. */
+     tanpa filter folder/tanggal/mood) — total kartu awal maksimal 10.
+     Pencarian atau filter aktif melonggarkan pagar: seluruh hasil tampil. */
   const fenceRelaxed =
-    query.trim() !== '' || journalFilter !== 'semua' || dayFilter !== null
+    query.trim() !== '' ||
+    journalFilter !== 'semua' ||
+    dayFilter !== null ||
+    moodFilter !== null
   const pinnedLimit = fenceRelaxed ? undefined : Math.min(pinned.length, PINNED_CAP)
   const draftsLimit = fenceRelaxed ? undefined : Math.min(drafts.length, DRAFT_CAP)
   const restLimit = fenceRelaxed
@@ -578,6 +761,43 @@ export default function JournalScreen() {
             className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface-primary to-transparent"
           />
         </m.div>
+
+        {/* Filter mood (review v2.44 Tahap 2) — hanya mood tercatat;
+            ketuk chip aktif untuk menghapus saringan. */}
+        {moodOptions.length > 0 && (
+          <div
+            role="group"
+            aria-label="Filter suasana hati catatan"
+            className="relative mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+          >
+            {moodOptions.map(([mood, n]) => {
+              const active = moodFilter === mood
+              return (
+                <button
+                  key={mood}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setMoodFilter(active ? null : mood)}
+                  className={
+                    'interactive h-8 shrink-0 cursor-pointer rounded-full px-3 text-chart-label font-bold ' +
+                    (active
+                      ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
+                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                  }
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${
+                      MOOD_DOT[mood] ?? 'bg-cocoa/40'
+                    }`}
+                  />
+                  {mood}
+                  <span className="ml-1.5 tabular-nums opacity-60">{n}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Aktivitas menulis — jejak bulanan + distribusi (audit v2.36

@@ -59,6 +59,7 @@ import {
 import { CoachGroupCard } from '../coach-card'
 import { PlantGarden } from '../plant-garden'
 import Heatmap from '../heatmap'
+import { HabitComparisonMatrix } from '../habit-comparison-matrix'
 import { PlantGlyph } from '../plant-glyph'
 import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
@@ -1826,6 +1827,12 @@ export default function KebiasaanScreen() {
                   </div>
                 </div>
               </m.div>
+
+              {/* Matriks perbandingan konsistensi (review UI/UX v2.44
+                  Tahap 2): semua kebiasaan aktif × 4 pekan — menemukan
+                  yang paling konsisten / menurun / membaik / butuh
+                  perhatian dalam satu pandangan; ketuk baris buka detail. */}
+              <HabitComparisonMatrix onSelect={setSelectedId} />
 
               {/* Taman Pertumbuhan — bedeng tanaman di dalam zona kebun
                   yang sama; mode 'beds' menanam kisi melipat di ruang

@@ -299,19 +299,59 @@ function DateStrip() {
           )
         })}
       </div>
-      <p className="mt-2 px-0.5 text-meta font-medium text-content-muted">
-        {selected
-          ? selected.isToday
-            ? selected.scheduled > 0
+      {/* Konteks tanggal (review UI/UX v2.44): memilih tanggal selain hari
+          ini memunculkan bar informasi eksplisit — hero progres tetap
+          meringkas HARI INI, bar ini menjelaskan tanggal yang sedang
+          dibuka agenda-nya + jalan pulang satu ketukan. Hari ini tetap
+          memakai caption ringkas satu baris. */}
+      {selected ? (
+        selected.isToday ? (
+          <p className="mt-2 px-0.5 text-meta font-medium text-content-muted">
+            {selected.scheduled > 0
               ? `Hari ini — ${Math.min(selected.done, selected.scheduled)}/${selected.scheduled} jadwal selesai`
-              : 'Hari ini — tanpa kebiasaan terjadwal'
-            : selected.isFuture
-              ? `${longDateLabel(selected.iso)} — belum terjadi`
-              : selected.scheduled > 0
-                ? `${longDateLabel(selected.iso)} — ${selected.done} misi selesai dari ${selected.scheduled} jadwal`
-                : `${longDateLabel(selected.iso)} — ${selected.done} misi selesai`
-          : 'Memuat kalender…'}
-      </p>
+              : 'Hari ini — tanpa kebiasaan terjadwal'}
+          </p>
+        ) : (
+          <m.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={motionTokens.preset.chipReveal}
+            className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-module-accent/25 bg-module-accent/8 px-3 py-2"
+          >
+            <p className="flex min-w-0 flex-1 items-center gap-1.5 text-meta font-medium text-content-secondary">
+              <CalendarDays
+                aria-hidden="true"
+                className="h-3.5 w-3.5 shrink-0 text-module-accent-strong"
+              />
+              <span className="font-semibold text-module-accent-strong">
+                {selected.isFuture ? 'Akan datang' : 'Riwayat'}
+              </span>
+              <span className="text-content-muted">·</span>
+              <span className="truncate font-semibold text-content-primary">
+                {longDateLabel(selected.iso)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-content-muted">
+                {selected.isFuture
+                  ? 'misi tampil sesuai jadwal — belum bisa dicentang'
+                  : selected.scheduled > 0
+                    ? `${selected.done} dari ${selected.scheduled} kebiasaan selesai`
+                    : 'tanpa kebiasaan terjadwal'}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(today)}
+              className="interactive h-7 shrink-0 cursor-pointer rounded-full bg-surface-primary px-3 text-chart-label font-bold text-module-accent-strong shadow-soft transition-colors hover:bg-module-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Kembali ke hari ini
+            </button>
+          </m.div>
+        )
+      ) : (
+        <p className="mt-2 px-0.5 text-meta font-medium text-content-muted">
+          Memuat kalender…
+        </p>
+      )}
     </div>
   )
 }
@@ -858,31 +898,21 @@ export default function HomeScreen() {
             <section aria-label="Agenda hari ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
+                description={
+                  viewingToday
+                    ? undefined
+                    : viewingPast
+                      ? 'Melihat riwayat — centang menyimpan untuk tanggal yang sedang dibuka.'
+                      : 'Misi tampil sesuai jadwal, belum bisa dicentang.'
+                }
               />
 
               {/* Halaman planner agenda: paper-surface memberi garis margin
                   kiri 2px + sapuan matcha lembut dari sisi awal; tiap
-                  kelompok waktu mengalir di atas rel timeline. */}
+                  kelompok waktu mengalir di atas rel timeline. (Pita konteks
+                  tanggal lampau kini hidup di bawah kalender DateStrip —
+                  satu sumber, tanpa duplikasi review v2.44.) */}
               <div className="paper-surface mt-4 rounded-2xl border-y border-e p-4 shadow-soft sm:p-6">
-                {/* Pita konteks tanggal lampau / masa depan */}
-                {!viewingToday && (
-                  <div className="mb-3 flex items-center gap-2.5 rounded-lg border border-gold/40 bg-surface-sunken px-3.5 py-2.5">
-                    <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-warning" />
-                    <p className="min-w-0 flex-1 text-meta font-medium text-content-muted">
-                      {viewingPast
-                        ? `Melihat riwayat ${shortDateLabel(selectedDate)} — centang menyimpan untuk tanggal ini.`
-                        : `${longDateLabel(selectedDate)} — misi tampil sesuai jadwal, belum bisa dicentang.`}
-                    </p>
-                    <m.button
-                      type="button"
-                      onClick={() => setSelectedDate(today)}
-                      whileTap={{ scale: 0.96, transition: pressSnappy }}
-                      className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-eyebrow font-semibold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    >
-                      Hari ini
-                    </m.button>
-                  </div>
-                )}
 
                 {dayHabits.length === 0 ? (
                   /* Tidak ada misi terjadwal — halaman kosong yang dirayakan,

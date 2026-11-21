@@ -3,6 +3,7 @@
 import * as m from 'motion/react-m'
 import {
   BarChart3,
+  BookOpen,
   Dumbbell,
   Home,
   Sprout,
@@ -23,10 +24,11 @@ import {
 import { useRutina, type Screen } from './store'
 import { SyncStatusCard } from './sync-status-card'
 
-/* Navigasi desktop — keenam layar (termasuk Profil: di desktop tidak ada
-   avatar header yang selalu terlihat, jadi Profil sah menjadi item nav).
-   Kebiasaan menggantikan Jurnal sebagai item ke-4; layar Jurnal tetap
-   dapat dibuka lewat Quick Action Hub.
+/* Navigasi desktop — TUJUH layar (review UI/UX v2.44): Jurnal kini
+   punya pintu langsung di bilah sisi (sebelumnya hanya lewat Beranda /
+   Quick Action Hub). Urutan mengikuti rekomendasi review — Kebiasaan
+   naik sebelum Keuangan, Jurnal sebelum Profil; pintasan keyboard
+   1-7 sejajar SHORTCUT_SCREENS di app-frame.
 
    "Ruang Warna": pil & ikon item AKTIF memakai warna domain layar —
    konsisten dengan tab bawah ponsel (pilih dari peta NAV_ACCENT di
@@ -36,9 +38,10 @@ import { NAV_ACCENT } from './bottom-nav'
 const NAV_ITEMS: { id: Screen; label: string; icon: LucideIcon }[] = [
   { id: 'beranda', label: 'Beranda', icon: Home },
   { id: 'bugar', label: 'Bugar', icon: Dumbbell },
-  { id: 'keuangan', label: 'Keuangan', icon: Wallet },
   { id: 'kebiasaan', label: 'Kebiasaan', icon: Sprout },
+  { id: 'keuangan', label: 'Keuangan', icon: Wallet },
   { id: 'statistik', label: 'Statistik', icon: BarChart3 },
+  { id: 'jurnal', label: 'Jurnal', icon: BookOpen },
   { id: 'profil', label: 'Profil', icon: User },
 ]
 
@@ -72,7 +75,7 @@ export function DesktopSidebar() {
         </p>
       </div>
 
-      {/* Daftar navigasi — tooltip nama layar + hint pintasan keyboard 1-6
+      {/* Daftar navigasi — tooltip nama layar + hint pintasan keyboard 1-7
           (urutan NAV_ITEMS sejajar SHORTCUT_SCREENS di app-frame). */}
       <TooltipProvider delayDuration={350}>
         <ul className="mt-4 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4">

@@ -9,19 +9,20 @@ import { DesktopSidebar } from '@/components/rutina-mobile/desktop-sidebar'
 import { RutinaApp } from '@/components/rutina-mobile/rutina-app'
 import { useRutina, type Screen } from '@/components/rutina-mobile/store'
 
-/* Pintasan keyboard desktop: tombol 1-6 memindah layar sesuai urutan nav
-   (Kebiasaan menggantikan Jurnal sebagai layar ke-4). */
+/* Pintasan keyboard desktop: tombol 1-7 memindah layar sesuai urutan nav
+   (review UI/UX v2.44 — Jurnal kini layar ke-6, sejajar bilah sisi). */
 const SHORTCUT_SCREENS: readonly Screen[] = [
   'beranda',
   'bugar',
-  'keuangan',
   'kebiasaan',
+  'keuangan',
   'statistik',
+  'jurnal',
   'profil',
 ] as const
 
 /**
- * Pintasan layar 1-6 — hanya aktif di viewport desktop (lg+) dan saat tidak
+ * Pintasan layar 1-7 — hanya aktif di viewport desktop (lg+) dan saat tidak
  * ada bidang teks yang fokus, agar tidak mengganggu pengetikan.
  */
 function useDesktopScreenShortcuts() {
@@ -29,7 +30,7 @@ function useDesktopScreenShortcuts() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (!window.matchMedia('(min-width: 1024px)').matches) return
-      const match = /^([1-6])$/.exec(e.key)
+      const match = /^([1-7])$/.exec(e.key)
       if (!match) return
       const target = e.target
       if (

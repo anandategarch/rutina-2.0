@@ -1477,12 +1477,33 @@ const catMeta = useCatMeta()
   /* Audit YNAB: baris "Sisa" harus bisa ditindaklanjuti — tampilkan
      jatah aman per hari sampai akhir bulan (hari ini ikut dihitung). */
   const now = fromISO(todayISO())
-  const daysLeft =
-    new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() -
-    now.getDate() +
-    1
+  const daysInMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+  ).getDate()
+  const daysLeft = daysInMonth - now.getDate() + 1
   const remaining = limit - used
   const daily = Math.max(0, Math.round(remaining / daysLeft))
+  /* Laju ideal (review UI/UX v2.44): persentase batas yang "seharusnya"
+     terpakai pada hari ke-N bulan berjalan — pemakaian jauh di kanan
+     tanda ini berarti pengeluaran lebih cepat dari waktu bulan. */
+  const idealPct = Math.round((now.getDate() / daysInMonth) * 100)
+  const paceDiff = pct - idealPct
+  const paceBadge =
+    !over && Math.abs(paceDiff) >= 10 ? (
+      <span
+        className={
+          paceDiff > 0
+            ? 'font-semibold text-warning'
+            : 'font-semibold text-success'
+        }
+      >
+        {' '}
+        · laju {paceDiff > 0 ? '+' : '−'}
+        {Math.abs(paceDiff)}% vs ideal
+      </span>
+    ) : null
 
   return (
     <div className="flex items-center gap-3">
@@ -1518,7 +1539,7 @@ const catMeta = useCatMeta()
         </div>
         <div className="mt-1.5 flex items-center gap-2.5">
           <div
-            className={`h-1.5 min-w-0 flex-1 overflow-hidden rounded-full ${
+            className={`relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full ${
               over ? 'bg-clay/20' : warn ? 'bg-gold/25' : 'bg-border'
             }`}
           >
@@ -1528,6 +1549,13 @@ const catMeta = useCatMeta()
               transition={barFill}
               className="h-full origin-left rounded-full"
               style={{ width: '100%', backgroundColor: barColor }}
+            />
+            {/* Tanda laju ideal — garis tipis posisi "seharusnya" hari
+                ini; dijelaskan di ringkasan laju tab Anggaran. */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 w-[2px] -translate-x-1/2 rounded-full bg-content-primary/60"
+              style={{ left: `${Math.min(idealPct, 100)}%` }}
             />
           </div>
           <span className="shrink-0 text-meta tabular-nums text-content-secondary">
@@ -1545,6 +1573,7 @@ const catMeta = useCatMeta()
             : remaining > 0
               ? `Sisa ${formatIDRShort(remaining)} bulan ini · ±${formatIDRShort(daily)}/hari (${daysLeft} hari)`
               : `Sisa ${formatIDRShort(remaining)} bulan ini`}
+          {paceBadge}
         </p>
       </div>
 
@@ -2343,6 +2372,20 @@ export default function KeuanganScreen() {
     totalLimit > 0
       ? Math.min(100, Math.round((spentTotal / totalLimit) * 100))
       : 0
+  /* Laju anggaran vs waktu bulan (review UI/UX v2.44): pemakaian total
+     dibandingkan laju ideal hari ke-N — menjawab "apakah kecepatan
+     pengeluaran terlalu tinggi untuk sisa bulan ini?" */
+  const pace = useMemo(() => {
+    const now = fromISO(todayISO())
+    const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const elapsed = now.getDate()
+    const idealPct = Math.round((elapsed / dim) * 100)
+    const daysLeft = dim - elapsed + 1
+    const remainingTotal = Math.max(0, totalLimit - spentTotal)
+    const daily = Math.round(remainingTotal / daysLeft)
+    const diff = totalPct - idealPct
+    return { elapsed, dim, idealPct, daysLeft, remainingTotal, daily, diff }
+  }, [totalLimit, spentTotal, totalPct])
   /* Ringkasan anggaran di Beranda: tiga kategori paling terbebani. */
   const topBudgets = useMemo(
     () =>
@@ -3263,6 +3306,69 @@ export default function KeuanganScreen() {
                       <span>{formatIDRShort(spentTotal)} terpakai</span>
                       <span>sisa {formatIDRShort(Math.max(0, totalLimit - spentTotal))}</span>
                     </div>
+                  </div>
+
+                  {/* Laju vs waktu bulan (review UI/UX v2.44) — membandingkan
+                      pemakaian aktual dengan laju ideal hari ke-N; tanda pada
+                      batang adalah posisi ideal (dipakai juga di tiap baris
+                      kategori di bawah). */}
+                  <div className="mt-3 rounded-xl bg-surface-sunken px-3.5 py-3">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                        Laju vs waktu bulan
+                      </p>
+                      <p className="text-eyebrow font-medium tabular-nums text-content-muted">
+                        hari ke-{pace.elapsed} dari {pace.dim}
+                      </p>
+                    </div>
+                    <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-border">
+                      <m.div
+                        initial={firstBudgetTotal ? { scaleX: 0 } : false}
+                        animate={{ scaleX: Math.min(totalPct, 100) / 100 }}
+                        transition={barFill}
+                        className={
+                          'h-full origin-left rounded-full ' +
+                          (pace.diff > 10
+                            ? 'bg-destructive'
+                            : pace.diff > 0
+                              ? 'bg-warning'
+                              : 'bg-primary')
+                        }
+                        style={{ width: '100%' }}
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-y-0 left-0 w-[2px] -translate-x-1/2 rounded-full bg-content-primary/70"
+                        style={{ left: `${Math.min(pace.idealPct, 100)}%` }}
+                      />
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-eyebrow tabular-nums">
+                      <span className="font-semibold text-content-secondary">
+                        Aktual {totalPct}%
+                      </span>
+                      <span className="text-content-muted">
+                        Ideal {pace.idealPct}% · tanda pada batang
+                      </span>
+                    </div>
+                    <p
+                      className={`mt-1.5 text-eyebrow leading-snug ${
+                        pace.diff > 10
+                          ? 'font-semibold text-content-danger'
+                          : pace.diff < -10
+                            ? 'font-semibold text-success'
+                            : 'text-content-secondary'
+                      }`}
+                    >
+                      {pace.diff > 10
+                        ? `Lebih cepat ${pace.diff}% dari laju ideal — kecilkan porsi pekan sisa agar batas tak jebol.`
+                        : pace.diff < -10
+                          ? `Lebih hemat ${Math.abs(pace.diff)}% dari laju ideal — aman melaju di bawah waktu bulan.`
+                          : 'Selaras laju waktu bulan — pengeluaran mengikuti hari yang berjalan.'}{' '}
+                      <span className="text-content-muted">
+                        Jatah aman total ±{formatIDRShort(pace.daily)}/hari ·{' '}
+                        {pace.daysLeft} hari tersisa.
+                      </span>
+                    </p>
                   </div>
 
                   {/* Baris per kategori — batas dapat disunting.

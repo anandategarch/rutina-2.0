@@ -1,0 +1,206 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import * as m from 'motion/react-m'
+import { Dumbbell } from 'lucide-react'
+
+import { addDaysISO, todayISO, useRutina } from '../store'
+import { EX_LIB, MUSCLE_GROUPS } from './data'
+import { useFirstVisit } from '@/lib/motion/first-visit'
+import { motionTokens } from '@/lib/motion/tokens'
+import { RutinaEmptyState } from '../rutina-empty-state'
+
+/**
+ * Neraca Kelompok Otot (review UI/UX v2.44) — distribusi volume latihan
+ * beban per kelompok otot dalam jendela 7 / 30 hari.
+ *
+ * Aturan review yang dipegang: hanya KELOMPOK OTOT UTAMA yang tercatat
+ * di pustaka gerakan (EX_LIB.muscle) — beban TIDAK dibagi ke otot
+ * sekunder tanpa aturan pembobotan yang jelas. Satuan: jumlah set;
+ * frekuensi = hari dengan sesi beban.
+ */
+
+/** Batang satu kelompok otot — jumlah set + gerakan penyumbang. */
+interface MuscleBar {
+  group: string
+  sets: number
+  exercises: string[]
+}
+
+const WINDOWS: { id: 7 | 30; label: string }[] = [
+  { id: 30, label: '30 hari' },
+  { id: 7, label: '7 hari' },
+]
+
+export function MuscleBalanceCard() {
+  const workouts = useRutina((s) => s.workouts)
+  const reducedEntrance = useFirstVisit('bugar-muscle-balance')
+  const [win, setWin] = useState<7 | 30>(30)
+
+  const { bars, activeDays, sessions } = useMemo(() => {
+    const today = todayISO()
+    const cutoff = addDaysISO(today, -(win - 1))
+    const inWindow = workouts.filter(
+      (w) => w.kind === 'beban' && w.date >= cutoff && w.date <= today,
+    )
+    const byGroup = new Map<string, MuscleBar>()
+    for (const g of MUSCLE_GROUPS) {
+      byGroup.set(g, { group: g, sets: 0, exercises: [] })
+    }
+    for (const w of inWindow) {
+      for (const s of w.sets) {
+        const muscle = EX_LIB.find((e) => e.name === s.exercise)?.muscle
+        if (!muscle) continue
+        const bar = byGroup.get(muscle)
+        if (!bar) continue
+        bar.sets++
+        if (!bar.exercises.includes(s.exercise)) bar.exercises.push(s.exercise)
+      }
+    }
+    const bars = [...byGroup.values()].sort((a, b) => b.sets - a.sets)
+    return {
+      bars,
+      activeDays: new Set(inWindow.map((w) => w.date)).size,
+      sessions: inWindow.length,
+    }
+  }, [workouts, win])
+
+  const maxSets = Math.max(...bars.map((b) => b.sets), 0)
+  const trainedGroups = bars.filter((b) => b.sets > 0)
+  const top = trainedGroups[0]
+
+  return (
+    <m.section
+      initial={reducedEntrance ? { opacity: 0, y: 14 } : false}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-20px' }}
+      transition={{
+        ...motionTokens.preset.chipReveal,
+        delay: motionTokens.delay.tight,
+      }}
+      aria-label="Neraca kelompok otot"
+      className="rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-0.5">
+        <h2 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
+          Neraca Kelompok Otot
+        </h2>
+        {/* Jendela waktu — pil kecil bergaya pemilih mode Heatmap. */}
+        <div
+          role="group"
+          aria-label="Jendela waktu neraca otot"
+          className="flex gap-1 rounded-full bg-surface-sunken p-0.5"
+        >
+          {WINDOWS.map((w) => {
+            const on = win === w.id
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => setWin(w.id)}
+                aria-pressed={on}
+                className={
+                  'interactive h-6.5 cursor-pointer rounded-full px-2.5 text-eyebrow font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
+                  (on
+                    ? 'bg-surface-inverse text-content-inverse shadow-soft'
+                    : 'text-content-secondary hover:text-content-primary')
+                }
+              >
+                {w.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {maxSets === 0 ? (
+        <RutinaEmptyState
+          className="mt-3"
+          icon={<Dumbbell />}
+          title={`Belum ada latihan beban dalam ${win} hari`}
+          description="Catat satu sesi barbel — jumlah set per kelompok otot akan tergambar di sini, dihitung dari gerakan pustaka yang kamu catat."
+        />
+      ) : (
+        <>
+          <p className="mt-1 px-0.5 text-meta text-content-muted">
+            {sessions} sesi · {activeDays} hari aktif · dihitung dari{' '}
+            {trainedGroups.length} kelompok otot (otot utama gerakan)
+          </p>
+
+          {/* Batang per kelompok — lebar proporsional set terbanyak;
+              sub-label menyebut gerakan penyumbang terbanyak. */}
+          <div
+            className="mt-3 space-y-2.5"
+            role="img"
+            aria-label={`Jumlah set per kelompok otot ${win} hari: ${bars
+              .map((b) => `${b.group} ${b.sets} set`)
+              .join(', ')}`}
+          >
+            {bars.map((b, i) => {
+              const pct = maxSets > 0 ? (b.sets / maxSets) * 100 : 0
+              const names = b.exercises.slice(0, 2)
+              return (
+                <div key={b.group} className="flex items-center gap-3">
+                  <span className="w-[86px] shrink-0 text-right text-chart-label font-semibold text-content-secondary">
+                    {b.group}
+                  </span>
+                  <div className="h-5 min-w-0 flex-1">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-surface-sunken">
+                      <m.div
+                        initial={
+                          reducedEntrance ? { scaleX: 0 } : { scaleX: 1 }
+                        }
+                        whileInView={{ scaleX: 1 }}
+                        viewport={{ once: true, margin: '-20px' }}
+                        transition={{
+                          duration: 0.5,
+                          delay: Math.min(i * 0.04, 0.3),
+                          ease: motionTokens.easing.standard,
+                        }}
+                        style={{ width: `${Math.max(pct, 2)}%` }}
+                        className={`h-full origin-left rounded-full ${
+                          b.sets === maxSets
+                            ? 'bg-module-accent-strong'
+                            : b.sets > 0
+                              ? 'bg-module-accent/60'
+                              : 'bg-transparent'
+                        }`}
+                      />
+                    </div>
+                    {names.length > 0 && (
+                      <p className="mt-0.5 truncate text-[10px] font-medium leading-none text-content-muted">
+                        {names.join(' · ')}
+                        {b.exercises.length > 2
+                          ? ` +${b.exercises.length - 2}`
+                          : ''}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`w-10 shrink-0 text-right text-chart-label font-bold tabular-nums ${
+                      b.sets > 0 ? 'text-content-primary' : 'text-content-muted'
+                    }`}
+                  >
+                    {b.sets}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Catatan kaki — kelompot terlatih + disclaimer otot utama. */}
+          {top && (
+            <p className="mt-3 border-t border-border-default pt-2.5 px-0.5 text-eyebrow leading-snug text-content-muted">
+              Paling banyak dilatih:{' '}
+              <span className="font-semibold text-module-accent-strong">
+                {top.group}
+              </span>{' '}
+              ({top.sets} set). Set dihitung dari kelompok otot utama tiap
+              gerakan pustaka — otot sekunder tidak dibagi tanpa pembobotan.
+            </p>
+          )}
+        </>
+      )}
+    </m.section>
+  )
+}

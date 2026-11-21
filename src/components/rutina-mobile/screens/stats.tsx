@@ -97,7 +97,7 @@ import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
-import { cardioSummary, weightSeries } from '../fitness/fit-utils'
+import { cardioSummary, durationLabel, weightSeries } from '../fitness/fit-utils'
 
 import {
   Area,
@@ -672,6 +672,82 @@ export default function StatsScreen() {
       }
     }, [workouts, bodyLogs, today])
 
+  /* ===== Wawasan Periode Ini (review UI/UX v2.44 Tahap 2) — maksimal
+     tiga temuan pembanding periode di puncak halaman: konsistensi vs
+     30 hari sebelumnya, ringkasan aktivitas Bugar, arus kas 30 hari.
+     BEDA dari Insight lintas domain di bawah (korelasi antar-modul) —
+     ini ringkasan periode-vs-periode. Aturan review: tanpa data
+     pembanding, temuan tidak tampil (bukan angka karangan). ===== */
+  const periodInsights = useMemo(() => {
+    type Tone = 'up' | 'down' | 'info'
+    const out: { key: string; title: string; body: string; tone: Tone }[] = []
+
+    /* 1 — Konsistensi 30 hari vs 30 hari sebelumnya (ambang 5 poin
+       agar derau kecil tidak dibesarkan). */
+    let schedPrev = 0
+    let donePrev = 0
+    for (let i = 0; i < 30; i++) {
+      const iso = addDaysISO(today, -59 + i)
+      for (const h of habitsOn(habits, iso)) {
+        schedPrev++
+        if (isDoneOn(completions, iso, h.id)) donePrev++
+      }
+    }
+    if (kpi.sched > 0 && schedPrev > 0) {
+      const prev = Math.round((donePrev / schedPrev) * 100)
+      const diff = kpi.consistency - prev
+      if (Math.abs(diff) >= 5) {
+        out.push({
+          key: 'konsistensi',
+          title: diff > 0 ? 'Konsistensi meningkat' : 'Konsistensi menurun',
+          body: `${kpi.consistency}% vs ${prev}% pada 30 hari sebelumnya — ${
+            diff > 0 ? '+' : '−'
+          }${Math.abs(diff)} poin.`,
+          tone: diff > 0 ? 'up' : 'down',
+        })
+      }
+    }
+
+    /* 2 — Aktivitas Bugar 30 hari (ringkasan frekuensi & jarak —
+       detailnya tetap di layar Bugar, bukan diduplikasi). */
+    if (fitSessions > 0) {
+      out.push({
+        key: 'bugar',
+        title: 'Aktivitas Bugar',
+        body: `${fitSessions} sesi · ${durationLabel(fitMinutes)} latihan${
+          cardio30.km > 0
+            ? ` · ${cardio30.km.toFixed(1).replace('.', ',')} km kardio`
+            : ''
+        } dalam 30 hari.`,
+        tone: 'info',
+      })
+    }
+
+    /* 3 — Arus kas 30 hari (non-transfer): masuk vs keluar. */
+    let masuk30 = 0
+    let keluar30 = 0
+    const since30 = addDaysISO(today, -29)
+    for (const t of txs) {
+      if (t.type === 'transfer' || t.ts < since30 || t.ts > today) continue
+      if (t.type === 'masuk') masuk30 += t.amount
+      else keluar30 += t.amount
+    }
+    if (masuk30 > 0 || keluar30 > 0) {
+      const net30 = masuk30 - keluar30
+      out.push({
+        key: 'keuangan',
+        title: net30 >= 0 ? 'Arus kas surplus' : 'Arus kas defisit',
+        body: `Masuk ${formatIDRShort(masuk30)} vs keluar ${formatIDRShort(
+          keluar30,
+        )} dalam 30 hari — bersih ${net30 >= 0 ? '+' : '−'}${formatIDRShort(
+          Math.abs(net30),
+        )}.`,
+        tone: net30 >= 0 ? 'up' : 'down',
+      })
+    }
+    return out.slice(0, 3)
+  }, [habits, completions, today, kpi, fitSessions, fitMinutes, cardio30, txs])
+
   /* ===== Ruang Suasana (v2.37 §8): jendela mood 14 hari (terlama →
       terbaru) + rekap jumlah per mood — pola visual & logika dipindah
       dari kartu Riwayat Mood Profil (audit density §9: satu pusat
@@ -1120,6 +1196,71 @@ export default function StatsScreen() {
             </div>
           </m.div>
         </section>
+
+        {/* ===== Wawasan Periode Ini (review UI/UX v2.44 Tahap 2) —
+            maksimal tiga temuan pembanding periode tepat setelah KPI:
+            konsistensi vs periode sebelumnya, ringkasan Bugar, arus
+            kas. Kosong bila data pembanding belum cukup. ===== */}
+        {periodInsights.length > 0 && (
+          <section aria-label="Wawasan periode ini" className="mt-[var(--layout-gap)]">
+            <m.div
+              initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-24px' }}
+              transition={motionTokens.preset.data}
+              className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-secondary">
+                  Wawasan Periode Ini
+                </h2>
+                <p className="text-eyebrow font-medium text-content-muted">
+                  30 hari · vs periode sebelumnya
+                </p>
+              </div>
+              <ul className="mt-3 divide-y divide-border-default">
+                {periodInsights.map((f) => {
+                  const Icon =
+                    f.key === 'bugar'
+                      ? Dumbbell
+                      : f.tone === 'up'
+                        ? TrendingUp
+                        : f.tone === 'down'
+                          ? TrendingDown
+                          : Sparkles
+                  return (
+                    <li key={f.key} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <span
+                        aria-hidden="true"
+                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          f.tone === 'up'
+                            ? 'bg-secondary text-success'
+                            : f.tone === 'down'
+                              ? 'bg-clay/20 text-content-danger'
+                              : 'bg-module-accent-soft text-module-accent-strong'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" strokeWidth={2.2} />
+                      </span>
+                      <div className="min-w-0">
+                        <p
+                          className={`text-note font-bold ${
+                            f.tone === 'down' ? 'text-content-danger' : 'text-content-primary'
+                          }`}
+                        >
+                          {f.title}
+                        </p>
+                        <p className="mt-0.5 text-meta leading-relaxed text-content-muted">
+                          {f.body}
+                        </p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </m.div>
+          </section>
+        )}
 
         {/* ===== Kinerja & Konsistensi (audit density v2.37 §8) — grafik
             misi, tren 30 hari, dan peta panas 12 pekan disatukan dalam

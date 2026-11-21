@@ -6,8 +6,33 @@ Motion.dev, dan sinkronisasi cloud Turso (libSQL) dengan penyimpanan lokal
 offline-first.
 
 > **Penomoran versi**: nomor gelombang internal (v2.x) adalah acuan utama dan
-> sejak v2.35 mengikuti `version` di package.json (2.43.0) — tidak ada lagi
+> sejak v2.35 mengikuti `version` di package.json (2.44.0) — tidak ada lagi
 > tiga penomoran berbeda. Riwayat lengkap ada di CHANGELOG.md.
+
+## v2.44 — Review UI/UX: Fitness Intelligence, Laju Anggaran, dan Jalur Jurnal
+
+Review eksternal atas v2.43.0 memvonis fondasi UI/UX sudah matang — bukan
+redesign yang dibutuhkan, melainkan KEDALAMAN analisis per modul. Rilis ini
+mengeksekusi seluruh Tahap 1 (P0) plus empat item Tahap 2. Bugar resmi jadi
+fitness intelligence: lembar **Exercise Progress Detail** per gerakan (pola
+Hevy — rekor e1RM, beban terakhir, grafik perkembangan yang bisa diketuk,
+riwayat per sesi; dibuka dari Papan Rekor atau tombol baru "Riwayat & e1RM"
+di Pustaka), kartu **Aktivitas Pekan Ini empat mode** (Semua / Lari & Jalan /
+Badminton / Barbel — km, menit, dan kg tidak pernah berbagi satu sumbu), dan
+**Neraca Kelompok Otot** (set per grup jendela 30/7 hari, otot utama saja).
+Keuangan mendapat **Budget Pace Analysis** (pemakaian aktual vs laju ideal
+hari ke-N bulan berjalan + jatah aman/hari). Beranda menampilkan **bar
+konteks tanggal** saat membuka agenda lampau (chip Riwayat/Akan datang +
+"Kembali ke hari ini"). Jurnal kini ada di **sidebar desktop** (shortcut 1-7).
+Tahap 2: matriks perbandingan konsistensi 4 pekan, tren jumlah kata + filter
+mood di Jurnal, dan "Wawasan Periode Ini" di Statistik.
+
+| Prioritas | Rincian |
+|---|---|
+| **P0 — Fitness intelligence** | `ExerciseDetailSheet` (pola Hevy: ringkasan + grafik e1RM interaktif + tabel riwayat); WeekActivityCard 4 mode dengan KPI per satuan; `MuscleBalanceCard` (set per kelompok otot utama, 30/7 hari). |
+| **P0 — Keputusan & konteks** | Budget Pace (tanda laju ideal di batang total & kategori, vonis tiga nada, lencana "laju ±X% vs ideal"); bar konteks tanggal di Beranda; sidebar 7 layar + shortcut 6=Jurnal, 7=Profil. |
+| **P1 — Pendalaman analitik** | `HabitComparisonMatrix` (kebiasaan × 4 pekan, ketuk buka detail); mode "Jumlah Kata" + filter mood Jurnal; "Wawasan Periode Ini" Statistik (maks 3 temuan, butuh data pembanding). |
+| **Larangan dijaga** | Tanpa grafik kembar Bugar↔Statistik, tanpa angka tanpa data (HR/GPS/VO2 max), satuan tak bercampur, visualisasi kuat lama dipertahankan. |
 
 ## v2.43 — Audit Profesional Tahap 1: Fokus Harian, Training Log, dan Navigasi
 
