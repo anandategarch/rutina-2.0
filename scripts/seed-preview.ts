@@ -106,12 +106,13 @@ for (let back = 30; back >= 0; back--) {
   }
   /* Pengeluaran harian acak */
   if (Math.random() < 0.8) {
+    /* Kategori transaksi = ID kategori app (makan/transport/…). */
     const cats: [string, number, number][] = [
-      ['Makan & Minum', 15000, 65000],
-      ['Transportasi', 10000, 40000],
-      ['Belanja', 30000, 180000],
-      [' Hiburan', 20000, 90000],
-      ['Tagihan', 50000, 300000],
+      ['makan', 15000, 65000],
+      ['transport', 10000, 40000],
+      ['belanja', 30000, 180000],
+      ['hiburan', 20000, 90000],
+      ['tagihan', 50000, 300000],
     ]
     const [cat, lo, hi] = cats[Math.floor(Math.random() * cats.length)]
     txs.push({
@@ -128,12 +129,13 @@ for (let back = 30; back >= 0; back--) {
 /* Transfer antar dompet — tidak boleh dihitung sebagai arus */
 txs.push({ id: `sd-t${txSeq++}`, type: 'transfer', cat: 'Transfer', amount: 1_000_000, note: '', ts: daysAgo(5), walletId: 'sd-w1', toWalletId: 'sd-w2' })
 
+/* Kunci anggaran = ID kategori (bukan label) — selaras skema app. */
 const budgets: Record<string, number> = {
-  'Makan & Minum': 1_500_000,
-  Transportasi: 600_000,
-  Belanja: 1_000_000,
-  Hiburan: 500_000,
-  Tagihan: 1_200_000,
+  makan: 1_500_000,
+  transport: 600_000,
+  belanja: 1_000_000,
+  hiburan: 500_000,
+  tagihan: 1_200_000,
 }
 
 const goals = [

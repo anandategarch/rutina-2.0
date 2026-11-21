@@ -125,6 +125,20 @@ Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P1 Bugar (Latihan
 | **Tubuh: pemilih deret** | Riwayat Tubuh menampilkan Orbit Pemulihan penuh + pemilih metrik (Tidur/Energi/Nyeri/Stres/Hidrasi) — SATU deret per waktu (dulu lima grafik menumpuk vertikal); default = metrik pertama yang punya catatan; metrik terpilih tanpa data menampilkan pesan jujur (bukan nol, orbit tetap menampilkan satelit putus-putus). Skala tidak pernah disatukan; tidak ada skor kesehatan rekayasa. |
 | **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: hero tile memuat grafik pekan (DOM-verified parent), pemilih Riwayat Latihan tiga mode berganti (kalender grid bulan / Tren Kardio + Jarak-Pace + periode / daftar + filter + muat-lagi), pemilih Tubuh berganti deret Tidur→Energi, Pustaka baris + detail terbuka, 320px tanpa overflow horizontal. |
 
+## [2.60] — Stage 2 Keuangan: Satu Bahasa Anggaran, Dompet Ledger
+
+Sprint "Visual Debt Cleanup & Card Reduction" — Tahap P1 Keuangan.
+
+| Area | Rincian |
+|---|---|
+| **Batang total anggaran dihapus (2 tempat)** | Ringkasan & tab Anggaran sama-sama membawa batang progres total generik yang mengulang persen/arah — kini digantikan SATU baris inline jujur: Ringkasan: "Terpakai X% (lencana) · RpY / RpZ · sisa/lewat RpW"; Anggaran: "RpX terpakai · batas RpY (lewat RpW)" — laju vs waktu digambarkan LENGKAP oleh BudgetRunway (koin aktual tanpa clamp + wajik ideal) yang tetap hidup. Pengeluaran >100% tetap tampil tanpa clamp. Baris per-kategori + bar individualnya utuh. |
+| **Arus Kas: strip KPI satu baris** | Empat kotak sunken bertumpuk (Masuk/Keluar/Net + Rasio Tabungan) → SATU strip inline flat (`bg-surface-sunken/70`, pembatas titik): "Masuk +X · Keluar −X · Net X · Rasio tabungan X%" — nilai tetap berubah di tempat saat ganti periode; area detail titik terpilih tetap satu. FinChart/CashflowRiver tak tersentuh. |
+| **Dompet: baris ledger akordeon** | Dulu tiap dompet kartu penuh tiga-seksi (header + bar arus + aksi). Kini SATU panel `divide-y` berisi baris ringkas per dompet (ikon kecil + nama + jumlah mutasi + net + saldo + chevron); arus bulanan, net, "Bedah arus" (drill arus & riwayat), sunting, dan hapus HANYA tampil untuk dompet terpilih (akordeon satu terbuka). Riwayat transfer ikut diratakan jadi baris hairline. Transfer antar-dompet, saldo, dan drill detail utuh. |
+| **Tabungan: satu ilustrasi** | Bar agregat bersegmen (ilustrasi kedua berdampingan dengan stoples per-tujuan) dihapus — informasi agregat cukup dibaca baris "Terkumpul X dari Y"; stoples GoalCard tetap satu-satunya visual dengan aksi setor/sunting/hapus utuh. |
+| **Jatah Hari Ini diperjelas** | Kartu tetap sebagai panduan harian di Ringkasan; pintu bawahnya kini "Lihat laju anggaran per kategori — tab Anggaran" — jelas berbeda peran dari BudgetRunway yang rinci. |
+| **Seed alat dev dikoreksi** | `scripts/seed-preview.ts`: kunci anggaran & kategori transaksi memakai ID kategori app (makan/transport/…) — bukan label tampilan — sehingga Anggaran/struktur kategori terbaca benar saat peninjauan visual. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E live: lencana Terpakai 26% + baris inline + BudgetRunway AKTUAL; strip KPI satu baris terverifikasi visual; akordeon dompet buka/tutup + "Bedah arus" membuka drill; 320px tanpa overflow. |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

@@ -165,12 +165,15 @@ export function AllowanceCard() {
         </span>
       </div>
 
+      {/* v2.60 (audit Tahap 2): pintu diperjelas — kartu ini PANDUAN
+          HARIAN (jatah aman/hari); laju vs waktu yang rinci hidup di
+          BudgetRunway pada tab Anggaran. */}
       <button
         type="button"
         onClick={() => setUiPref({ finTab: 'anggaran' })}
         className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        Kelola anggaran — total {formatIDR(info.budgetTotal)} bulan ini
+        Lihat laju anggaran per kategori — tab Anggaran
       </button>
     </div>
   )

@@ -13,6 +13,7 @@ import {
   ChartPie,
   CheckCircle2,
   ChevronDown,
+  LineChart,
   Info,
   Laptop,
   Minus,
@@ -2036,7 +2037,16 @@ function WalletDialog() {
    membuka dialog sunting; hapus dikonfirmasi dengan info jumlah
    transaksi yang akan kehilangan tautan dompet. */
 
-function WalletCard({ wallet }: { wallet: FinWallet }) {
+function WalletCard({
+  wallet,
+  expanded,
+  onToggle,
+}: {
+  wallet: FinWallet
+  /** Baris ini sedang dibedah (akordeon v2.60 — SATU dompet per waktu). */
+  expanded: boolean
+  onToggle: () => void
+}) {
   const txs = useRutina((s) => s.txs)
   const openWalletEdit = useRutina((s) => s.openWalletEdit)
   const deleteWallet = useRutina((s) => s.deleteWallet)
@@ -2058,6 +2068,10 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
     (t) => t.walletId === wallet.id || t.toWalletId === wallet.id,
   ).length
 
+  /* v2.60 (audit Tahap 2): baris ledger ringkas — arus bulanan, net,
+     dan aksi kelola HANYA tampil untuk dompet terpilih (akordeon satu
+     terbuka); baris ringkas membawa nama, saldo, dan jumlah mutasi.
+     Drill arus & riwayat pindah ke aksi dalam keadaan terbuka. */
   return (
     <m.div
       layout
@@ -2065,75 +2079,106 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -24, scale: 0.97 }}
       transition={{ ...motionTokens.preset.layout }}
-      className="overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
     >
-      {/* Badan kartu — ketuk untuk drill dompet */}
+      {/* Baris ringkas — ketuk untuk membuka detail */}
       <button
         type="button"
-        onClick={() => openFinDrill('wallet', wallet.id)}
-        aria-label={`Bedah dompet ${wallet.name} — arus bulan ini & riwayat`}
-        className="flex w-full cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-label={`Dompet ${wallet.name}, saldo ${formatIDR(balance)} — ${
+          expanded ? 'tutup' : 'buka'
+        } arus bulan ini`}
+        className="flex w-full cursor-pointer items-center gap-3 py-3 text-left transition-colors hover:text-module-accent-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-module-accent/15 text-module-accent-strong">
-          <Wallet className="h-5 w-5" />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-module-accent/15 text-module-accent-strong">
+          <Wallet className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-1 break-words text-body font-semibold leading-snug text-content-primary">
             {wallet.name}
           </p>
           <p className="text-eyebrow font-medium text-content-muted">
-            Saldo awal {formatIDRShort(wallet.initial)} · {linkedCount} mutasi
+            {linkedCount} mutasi
+            {expanded ? '' : ` · net ${flow.net >= 0 ? '+' : '−'}${formatIDRShort(Math.abs(flow.net))}`}
           </p>
         </div>
         <p
-          className={`shrink-0 text-lead font-bold tabular-nums ${
+          className={`shrink-0 text-section font-bold tabular-nums ${
             balance < 0 ? 'text-content-danger' : 'text-content-primary'
           }`}
         >
           {balance < 0 ? '−' : ''}
           {formatIDRShort(Math.abs(balance))}
         </p>
+        <m.span
+          aria-hidden="true"
+          animate={{ rotate: expanded ? 180 : 0 }}
+          transition={motionTokens.preset.interaction}
+          className="flex h-7 w-7 shrink-0 items-center justify-center text-content-muted"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </m.span>
       </button>
 
-      {/* Arus dana bulan berjalan (v2.22) */}
-      <div className="px-4 pb-3">
-        <div className="flex items-center justify-between text-eyebrow font-semibold text-content-muted">
-          <span className="text-success">+{formatIDRShort(flow.masuk)}</span>
-          <span className="text-eyebrow font-medium">arus bulan ini</span>
-          <span className="text-content-danger">−{formatIDRShort(flow.keluar)}</span>
-        </div>
-        <div className="mt-1.5 flex h-1.5 gap-1 overflow-hidden rounded-full bg-border">
+      <AnimatePresence initial={false}>
+        {expanded && (
           <m.div
-            initial={playEntrance ? { scaleX: 0 } : false}
-            animate={{ scaleX: flow.masuk / maxFlow }}
-            transition={barFill}
-            className="h-full origin-left rounded-l-full bg-pistachio"
-            style={{ width: '50%' }}
-          />
-          <m.div
-            initial={playEntrance ? { scaleX: 0 } : false}
-            animate={{ scaleX: flow.keluar / maxFlow }}
-            transition={barFill}
-            className="ml-auto h-full origin-right rounded-r-full bg-clay"
-            style={{ width: '50%' }}
-          />
-        </div>
-      </div>
-
-      {/* Aksi kelola (v2.22) */}
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
-        <span className="text-eyebrow font-medium text-content-muted">
-          net{' '}
-          <span
-            className={
-              flow.net >= 0 ? 'font-bold text-success' : 'font-bold text-content-danger'
-            }
+            key="detail"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={motionTokens.preset.cardReveal}
+            className="overflow-hidden"
           >
-            {flow.net >= 0 ? '+' : '−'}
-            {formatIDRShort(Math.abs(flow.net))}
-          </span>
-        </span>
+            <div className="pb-3.5 pl-12 pr-1">
+              {/* Arus dana bulan berjalan (v2.22) */}
+              <div className="flex items-center justify-between text-eyebrow font-semibold text-content-muted">
+                <span className="text-success">+{formatIDRShort(flow.masuk)}</span>
+                <span className="text-eyebrow font-medium">arus bulan ini</span>
+                <span className="text-content-danger">−{formatIDRShort(flow.keluar)}</span>
+              </div>
+              <div className="mt-1.5 flex h-1.5 gap-1 overflow-hidden rounded-full bg-border">
+                <m.div
+                  initial={playEntrance ? { scaleX: 0 } : false}
+                  animate={{ scaleX: flow.masuk / maxFlow }}
+                  transition={barFill}
+                  className="h-full origin-left rounded-l-full bg-pistachio"
+                  style={{ width: '50%' }}
+                />
+                <m.div
+                  initial={playEntrance ? { scaleX: 0 } : false}
+                  animate={{ scaleX: flow.keluar / maxFlow }}
+                  transition={barFill}
+                  className="ml-auto h-full origin-right rounded-r-full bg-clay"
+                  style={{ width: '50%' }}
+                />
+              </div>
+
+              {/* Aksi kelola + drill (v2.22; drill pindah ke sini v2.60) */}
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border-default pt-2.5">
+                <span className="text-eyebrow font-medium text-content-muted">
+                  net{' '}
+                  <span
+                    className={
+                      flow.net >= 0 ? 'font-bold text-success' : 'font-bold text-content-danger'
+                    }
+                  >
+                    {flow.net >= 0 ? '+' : '−'}
+                    {formatIDRShort(Math.abs(flow.net))}
+                  </span>
+                  <span className="mx-1.5" aria-hidden="true">·</span>
+                  awal {formatIDRShort(wallet.initial)}
+                </span>
         <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => openFinDrill('wallet', wallet.id)}
+            aria-label={`Bedah dompet ${wallet.name} — arus bulan ini & riwayat`}
+            className="interactive mr-1 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-eyebrow font-bold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <LineChart className="h-3.5 w-3.5" />
+            Bedah arus
+          </button>
           <button
             type="button"
             onClick={() => openWalletEdit(wallet.id)}
@@ -2183,7 +2228,11 @@ function WalletCard({ wallet }: { wallet: FinWallet }) {
             </AlertDialogContent>
           </AlertDialog>
         </span>
-      </div>
+            </div>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </m.div>
   )
 }
@@ -2552,6 +2601,9 @@ export default function KeuanganScreen() {
   const openTransferSheet = useRutina((s) => s.openTransferSheet)
   const openWalletDialog = useRutina((s) => s.openWalletDialog)
   const openCatManage = useRutina((s) => s.openCatManage)
+  /* Dompet yang sedang dibedah (v2.60, audit Tahap 2) — akordeon SATU
+     terbuka: daftar dompet ringkas, detail hanya untuk yang terpilih. */
+  const [expandedWalletId, setExpandedWalletId] = useState<string | null>(null)
   const setBudget = useRutina((s) => s.setBudget)
 
   /* Tab & periode grafik di uiPrefs — bertahan saat berpindah layar.
@@ -3099,68 +3151,54 @@ export default function KeuanganScreen() {
             </RutinaTabsList>
           </RutinaTabs>
 
-          {/* Chip ringkasan periode: masuk, keluar, net + rasio tabungan —
-              nilai berubah DI TEMPAT saat ganti periode (anti-replay
-              v2.37: tanpa remount/entrance ulang). */}
-          <div className="mt-3.5">
-            <div className="grid grid-cols-3 gap-2.5">
-              <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-                  <ArrowUpRight className="h-3 w-3 text-success" strokeWidth={2.6} />
-                  Masuk
-                </p>
-                <p className="mt-1 truncate text-section font-bold tabular-nums text-success">
-                  +{formatIDRShort(totals.masuk)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-                  <ArrowDownRight className="h-3 w-3 text-content-danger" strokeWidth={2.6} />
-                  Keluar
-                </p>
-                <p className="mt-1 truncate text-section font-bold tabular-nums text-content-danger">
-                  −{formatIDRShort(totals.keluar)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-surface-sunken px-3 py-2.5">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-                  {net > 0 ? (
-                    <TrendingUp className="h-3 w-3 text-success" strokeWidth={2.6} />
-                  ) : net < 0 ? (
-                    <TrendingDown className="h-3 w-3 text-content-danger" strokeWidth={2.6} />
-                  ) : (
-                    <Minus className="h-3 w-3 text-content-muted" strokeWidth={2.6} />
-                  )}
-                  Net
-                </p>
-                <p className={`mt-1 truncate text-section font-bold tabular-nums ${netChipTone}`}>
-                  {net > 0
-                    ? `+${formatIDRShort(net)}`
-                    : net < 0
-                      ? `−${formatIDRShort(-net)}`
-                      : '0'}
-                </p>
-              </div>
-            </div>
-
-            {/* Rasio tabungan periode — (masuk − keluar) / masuk.
-                "—" bila belum ada pemasukan pada periode ini. */}
-            <div className="mt-2.5 flex items-center justify-between gap-3 rounded-2xl bg-surface-sunken px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="flex items-center gap-1 text-eyebrow font-semibold uppercase tracking-[0.1em] text-content-muted">
-                  <PiggyBank className="h-3 w-3 text-module-accent-strong" strokeWidth={2.6} />
-                  Rasio Tabungan
-                </p>
-                <p className="mt-0.5 truncate text-eyebrow leading-tight text-content-muted">
-                  Sisa pemasukan yang berhasil disimpan
-                </p>
-              </div>
-              <p
-                className={`shrink-0 text-lead font-bold tabular-nums ${savingRateTone}`}
-              >
+          {/* Strip KPI periode (v2.60, audit Tahap 2): masuk, keluar, net,
+              rasio tabungan dalam SATU baris inline berpembatas titik —
+              dulu empat kotak sunken bertumpuk di dalam kartu arus kas
+              (kartu-di-dalam-kartu). Nilai berubah DI TEMPAT saat ganti
+              periode (anti-replay v2.37). */}
+          <div
+            className="mt-3.5 flex flex-wrap items-baseline gap-x-4 gap-y-1.5 rounded-xl bg-surface-sunken/70 px-3.5 py-2.5"
+            role="group"
+            aria-label="Ringkasan periode arus kas"
+          >
+            <span className="flex items-baseline gap-1.5 text-meta font-medium text-content-muted">
+              <ArrowUpRight className="h-3 w-3 shrink-0 text-success" strokeWidth={2.6} aria-hidden="true" />
+              Masuk
+              <span className="text-note font-bold tabular-nums text-success">
+                +{formatIDRShort(totals.masuk)}
+              </span>
+            </span>
+            <span className="flex items-baseline gap-1.5 text-meta font-medium text-content-muted">
+              <ArrowDownRight className="h-3 w-3 shrink-0 text-content-danger" strokeWidth={2.6} aria-hidden="true" />
+              Keluar
+              <span className="text-note font-bold tabular-nums text-content-danger">
+                −{formatIDRShort(totals.keluar)}
+              </span>
+            </span>
+            <span className="flex items-baseline gap-1.5 text-meta font-medium text-content-muted">
+              {net > 0 ? (
+                <TrendingUp className="h-3 w-3 shrink-0 text-success" strokeWidth={2.6} aria-hidden="true" />
+              ) : net < 0 ? (
+                <TrendingDown className="h-3 w-3 shrink-0 text-content-danger" strokeWidth={2.6} aria-hidden="true" />
+              ) : (
+                <Minus className="h-3 w-3 shrink-0 text-content-muted" strokeWidth={2.6} aria-hidden="true" />
+              )}
+              Net
+              <span className={`text-note font-bold tabular-nums ${netChipTone}`}>
+                {net > 0
+                  ? `+${formatIDRShort(net)}`
+                  : net < 0
+                    ? `−${formatIDRShort(-net)}`
+                    : '0'}
+              </span>
+            </span>
+            <span className="ml-auto flex items-baseline gap-1.5 text-meta font-medium text-content-muted">
+              <PiggyBank className="h-3 w-3 shrink-0 text-module-accent-strong" strokeWidth={2.6} aria-hidden="true" />
+              Rasio tabungan
+              <span className={`text-note font-bold tabular-nums ${savingRateTone}`}>
                 {savingRateLabel}
-              </p>
-            </div>
+              </span>
+            </span>
           </div>
 
           {/* Grafik — ganti periode MEMORF tinggi batang (node DOM
@@ -3272,13 +3310,12 @@ export default function KeuanganScreen() {
               />
             ) : (
               <div className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft">
-                <div className="flex items-center justify-between gap-2">
-                  {/* v2.29: lencana & batang total kini bersemantik tiga-warna
-                       (over → destructive, waspada → warning, aman → primary)
-                       — selaras baris per-kategori; bukan selalu hijau. */}
-                  {/* v2.47 audit: lencana memakai persen TANPA clamp
-                       (rawTotalPct) — panel landasan pacu menulis
-                       “Aktual 130%”, lencana pun harus 130%, bukan 100%. */}
+                {/* v2.60 (audit Tahap 2): batang progres total DIHAPUS —
+                    mengulang persen/arah yang sudah dibawa lencana, dan di
+                    tab Anggaran digambarkan lengkap oleh BudgetRunway;
+                    ringkasan kini SATU baris inline jujur (tanpa clamp).
+                    Baris per-kategori tetap membawa bar masing-masing. */}
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <Badge
                     className={
                       'border-transparent hover:bg-secondary ' +
@@ -3292,26 +3329,13 @@ export default function KeuanganScreen() {
                     Terpakai {rawTotalPct}%
                   </Badge>
                   <p className="text-eyebrow font-medium tabular-nums text-content-muted">
-                    {formatIDRShort(spentTotal)} / {formatIDRShort(totalLimit)}
+                    {formatIDRShort(spentTotal)} / {formatIDRShort(totalLimit)} ·{' '}
+                    {spentTotal > totalLimit
+                      ? `lewat ${formatIDRShort(spentTotal - totalLimit)}`
+                      : `sisa ${formatIDRShort(Math.max(0, totalLimit - spentTotal))}`}
                   </p>
                 </div>
-                <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-border">
-                  <m.div
-                    initial={firstBudgetTotal ? { scaleX: 0 } : false}
-                    animate={{ scaleX: Math.min(totalPct, 100) / 100 }}
-                    transition={barFill}
-                    className={
-                      'h-full origin-left rounded-full ' +
-                      (rawTotalPct >= 100
-                        ? 'bg-destructive'
-                        : rawTotalPct >= 85
-                          ? 'bg-warning'
-                          : 'bg-primary')
-                    }
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div className="mt-4 space-y-4">
+                <div className="mt-3 space-y-4">
                   {topBudgets.map((b) => (
                     <BudgetRow key={b.cat} {...budgetRowProps(b, spent)} />
                   ))}
@@ -3357,53 +3381,11 @@ export default function KeuanganScreen() {
                   Terkumpul {formatIDRShort(totalSaved)} dari{' '}
                   {formatIDRShort(totalTarget)}
                 </p>
-                {/* v2.39 (audit visual data): bar agregat seluruh tujuan —
-                    satu segmen per tujuan (lebar = porsi tabungan itu dari
-                    total target, satu keluarga warna makin pudar); cincin
-                    per-tujuan tetap di kartu masing-masing. */}
-                {totalTarget > 0 && goals.some((g) => g.saved > 0) && (
-                  <div
-                    className="mt-1.5 px-0.5"
-                    role="img"
-                    /* v2.49 (audit): persen AGREGAT tanpa clamp — hukum
-                       "angka jujur sampai ujung" (stoples per-target boleh
-                       250%, bar agregat berdampingan dengannya ikut jujur;
-                       clamp hanya untuk lebar segmen visual). */
-                    aria-label={`Progres tabungan agregat: ${Math.round(
-                      (totalSaved / totalTarget) * 100,
-                    )} persen dari total target, terkumpul ${formatIDRShort(
-                      totalSaved,
-                    )} dari ${formatIDRShort(totalTarget)}`}
-                  >
-                    <div className="flex h-2 gap-0.5 overflow-hidden rounded-full bg-surface-sunken">
-                      {goals.map((g, i) => {
-                        if (g.saved <= 0) return null
-                        const share = Math.min(1, g.saved / totalTarget)
-                        const tints = [
-                          'bg-module-accent-strong',
-                          'bg-module-accent/75',
-                          'bg-module-accent/55',
-                          'bg-module-accent/40',
-                          'bg-module-accent/28',
-                        ]
-                        return (
-                          <span
-                            key={g.id}
-                            className={
-                              'h-full rounded-full ' +
-                              tints[i % tints.length]
-                            }
-                            style={{ width: `${share * 100}%` }}
-                          />
-                        )
-                      })}
-                    </div>
-                    <p className="mt-1 text-right text-eyebrow font-medium tabular-nums text-content-muted">
-                      {Math.round((totalSaved / totalTarget) * 100)}% dari
-                      total target
-                    </p>
-                  </div>
-                )}
+                {/* v2.60 (audit Tahap 2): bar agregat bersegmen DIHAPUS —
+                    ilustrasi tabungan kedua berdampingan dengan stoples
+                    per-tujuan; informasi agregat cukup dibawa baris teks
+                    "Terkumpul X dari Y" di atas (tanpa clamp). Stoples
+                    per-tujuan tetap satu-satunya visual tabungan. */}
                 <div className="relative mt-2.5">
                   <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto no-scrollbar pb-1 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible sm:pb-0">
                     {goals.map((g, i) => (
@@ -3656,35 +3638,22 @@ export default function KeuanganScreen() {
                 />
               ) : (
                 <>
-                  {/* Batang total — semantik tiga-warna (v2.29) */}
-                  <div className="mt-3">
-                    <div className="h-2.5 overflow-hidden rounded-full bg-border">
-                      <m.div
-                        initial={firstBudgetTotal ? { scaleX: 0 } : false}
-                        animate={{ scaleX: Math.min(totalPct, 100) / 100 }}
-                        transition={barFill}
-                        className={
-                          'h-full origin-left rounded-full ' +
-                          (rawTotalPct >= 100
-                            ? 'bg-destructive'
-                            : rawTotalPct >= 85
-                              ? 'bg-warning'
-                              : 'bg-primary')
-                        }
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                    <div className="mt-1.5 flex justify-between text-eyebrow tabular-nums text-content-muted">
-                      <span>{formatIDRShort(spentTotal)} terpakai</span>
-                      {/* v2.47 audit: jebol batas → “lewat Rp…”, bukan
-                          “sisa Rp0” yang menuntun salah baca. */}
-                      <span>
-                        {spentTotal > totalLimit
-                          ? `lewat ${formatIDRShort(spentTotal - totalLimit)}`
-                          : `sisa ${formatIDRShort(Math.max(0, totalLimit - spentTotal))}`}
-                      </span>
-                    </div>
-                  </div>
+                  {/* v2.60 (audit Tahap 2): batang total generik DIHAPUS —
+                      laju vs waktu kini digambarkan penuh oleh BudgetRunway
+                      (koin aktual tanpa clamp + wajik ideal); cukup SATU
+                      baris inline angka jujur di atasnya. */}
+                  <p className="mt-2.5 flex flex-wrap items-baseline gap-x-2 text-eyebrow font-medium tabular-nums text-content-muted">
+                    <span className="text-content-secondary">
+                      {formatIDRShort(spentTotal)} terpakai
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      batas {formatIDRShort(totalLimit)}
+                      {spentTotal > totalLimit
+                        ? ` — lewat ${formatIDRShort(spentTotal - totalLimit)}`
+                        : ''}
+                    </span>
+                  </p>
 
                   {/* Laju vs waktu bulan (review UI/UX v2.44; v2.47: landasan
                       pacu ilustratif — koin aktual TANPA clamp, gerbang
@@ -3789,15 +3758,26 @@ export default function KeuanganScreen() {
                   }
                 />
               ) : (
-                <div className="mt-3 space-y-2.5">
+                /* v2.60 (audit Tahap 2): baris ledger ringkas berpembatas
+                   hairline dalam SATU panel — detail arus/aksi hanya
+                   terbuka untuk dompet terpilih. */
+                <div className="mt-3 divide-y divide-border/70 rounded-xl border border-border bg-surface-primary px-4 shadow-soft">
                   <AnimatePresence initial={false} mode="popLayout">
                     {wallets.map((w) => (
-                      <WalletCard key={w.id} wallet={w} />
+                      <WalletCard
+                        key={w.id}
+                        wallet={w}
+                        expanded={expandedWalletId === w.id}
+                        onToggle={() =>
+                          setExpandedWalletId((cur) => (cur === w.id ? null : w.id))
+                        }
+                      />
                     ))}
                   </AnimatePresence>
-                  <p className="px-0.5 text-eyebrow leading-relaxed text-content-muted">
-                    Ketuk kartu untuk membedah arus dana · transfer antar-dompet
-                    bukan pemasukan/pengeluaran — hanya memindahkan saldo.
+                  <p className="px-0.5 pb-2 pt-1 text-eyebrow leading-relaxed text-content-muted">
+                    Ketuk baris untuk membuka arus &amp; aksi · transfer
+                    antar-dompet bukan pemasukan/pengeluaran — hanya
+                    memindahkan saldo.
                   </p>
                 </div>
               )}
@@ -3809,14 +3789,14 @@ export default function KeuanganScreen() {
                 <h3 className="px-0.5 text-note font-semibold tracking-tight text-content-muted">
                   Riwayat Transfer
                 </h3>
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 divide-y divide-border/70">
                   {transfers.slice(0, 5).map((t) => {
                     const fromW = wallets.find((w) => w.id === t.walletId)
                     const toW = wallets.find((w) => w.id === t.toWalletId)
                     return (
                       <div
                         key={t.id}
-                        className="flex items-center gap-3 rounded-2xl border border-border bg-surface-primary px-3.5 py-2.5 shadow-soft"
+                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
                       >
                         <ArrowLeftRight className="h-4 w-4 shrink-0 text-warning" />
                         <div className="min-w-0 flex-1">
