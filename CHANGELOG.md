@@ -5,6 +5,20 @@ versi mengikuti gelombang pengembangan internal (bukan semver).
 Sejak v2.35, `version` di package.json mengikuti nomor gelombang internal
 (2.35.0) agar tidak ada lagi tiga penomoran yang berbeda.
 
+## [2.53] — Tipografi Kustom Selamat dari tailwind-merge + Statistik Mobile
+
+Laporan pengguna: "di tab Statistik bagian Ruang Suasana tampak bug, teks
+saling berdekatan banget; Komposisi kebiasaan aktif juga grafiknya seperti
+bug". Audit menemukan AKARNYA jauh lebih dalam dari satu layout — bug
+sistemik yang diam-diam merusak ukuran huruf di SELURUH aplikasi.
+
+| Perbaikan | Rincian |
+|---|---|
+| **P0 — Bug sistemik `cn()` menghapus token ukuran tipografi kustom** | twMerge hanya mengenal utilitas ukuran bawaan Tailwind (`text-sm`, `text-[10px]`…). Token kustom Rutina (`text-chart-label`, `text-note`, `text-meta`, `text-eyebrow`, `text-body`, `text-section`, `text-lead`, `text-kpi*`, `text-fluid-*`) tidak dikenal → digolongkan sebagai WARNA TEKS → **dihapus senyap** setiap kali di-merge dengan kelas warna (`cn('text-chart-label …', 'text-content-muted')` ⇒ ukuran lenyap, teks jatuh ke 16px warisan). Terbukti live: label hari Ruang Suasana terukur 16px (seharusnya 10px) selebar 31,7px pada kolom 14,4–21,8px — itulah pita teks tak terbaca yang dilaporkan. Perbaikan di SATU titik (`src/lib/utils.ts`): `extendTailwindMerge` mendaftarkan seluruh 16 token ukuran (11 statis `--text-*` + 5 fluid `@utility`) ke grup font-size — hidup berdampingan dengan kelas warna, tetap saling menggantikan antar-ukuran secara benar. Seluruh layar dicek ulang visual di 320/390px + mode gelap. |
+| **Ruang Suasana — grid kalender 2×7** | Dulu SATU baris 14 kolom: label hari butuh ±20px tapi kolom hanya 15–22px di layar sempit → saling menumpuk. Kini header hari 7 kolom + dua baris ikon pekan (dua pekan berurutan selalu mulai hari yang sama, jadi sejajar rapi di bawah SATU header) — kolom 2× lebih lega, pola mingguan mood terbaca seperti kalender mini. Baris rekap: pasangan "Nama N×" kini `whitespace-nowrap` (tidak patah di tengah; pemisah `·` mengikuti itemnya). |
+| **Komposisi Kebiasaan Aktif — responsif kontainer** | Bunga 128px + legenda berdampingan di bawah ±416px membuat label kategori terpotong ("Keseha…") dan bunga tampak melayang sendiri di kiri. Kini `useMinWidth` (container query JS) menumpuk: bunga terpusat di atas, legenda selebar kartu di bawah — label selalu utuh, terverifikasi di 320px. |
+| **Pembuktian mutu** | tsc & lint hijau; 156/156 test lulus. E2E browser 320/390px: label grid mood terukur 10px & muat kolom (32,8px @320px), baris ikon sejajar header, legenda bunga tanpa pemotongan, mode gelap kontras baik, tidak ada regresi visual di 7 layar (Beranda/Bugar/Keuangan/Kebiasaan/Statistik/Jurnal/Profil). |
+
 ## [2.49] — Audit Lanjutan: Tumpukan Escape, Provenance Manual & Pruning
 
 Audit penuh enam arah (paralel per modul + fondasi) atas commit v2.48, kelas

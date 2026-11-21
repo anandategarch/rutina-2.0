@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { pressSnappy } from '@/lib/motion/transitions'
+import { useMinWidth } from '../../use-min-width'
 
 /**
  * Habit Flower Wheel — komposisi kategori kebiasaan aktif sebagai bunga
@@ -20,6 +21,12 @@ import { pressSnappy } from '@/lib/motion/transitions'
  * Interaksi: baris legenda adalah pemilih utama (tombol nyata, aksesible
  * papan tik); kelopak juga bisa diketuk (klik SVG). Kelopak terpilih
  * terangkat 2px + opasitas penuh; lainnya meredup ke 55%.
+ *
+ * v2.53 (mobile): bunga + legenda berdampingan hanya bila ruang memadai
+ * (≥ 26rem kontainer) — di bawah itu legenda menyempit sampai label
+ * kategori terpotong ("Keseha…") dan bunga tampak melayang sendiri di
+ * kiri. Layout sempit menumpuk: bunga terpusat di atas, legenda penuh
+ * di bawah — tidak ada lagi pemotongan label di 320–375px.
  */
 
 export interface FlowerSlice {
@@ -107,6 +114,11 @@ export function HabitFlower({
   const play = useFirstVisit('stats-flower') && !reducedMotion
   const [selName, setSelName] = useState<string | null>(null)
 
+  /* Tata letak mengikuti ruang kartu nyata (bukan viewport) — ambang
+     26rem: bunga 128px + celah + legenda berlabel penuh butuh ±416px. */
+  const rootRef = useRef<HTMLDivElement>(null)
+  const sideBySide = useMinWidth(rootRef, 416)
+
   const petals = useMemo(() => {
     const maxValue = Math.max(...data.map((d) => d.value), 1)
     const sector = data.length > 0 ? 360 / data.length : 360
@@ -128,8 +140,14 @@ export function HabitFlower({
     .join(', ')} — total ${total} kebiasaan`
 
   return (
-    <div className="mt-3">
-      <div className="flex items-center gap-4">
+    <div className="mt-3" ref={rootRef}>
+      <div
+        className={
+          sideBySide
+            ? 'flex items-center gap-4'
+            : 'flex flex-col items-center gap-3'
+        }
+      >
         <div className="relative h-32 w-32 shrink-0">
           <svg
             viewBox="0 0 140 140"
@@ -238,9 +256,12 @@ export function HabitFlower({
         </div>
 
         {/* Legenda — baris tombol adalah pemilih utama (aksesible papan
-            tik); kuncup kelopak adalah jalur sentuh/klik tambahan. */}
+            tik); kuncup kelopak adalah jalur sentuh/klik tambahan.
+            Layout sempit: legenda selebar kartu di bawah bunga. */}
         <ul
-          className="min-w-0 flex-1 space-y-1"
+          className={
+            sideBySide ? 'min-w-0 flex-1 space-y-1' : 'w-full space-y-1'
+          }
           aria-label="Legenda kategori kebiasaan"
         >
           {petals.map((p) => {

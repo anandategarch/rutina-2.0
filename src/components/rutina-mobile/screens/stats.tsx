@@ -2418,55 +2418,78 @@ export default function StatsScreen() {
               : 'Bagaimana perasaanmu?'}
           </p>
 
-          {/* Riwayat 14 hari — pola visual kartu Riwayat Mood Profil
-              (dipindah ke sini; salin polanya, bukan impor komponen). */}
+          {/* Riwayat 14 hari — grid 2×7 (perbaikan v2.53): dulu SATU
+              baris 14 kolom — label hari "Min/Sen/…" (±20px) tidak muat
+              pada kolom ±15–22px di layar sempit sehingga saling menumpuk
+              jadi pita teks tak terbaca. Dua pekan berurutan selalu mulai
+              di hari yang sama (±7 hari), maka kedua baris sejajar rapi
+              di bawah SATU header hari — kolom kini 2× lebih lega dan
+              pola mingguan mood terbaca seperti kalender mini. */}
           {moodLogged ? (
             <>
-              <div
-                className="mt-4 flex gap-1 border-t border-border pt-4"
-                role="list"
-                aria-label="Mood per hari, 14 hari terakhir"
-              >
-                {moodDays.map((d) => {
-                  const MoodIcon = d.mood != null ? MOOD_ICONS[d.mood] : null
-                  return (
-                    <div
-                      key={d.iso}
-                      role="listitem"
-                      title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
-                      aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
-                      className={cn(
-                        'flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-xl py-2',
-                        d.isToday && 'bg-secondary/60 ring-1 ring-primary/30',
-                      )}
-                    >
+              <div className="mt-4 border-t border-border pt-4">
+                <div
+                  role="list"
+                  aria-label="Mood per hari, 14 hari terakhir"
+                >
+                  {/* Header hari — 7 kolom, sejajar dengan kedua baris ikon. */}
+                  <div
+                    className="grid grid-cols-7 gap-1"
+                    aria-hidden="true"
+                  >
+                    {moodDays.slice(0, 7).map((d) => (
                       <span
-                        className={cn(
-                          'text-chart-label font-semibold uppercase tracking-wide',
-                          d.isToday
-                            ? 'text-content-secondary'
-                            : 'text-content-muted',
-                        )}
+                        key={`h-${d.iso}`}
+                        className="text-center text-chart-label font-semibold uppercase tracking-wide text-content-muted"
                       >
                         {d.label}
                       </span>
-                      {MoodIcon ? (
-                        <MoodIcon
-                          className={cn(
-                            'h-4.5 w-4.5',
-                            MOOD_TONE[d.mood ?? '']?.text,
-                          )}
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <Minus
-                          className="h-4 w-4 text-content-muted/40"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </div>
-                  )
-                })}
+                    ))}
+                  </div>
+                  {/* Dua pekan ikon — pekan lalu di atas, pekan ini (dengan
+                      penanda hari ini) di bawah. */}
+                  {[moodDays.slice(0, 7), moodDays.slice(7, 14)].map(
+                    (week, wi) => (
+                      <div
+                        key={`w-${wi}`}
+                        className="mt-1 grid grid-cols-7 gap-1"
+                      >
+                        {week.map((d) => {
+                          const MoodIcon =
+                            d.mood != null ? MOOD_ICONS[d.mood] : null
+                          return (
+                            <div
+                              key={d.iso}
+                              role="listitem"
+                              title={`${shortDateLabel(d.iso)}${d.mood ? ` · ${d.mood}` : ' · tanpa catatan'}`}
+                              aria-label={`${shortDateLabel(d.iso)}${d.mood ? ` ${d.mood}` : ' tanpa catatan'}`}
+                              className={cn(
+                                'flex min-w-0 flex-col items-center gap-1 rounded-xl py-1.5',
+                                d.isToday &&
+                                  'bg-secondary/60 ring-1 ring-primary/30',
+                              )}
+                            >
+                              {MoodIcon ? (
+                                <MoodIcon
+                                  className={cn(
+                                    'h-4.5 w-4.5',
+                                    MOOD_TONE[d.mood ?? '']?.text,
+                                  )}
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <Minus
+                                  className="h-4 w-4 text-content-muted/40"
+                                  aria-hidden="true"
+                                />
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ),
+                  )}
+                </div>
               </div>
               {/* Distribusi mood — satu bar segmented netral dari MOOD_DOT
                   (bukan pelangi); hari tanpa check-in TIDAK masuk penyebut. */}
@@ -2491,7 +2514,7 @@ export default function StatsScreen() {
                           />
                         ))}
                       </div>
-                      <p className="mt-1 px-0.5 text-right text-eyebrow font-medium text-content-muted">
+                      <p className="mt-1.5 px-0.5 text-right text-eyebrow font-medium text-content-muted">
                         dari {logged} hari tercatat
                       </p>
                     </div>
@@ -2509,7 +2532,10 @@ export default function StatsScreen() {
                       key={c.name}
                       className="flex items-center gap-2 text-meta font-semibold"
                     >
-                      <span>
+                      {/* whitespace-nowrap: pasangan "Nama N×" tidak boleh
+                          patah baris di tengah — pemisah · tetap di ujung
+                          item sebelumnya. */}
+                      <span className="whitespace-nowrap">
                         <span className={MOOD_TONE[c.name]?.text}>
                           {c.name}
                         </span>{' '}
