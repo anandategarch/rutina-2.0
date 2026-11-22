@@ -1654,6 +1654,10 @@ export default function BugarScreen() {
      default: semua tertutup, pratinjau 3 gerakan per grup). */
   const [openLibGroups, setOpenLibGroups] = useState<Set<string>>(new Set())
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
+  /* v2.81 (audit UX §C): pemilih mode "Catat aktivitas" — pintasan Lari/
+     Jalan/Badminton/Barbel tidak lagi deret chip permanen di bawah CTA
+     utama; dibuka kontekstual setelah pengguna memintanya. */
+  const [activityPickerOpen, setActivityPickerOpen] = useState(false)
   /* Tampilan Riwayat Latihan (v2.59, audit Tahap 2): kalender | tren |
      daftar — satu pandangan per waktu di ponsel. */
   const [histView, setHistView] = useState<'kalender' | 'tren' | 'daftar'>(
@@ -2112,31 +2116,58 @@ export default function BugarScreen() {
         Mulai Sesi Barbel
       </m.button>
 
-      {/* Pintasan catat cepat (v2.18) — chip horizontal sekunder; tiap
-          chip membuka lembar Catat Aktivitas di mode yang tepat. */}
-      <div
-        role="group"
-        aria-label="Catat aktivitas baru"
-        className="mt-3 flex gap-1.5 overflow-x-auto no-scrollbar pb-1"
-      >
-        {QUICK_MODES.map((a) => {
-          const Icon = a.icon
-          return (
-            <button
-              key={a.label}
-              type="button"
-              onClick={() => openWorkoutSheet(undefined, { ...a.hint })}
-              aria-label={`Catat ${a.label}`}
-              className="interactive flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 text-meta font-bold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
-            >
-              <Icon
-                className="h-3.5 w-3.5 shrink-0 text-module-accent-strong"
-                aria-hidden="true"
-              />
-              {a.label}
-            </button>
-          )
-        })}
+      {/* Catat aktivitas lain (v2.81, audit UX §C) — pintasan mode kini
+          dibuka lewat SATU tombol sekunder (kontekstual), bukan deret
+          chip horizontal permanen yang bersaing dengan CTA utama;
+          pilihan lengkap tetap satu ketukan jauh. */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setActivityPickerOpen((v) => !v)}
+          aria-expanded={activityPickerOpen}
+          aria-controls="pintasan-aktivitas"
+          className="interactive mt-3 flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary text-note font-bold text-content-secondary shadow-soft transition-colors hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+        >
+          <Plus
+            className="h-4 w-4 text-module-accent-strong"
+            aria-hidden="true"
+          />
+          Catat aktivitas
+          <ChevronDown
+            aria-hidden="true"
+            className={
+              'h-4 w-4 text-content-muted transition-transform duration-300 ' +
+              (activityPickerOpen ? 'rotate-180' : '')
+            }
+          />
+        </button>
+        {activityPickerOpen && (
+          <div
+            id="pintasan-aktivitas"
+            role="group"
+            aria-label="Catat aktivitas baru"
+            className="mt-2 flex flex-wrap gap-1.5"
+          >
+            {QUICK_MODES.map((a) => {
+              const Icon = a.icon
+              return (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => openWorkoutSheet(undefined, { ...a.hint })}
+                  aria-label={`Catat ${a.label}`}
+                  className="interactive flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary px-3.5 text-meta font-bold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong"
+                >
+                  <Icon
+                    className="h-3.5 w-3.5 shrink-0 text-module-accent-strong"
+                    aria-hidden="true"
+                  />
+                  {a.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Grafik aktivitas pekan (v2.59, audit Tahap 2) — melebur ke unit

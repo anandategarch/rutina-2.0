@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import * as m from 'motion/react-m'
 import {
   BatteryCharging,
+  ChevronDown,
   ClipboardList,
   Droplets,
   Minus,
@@ -17,6 +18,11 @@ import {
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { useCheckInSheet } from '../checkin-sheet'
@@ -457,18 +463,31 @@ function BodyHistory({
       aria-label="Riwayat tubuh 14 hari"
       className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
     >
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
-          <Moon className="h-4.5 w-4.5" />
-        </span>
-        <div>
-          <p className="text-body font-semibold text-content-primary">Riwayat Tubuh</p>
-          <p className="text-meta font-medium text-content-muted">
-            14 hari · ketuk hari untuk membaca detail
-          </p>
-        </div>
-      </div>
-
+      {/* v2.81 (audit UX §C): riwayat 14 hari adalah analisis yang
+          dibuka sendiri — header menjadi pemicu lipatan. */}
+      <Collapsible defaultOpen={false}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            aria-label="Riwayat tubuh 14 hari — orbit pemulihan & seri per metrik. Buka untuk detail"
+            className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl p-1 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-success">
+              <Moon className="h-4.5 w-4.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-body font-semibold text-content-primary">Riwayat Tubuh</span>
+              <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                14 hari · ketuk hari untuk membaca detail
+              </span>
+            </span>
+            <ChevronDown
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
       {nothingLogged ? (
         <p className="mt-3 text-meta font-medium leading-relaxed text-content-muted">
           Belum ada catatan — isi check-in harian (tidur, energi) dan
@@ -882,6 +901,8 @@ function BodyHistory({
           </p>
         </div>
       )}
+        </CollapsibleContent>
+      </Collapsible>
     </m.section>
   )
 }
@@ -1104,7 +1125,9 @@ export function TubuhPanel() {
       </m.section>
 
       {/* Rincian kesiapan per komponen — Coach Bugar v3.02
-          (tidur 30% · nyeri 30% · stres 20% · energi 20%) */}
+          (tidur 30% · nyeri 30% · stres 20% · energi 20%).
+          v2.81 (audit UX §C): kartu kesiapan di atas cukup sebagai hasil
+          ringkas; rincian bobot kini dibuka sendiri. */}
       {readiness && (
         <m.section
           initial={playSection ? { opacity: 0, y: 14 } : false}
@@ -1113,20 +1136,31 @@ export function TubuhPanel() {
           aria-label="Rincian kesiapan latihan"
           className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
-              <Sparkles className="h-4.5 w-4.5" />
-            </span>
-            <div>
-              <p className="text-body font-semibold text-content-primary">
-                Rincian Kesiapan
-              </p>
-              <p className="text-meta font-medium text-content-muted">
-                Bobot komponen Coach Bugar — skor rendah jadi perhatian
-              </p>
-            </div>
-          </div>
-
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label="Rincian kesiapan — bobot komponen Coach Bugar: tidur, nyeri otot, stres, energi. Buka untuk detail"
+                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl p-1 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-success">
+                  <Sparkles className="h-4.5 w-4.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Rincian Kesiapan
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                    Bobot komponen Coach Bugar — skor rendah jadi perhatian
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
           <div className="mt-4 space-y-3">
             {readiness.detail.map((c) => {
               const low = c.score < 50
@@ -1176,6 +1210,8 @@ export function TubuhPanel() {
               </span>
             </button>
           )}
+            </CollapsibleContent>
+          </Collapsible>
         </m.section>
       )}
 
@@ -1258,7 +1294,9 @@ export function TubuhPanel() {
         </div>
       </m.section>
 
-      {/* Riwayat tubuh 14 hari — v2.36 Tahap 2 */}
+      {/* Riwayat tubuh 14 hari — v2.36 Tahap 2; v2.81 (audit UX §C):
+          analisis yang dibuka sendiri — cincin ringkas tetap di kartu
+          kesiapan, orbit pemulihan & seri 14 hari di balik satu ketukan. */}
       <BodyHistory logs={bodyLogs} waterTarget={waterTarget} />
 
       {/* Berat badan */}
@@ -1332,16 +1370,52 @@ export function TubuhPanel() {
           </button>
         </div>
 
-        {/* Tren */}
-        <div className="mt-4">
-          <WeightSpark logs={bodyLogs} weightGoal={fitTargets.weightGoal} />
-        </div>
+        {/* Tren berat (v2.81, audit UX §C) — grafik jendela 30/90/365
+            hari adalah analisis lanjutan; kartu berat + tombol Catat
+            tetap yang terlihat. */}
+        <Collapsible defaultOpen={false} className="mt-4">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Lihat tren berat badan — ${weight != null ? `terakhir ${String(weight).replace('.', ',')} kg` : 'belum ada catatan'}. Buka untuk grafik`}
+              className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken/50 p-3 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-success"
+              >
+                <Scale className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-note font-semibold text-content-primary">
+                  Lihat tren berat
+                </span>
+                <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                  {weight != null
+                    ? `terakhir ${String(weight).replace('.', ',')} kg`
+                    : 'catat berat pertamamu'}
+                </span>
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-3">
+              <WeightSpark logs={bodyLogs} weightGoal={fitTargets.weightGoal} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </m.section>
 
       {/* Sasaran Musim (v2.22) — delapan target bugar lengkap:
           menit/sesi per pekan, air, makro (protein/karbo/lemak), berat
           tujuan, dan tinggi badan (dasar BMI). Semua dipakai lintas
-          panel: Latihan (menit vs sasaran), Asupan (makro), Tubuh ini. */}
+          panel: Latihan (menit vs sasaran), Asupan (makro), Tubuh ini.
+          v2.81 (audit UX §C): administrasi target dilipat — cukup satu
+          ketukan untuk membuka; tombol Bawaan tetap terjangkau. */}
       <m.section
         initial={playSection ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -1349,20 +1423,31 @@ export function TubuhPanel() {
         aria-label="Sasaran bugar musim ini"
         className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
+        <Collapsible defaultOpen={false}>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
-              <Target className="h-4.5 w-4.5" />
-            </span>
-            <div>
-              <p className="text-body font-semibold text-content-primary">
-                Sasaran Musim
-              </p>
-              <p className="text-meta font-medium text-content-muted">
-                Dipakai di Latihan, Asupan &amp; Tubuh — bukan angka hiasan
-              </p>
-            </div>
-          </div>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              aria-label="Sasaran Musim — delapan target bugar (menit, sesi, air, makro, berat, tinggi). Buka untuk mengubah"
+              className="interactive group flex min-w-0 cursor-pointer items-center gap-3 rounded-xl p-1 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-success">
+                <Target className="h-4.5 w-4.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-body font-semibold text-content-primary">
+                  Sasaran Musim
+                </span>
+                <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                  Dipakai di Latihan, Asupan &amp; Tubuh — bukan angka hiasan
+                </span>
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+              />
+            </button>
+          </CollapsibleTrigger>
           <button
             type="button"
             onClick={() => {
@@ -1376,7 +1461,7 @@ export function TubuhPanel() {
             Bawaan
           </button>
         </div>
-
+        <CollapsibleContent>
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3.5">
           {(
             [
@@ -1489,6 +1574,8 @@ export function TubuhPanel() {
           Tinggi badan menghidupkan BMI di kartu Berat; berat tujuan
           menampilkan jarakmu darinya; makro dipakai bar target di tab Asupan.
         </p>
+        </CollapsibleContent>
+        </Collapsible>
       </m.section>
     </div>
   )

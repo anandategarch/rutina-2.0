@@ -6,6 +6,7 @@ import * as m from 'motion/react-m'
 import {
   AlertTriangle,
   Apple,
+  ChevronDown,
   Flame,
   Minus,
   Plus,
@@ -17,6 +18,11 @@ import {
 import { toast } from 'sonner'
 
 import { Input } from '@/components/ui/input'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
@@ -678,18 +684,44 @@ export function AsupanPanel() {
         </div>
       </section>
 
-      {/* Tren 7 hari — batang interaktif + garis target (audit visualisasi
-          v2.12: garis target kini benar-benar digambar; detail per hari
-          melalui ketukan, bukan memaksakan seluruh angka masuk layar). */}
+      {/* Tren 7 hari (v2.81, audit UX §C) — analisis tambahan yang
+          DIBUKA SENDIRI: pemicu ringkas "Lihat perkembangan" membawa
+          rata-rata; grafik batang + garis target di balik satu ketukan.
+          (audit visualisasi v2.12: garis target benar-benar digambar;
+          detail per hari melalui ketukan.) */}
       <section className="mt-8" aria-label="Tren kalori 7 hari">
-        <div className="flex items-baseline justify-between gap-2 px-0.5">
-          <h2 className="text-note font-semibold uppercase tracking-[0.16em] text-content-secondary">
-            7 Hari Terakhir
-          </h2>
-          <span className="text-eyebrow font-medium tabular-nums text-content-muted">
-            target {fmt(calorieTarget)} kkal
-          </span>
-        </div>
+        <Collapsible defaultOpen={false}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Lihat perkembangan asupan 7 hari — rata-rata ${fmt(week.avg)} kkal per hari tercatat, target ${fmt(calorieTarget)} kkal. Buka untuk grafik`}
+              className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+              >
+                <Sparkles
+                  aria-hidden="true"
+                  className="h-[18px] w-[18px]"
+                  strokeWidth={2}
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-body font-semibold text-content-primary">
+                  Lihat perkembangan
+                </span>
+                <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                  {`7 hari terakhir · rata-rata ${fmt(week.avg)} kkal · target ${fmt(calorieTarget)} kkal`}
+                </span>
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
         <div className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft">
           {/* Zona batang + garis target — tinggi batang & posisi garis
               memakai skala yang sama (maks deret ∪ target). */}
@@ -827,6 +859,8 @@ export function AsupanPanel() {
           batang hari lain untuk meninjau jurnal makan hari itu. Jatah harian
           = target + energi terbakar ({fmt(allowance)} kkal hari ini).
         </p>
+          </CollapsibleContent>
+        </Collapsible>
       </section>
     </div>
   )
