@@ -236,8 +236,9 @@ export function ManageCatsSheet() {
               })}
             </div>
 
-            {/* Daftar kategori */}
-            <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-5 pt-3">
+            {/* Daftar kategori — v2.87: data-lenis-prevent (gulir sendiri
+                di dalam wadah Lenis layar). */}
+            <div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-5 pt-3">
               <ul className="space-y-2 pb-2">
                 {rows.map((r) => {
                   const meta = catMetaOf(r.cat, customCats, catRenames)

@@ -118,6 +118,9 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
 
 /* ===== Konstanta gerak =====
    Seluruh durasi/easing kini melalui motionTokens.preset (governance
@@ -953,7 +956,9 @@ const catMeta = useCatMeta()
       transition={motionTokens.preset.interactionInstant}
       className="flex min-h-0 flex-1 flex-col"
     >
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar p-5">
+      {/* v2.87: data-lenis-prevent — panel inspektur bergulir sendiri
+         di dalam wadah Lenis utama. */}
+      <div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar p-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-body font-semibold tracking-tight text-content-muted">
             Detail Transaksi
@@ -1262,8 +1267,9 @@ const catMeta = useCatMeta()
               </div>
             </div>
 
-            {/* Ledger — hairline per baris; kepala hari menempel saat digulir */}
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar">
+            {/* Ledger — hairline per baris; kepala hari menempel saat digulir.
+                v2.87: data-lenis-prevent — ledger bergulir sendiri. */}
+            <div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar">
               <div className="px-4 pb-4">
                 {ledgerGroups.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
@@ -1454,6 +1460,9 @@ function SaldoCard({
         }
       }}
       whileTap={{ scale: 0.97 }}
+      /* v2.87: hover halus motion.dev — dompet terasa hidup di kursor
+         desktop (perangkat sentuh tidak memicu hover). */
+      whileHover={{ y: -3, transition: motionTokens.preset.interaction }}
       className="relative cursor-pointer overflow-hidden rounded-[var(--layout-hero-radius)] bg-[linear-gradient(135deg,var(--hero-surface)_0%,var(--hero-surface-raised)_46%,var(--hero-surface)_100%)] p-5 shadow-ink-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       {/* Cahaya emas lembut STATIS dari sudut kiri atas — sapuan radial
@@ -2313,6 +2322,8 @@ function CompositionReceipt() {
       <RutinaSectionHeader
         title="Komposisi Pengeluaran"
         description="Bulan ini — tanpa transfer. Ketuk baris untuk membedah."
+        reveal
+        visitKey="keuangan-komposisi-title"
       />
       <ChartSrSummary>
         Struk pengeluaran {currentMonthLabel()}: total {formatIDR(total)},
@@ -2464,8 +2475,14 @@ function SubscriptionsCard() {
       <RutinaSectionHeader
         title="Langgananmu"
         description={`${items.length} langganan aktif — dari transaksi berulang.`}
+        reveal
+        visitKey="keuangan-langganan-title"
       />
-      <div className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft">
+      {/* v2.87: kartu langganan kini MotionCard (masuk + hover). */}
+      <MotionCard
+        visitKey="keuangan-langganan"
+        className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft"
+      >
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
             Total per bulan
@@ -2531,7 +2548,7 @@ function SubscriptionsCard() {
           Pastikan semua langganan ini masih dipakai — berhenti berlangganan
           yang jarang dipakai adalah penghematan paling mudah.
         </p>
-      </div>
+      </MotionCard>
     </>
   )
 }
@@ -3017,10 +3034,12 @@ export default function KeuanganScreen() {
         : 'text-content-secondary'
 
   return (
-    <div
+    <SmoothScrollArea
       data-module="finance"
       data-layout="vault"
-      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      /* v2.87: gulir halus Lenis per-wadah + ScrollTrigger; ritme
+         padding tetap seperti aslinya. */
+      contentClassName="px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Kepala halaman — Tipografi System v1: judul operasional Geist
           Sans (bukan serif); hierarki jelas sebelum segmented tabs. */}
@@ -3029,9 +3048,12 @@ export default function KeuanganScreen() {
           <Wallet className="h-3.5 w-3.5" />
           Vault &amp; ledger
         </p>
-        <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight">
-          Keuangan
-        </h1>
+        <WordReveal
+          as="h1"
+          text="Keuangan"
+          visitKey="keuangan-title"
+          className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight"
+        />
         <p className="mt-2 text-body font-medium text-content-muted">
           Ringkasan kondisi keuanganmu
         </p>
@@ -3532,6 +3554,8 @@ export default function KeuanganScreen() {
           <RutinaSectionHeader
             title="Peta Panas Pengeluaran"
             description="Total keluar harian · 12 pekan terakhir · tanpa transfer."
+            reveal
+            visitKey="keuangan-peta-title"
           />
           <div className="mt-3">
             <SpendHeatmap />
@@ -3541,6 +3565,8 @@ export default function KeuanganScreen() {
           <RutinaSectionHeader
             title="Temuan & Rekomendasi"
             description="Observasi bulan ini — bukan kesimpulan sebab-akibat."
+            reveal
+            visitKey="keuangan-temuan-title"
           />
           {findings.length === 0 ? (
             <RutinaEmptyState
@@ -3906,7 +3932,7 @@ export default function KeuanganScreen() {
       {/* Lembar kelola kategori + drill-down (v2.22) */}
       <ManageCatsSheet />
       <FinDrillSheet />
-    </div>
+    </SmoothScrollArea>
   )
 }
 
