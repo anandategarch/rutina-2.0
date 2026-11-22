@@ -2794,11 +2794,15 @@ export default function BugarScreen() {
           </div>
         </div>
 
-        <div className={tab === 'asupan' ? 'block' : 'hidden'}>
+        {/* v2.70 (audit jarak): panel Asupan/Tubuh dulu menempel persis
+            0px di bawah subtab (Latihan punya mt-4 lewat pembungkus
+            m.div-nya) — kartu pertama kini bernapas 16px, ritme seragam
+            antar subtab. */}
+        <div className={tab === 'asupan' ? 'mt-4 block' : 'hidden'}>
           <AsupanPanel />
         </div>
 
-        <div className={tab === 'tubuh' ? 'block' : 'hidden'}>
+        <div className={tab === 'tubuh' ? 'mt-4 block' : 'hidden'}>
           <TubuhPanel />
         </div>
 
