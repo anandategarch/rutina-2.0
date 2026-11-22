@@ -24,8 +24,9 @@ import { cn } from '@/lib/utils'
  * - ≥ 42rem  : kisi 6 kolom — tile setengah/sepertiga lebar.
  * - ≥ 52rem  : kisi 12 kolom — komposisi editorial penuh.
  *
- * Jarak antar-tile memakai token --layout-grid-gap (data-layout): rapat
- * di ponsel, lega mengikuti karakter tiap ruang kerja di kontainer lebar.
+ * Jarak antar-tile memakai token --layout-grid-gap (data-layout):
+ * padat-nyaman di ponsel (16px — v2.64, dulu 12px terasa dempet),
+ * lega mengikuti karakter tiap ruang kerja di kontainer lebar.
  */
 export function RutinaBentoGrid({
   className,

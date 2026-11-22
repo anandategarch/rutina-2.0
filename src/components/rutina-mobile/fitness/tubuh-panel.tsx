@@ -455,7 +455,7 @@ function BodyHistory({
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
       aria-label="Riwayat tubuh 14 hari"
-      className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+      className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
     >
       <div className="flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
@@ -1047,7 +1047,7 @@ export function TubuhPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
         aria-label="Kesiapan latihan"
-        className={`mt-3 overflow-hidden rounded-2xl p-5 shadow-leaf ${
+        className={`mt-[var(--layout-gap)] overflow-hidden rounded-2xl p-5 shadow-leaf ${
           readiness
             ? readiness.score >= 75
               ? 'bg-primary text-primary-foreground'
@@ -1111,7 +1111,7 @@ export function TubuhPanel() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.step }}
           aria-label="Rincian kesiapan latihan"
-          className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+          className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
         >
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
@@ -1185,7 +1185,7 @@ export function TubuhPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.normal }}
         aria-label="Hidrasi hari ini"
-        className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+        className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -1267,7 +1267,7 @@ export function TubuhPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.relaxed }}
         aria-label="Berat badan"
-        className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+        className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
@@ -1347,7 +1347,7 @@ export function TubuhPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.sweep }}
         aria-label="Sasaran bugar musim ini"
-        className="mt-3 rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+        className="mt-[var(--layout-gap)] rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">

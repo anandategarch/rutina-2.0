@@ -1138,7 +1138,7 @@ export default function StatsScreen() {
             Wawasan membuka lipatan Wawasan & Pencapaian lalu menggulir. */}
         <nav
           aria-label="Pintasan seksi Statistik"
-          className="mt-[var(--layout-gap)] grid grid-cols-2 gap-1.5 @[30rem]:flex @[30rem]:flex-wrap"
+          className="mt-[var(--layout-gap)] grid grid-cols-2 gap-2 @[30rem]:flex @[30rem]:flex-wrap"
         >
           {[
             { id: 'stats-tren', label: 'Tren', open: false },

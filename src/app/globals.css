@@ -629,10 +629,11 @@
      (laboratorium data) · writing-room (ruang tulis tenang) ·
      control-room (ruang kendali presisi). */
   [data-layout] {
-    /* Ponsel: micro-bento 2 kolom memakai jarak rapat 12px agar pas
-       di 320–430px; melebar otomatis begitu kontainer lega (lihat
-       @container di bawah). */
-    --layout-grid-gap: 0.75rem;
+    /* v2.64 (audit dempet): micro-bento 2 kolom memakai 16px — kartu
+       besar yang bertumpuk butuh jarak terbaca sebagai BLOK terpisah
+       (12px lama terasa menempel di 320–430px); melebar lagi begitu
+       kontainer lega (lihat @container di bawah). */
+    --layout-grid-gap: 1rem;
   }
   [data-layout='daybook'] {
     --layout-gap: 1.75rem;
@@ -674,18 +675,18 @@
      1280px kolom kerja tinggal ±750px, jadi keputusan "sudah lega?"
      harus diambil dari kontainer. Begitu ruang kerja ≥42rem (672px),
      jarak tile melebar mengikuti karakter masing-masing ruang:
-     daybook/garden lapang (16px), ruang presisi lebih rapat (14px). */
+     daybook/garden lapang (18px), ruang presisi menyusul (16px). */
   @container (min-width: 42rem) {
     [data-layout='daybook'],
     [data-layout='garden'] {
-      --layout-grid-gap: 1rem;
+      --layout-grid-gap: 1.125rem;
     }
     [data-layout='performance'],
     [data-layout='vault'],
     [data-layout='observatory'],
     [data-layout='writing-room'],
     [data-layout='control-room'] {
-      --layout-grid-gap: 0.875rem;
+      --layout-grid-gap: 1rem;
     }
   }
 

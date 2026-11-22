@@ -2106,7 +2106,7 @@ export default function BugarScreen() {
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.chipReveal, delay: motionTokens.delay.tight }}
-        className="interactive mt-3 flex h-13 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-lift hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="interactive mt-4 flex h-13 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-section font-bold text-primary-foreground shadow-lift hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <Play className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" />
         Mulai Sesi Barbel
@@ -2117,7 +2117,7 @@ export default function BugarScreen() {
       <div
         role="group"
         aria-label="Catat aktivitas baru"
-        className="mt-2 flex gap-1.5 overflow-x-auto no-scrollbar pb-1"
+        className="mt-3 flex gap-1.5 overflow-x-auto no-scrollbar pb-1"
       >
         {QUICK_MODES.map((a) => {
           const Icon = a.icon
