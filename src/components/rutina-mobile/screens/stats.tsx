@@ -92,10 +92,12 @@ import {
   type StatsView,
 } from '../store'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
-import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
@@ -967,11 +969,13 @@ export default function StatsScreen() {
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div
-        ref={rootRef}
+      <SmoothScrollArea
+        viewportRef={rootRef}
         data-module="stats"
         data-layout="observatory"
-        className="h-full overflow-y-auto no-scrollbar px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+        /* v2.87: gulir halus Lenis per-wadah + ScrollTrigger; ritme
+           padding tetap seperti aslinya. */
+        contentClassName="px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
       >
         {/* Kepala halaman — Tipografi System v1: judul operasional Geist
             Sans weight 700; disiplin angka tabular di seluruh layar. */}
@@ -983,9 +987,12 @@ export default function StatsScreen() {
             />
             Observatorium data
           </p>
-          <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight">
-            Statistik
-          </h1>
+          <WordReveal
+            as="h1"
+            text="Statistik"
+            visitKey="stats-title"
+            className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight"
+          />
           <p className="mt-2 text-body font-medium text-content-muted">
             Petualanganmu dalam angka
           </p>
@@ -1040,11 +1047,10 @@ export default function StatsScreen() {
             wawasan periode); wawasan periode kini tinggal di pandangan
             Wawasan. ===== */}
         <section aria-label="Ringkasan pemain" className="mt-[var(--layout-gap)]">
-          <m.div
-            initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-24px' }}
-            transition={motionTokens.preset.data}
+          {/* v2.87: hero kini MotionCard — masuk saat terlihat + hover
+              halus (motion.dev); entrance m.div lama dipensiunkan. */}
+          <MotionCard
+            visitKey="stats-hero"
             className="@container rounded-2xl border border-border bg-hero-surface p-4 shadow-soft sm:p-5"
           >
             {/* Baris profil — avatar, nama, lencana level. */}
@@ -1186,7 +1192,7 @@ export default function StatsScreen() {
                 ? 'Level baru terbuka — lanjutkan petualanganmu'
                 : `${remaining} XP lagi menuju Level ${level + 1}`}
             </p>
-          </m.div>
+          </MotionCard>
         </section>
 
         {/* ===== Bugar & Tubuh — ringkasan satu baris + tautan (audit
@@ -1472,8 +1478,10 @@ export default function StatsScreen() {
               <RutinaSectionHeader
                 title="Kalender Aktivitas"
                 description="Titik harian: kebiasaan, transaksi, dan latihan sepanjang bulan."
+                reveal
+                visitKey="stats-kalender-title"
               />
-              <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+              <MotionCard radius="2xl" density="comfortable" visitKey="stats-kalender" className="mt-3">
                 <MonthCalendar
                   month={viewYm}
                   info={dayInfo}
@@ -1709,7 +1717,7 @@ export default function StatsScreen() {
                   </CollapsibleContent>
                 </Collapsible>
                 </div>
-              </RutinaCard>
+              </MotionCard>
             </m.section>
           </RutinaBentoItem>
 
@@ -2276,7 +2284,7 @@ export default function StatsScreen() {
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-            <RutinaCard radius="2xl" density="comfortable" className="mt-3">
+            <MotionCard radius="2xl" density="comfortable" visitKey="stats-metrik-pekan" className="mt-3">
               <ul className="space-y-2.5">
                 {weekMetrics.map((row) => {
                   const DeltaIcon =
@@ -2366,7 +2374,7 @@ export default function StatsScreen() {
                 nilai lebih kecil dinilai lebih baik. Jumlah catatan
                 dihitung eksak dari tanggal-dibuat (v2.36).
               </p>
-              </RutinaCard>
+              </MotionCard>
               </CollapsibleContent>
             </Collapsible>
           </m.section>
@@ -2623,7 +2631,7 @@ export default function StatsScreen() {
         {!inspectorWide && (
           <DayDetailSheet date={selectedDay} onClose={() => setSelectedDay(null)} />
         )}
-      </div>
+      </SmoothScrollArea>
     </TooltipProvider>
   )
 }
