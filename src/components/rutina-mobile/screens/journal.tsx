@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as m from 'motion/react-m'
-import { ChevronDown, Feather, PenLine, Pin, Search, Smile } from 'lucide-react'
+import { ChevronDown, Feather, PenLine, Pin, Search, SlidersHorizontal, Smile, X } from 'lucide-react'
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
@@ -638,8 +638,12 @@ export default function JournalScreen() {
   /* Filter mood (review UI/UX v2.44 Tahap 2) — null = semua mood;
      hanya mood yang benar-benar tercatat pada catatan hidup. */
   const [moodFilter, setMoodFilter] = useState<string | null>(null)
-  /* Filter suasana tersembunyi secara default (v2.61) — bilah menempel
-     cukup dua baris; chip mood dibuka lewat pemicu "Suasana". */
+  /* v2.83 (audit UX §E): deret chip folder tidak lagi permanen — SATU
+     tombol Filter membuka panel (folder + suasana); filter aktif tampil
+     sebagai chip yang bisa dilepas. Pencarian tetap tersedia. */
+  const [filterOpen, setFilterOpen] = useState(false)
+  /* Filter suasana tersembunyi secara default (v2.61) — di dalam panel
+     filter; chip mood dibuka lewat pemicu "Suasana". */
   const [moodPickerOpen, setMoodPickerOpen] = useState(false)
   const notes = useRutina((s) => s.notes)
   const journalFilter = useRutina((s) => s.journalFilter)
@@ -767,145 +771,214 @@ export default function JournalScreen() {
         Tulis catatan
       </m.button>
 
-      {/* Bilah pencarian + folder — MENEMPEL di tepi atas agar pencarian
-          dan kategori selalu mudah dijangkau sambil menelusuri catatan.
-          Latar solid parchment (tanpa blur) — ruang jurnal tetap tenang. */}
+      {/* Bilah pencarian + Filter — MENEMPEL di tepi atas agar pencarian
+          selalu mudah dijangkau (v2.83, audit UX §E: pencarian TETAP
+          tersedia; filter folder/suasana/tanggal/pekan kini di balik SATU
+          tombol Filter — bukan deret chip permanen; filter aktif tampil
+          sebagai chip yang bisa dilepas). Latar solid parchment. */}
       <div className="sticky top-0 z-30 -mx-4 mt-4 border-b border-border-default bg-surface-primary px-4 pb-2.5 pt-2">
-        <m.div
-          initial={playEntrance ? { opacity: 0, y: 12 } : false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            ...motionTokens.preset.data,
-            delay: motionTokens.delay.normal,
-          }}
-          className="relative"
-        >
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari judul atau isi catatan…"
-            aria-label="Cari catatan jurnal"
-            className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-body text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
-          />
-        </m.div>
+        <div className="flex gap-2">
+          <m.div
+            initial={playEntrance ? { opacity: 0, y: 12 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              ...motionTokens.preset.data,
+              delay: motionTokens.delay.normal,
+            }}
+            className="relative min-w-0 flex-1"
+          >
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari judul atau isi catatan…"
+              aria-label="Cari catatan jurnal"
+              className="h-11 rounded-xl border-border bg-surface-primary pl-10 text-body text-content-primary shadow-soft placeholder:text-content-muted focus-visible:border-primary/50 focus-visible:ring-primary/20"
+            />
+          </m.div>
+          <button
+            type="button"
+            onClick={() => setFilterOpen((v) => !v)}
+            aria-expanded={filterOpen}
+            aria-controls="jurnal-filter"
+            className="interactive flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-surface-primary px-3.5 text-meta font-bold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <SlidersHorizontal
+              className="h-3.5 w-3.5"
+              aria-hidden="true"
+              strokeWidth={2.2}
+            />
+            Filter
+            {(journalFilter !== 'semua' ||
+              moodFilter != null ||
+              dayFilter != null ||
+              weekFilter != null) && (
+              <span className="rounded-full bg-primary px-1.5 text-chart-label font-bold tabular-nums text-primary-foreground">
+                {(journalFilter !== 'semua' ? 1 : 0) +
+                  (moodFilter != null ? 1 : 0) +
+                  (dayFilter != null ? 1 : 0) +
+                  (weekFilter != null ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
 
-        {/* Chip filter kategori + jumlah catatan nyata */}
-        <m.div
-          initial={playEntrance ? { opacity: 0, y: 10 } : false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            ...motionTokens.preset.data,
-            delay: motionTokens.delay.relaxed,
-          }}
-          className="relative mt-2.5"
-        >
+        {/* Chip aktif yang bisa dilepas — selalu terlihat walau panel
+            tertutup: status saringan tidak pernah tersembunyi. */}
+        {(journalFilter !== 'semua' ||
+          moodFilter != null ||
+          dayFilter != null ||
+          weekFilter != null) && (
           <div
             role="group"
-            aria-label="Filter kategori catatan"
-            className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+            aria-label="Saringan aktif"
+            className="mt-2 flex flex-wrap gap-1.5"
           >
-            {FILTERS.map((f) => {
-              const active = journalFilter === f.key
-              const count =
-                f.key === 'semua' ? total : folderCount(notes, f.key)
-              return (
-                <m.button
-                  key={f.key}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setJournalFilter(f.key)}
-                  whileTap={{ scale: 0.96 }}
-                  transition={pressSnappy}
-                  className={
-                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold ' +
-                    (active
-                      ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
-                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
-                  }
-                >
-                  {f.label}
-                  <span className="ml-1.5 tabular-nums opacity-60">
-                    {count}
-                  </span>
-                </m.button>
-              )
-            })}
-            {moodOptions.length > 0 && (
+            {journalFilter !== 'semua' && (
               <button
                 type="button"
-                aria-pressed={moodPickerOpen}
-                aria-expanded={moodPickerOpen}
-                onClick={() => setMoodPickerOpen((v) => !v)}
-                className={
-                  'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
-                  (moodPickerOpen || moodFilter != null
-                    ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
-                    : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
-                }
+                onClick={() => setJournalFilter('semua')}
+                aria-label={`Lepas saringan folder ${
+                  FILTERS.find((f) => f.key === journalFilter)?.label ?? ''
+                }`}
+                className="interactive flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/35 bg-module-accent/15 px-3 text-meta font-bold text-module-accent-strong transition-colors hover:bg-module-accent/25"
               >
-                <Smile
-                  className="mr-1 inline h-3.5 w-3.5"
-                  aria-hidden="true"
-                  strokeWidth={2.2}
-                />
-                Suasana
-                {moodFilter != null && (
-                  <span className="ml-1.5 opacity-70">· {moodFilter}</span>
-                )}
+                {FILTERS.find((f) => f.key === journalFilter)?.label}
+                <X className="h-3 w-3" aria-hidden="true" strokeWidth={2.4} />
               </button>
             )}
-          </div>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface-primary to-transparent"
-          />
-        </m.div>
-
-        {/* v2.61 (audit Tahap 2): filter mood jadi FILTER SEKUNDER —
-            pemicu "Suasana" di baris folder membuka deret chip-nya; baris
-            menempel default kini dua baris (pencarian + folder), tidak
-            tiga. */}
-        {moodPickerOpen && moodOptions.length > 0 && (
-          <div
-            role="group"
-            aria-label="Filter suasana hati catatan"
-            className="relative mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
-          >
-            {moodOptions.map(([mood, n]) => {
-              const active = moodFilter === mood
-              return (
-                <button
-                  key={mood}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setMoodFilter(active ? null : mood)}
-                  className={
-                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold ' +
-                    (active
-                      ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
-                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
-                  }
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${
-                      MOOD_DOT[mood] ?? 'bg-cocoa/40'
-                    }`}
-                  />
-                  {mood}
-                  <span className="ml-1.5 tabular-nums opacity-60">{n}</span>
-                </button>
-              )
-            })}
             {moodFilter != null && (
               <button
                 type="button"
                 onClick={() => setMoodFilter(null)}
-                className="interactive h-9 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-meta font-bold text-content-muted hover:bg-secondary"
+                aria-label={`Lepas saringan suasana ${moodFilter}`}
+                className="interactive flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/35 bg-module-accent/15 px-3 text-meta font-bold text-module-accent-strong transition-colors hover:bg-module-accent/25"
               >
-                Hapus saringan
+                {moodFilter}
+                <X className="h-3 w-3" aria-hidden="true" strokeWidth={2.4} />
               </button>
+            )}
+            {dayFilter != null && (
+              <button
+                type="button"
+                onClick={() => setDayFilter(null)}
+                aria-label={`Lepas saringan tanggal ${shortDateLabel(dayFilter)}`}
+                className="interactive flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/35 bg-module-accent/15 px-3 text-meta font-bold text-module-accent-strong transition-colors hover:bg-module-accent/25"
+              >
+                {shortDateLabel(dayFilter)}
+                <X className="h-3 w-3" aria-hidden="true" strokeWidth={2.4} />
+              </button>
+            )}
+            {weekFilter != null && (
+              <button
+                type="button"
+                onClick={() => setWeekFilter(null)}
+                aria-label="Lepas saringan rentang pekan"
+                className="interactive flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-module-accent/35 bg-module-accent/15 px-3 text-meta font-bold text-module-accent-strong transition-colors hover:bg-module-accent/25"
+              >
+                Pekan {shortDateLabel(weekFilter)}
+                <X className="h-3 w-3" aria-hidden="true" strokeWidth={2.4} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Panel filter — dibuka lewat tombol Filter: folder, suasana. */}
+        {filterOpen && (
+          <div id="jurnal-filter" className="mt-2.5">
+            {/* Chip filter kategori + jumlah catatan nyata */}
+            <div
+              role="group"
+              aria-label="Filter kategori catatan"
+              className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+            >
+              {FILTERS.map((f) => {
+                const active = journalFilter === f.key
+                const count =
+                  f.key === 'semua' ? total : folderCount(notes, f.key)
+                return (
+                  <m.button
+                    key={f.key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setJournalFilter(f.key)}
+                    whileTap={{ scale: 0.96 }}
+                    transition={pressSnappy}
+                    className={
+                      'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold ' +
+                      (active
+                        ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
+                        : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                    }
+                  >
+                    {f.label}
+                    <span className="ml-1.5 tabular-nums opacity-60">
+                      {count}
+                    </span>
+                  </m.button>
+                )
+              })}
+              {moodOptions.length > 0 && (
+                <button
+                  type="button"
+                  aria-pressed={moodPickerOpen}
+                  aria-expanded={moodPickerOpen}
+                  onClick={() => setMoodPickerOpen((v) => !v)}
+                  className={
+                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                    (moodPickerOpen || moodFilter != null
+                      ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
+                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                  }
+                >
+                  <Smile
+                    className="mr-1 inline h-3.5 w-3.5"
+                    aria-hidden="true"
+                    strokeWidth={2.2}
+                  />
+                  Suasana
+                  {moodFilter != null && (
+                    <span className="ml-1.5 opacity-70">· {moodFilter}</span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* v2.61 (audit Tahap 2): chip mood — filter sekunder di dalam
+                panel, dibuka lewat pemicu "Suasana". */}
+            {moodPickerOpen && moodOptions.length > 0 && (
+              <div
+                role="group"
+                aria-label="Filter suasana hati catatan"
+                className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-0.5"
+              >
+                {moodOptions.map(([mood, n]) => {
+                  const active = moodFilter === mood
+                  return (
+                    <button
+                      key={mood}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setMoodFilter(active ? null : mood)}
+                      className={
+                        'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold ' +
+                        (active
+                          ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
+                          : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
+                      }
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${
+                          MOOD_DOT[mood] ?? 'bg-cocoa/40'
+                        }`}
+                      />
+                      {mood}
+                      <span className="ml-1.5 tabular-nums opacity-60">{n}</span>
+                    </button>
+                  )
+                })}
+              </div>
             )}
           </div>
         )}

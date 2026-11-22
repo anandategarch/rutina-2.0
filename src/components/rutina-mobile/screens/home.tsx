@@ -32,6 +32,11 @@ import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Counter } from '../counter'
 import { playfair } from '../serif'
 import { TaskRow } from '../task-row'
@@ -39,7 +44,6 @@ import { MissionTrail } from '../mission-trail'
 import { GardenTree } from '../garden-tree'
 import { HomeFinanceCard } from '../home-finance-card'
 import { WeeklyRecapCard } from '../weekly-recap-card'
-import { PlantGarden } from '../plant-garden'
 import { ForTodaySection } from '../for-today'
 import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
 import { RutinaCard } from '../rutina-card'
@@ -61,7 +65,6 @@ import {
   dayCompliance,
   doneCountOn,
   FOLDERS,
-  folderCount,
   fromISO,
   habitsOn,
   habitStreak,
@@ -77,18 +80,10 @@ import {
   XP_PER_TASK,
   XP_TARGET,
   type Completions,
-  type FolderKey,
   type Habit,
 } from '../store'
 
 /* ===== Potongan kecil ===== */
-
-const FOLDER_ICONS: Record<FolderKey, LucideIcon> = {
-  kerja: BookOpen,
-  ide: Lightbulb,
-  bacaan: BookOpen,
-  pribadi: Heart,
-}
 
 /* Tanggal & sapaan live — nilai khusus klien yang aman dari hydration:
    snapshot server kosong, snapshot klien terisi setelah mount. */
@@ -392,7 +387,6 @@ export default function HomeScreen() {
   const selectedDate = useRutina((s) => s.selectedDate)
   const setSelectedDate = useRutina((s) => s.setSelectedDate)
   const toggleHabit = useRutina((s) => s.toggleHabit)
-  const openFolder = useRutina((s) => s.openFolder)
   const openCompose = useRutina((s) => s.openCompose)
   const quoteSavedDate = useRutina((s) => s.quoteSavedDate)
   const saveQuote = useRutina((s) => s.saveQuote)
@@ -1586,29 +1580,12 @@ export default function HomeScreen() {
             </Button>
           </div>
         </div>
-        {/* Chip folder ringkas — hitungan nyata per kategori */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {FOLDERS.map(({ key, label }) => {
-            const Icon = FOLDER_ICONS[key]
-            const count = folderCount(notes, key)
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => openFolder(key)}
-                aria-label={`Buka folder ${label} di Jurnal, ${count} catatan`}
-                className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3 text-meta font-semibold text-content-secondary transition-colors hover:border-primary/35 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <Icon aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />
-                {label}
-                <span className="tabular-nums text-content-muted">{count}</span>
-              </button>
-            )
-          })}
-        </div>
+        {/* v2.83 (audit UX §A): deret chip folder DIHAPUS dari Beranda —
+            pintu masuk Jurnal cukup satu (kartu ini + tombol Buka);
+            folder lengkap dengan hitungan per kategori hidup di layar
+            Jurnal. Draf terakhir tetap satu baris, hanya saat ada draf. */}
         {/* Lanjutkan draf terakhir — draf (catatan tanpa judul) terbaru
-            dibuka langsung di kanvas menulis; baris tersendiri agar tidak
-            berebut lebar dengan chip folder. */}
+            dibuka langsung di kanvas menulis. */}
         {latestDraft && (
           <button
             type="button"
@@ -1626,31 +1603,53 @@ export default function HomeScreen() {
         )}
       </m.section>
 
-      {/* Taman Pertumbuhan — strip horizontal tahap tanaman tiap
-          kebiasaan, berendam di permukaan kebun (garden-surface) sebagai
-          bedeng lembut. mt-8 internal PlantGarden dinetralkan agar
-          ritme jarak mengikuti --layout-gap dari tumpukan utama.
-          v2.22: dibuka oleh Pohon Kebun — SATU pohon konsistensi global
-          yang tumbuh dari hari aktif seluruh kebun. */}
-      {hasActiveHabits && (
-        <div className="space-y-[var(--layout-gap)]">
-          <GardenTree />
-          <div className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-6 [&>section]:mt-0">
-            <PlantGarden />
-          </div>
-        </div>
-      )}
+      {/* Taman Pertumbuhan Beranda (v2.83, audit UX §A) — SATU lokasi
+          utama per visualisasi: Pohon Kebun (konsistensi global, khas
+          Beranda) tetap; PlantGarden dipensiunkan dari sini karena bedeng
+          tanaman per-kebiasaan kini hidup di ruang Konsistensi layar
+          Kebiasaan (pemilih visualisasi "Taman", v2.78) — tumpukan visual
+          kembar di dua layar membuat Beranda terasa lebih panjang tanpa
+          informasi baru. */}
+      {hasActiveHabits && <GardenTree />}
 
-      {/* 7 — Kartu Refleksi (pembatas visual) — kutipan bisa DIGANTI-GANTI
-          (v2.14): tombol "Ganti" menjalankan cycleQuote; kutipan berputar
-          dengan transisi lembut; simpan menyimpan kutipan yang tampil. */}
+      {/* 7 — Refleksi (v2.83, audit UX §A): bagian yang DIBUKA — kutipan
+          harian tetap utuh (ganti/simpan), namun tidak lagi memakan
+          setengah layar di kondisi awal; pemicu ringkas satu baris. */}
+      <Collapsible defaultOpen={false}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            aria-label="Refleksi hari ini — kutipan harian yang bisa diganti dan disimpan ke Jurnal. Buka untuk membaca"
+            className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+            >
+              <Quote aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-body font-semibold text-content-primary">
+                Refleksi Hari Ini
+              </span>
+              <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                kutipan harian · bisa disimpan ke Jurnal
+              </span>
+            </span>
+            <ChevronDown
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+            />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
       <m.section
         initial={playEntrance ? { opacity: 0, y: 18 } : false}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
         transition={motionTokens.preset.pageEntrance}
         aria-label="Refleksi hari ini"
-        className="rounded-xl bg-surface-inverse p-6 text-content-inverse shadow-ink"
+        className="mt-3 rounded-xl bg-surface-inverse p-6 text-content-inverse shadow-ink"
       >
         <div className="sm:mx-auto sm:max-w-[600px]">
           <div className="flex items-start justify-between gap-3">
@@ -1714,6 +1713,8 @@ export default function HomeScreen() {
           </Button>
         </div>
       </m.section>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   )
 }

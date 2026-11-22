@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Bell,
   Check,
+  ChevronDown,
   ChevronRight,
   CloudDownload,
   FileDown,
@@ -41,6 +42,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -1029,20 +1035,45 @@ export default function ProfileScreen() {
           </div>
         </m.section>
 
-        {/* ===== 3 · DATA & PENYIMPANAN — grup tersendiri ===== */}
-        <m.div variants={slideInRow} className="mt-8">
-          <RutinaSectionHeader
-            title="Data &amp; Penyimpanan"
-            description={`${habits.length} kebiasaan · ${notes.length} catatan · ${txs.length} transaksi — milikmu sepenuhnya`}
-          />
-        </m.div>
+        {/* ===== 3 · DATA & PENYIMPANAN (v2.83, audit UX §G) — grup
+            administrasi dilipat: ekspor/impor/tarik-ulang dibuka saat
+            diminta. KARTU STATUS SYNC di bawahnya TETAP DI LUAR lipatan —
+            status offline/error tidak pernah disembunyikan. ===== */}
         <m.section
           id="profil-data"
           variants={slideInRow}
           aria-label="Data dan penyimpanan"
-          className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+          className="mt-8 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <div className="divide-y divide-border-default">
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Data & Penyimpanan — ${habits.length} kebiasaan, ${notes.length} catatan, ${txs.length} transaksi. Buka untuk ekspor, impor, dan tarik ulang`}
+                className="interactive group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                >
+                  <FileDown className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Data &amp; Penyimpanan
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                    {`${habits.length} kebiasaan · ${notes.length} catatan · ${txs.length} transaksi — milikmu sepenuhnya`}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+          <div className="divide-y divide-border-default border-t border-border-default">
             {/* Ekspor cadangan — satu pintu, dua pilihan format. Unduhan
                 dipicu dari dialog agar baris grup tetap ringkas (audit 2g). */}
             <SettingRow
@@ -1104,6 +1135,8 @@ export default function ProfileScreen() {
             disabled={importing}
             onChange={handleImportFile}
           />
+            </CollapsibleContent>
+          </Collapsible>
         </m.section>
 
         {/* Info sinkron hidup — keadaan nyata dari engine (bukan statis):
@@ -1181,19 +1214,43 @@ export default function ProfileScreen() {
           </div>
         </RutinaDialog>
 
-        {/* ===== 4 · ZONA KRITIS — dipisahkan dari pengaturan umum ===== */}
-        <m.div variants={slideInRow} className="mt-10">
-          <RutinaSectionHeader
-            title="Zona Kritis"
-            description="Tindakan permanen — sengaja jauh dari pengaturan harian"
-          />
-        </m.div>
+        {/* ===== 4 · ZONA KRITIS (v2.83, audit UX §G) — tertutup secara
+            default; tindakan permanen sengaja dua langkah jauh. ===== */}
         <m.section
           id="profil-zona"
           variants={slideInRow}
           aria-label="Zona kritis"
-          className="mt-3 rounded-xl border border-destructive/30 bg-surface-primary p-4 shadow-soft"
+          className="mt-10 overflow-hidden rounded-xl border border-destructive/30 bg-surface-primary shadow-soft"
         >
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label="Zona Kritis — tindakan permanen. Buka dengan sengaja"
+                className="interactive group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-clay/20 text-content-danger"
+                >
+                  <TriangleAlert className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Zona Kritis
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                    Tindakan permanen — sengaja jauh dari pengaturan harian
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+          <div className="border-t border-border-default p-4">
           <div className="flex items-center gap-3.5 px-0.5 py-1">
             <span
               aria-hidden="true"
@@ -1257,22 +1314,48 @@ export default function ProfileScreen() {
               </button>
             </div>
           </RutinaDialog>
+          </div>
+            </CollapsibleContent>
+          </Collapsible>
         </m.section>
 
-        {/* ===== 5 · APLIKASI & BANTUAN — paling bawah ===== */}
-        <m.div variants={slideInRow} className="mt-8">
-          <RutinaSectionHeader
-            title="Aplikasi &amp; Bantuan"
-            description="Pemasangan, pertanyaan umum, dan tentang Rutina"
-          />
-        </m.div>
+        {/* ===== 5 · APLIKASI & BANTUAN (v2.83, audit UX §G) — lipatan:
+            pemasangan PWA, Tentang, dan FAQ dalam satu bukaan. ===== */}
         <m.section
           id="profil-bantuan"
           variants={slideInRow}
           aria-label="Aplikasi dan bantuan"
-          className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+          className="mt-8 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <div className="divide-y divide-border-default">
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label="Aplikasi & Bantuan — pemasangan, pertanyaan umum, dan tentang Rutina. Buka untuk detail"
+                className="interactive group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                >
+                  <MonitorSmartphone className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Aplikasi &amp; Bantuan
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                    Pemasangan, pertanyaan umum, dan tentang Rutina
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+          <div className="divide-y divide-border-default border-t border-border-default">
             {appInstalled ? (
               <SettingRow
                 icon={MonitorSmartphone}
@@ -1324,30 +1407,29 @@ export default function ProfileScreen() {
               control={<ChevronRight aria-hidden="true" className="h-4 w-4 text-content-muted" />}
             />
           </div>
-        </m.section>
 
-        {/* Pertanyaan umum (shadcn Accordion) */}
-        <m.section
-          variants={slideInRow}
-          aria-label="Pertanyaan umum"
-          className="mt-3 rounded-xl border border-border bg-surface-primary px-4 shadow-soft"
-        >
-          <Accordion type="single" collapsible className="w-full">
-            {FAQ_ITEMS.map((f, i) => (
-              <AccordionItem
-                key={i}
-                value={`faq-${i}`}
-                className="border-border"
-              >
-                <AccordionTrigger className="py-4 text-left text-body font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
-                  {f.q}
-                </AccordionTrigger>
-                <AccordionContent className="pb-4 text-note leading-relaxed text-content-muted">
-                  {f.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          {/* Pertanyaan umum (shadcn Accordion) — di dalam lipatan
+              Aplikasi & Bantuan (v2.83). */}
+          <div className="border-t border-border-default px-4" aria-label="Pertanyaan umum">
+            <Accordion type="single" collapsible className="w-full">
+              {FAQ_ITEMS.map((f, i) => (
+                <AccordionItem
+                  key={i}
+                  value={`faq-${i}`}
+                  className="border-border"
+                >
+                  <AccordionTrigger className="py-4 text-left text-body font-semibold text-content-primary hover:no-underline [&>svg]:text-primary">
+                    {f.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 text-note leading-relaxed text-content-muted">
+                    {f.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+            </CollapsibleContent>
+          </Collapsible>
         </m.section>
 
         </div>
