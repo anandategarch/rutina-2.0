@@ -1024,6 +1024,9 @@ export type WoRange = '30' | '90' | 'semua'
 /** Ruang aktif layar Kebiasaan (v2.77) — tab konten sungguhan, bukan
  *  navigasi gulir: hanya satu ruang kerja tampil dalam satu waktu. */
 export type KebiasaanRoom = 'agenda' | 'konsistensi' | 'perpustakaan'
+/** Visualisasi utama ruang Konsistensi (v2.78) — sulur pekan, peta
+ *  panas, atau taman; satu visualisasi besar pada satu waktu. */
+export type KonsistensiViz = 'sulur' | 'panas' | 'taman'
 /** Pandangan aktif layar Statistik (v2.77) — empat tampilan yang
  *  mengganti konten: Ringkasan, Tren, Kalender, Wawasan. */
 export type StatsView = 'ringkasan' | 'tren' | 'kalender' | 'wawasan'
@@ -1042,6 +1045,8 @@ export interface UiPrefs {
   /** Ruang aktif layar Kebiasaan (v2.77) — bertahan antar perpindahan
    *  layar; pengguna kembali ke ruang terakhir yang dibukanya. */
   kebiasaanRoom: KebiasaanRoom
+  /** Visualisasi utama ruang Konsistensi (v2.78). */
+  konsistensiViz: KonsistensiViz
   /** Pandangan aktif layar Statistik (v2.77) — bertahan antar
    *  perpindahan layar. */
   statsView: StatsView
@@ -1770,6 +1775,7 @@ export const useRutina = create<RutinaState>()(
     mutasiFilter: 'semua',
     statsPeriod: 'pekan',
     kebiasaanRoom: 'agenda',
+    konsistensiViz: 'sulur',
     statsView: 'ringkasan',
     woFilter: 'semua',
     woRange: 'semua',
@@ -2806,6 +2812,8 @@ export const useRutina = create<RutinaState>()(
             )
           )
             prefs.kebiasaanRoom = 'agenda'
+          if (!['sulur', 'panas', 'taman'].includes(String(prefs.konsistensiViz)))
+            prefs.konsistensiViz = 'sulur'
           if (
             !['ringkasan', 'tren', 'kalender', 'wawasan'].includes(
               String(prefs.statsView),
@@ -2821,6 +2829,21 @@ export const useRutina = create<RutinaState>()(
           ...(typeof p.fitTargets === 'object' && p.fitTargets ? p.fitTargets : {}),
         }
         return p as unknown as RutinaState
+      },
+      /* v2.78 (fix v2.77 latent): merge DEFAULT adalah dangkal — objek
+         uiPrefs lama dari storage MENGGANTI seluruh uiPrefs default,
+         sehingga field baru (kebiasaanRoom, konsistensiViz, statsView)
+         lenyap untuk pengguna yang storage-nya ditulis build sebelumnya
+         (migrate tidak berjalan karena versi persist tidak berubah).
+         uiPrefs kini di-merge per-field: nilai lama menang untuk field
+         yang memang tersimpan, field baru mewarisi default. */
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<RutinaState>
+        return {
+          ...current,
+          ...p,
+          uiPrefs: { ...current.uiPrefs, ...(p.uiPrefs ?? {}) },
+        }
       },
       /* Hanya state domain yang dipersist — state UI sesaat (tab aktif,
          sheet terbuka, item terkembangi) selalu mulai segar. */

@@ -16,6 +16,7 @@ import {
   Pencil,
   Plus,
   Search,
+  SlidersHorizontal,
   Snowflake,
   Sprout,
   Sun,
@@ -23,6 +24,7 @@ import {
   Sunset,
   Timer,
   Trash2,
+  X,
   Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -87,6 +89,7 @@ import {
   type Habit,
   type HabitDayStatus,
   type KebiasaanRoom,
+  type KonsistensiViz,
 } from '../store'
 
 /* ===== Layar Kebiasaan — tiga konsep, tiga komposisi (Rutina 2.0 Tahap 2) =====
@@ -113,6 +116,15 @@ import {
 
 /** Pagar Agenda Kebiasaan (audit v2.37) — kondisi awal maks 5 baris. */
 const AGENDA_LIMIT = 5
+
+/** Label filter pintar perpustakaan untuk chip aktif yang bisa dilepas
+ *  (v2.78) — id → label tampilan. */
+const LIB_FILTER_LABELS: Record<string, string> = {
+  konsisten: 'Konsisten',
+  perhatian: 'Perlu perhatian',
+  terukur: 'Terukur',
+  bugar: 'Terhubung Bugar',
+}
 /** Perpustakaan: baris awal per grup sebelum "Tampilkan semua". */
 const LIBRARY_GROUP_PREVIEW = 3
 
@@ -1056,6 +1068,9 @@ export default function KebiasaanScreen() {
   const [libFilter, setLibFilter] = useState<
     'semua' | 'konsisten' | 'perhatian' | 'terukur' | 'bugar'
   >('semua')
+  /* v2.78 (audit UX §B): panel filter pintar Perpustakaan — lima chip
+     tidak lagi permanen; dibuka lewat satu tombol Filter. */
+  const [filterOpen, setFilterOpen] = useState(false)
 
   /* Lebar konten nyata (ResizeObserver) — menentukan Panel Detail sebagai
      bottom sheet (sempit) atau kolom sticky (≥52rem). */
@@ -1066,6 +1081,10 @@ export default function KebiasaanScreen() {
      terakhir bertahan saat pengguna berpindah layar dan kembali. */
   const room = useRutina((s) => s.uiPrefs.kebiasaanRoom)
   const setUiPref = useRutina((s) => s.setUiPref)
+  /* Visualisasi utama ruang Konsistensi (v2.78) — preferensi diingat
+     uiPrefs; tiga viz keep-alive agar pekan aktif sulur & mode heatmap
+     tidak ter-reset saat berpindah. */
+  const konsistensiViz = useRutina((s) => s.uiPrefs.konsistensiViz)
 
   const today = todayISO()
 
@@ -1747,53 +1766,65 @@ export default function KebiasaanScreen() {
                     </div>
                   )}
 
-                  {/* Ekor "Selesai" — baris selesai diredupkan turun dari
-                      rel; ps-5 menyelaraskan dengan isi rel (agenda-rail
-                      memberi padding-inline-start 1.25rem). */}
+                  {/* Ekor "Selesai" (v2.78, audit UX §B) — DILIPAT
+                      default: tugas selesai tidak lagi memakan halaman
+                      utama agenda; baris tetap utuh di balik satu ketukan,
+                      ps-5 tetap menyelaraskan dengan isi rel. */}
                   {doneToday.length > 0 && (
                     <div className="ps-5">
-                      <m.p
-                        layout
-                        className="mb-1 mt-3 flex items-center gap-2.5 px-2 text-eyebrow font-semibold uppercase tracking-[0.14em] tabular-nums text-content-muted"
-                      >
-                        Selesai ({doneToday.length})
-                        <span
-                          aria-hidden="true"
-                          className="h-px min-w-4 flex-1 bg-border"
-                        />
-                      </m.p>
-                      <m.div
-                        variants={journalList}
-                        initial={playEntrance ? 'hidden' : 'show'}
-                        animate="show"
-                        className="grid grid-cols-1 gap-1 @[44rem]:grid-cols-2 xl:grid-cols-3"
-                      >
-                        {doneToday.map((h) => (
-                          <m.div
-                            key={h.id}
-                            variants={journalCard}
-                            layout
-                            layoutId={`agenda-${h.id}`}
-                            transition={{
-                              layout: {
-                                duration: motionTokens.duration.normal,
-                                ease: motionTokens.easing.standard,
-                              },
-                            }}
-                            className="opacity-70"
+                      <Collapsible defaultOpen={false}>
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label={`Tugas selesai hari ini (${doneToday.length}) — buka untuk melihat`}
+                            className="interactive group flex min-h-11 w-full cursor-pointer items-center gap-2.5 px-2 text-eyebrow font-semibold uppercase tracking-[0.14em] tabular-nums text-content-muted transition-colors hover:text-content-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
-                            <AgendaRow
-                              habit={h}
-                              done
-                              completions={completions}
-                              today={today}
-                              missedYesterday={missedSet.has(h.id)}
-                              onToggle={() => toggleHabit(h.id, today)}
-                              onEdit={() => openHabitEdit(h.id)}
+                            Selesai ({doneToday.length})
+                            <span
+                              aria-hidden="true"
+                              className="h-px min-w-4 flex-1 bg-border"
                             />
+                            <ChevronDown
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-data-[state=open]:rotate-180"
+                            />
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <m.div
+                            variants={journalList}
+                            initial={playEntrance ? 'hidden' : 'show'}
+                            animate="show"
+                            className="mt-1 grid grid-cols-1 gap-1 @[44rem]:grid-cols-2 xl:grid-cols-3"
+                          >
+                            {doneToday.map((h) => (
+                              <m.div
+                                key={h.id}
+                                variants={journalCard}
+                                layout
+                                layoutId={`agenda-${h.id}`}
+                                transition={{
+                                  layout: {
+                                    duration: motionTokens.duration.normal,
+                                    ease: motionTokens.easing.standard,
+                                  },
+                                }}
+                                className="opacity-70"
+                              >
+                                <AgendaRow
+                                  habit={h}
+                                  done
+                                  completions={completions}
+                                  today={today}
+                                  missedYesterday={missedSet.has(h.id)}
+                                  onToggle={() => toggleHabit(h.id, today)}
+                                  onEdit={() => openHabitEdit(h.id)}
+                                />
+                              </m.div>
+                            ))}
                           </m.div>
-                        ))}
-                      </m.div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     </div>
                   )}
                   </LayoutGroup>
@@ -1888,11 +1919,57 @@ export default function KebiasaanScreen() {
                     </div>
                   </m.div>
                 )}
-                {coachGroups.map((group) => (
-                  <m.div key={group.tone} variants={journalCard}>
-                    <CoachGroupCard group={group} />
-                  </m.div>
-                ))}
+                {/* v2.78 (audit UX §B): kartu pemulihan "jangan bolong dua
+                    kali" adalah SATU rekomendasi prioritas ruang Agenda;
+                    saran penyesuaian Goldilocks (naik/kecilkan target)
+                    dilipat — bukan deretan kartu yang bersaing dengan
+                    tugas hari ini. */}
+                {coachGroups.length > 0 && (
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={`Saran penyesuaian pekan — ${coachGroups.length} grup saran coach. Buka untuk detail`}
+                        className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                        >
+                          <Zap
+                            aria-hidden="true"
+                            className="h-[18px] w-[18px]"
+                            strokeWidth={2}
+                          />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-body font-semibold text-content-primary">
+                            Saran penyesuaian pekan
+                          </span>
+                          <span className="mt-0.5 block text-meta font-medium text-content-muted">
+                            {coachGroups.length === 1
+                              ? 'satu nada saran coach'
+                              : `${coachGroups.length} nada saran coach`}{' '}
+                            — naikkan atau perkecil target
+                          </span>
+                        </span>
+                        <ChevronDown
+                          aria-hidden="true"
+                          className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-2.5 pt-2.5">
+                        {coachGroups.map((group) => (
+                          <m.div key={group.tone} variants={journalCard}>
+                            <CoachGroupCard group={group} />
+                          </m.div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </m.div>
             </section>
           )}
@@ -2002,20 +2079,81 @@ export default function KebiasaanScreen() {
                 </div>
               </m.div>
 
+              {/* Pemilih visualisasi utama (v2.78, audit UX §B) — SATU
+                  visualisasi besar pada satu waktu: dulu lima blok
+                  bertumpuk (metrik + sulur + matriks + heatmap + taman)
+                  di ruang Konsistensi; kini pengguna memilih Sulur pekan,
+                  Peta panas, atau Taman — pilihan diingat uiPrefs.
+                  Ketiganya keep-alive: pekan aktif sulur & mode heatmap
+                  tak ter-reset saat berpindah. */}
+              <div
+                role="group"
+                aria-label="Visualisasi utama konsistensi"
+                className="mt-4 flex gap-1 rounded-full border border-border bg-surface-sunken p-0.5"
+              >
+                {(
+                  [
+                    ['sulur', 'Sulur pekan'],
+                    ['panas', 'Peta panas'],
+                    ['taman', 'Taman'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={konsistensiViz === id}
+                    onClick={() => setUiPref({ konsistensiViz: id })}
+                    className={`interactive h-10 flex-1 cursor-pointer rounded-full px-2 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      konsistensiViz === id
+                        ? 'bg-primary text-primary-foreground shadow-soft'
+                        : 'text-content-secondary hover:text-content-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* Sulur Pekan (v2.47 Growth Garden) — satu cabang botani
                   per pekan Senin..Minggu: 7 daun dengan bentuk jujur
                   terhadap jadwal (penuh/sebagian/terlewat/kuncup tanpa
                   jadwal/belum berjalan); navigasi pekan (lampau hingga
                   26 pekan) hidup di dalam komponen; ketuk daun → baris
                   bacaan + lembar detail hari (pola heatmap). */}
-              <GrowthVine />
+              <div
+                className={konsistensiViz === 'sulur' ? 'block' : 'hidden'}
+              >
+                <GrowthVine />
+              </div>
+
+              {/* Peta panas kepatuhan — sadar-jadwal + toggle; membedakan
+                  heatmap ini dari heatmap "jumlah" di Statistik (tiap
+                  halaman punya pertanyaan berbeda; bukan duplikasi). */}
+              <div
+                className={konsistensiViz === 'panas' ? 'block' : 'hidden'}
+              >
+                <div className="mt-5">
+                  <Heatmap
+                    mode="kepatuhan"
+                    allowModeToggle
+                    visitKey="kebiasaan-heatmap"
+                  />
+                </div>
+              </div>
+
+              {/* Taman Pertumbuhan — bedeng tanaman; mode 'beds' menanam
+                  kisi melipat di ruang kerja lebar. */}
+              <div
+                className={konsistensiViz === 'taman' ? 'block' : 'hidden'}
+              >
+                <div className="mt-5">
+                  <PlantGarden variant="beds" onSelect={openHabitDetail} />
+                </div>
+              </div>
 
               {/* Matriks perbandingan 4 pekan (v2.57, audit Tahap 2) —
-                  DITUTUP secara default: seksi konsistensi dulu menumpuk
-                  lima blok besar (metrik + sulur + matriks + heatmap +
-                  taman) di tampilan mobile; matriks adalah analisis
-                  lanjutan (bukan pandangan utama) sehingga kini hidup di
-                  balik satu ketukan. Fungsi & data utuh — habitWeeklyRates
+                  analisis lanjutan di balik satu ketukan (kini setelah
+                  visualisasi utama). Fungsi & data utuh — habitWeeklyRates
                   tetap satu-satunya sumber perhitungan. */}
               <Collapsible defaultOpen={false} className="mt-4">
                 <CollapsibleTrigger asChild>
@@ -2053,24 +2191,6 @@ export default function KebiasaanScreen() {
                   <HabitComparisonMatrix onSelect={openHabitDetail} />
                 </CollapsibleContent>
               </Collapsible>
-
-              {/* Taman Pertumbuhan — bedeng tanaman di dalam zona kebun
-                  yang sama; mode 'beds' menanam kisi melipat di ruang
-                  kerja lebar. */}
-                <div className="mt-5">
-                  {/* v2.36 (audit visualisasi): Garden memakai mode KEPATUHAN
-                      sadar-jadwal + toggle — membedakan heatmap ini dari
-                      heatmap "jumlah" di Statistik (tiap halaman punya
-                      pertanyaan berbeda; bukan duplikasi visual). */}
-                  <Heatmap
-                    mode="kepatuhan"
-                    allowModeToggle
-                    visitKey="kebiasaan-heatmap"
-                  />
-                </div>
-                <div className="mt-5">
-                  <PlantGarden variant="beds" onSelect={openHabitDetail} />
-                </div>
               </>
               )}
             </m.section>
@@ -2115,53 +2235,96 @@ export default function KebiasaanScreen() {
               </div>
             )}
 
-            {/* v2.45 (review Tahap 2): chip filter pintar — dihitung dari
-                data nyata, sembunyikan chip kosong (bukan 0). */}
+            {/* v2.78 (audit UX §B): filter pintar tidak lagi lima chip
+                permanen di atas daftar — SATU tombol Filter membuka
+                panelnya; filter aktif tampil sebagai chip yang bisa
+                dilepas satu ketukan. Pencarian tetap tersedia. */}
             {activeHabits.length > 0 && (
-              <div
-                role="group"
-                aria-label="Filter pintar perpustakaan"
-                className="mt-2.5 flex flex-wrap items-center gap-1.5"
-              >
-                {(
-                  [
-                    ['semua', 'Semua', activeHabits.length],
-                    ['konsisten', 'Konsisten', smartCounts.konsisten],
-                    ['perhatian', 'Perlu perhatian', smartCounts.perhatian],
-                    ['terukur', 'Terukur', smartCounts.terukur],
-                    ['bugar', 'Terhubung Bugar', smartCounts.bugar],
-                  ] as const
-                ).map(([id, label, count]) =>
-                  count > 0 || id === 'semua' ? (
+              <>
+                <div className="mt-2.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilterOpen((v) => !v)}
+                    aria-expanded={filterOpen}
+                    aria-controls="perpustakaan-filter"
+                    className="interactive flex h-11 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-primary px-4 text-meta font-bold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <SlidersHorizontal
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      strokeWidth={2.2}
+                    />
+                    Filter
+                    {libFilter !== 'semua' && (
+                      <span className="rounded-full bg-primary px-1.5 text-chart-label font-bold tabular-nums text-primary-foreground">
+                        1
+                      </span>
+                    )}
+                  </button>
+                  {libFilter !== 'semua' && (
                     <button
-                      key={id}
                       type="button"
-                      aria-pressed={libFilter === id}
-                      onClick={() =>
-                        setLibFilter((prev) => (prev === id ? 'semua' : id))
-                      }
-                      title={
-                        id === 'konsisten'
-                          ? 'Rata² kepatuhan 4 pekan ≥ 80%'
-                          : id === 'perhatian'
-                            ? 'Rata² kepatuhan 4 pekan < 50%'
-                            : id === 'terukur'
-                              ? 'Punya target terukur'
-                              : id === 'bugar'
-                                ? 'Tertaut aktivitas Bugar'
-                                : 'Semua kebiasaan aktif'
-                      }
-                      className={`interactive h-9 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                        libFilter === id
-                          ? 'bg-primary text-primary-foreground shadow-soft'
-                          : 'border border-border bg-surface-primary text-content-secondary hover:bg-surface-secondary hover:text-content-primary'
-                      }`}
+                      onClick={() => setLibFilter('semua')}
+                      aria-label={`Lepas filter ${LIB_FILTER_LABELS[libFilter] ?? ''}`}
+                      className="interactive flex h-11 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-3.5 text-meta font-bold text-primary-foreground shadow-soft transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
-                      {label}{' '}<span className="tabular-nums opacity-70">{count}</span>
+                      {LIB_FILTER_LABELS[libFilter] ?? libFilter}
+                      <X
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5"
+                        strokeWidth={2.4}
+                      />
                     </button>
-                  ) : null,
+                  )}
+                </div>
+                {filterOpen && (
+                  <div
+                    id="perpustakaan-filter"
+                    role="group"
+                    aria-label="Filter pintar perpustakaan"
+                    className="mt-2.5 flex flex-wrap items-center gap-1.5"
+                  >
+                    {(
+                      [
+                        ['semua', 'Semua', activeHabits.length],
+                        ['konsisten', 'Konsisten', smartCounts.konsisten],
+                        ['perhatian', 'Perlu perhatian', smartCounts.perhatian],
+                        ['terukur', 'Terukur', smartCounts.terukur],
+                        ['bugar', 'Terhubung Bugar', smartCounts.bugar],
+                      ] as const
+                    ).map(([id, label, count]) =>
+                      count > 0 || id === 'semua' ? (
+                        <button
+                          key={id}
+                          type="button"
+                          aria-pressed={libFilter === id}
+                          onClick={() =>
+                            setLibFilter((prev) => (prev === id ? 'semua' : id))
+                          }
+                          title={
+                            id === 'konsisten'
+                              ? 'Rata² kepatuhan 4 pekan ≥ 80%'
+                              : id === 'perhatian'
+                                ? 'Rata² kepatuhan 4 pekan < 50%'
+                                : id === 'terukur'
+                                  ? 'Punya target terukur'
+                                  : id === 'bugar'
+                                    ? 'Tertaut aktivitas Bugar'
+                                    : 'Semua kebiasaan aktif'
+                          }
+                          className={`interactive h-9 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            libFilter === id
+                              ? 'bg-primary text-primary-foreground shadow-soft'
+                              : 'border border-border bg-surface-primary text-content-secondary hover:bg-surface-secondary hover:text-content-primary'
+                          }`}
+                        >
+                          {label}{' '}<span className="tabular-nums opacity-70">{count}</span>
+                        </button>
+                      ) : null,
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
 
             {activeHabits.length === 0 ? (
