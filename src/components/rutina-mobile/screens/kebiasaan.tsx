@@ -89,7 +89,6 @@ import {
   type Habit,
   type HabitDayStatus,
   type KebiasaanRoom,
-  type KonsistensiViz,
 } from '../store'
 
 /* ===== Layar Kebiasaan — tiga konsep, tiga komposisi (Rutina 2.0 Tahap 2) =====
@@ -1426,18 +1425,6 @@ export default function KebiasaanScreen() {
     },
     [libraryWide, setUiPref],
   )
-  /* Gulir ke panel detail berjalan PASCA-commit — ruang Perpustakaan
-     baru tampil setelah React menyelesaikan pergantian tab, jadi
-     scrollIntoView sebelum commit akan mengarah ke elemen tersembunyi.
-     Penanda memakai ref (bukan state): tak ada render tambahan. */
-  useEffect(() => {
-    if (!pendingDetailScrollRef.current) return
-    pendingDetailScrollRef.current = false
-    document
-      .getElementById('detail-kebiasaan')
-      ?.scrollIntoView({ behavior: 'auto', block: 'start' })
-  }, [room])
-
   /* Buka/tutup grup perpustakaan (audit v2.37 — collapsible). */
   const toggleGroup = (key: string) =>
     setOpenGroups((prev) => {
@@ -1455,15 +1442,28 @@ export default function KebiasaanScreen() {
     toast.success(`Cukup ${h.mini} — dihitung!`)
   }
 
-  /* v2.77 (audit UX §1): pergantian ruang menggulir kembali ke puncak —
-     tiap ruang adalah halaman sendiri; sisa gulir ruang lama tidak boleh
-     “membocorkan” posisinya ke ruang baru. Lewati siklus pertama: layar
-     baru saja dipasang (gulir sudah 0) dan room pembuka dipertahankan. */
+  /* v2.84 (audit P1 — efek ganda): SATU efek [room] untuk seluruh
+     perilaku pasca-pergantian ruang, urutannya eksplisit —
+     (1) default: gulir ke puncak (tiap ruang halaman sendiri; sisa gulir
+         ruang lama tidak boleh membocorkan posisinya), lalu
+     (2) bila panel detail menunggu (openHabitDetail dari visual
+         Konsistensi di ruang kerja lebar), gulir MALAH ke panel detail —
+         ditulis terakhir sehingga menang.
+     Dua efek terpisah versi lama berjalan sesuai urutan deklarasi dan
+     saling menimpa: gulir-ke-detail selalu kalah oleh gulir-ke-puncak
+     yang dideklarasikan setelahnya. Lewati siklus pertama: layar baru
+     saja dipasang (gulir sudah 0) dan ruang pembuka dipertahankan. */
   const roomRef = useRef(room)
   useEffect(() => {
     if (roomRef.current === room) return
     roomRef.current = room
     rootRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+    if (pendingDetailScrollRef.current) {
+      pendingDetailScrollRef.current = false
+      document
+        .getElementById('detail-kebiasaan')
+        ?.scrollIntoView({ behavior: 'auto', block: 'start' })
+    }
   }, [room])
 
   return (
@@ -1607,11 +1607,17 @@ export default function KebiasaanScreen() {
                 </RutinaTabsTrigger>
               ))}
             </RutinaTabsList>
-          </RutinaTabs>
 
-          {/* v2.77: pembungkus ruang keep-alive — hanya ruang aktif yang
-              tampil; dua lainnya disembunyikan (bukan dilepas) sehingga
-              state internal tiap ruang tak ter-reset saat berpindah. */}
+          {/* v2.84 (audit P1 — sticky): pembungkus ruang keep-alive kini
+              HIDUP DI DALAM RutinaTabs — Root Radix merender div pembungkus
+              polos, dan bila hanya berisi tablist, blok penampung sticky
+              hanya setinggi tablist sendiri sehingga "sticky top-2" tidak
+              pernah punya rentang (bilah ikut tergulir hilang — regresi
+              v2.77 yang baru terlihat lewat audit DOM). Dengan ruang-ruang
+              di dalamnya, penampung membentang setinggi konten aktif dan
+              bilah menempel sepanjang gulir ruang itu. Hanya ruang aktif
+              yang tampil; dua lainnya disembunyikan (bukan dilepas)
+              sehingga state internal tiap ruang tak ter-reset. */}
           <div className={room === 'agenda' ? 'block' : 'hidden'}>
           {/* ============ 1 — AGENDA HARI INI (paling operasional) ============
               Halaman planner kertas: paper-surface memberi garis margin kiri
@@ -2514,6 +2520,7 @@ export default function KebiasaanScreen() {
             )}
           </m.section>
           </div>
+          </RutinaTabs>
         </>
       )}
 

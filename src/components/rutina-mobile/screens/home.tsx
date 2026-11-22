@@ -14,8 +14,6 @@ import {
   Clock,
   Flame,
   Gift,
-  Heart,
-  Lightbulb,
   PenLine,
   Plus,
   Quote,
@@ -431,8 +429,9 @@ export default function HomeScreen() {
     [habits, selectedDate],
   )
   const archivedHabits = habits.filter((h) => h.archived)
-  /* Pembungkus garden-surface Taman hanya dirender bila ada kebiasaan
-     aktif — PlantGarden sendiri mengembalikan null saat kosong. */
+  /* Pohon Kebun hanya dirender bila ada kebiasaan aktif — v2.83:
+     bedeng PlantGarden dipensiunkan dari Beranda (hidup di ruang
+     Konsistensi Kebiasaan); gerbang ini kini melayani Pohon saja. */
   const hasActiveHabits = habits.some((h) => !h.archived)
 
   /* Hero selalu merangkum HARI INI — terlepas tanggal mana yang dilihat. */
@@ -697,7 +696,7 @@ export default function HomeScreen() {
       data-layout="daybook"
       /* Ritme daybook: tiap bagian utama dipisah --layout-gap (1.75rem).
          Aturan anak-berikutnya menimpa mt-* internal komponen asing
-         (HomeFinanceCard mt-8, PlantGarden mt-8) secara deterministik
+         (mis. HomeFinanceCard mt-8) secara deterministik
          lewat spesifisitas. */
       className="h-full overflow-y-auto no-scrollbar px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
     >
@@ -747,7 +746,7 @@ export default function HomeScreen() {
               >
                 <Avatar className="h-9 w-9 border-2 border-surface-primary shadow-sm">
                   <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
-                    AN
+                    PR
                   </AvatarFallback>
                 </Avatar>
               </m.button>

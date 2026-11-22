@@ -44,10 +44,22 @@ export function TransferSheet() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [pickerFor, setPickerFor] = useState<'from' | 'to' | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
+  /* v2.84 (audit P1): gerbang anti ketukan-ganda — pola add-tx-sheet.
+     addTransfer menutup lembar dari dalam store, tetapi panel tetap
+     interaktif selama animasi keluar (~300ms); ketukan kedua pada panel
+     yang sedang pergi memvalidasi draf yang sama dan mencatat transfer
+     GANDA. Gerbang terpasang dari simpan sampai lembar dibuka lagi. */
+  const submittingRef = useRef(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
 
   useFocusTrap(open, panelRef)
+
+  /* Pulihkan gerbang saat lembar DIBUKA (bukan ditutup) — flag tetap
+     terpasang sepanjang animasi keluar. */
+  useEffect(() => {
+    if (open) submittingRef.current = false
+  }, [open])
 
   if (open !== prevOpen) {
     setPrevOpen(open)
@@ -83,6 +95,7 @@ export function TransferSheet() {
   }
 
   const submit = () => {
+    if (submittingRef.current) return
     if (!from || !to) {
       toast.warning('Pilih dompet sumber & tujuan')
       return
@@ -101,6 +114,7 @@ export function TransferSheet() {
       )
       return
     }
+    submittingRef.current = true
     addTransfer({ fromId: from.id, toId: to.id, amount, note, date })
     toast.success(
       `${formatIDR(amount)} dipindah dari ${from.name} ke ${to.name}${
