@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
+import { ChevronDown } from 'lucide-react'
 
 import { chartBar, pressSnappy } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
@@ -29,24 +31,36 @@ import type { PeriodPoint } from './utils'
  * sungai masuk/keluar yang ketebalannya sebanding nilai pada SATU
  * skala bersama (lihat visualizations/finance/cashflow-river.tsx).
  * Empat mode lama tidak tersentuh.
+ *
+ * v2.68 (audit Fewer Choices): LIMA mode serentak menyulitkan pemindaian
+ * di layar sempit. Baris pertama kini menampilkan TIGA mode baca utama
+ * (Pasangan · Net · Arus); Masuk & Keluar tetap utuh sebagai mode data —
+ * dijangkau lewat tombol "Lainnya" (chevron; baris tambahan terbuka
+ * otomatis bila mode itu sedang aktif agar pilihan tak pernah hilang).
  */
 
 const TRACK_H = 118 // ruang tumbuh batang (px)
 const LABEL_H = 24 // baris label di bawah
 const BAR_MIN = 5
 const MODE_H = 46 // baris pemilih mode di atas grafik (tombol h-10 + p-0.5 + tepi)
+const MORE_H = 46 // baris mode tambahan terbuka (mt-1.5 + tombol h-10)
 
 /* Easing standar — dari motionTokens (governance: tanpa kurva bebas). */
 const EASE = motionTokens.easing.standard
 
 export type FinChartMode = 'pair' | 'masuk' | 'keluar' | 'net' | 'arus'
 
-const MODES: readonly [FinChartMode, string][] = [
+/** Mode yang tampil langsung pada baris pertama pemilih. */
+const PRIMARY_MODES: readonly [FinChartMode, string][] = [
   ['pair', 'Pasangan'],
-  ['masuk', 'Masuk'],
-  ['keluar', 'Keluar'],
   ['net', 'Net'],
   ['arus', 'Arus'],
+]
+
+/** Mode data tambahan — di balik "Lainnya", tidak dihapus. */
+const OVERFLOW_MODES: readonly [FinChartMode, string][] = [
+  ['masuk', 'Masuk'],
+  ['keluar', 'Keluar'],
 ]
 
 /** Ukuran batang & jarak antar batang menurut kepadatan deret.
@@ -85,6 +99,13 @@ export function FinChart({
      prop initialMode/allowModeToggle dulunya API spekulatif tanpa satu
      pun pemakai; dilepas demi satu jalur perilaku yang teruji. */
   const [mode, setMode] = useState<FinChartMode>('pair')
+
+  /* v2.68 (Fewer Choices): baris mode tambahan terbuka bila pengguna
+     meminta ATAU mode aktif memang tinggal di sana — pilihan aktif
+     tidak pernah menghilang dari pandangan. */
+  const [moreOpen, setMoreOpen] = useState(false)
+  const modeInOverflow = mode === 'masuk' || mode === 'keluar'
+  const showMore = moreOpen || modeInOverflow
 
   /* Skala per mode — tiap mode punya maksimum sendiri agar batang
      memenuhi ruang yang ada (bukan dipenjara maksimum mode lain). */
@@ -125,7 +146,7 @@ export function FinChart({
       style={
         mode === 'arus'
           ? undefined
-          : { height: MODE_H + TRACK_H + LABEL_H }
+          : { height: MODE_H + (showMore ? MORE_H : 0) + TRACK_H + LABEL_H }
       }
       role="group"
       aria-label="Grafik arus kas per periode — geser menyamping untuk histori panjang"
@@ -143,15 +164,17 @@ export function FinChart({
         </p>
       )}
 
-      {/* v2.45: pemilih mode baca — Pasangan / Masuk / Keluar / Net;
-          v2.47: + Arus (sungai). */}
+      {/* v2.45: pemilih mode baca; v2.47: + Arus (sungai); v2.68 (Fewer
+          Choices): tiga mode utama terlihat + "Lainnya" (Masuk/Keluar)
+          dalam lipatan — baris terbuka otomatis bila mode tambahan
+          sedang aktif. */}
       <div
         role="group"
         aria-label="Mode pembacaan grafik arus kas"
         className="flex gap-0.5 rounded-full border border-border bg-surface-sunken p-0.5"
         style={{ height: MODE_H }}
       >
-        {MODES.map(([id, label]) => (
+        {PRIMARY_MODES.map(([id, label]) => (
           <button
             key={id}
             type="button"
@@ -166,7 +189,65 @@ export function FinChart({
             {label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          aria-expanded={showMore}
+          aria-controls="finchart-more-modes"
+          className={`interactive flex h-10 shrink-0 cursor-pointer items-center gap-1 rounded-full px-3 text-meta font-bold whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            modeInOverflow
+              ? 'bg-primary text-primary-foreground'
+              : 'text-content-secondary hover:text-content-primary'
+          }`}
+        >
+          Lainnya
+          <m.span
+            aria-hidden="true"
+            animate={{ rotate: showMore ? 180 : 0 }}
+            transition={motionTokens.spring.snappy}
+            className="flex"
+          >
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.4} />
+          </m.span>
+        </button>
       </div>
+
+      {/* Baris mode tambahan — Masuk & Keluar (mode data tidak dihapus,
+          hanya diberi pintu). */}
+      <AnimatePresence initial={false}>
+        {showMore && (
+          <m.div
+            id="finchart-more-modes"
+            key="fin-more-modes"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              duration: motionTokens.duration.fast,
+              ease: motionTokens.easing.smooth,
+            }}
+            className="overflow-hidden"
+          >
+            <div className="mt-1.5 flex gap-1">
+              {OVERFLOW_MODES.map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={mode === id}
+                  onClick={() => setMode(id)}
+                  className={`interactive h-10 flex-1 cursor-pointer rounded-full border border-border bg-surface-sunken px-3 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    mode === id
+                      ? 'border-transparent bg-primary text-primary-foreground'
+                      : 'text-content-secondary hover:text-content-primary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {mode === 'arus' ? (
         /* v2.47: mode Arus — sungai arus kas ilustratif (pita tebal ∝

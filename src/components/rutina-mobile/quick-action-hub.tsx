@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   BarChart3,
   BookOpen,
+  ChevronDown,
   Dumbbell,
   HeartPulse,
   Home,
@@ -274,6 +275,9 @@ export function QuickActionHub() {
   const isDesktop = useIsDesktop()
   const [query, setQuery] = useState('')
   const [prevOpen, setPrevOpen] = useState(false)
+  /* v2.68 (Fewer Choices): lipatan "Aksi lainnya" — dua aksi utama
+     tersisa + pintu Jelajahi; tertutup default. */
+  const [moreOpen, setMoreOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -363,6 +367,20 @@ export function QuickActionHub() {
   const recentActions = Array.from(new Set(recent))
     .map((k) => PRIMARY_ACTIONS.find((a) => a.key === k))
     .filter((a): a is HubAction => a !== undefined)
+
+  /* Susunan empat aksi terlihat: terakhir-dipakai di depan (terbaru
+     dahulu), disusul aksi utama lain yang belum terwakili. Riwayat
+     MEMAMPATKAN daftar utama — bukan menambah blok tersendiri. */
+  const visibleActions = (() => {
+    const rest = PRIMARY_ACTIONS.filter(
+      (a) => !recentActions.some((r) => r.key === a.key),
+    )
+    return [...recentActions, ...rest].slice(0, 4)
+  })()
+  /* Dua aksi utama yang tidak mendapat slot — dilipat ke "Aksi lainnya". */
+  const overflowActions = PRIMARY_ACTIONS.filter(
+    (a) => !visibleActions.some((v) => v.key === a.key),
+  )
 
   /* Pola onSelect: tutup hub dulu, jalankan aksi sesudahnya. */
   const run = (fn: () => void) => {
@@ -476,8 +494,13 @@ export function QuickActionHub() {
                   />
                 </div>
 
-                {/* Kisi enam aksi utama (+ pintasan "Terakhir digunakan")
-                    — hanya saat kueri kosong. */}
+                {/* Kisi aksi utama + lipatan "Aksi lainnya" — hanya saat
+                    kueri kosong. v2.68 (audit Fewer Choices): enam kartu
+                    serentak + blok terakhir-dipakai + jelajah = 12 pilihan
+                    sekaligus. Kini EMPAT aksi tampil (terakhir-dipakai
+                    menggantikan slot terdepan, bukan menambah blok baru);
+                    dua sisanya + pintu layar non-tab dilipat ke dalam
+                    "Aksi lainnya". Pencarian universal & pintasan tetap. */}
                 <AnimatePresence initial={false}>
                   {q === '' && (
                     <m.div
@@ -491,46 +514,16 @@ export function QuickActionHub() {
                       }}
                       className="overflow-hidden"
                     >
-                      {/* Terakhir digunakan — pintasan tiga aksi terakhir
-                          (permintaan audit pengguna): tak perlu mencari
-                          ulang aksi yang baru saja dipakai. Ringkas — satu
-                          baris label + satu baris chip, kisi tak tersentuh. */}
-                      {recentActions.length > 0 && (
-                        <section
-                          role="group"
-                          aria-label="Aksi terakhir digunakan"
-                          className="px-5 pt-4"
-                        >
-                          <p className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
-                            Terakhir digunakan
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {recentActions.map((a) => (
-                              <m.button
-                                key={a.key}
-                                type="button"
-                                onClick={() => run(() => runAction(a))}
-                                aria-label={`Jalankan lagi: ${a.listLabel}`}
-                                whileTap={{
-                                  scale: 0.94,
-                                  transition: pressSnappy,
-                                }}
-                                className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3.5 text-meta font-bold text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                              >
-                                <a.icon
-                                  className="h-3.5 w-3.5"
-                                  strokeWidth={2}
-                                  aria-hidden="true"
-                                />
-                                {a.label}
-                              </m.button>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      <div className="grid grid-cols-3 gap-2.5 px-5 pb-2 pt-4">
-                        {PRIMARY_ACTIONS.map((a, i) => (
+                      {/* Susunan aksi terlihat: terakhir-dipakai dulu
+                          (menggantikan slot terdepan), disusul aksi utama
+                          lain hingga empat — sesuai arah audit: riwayat
+                          MEMAMPATKAN daftar utama, bukan menambah blok. */}
+                      <div
+                        role="group"
+                        aria-label="Aksi utama"
+                        className="grid grid-cols-2 gap-2.5 px-5 pb-2 pt-4"
+                      >
+                        {visibleActions.map((a, i) => (
                           <m.button
                             key={a.key}
                             type="button"
@@ -539,13 +532,13 @@ export function QuickActionHub() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{
                               ...motionTokens.spring.snappy,
-                              delay: i * 0.03,
+                              delay: i * motionTokens.stagger.tight,
                             }}
                             whileTap={{
                               scale: 0.96,
                               transition: motionTokens.spring.snappy,
                             }}
-                            className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-border bg-surface-primary px-1 py-3.5 outline-none transition-colors duration-150 hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-border bg-surface-primary px-1 py-4 outline-none transition-colors duration-150 hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                           >
                             <span
                               className={cn(
@@ -562,38 +555,94 @@ export function QuickActionHub() {
                         ))}
                       </div>
 
-                      {/* Jelajahi — pintu layar non-tab (v2.14: tab bawah
-                          kini 4 item + plus tengah; Statistik, Jurnal &
-                          Profil dijangkau dari sini tanpa mengetik). */}
+                      {/* Aksi lainnya — dua aksi utama sisanya + pintu
+                          layar non-tab ("Jelajahi") dalam SATU lipatan;
+                          terbuka hanya bila pengguna meminta ATAU mode
+                          tambahan sedang aktif. */}
                       <div className="border-t border-border px-5 py-3">
-                        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-                          Jelajahi
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {EXPLORE_ITEMS.map((item) => (
-                            <m.button
-                              key={item.key}
-                              type="button"
-                              onClick={() =>
-                                run(() =>
-                                  useRutina.getState().setScreen(item.screen),
-                                )
-                              }
-                              whileTap={{
-                                scale: 0.94,
-                                transition: pressSnappy,
+                        <button
+                          type="button"
+                          onClick={() => setMoreOpen((v) => !v)}
+                          aria-expanded={moreOpen}
+                          aria-controls="hub-more-actions"
+                          className="interactive flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full text-meta font-bold text-content-secondary transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          Aksi lainnya
+                          <m.span
+                            aria-hidden="true"
+                            animate={{ rotate: moreOpen ? 180 : 0 }}
+                            transition={motionTokens.spring.snappy}
+                            className="flex"
+                          >
+                            <ChevronDown className="h-4 w-4" strokeWidth={2.4} />
+                          </m.span>
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {moreOpen && (
+                            <m.div
+                              id="hub-more-actions"
+                              key="hub-more"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{
+                                duration: motionTokens.duration.fast,
+                                ease: motionTokens.easing.smooth,
                               }}
-                              className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-3.5 text-meta font-semibold text-content-secondary transition-colors hover:border-primary/35 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                              className="overflow-hidden"
                             >
-                              <item.icon
-                                className="h-3.5 w-3.5"
-                                strokeWidth={2}
-                                aria-hidden="true"
-                              />
-                              {item.label}
-                            </m.button>
-                          ))}
-                        </div>
+                              <div className="flex flex-wrap gap-2 pt-3">
+                                {overflowActions.map((a) => (
+                                  <m.button
+                                    key={a.key}
+                                    type="button"
+                                    onClick={() => run(() => runAction(a))}
+                                    whileTap={{
+                                      scale: 0.94,
+                                      transition: pressSnappy,
+                                    }}
+                                    className="flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-4 text-meta font-bold text-content-secondary transition-colors hover:border-primary/40 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                  >
+                                    <a.icon
+                                      className="h-4 w-4"
+                                      strokeWidth={2}
+                                      aria-hidden="true"
+                                    />
+                                    {a.listLabel}
+                                  </m.button>
+                                ))}
+                              </div>
+                              <p className="mt-3 text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
+                                Jelajahi
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2 pb-1">
+                                {EXPLORE_ITEMS.map((item) => (
+                                  <m.button
+                                    key={item.key}
+                                    type="button"
+                                    onClick={() =>
+                                      run(() =>
+                                        useRutina.getState().setScreen(item.screen),
+                                      )
+                                    }
+                                    whileTap={{
+                                      scale: 0.94,
+                                      transition: pressSnappy,
+                                    }}
+                                    className="flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-4 text-meta font-semibold text-content-secondary transition-colors hover:border-primary/35 hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                                  >
+                                    <item.icon
+                                      className="h-4 w-4"
+                                      strokeWidth={2}
+                                      aria-hidden="true"
+                                    />
+                                    {item.label}
+                                  </m.button>
+                                ))}
+                              </div>
+                            </m.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       <p className="px-5 pb-4 pt-1.5 text-center text-meta font-medium text-content-muted">
