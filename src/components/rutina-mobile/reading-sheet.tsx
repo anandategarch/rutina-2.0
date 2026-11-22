@@ -166,8 +166,9 @@ export function ReadingSheet() {
               transition={{
                 ...motionTokens.preset.panelReveal,
                 ease: motionTokens.easing.entrance,
-                /* Sekuens editorial baca — blok isi menyusul judul. */
-                delay: 0.2,
+                /* Sekuens editorial baca — blok isi menyusul judul.
+                   (v2.69: delay bebas 0.2 -> token delay.sweep.) */
+                delay: motionTokens.delay.sweep,
               }}
               className="mt-5 border-t border-border/60 pt-5"
             >
@@ -181,8 +182,10 @@ export function ReadingSheet() {
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: motionTokens.duration.enter,
-                /* Sekuens editorial baca — aksi menutup sekuens. */
-                delay: 0.26,
+                /* Sekuens editorial baca — aksi menutup sekuens.
+                   (v2.69: delay bebas 0.26 -> sweep + step, nilai sama
+                   persis kini bersumber dari skala token.) */
+                delay: motionTokens.delay.sweep + motionTokens.delay.step,
                 ease: motionTokens.easing.standard,
               }}
               className="mt-7 flex gap-2"
