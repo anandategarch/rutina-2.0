@@ -33,6 +33,7 @@ import { useJournalUi } from './journal-ui'
 import { useSessionStore } from './fitness/session-store'
 import { useSyncEngine } from './sync-engine'
 import { useScreenBackHistory } from './overlay-escape'
+import { SyncStatusStrip } from './sync-status-card'
 import dynamic from 'next/dynamic'
 import { WorkoutSheet } from './fitness/workout-sheet'
 import { FoodSheet } from './fitness/food-sheet'
@@ -430,6 +431,11 @@ export function RutinaApp() {
                 </m.div>
               </AnimatePresence>
             </div>
+
+            {/* v2.74 (audit PWA P1): strip status sinkronisasi mobile —
+                muncul hanya saat offline / gagal / ditolak, di atas
+                navigasi bawah; senyap saat sehat. */}
+            <SyncStatusStrip />
 
             {/* Navigasi bawah disembunyikan di layar Profil (bukan tab) —
                 orientasi dijaga tombol "Kembali" pada layar Profil.

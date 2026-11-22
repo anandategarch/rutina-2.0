@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ChevronRight,
   CloudCheck,
   CloudOff,
   KeyRound,
@@ -11,8 +12,11 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
+import * as m from 'motion/react-m'
 
+import { motionTokens } from '@/lib/motion/tokens'
 import { retrySync, useSyncStatus, type SyncKind } from './sync-engine'
+import { useRutina } from './store'
 
 /* ===== Kartu status sinkronisasi (v2.23) =====
    Satu sumber tampilan untuk DUA tempat: bilah sisi desktop (varian
@@ -179,5 +183,102 @@ export function SyncStatusCard({
         Cloud Turso menyimpan snapshot penuh — perangkat tetap aman offline.
       </p>
     </div>
+  )
+}
+
+/* ===== Strip status sinkronisasi mobile (v2.74, audit PWA P1) =====
+   Sebelumnya status sinkron HANYA terlihat di bilah sisi desktop dan
+   rail Profil — pengguna ponsel yang offline/tidak sinkron tidak tahu
+   apa-apa sampai membuka Profil (terverifikasi saat uji offline: layar
+   Beranda tanpa indikator apa pun). Strip pasif di atas navigasi bawah
+   ini muncul HANYA untuk keadaan yang butuh disadari (offline / error /
+   rejected) — synced & syncing tetap senyap agar tidak berisik. */
+
+const STRIP_VIEW: Record<
+  'offline' | 'error' | 'rejected',
+  { short: string; action: 'none' | 'retry' | 'profil' }
+> = {
+  offline: {
+    short: 'Offline — data aman di perangkat, menunggu koneksi',
+    action: 'none',
+  },
+  error: {
+    short: 'Perubahan belum tersinkron — ketuk untuk coba lagi',
+    action: 'retry',
+  },
+  rejected: {
+    short: 'Sinkronisasi ditolak — ketuk untuk panduan di Profil',
+    action: 'profil',
+  },
+}
+
+export function SyncStatusStrip() {
+  const kind = useSyncStatus().kind
+  const setScreen = useRutina((s) => s.setScreen)
+
+  const active =
+    kind === 'offline' || kind === 'error' || kind === 'rejected'
+      ? STRIP_VIEW[kind]
+      : null
+  if (!active) return null
+  const view = KIND_VIEW[kind]
+  const tappable = active.action !== 'none'
+
+  const body = (
+    <>
+      <span
+        aria-hidden="true"
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${view.tint}`}
+      >
+        <view.icon className="h-4 w-4" strokeWidth={2.1} />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-note font-bold leading-tight text-content-primary">
+          {view.title}
+        </span>
+        <span className="mt-0.5 block text-eyebrow font-medium leading-snug text-content-muted">
+          {active.short}
+        </span>
+      </span>
+      {tappable && (
+        <ChevronRight
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-content-muted"
+        />
+      )}
+    </>
+  )
+
+  /* Keadaan interaktif dirender sebagai tombol (target ≥44px);
+     offline bersifat informasional — div status pasif. */
+  if (!tappable) {
+    return (
+      <m.div
+        role="status"
+        aria-live="polite"
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={motionTokens.preset.chipReveal}
+        className="flex min-h-[52px] items-center gap-3 border-t border-border-default bg-surface-secondary px-4 py-2 lg:hidden"
+      >
+        {body}
+      </m.div>
+    )
+  }
+  return (
+    <m.button
+      type="button"
+      role="status"
+      aria-live="polite"
+      onClick={() =>
+        active.action === 'retry' ? retrySync() : setScreen('profil')
+      }
+      initial={{ y: 16, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={motionTokens.preset.chipReveal}
+      className="interactive flex min-h-[52px] w-full cursor-pointer items-center gap-3 border-t border-border-default bg-surface-secondary px-4 py-2 text-left transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
+    >
+      {body}
+    </m.button>
   )
 }
