@@ -214,15 +214,67 @@ export function RutinaApp() {
      Di dev, strategi stale-while-revalidate SW untuk chunk /_next/static
      menyajikan chunk basi setelah suntingan (kode baru baru muncul pada
      reload kedua) — membingungkan iterasi. Kegagalan didiamkan: SW adalah
-     pening pengalaman, bukan kebutuhan fungsional. */
+     pening pengalaman, bukan kebutuhan fungsional.
+     v2.73 (audit PWA P1): pembaruan kini DIUMUMKAN — updatefound → SW
+     baru terpasang → satu toast pasif "Versi baru tersedia" dengan tombol
+     "Muat ulang" yang dipegang pengguna. TIDAK PERNAH reload paksa:
+     pengguna yang sedang mengisi formulir / memiliki draf tidak boleh
+     kehilangan sesi karena pembaruan (audit lifecycle PWA). PWA standalone
+     berumur panjang juga memeriksa versi baru saat kembali dari
+     background (visibilitychange) — browser hanya memeriksa otomatis
+     pada navigasi, yang tidak pernah terjadi di SPA. */
   useEffect(() => {
     if (
-      process.env.NODE_ENV === 'production' &&
-      'serviceWorker' in navigator &&
-      (location.protocol === 'https:' || location.hostname === 'localhost')
+      process.env.NODE_ENV !== 'production' ||
+      !('serviceWorker' in navigator) ||
+      (location.protocol !== 'https:' && location.hostname !== 'localhost')
     ) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
+      return
     }
+    let updateAnnounced = false
+    let swCleanup: (() => void) | undefined
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        const announce = () => {
+          if (updateAnnounced) return
+          updateAnnounced = true
+          toast.info('Versi baru Rutina tersedia', {
+            description:
+              'Pembaruan sudah terpasang di latar — muat ulang kapan pun kamu siap.',
+            action: {
+              label: 'Muat ulang',
+              onClick: () => window.location.reload(),
+            },
+            duration: 12000,
+          })
+        }
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing
+          if (!sw) return
+          sw.addEventListener('statechange', () => {
+            /* Terpasang + sudah ada versi lama yang mengendalikan
+               halaman → inilah pembaruan; halaman berjalan tetap
+               memakai kode lama sampai pengguna memilih muat ulang. */
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              announce()
+            }
+          })
+        })
+        /* Sesi standalone panjang: periksa pembaruan saat kembali dari
+           background. Browser membatasi pemeriksaan (maks ±1×/24 jam)
+           — panggilan tambahan murah dan di-throttle sendiri. */
+        const onUpdateCheck = () => {
+          if (document.visibilityState === 'visible') void reg.update()
+        }
+        document.addEventListener('visibilitychange', onUpdateCheck)
+        swCleanup = () =>
+          document.removeEventListener('visibilitychange', onUpdateCheck)
+      })
+      .catch(() => {
+        /* SW gagal didaftarkan — pening pengalaman, bukan fungsional. */
+      })
+    return swCleanup
   }, [])
 
   /* Prefetch idle (v2.40 re-sequenced) — dulu dijadwalkan 1,5 dtk,
