@@ -1,19 +1,18 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   useDragControls,
 } from 'motion/react'
 import * as m from 'motion/react-m'
-import { Delete, Wallet, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Delete, Wallet, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronRight } from 'lucide-react'
 import { CONTENT_W } from '../layout-widths'
 import {
   addDaysISO,
@@ -84,12 +83,37 @@ export function AddTxSheet() {
   /* v2.42: tanggal draf — default hari ini, bisa digeser ke kemarin
      atau tanggal lain (maks. hari ini, tidak bisa mencatat masa depan). */
   const [date, setDate] = useState<string>(todayISO())
+  /* v2.82 (audit UX §A): opsi tanggal & pengulangan dilipat — "Hari ini"
+     dan "Sekali" adalah default; Kemarin/tanggal manual serta jadwal
+     mingguan/bulanan dibuka lewat satu baris saat diminta. */
+  const [dateOptionsOpen, setDateOptionsOpen] = useState(false)
+  const [recurrenceOptionsOpen, setRecurrenceOptionsOpen] = useState(false)
   const [prevOpen, setPrevOpen] = useState(false)
+  /* Anti ketukan-ganda (v2.82, audit UX §A): Simpan dua kali cepat tidak
+     boleh mencatat dua transaksi — gerbang ref, tanpa render tambahan. */
+  const submittingRef = useRef(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
 
   /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
   useFocusTrap(open, panelRef)
+
+  /* v2.82 (audit UX §A): DEFAULT CERDAS — kategori terakhir yang dipakai
+     untuk jenis arus ini & dompet terakhir dipakai; tanpa histori jatuh
+     ke kategori utama (Makan & Minum / Gaji) & dompet pertama. Pengguna
+     rutin tak perlu memilih ulang tiap kali mencatat. */
+  const lastCatOf = (t: TxType) => {
+    const recent = [...txs].sort((a, b) =>
+      a.ts === b.ts ? b.id.localeCompare(a.id) : a.ts < b.ts ? 1 : -1,
+    )
+    return recent.find((tx) => tx.type === t)?.cat ?? PRIMARY_CATS_BY_TYPE[t][0]
+  }
+  const lastWalletId = () => {
+    const recent = [...txs].sort((a, b) =>
+      a.ts === b.ts ? b.id.localeCompare(a.id) : a.ts < b.ts ? 1 : -1,
+    )
+    return recent.find((tx) => tx.walletId)?.walletId ?? wallets[0]?.id ?? ''
+  }
 
   /* Draf di-reset setiap kali lembar dibuka — mode sunting membawa nilai
      transaksi lama (v2.22). */
@@ -109,17 +133,28 @@ export function AddTxSheet() {
         setRecurrence(editing.recurOf ? null : (editing.recurrence ?? null))
       } else {
         setType('keluar')
-        setCat('makan')
+        setCat(lastCatOf('keluar'))
         setDigits('')
         setNote('')
-        setWalletId(wallets[0]?.id ?? '')
+        setWalletId(lastWalletId())
         setRecurrence(null)
         setDate(todayISO())
       }
       setPickerOpen(false)
       setWalletPickerOpen(false)
+      setDateOptionsOpen(false)
+      setRecurrenceOptionsOpen(false)
     }
   }
+
+  /* Pulihkan gerbang anti ketukan-ganda saat lembar DIBUKA — bukan saat
+     ditutup: panel tetap interaktif selama animasi keluar (~300ms), dan
+     reset-prematur membuat ketukan kedua pada panel yang sedang pergi
+     mencatat transaksi GANDA (reproduksi: dua ketukan cepat terpisah).
+     Flag tetap terpasang dari simpan sampai sesi berikutnya dibuka. */
+  useEffect(() => {
+    if (open) submittingRef.current = false
+  }, [open])
 
   /* v2.49 (audit): Escape lewat tumpukan lapisan — pemilih kategori /
      dompet di atas lembar ini ditutup berlapis, draf transaksi aman. */
@@ -143,14 +178,18 @@ export function AddTxSheet() {
   const switchType = (t: TxType) => {
     if (t === type) return
     setType(t)
-    setCat(PRIMARY_CATS_BY_TYPE[t][0])
+    /* Kategori mengikuti riwayat jenis arus tujuan (v2.82) — bukan reset
+       buta ke kategori pertama. */
+    setCat(lastCatOf(t))
   }
 
   const submit = () => {
+    if (submittingRef.current) return
     if (!amount) {
       toast.warning('Masukkan nominal terlebih dahulu')
       return
     }
+    submittingRef.current = true
     /* Keterangan tanggal pada toast — hanya disebut bila BUKAN hari ini
        agar tidak menambah derau pada alur paling umum. */
     const whenNote =
@@ -370,66 +409,50 @@ export function AddTxSheet() {
               className="mt-2.5 h-11 rounded-xl border-input bg-surface-sunken text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
             />
 
-            {/* Tanggal transaksi (v2.42) — chip cepat Hari ini/Kemarin
-                + input tanggal untuk hari lain (maks. hari ini).
-                Tanggal aktif tercermin di baris meta nominal. */}
-            <div className="mt-2.5 flex gap-2" role="group" aria-label="Tanggal transaksi">
-              {[
-                { key: 'today', label: 'Hari ini', iso: today },
-                { key: 'yesterday', label: 'Kemarin', iso: yesterday },
-              ].map((chip) => {
-                const on = date === chip.iso
-                return (
-                  <button
-                    key={chip.key}
-                    type="button"
-                    onClick={() => setDate(chip.iso)}
-                    aria-pressed={on}
-                    className={`h-11 flex-1 cursor-pointer rounded-xl text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                      on
-                        ? 'bg-primary text-primary-foreground shadow-soft'
-                        : 'border border-border bg-surface-sunken text-content-secondary'
-                    }`}
-                  >
-                    {chip.label}
-                  </button>
-                )
-              })}
-              <input
-                id="tx-date"
-                type="date"
-                value={date}
-                min={addDaysISO(today, -365)}
-                max={today}
-                onChange={(e) => {
-                  /* Kosong (dibersihkan UI native) jatuh kembali ke
-                     hari ini — tidak pernah menyimpan tanggal kosong. */
-                  setDate(e.target.value || today)
-                }}
-                aria-label="Pilih tanggal lain, paling jauh satu tahun ke belakang"
-                className="h-11 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-meta font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              />
-            </div>
-
-            {/* Transaksi berulang — tidak untuk salinan otomatis (recurOf). */}
-            {editing?.recurOf ? (
-              <p className="mt-2.5 rounded-xl bg-surface-sunken px-3.5 py-2 text-meta leading-relaxed text-content-muted">
-                Salinan otomatis dari transaksi berulang — jadwalnya diatur di
-                templat asal.
-              </p>
-            ) : (
+            {/* Tanggal transaksi (v2.82, audit UX §A) — SATU baris status:
+                "Hari ini" adalah default; Kemarin & tanggal manual hidup
+                di balik "Ubah tanggal". Nilai aktif tetap terbaca di baris
+                meta nominal — mode sunting tanggal lama pun terlihat. */}
+            <button
+              type="button"
+              onClick={() => setDateOptionsOpen((v) => !v)}
+              aria-expanded={dateOptionsOpen}
+              aria-controls="tx-tanggal-opsi"
+              className="mt-2.5 flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <span className="min-w-0 flex-1 truncate text-meta font-semibold text-content-primary">
+                {date === today
+                  ? 'Hari ini'
+                  : `${shortDateLabel(date)}${date === yesterday ? ' · kemarin' : ''}`}
+              </span>
+              <span className="flex shrink-0 items-center gap-1 text-eyebrow font-semibold text-content-muted">
+                Ubah tanggal
+                <ChevronDown
+                  aria-hidden="true"
+                  className={
+                    'h-3.5 w-3.5 transition-transform duration-300 ' +
+                    (dateOptionsOpen ? 'rotate-180' : '')
+                  }
+                />
+              </span>
+            </button>
+            {dateOptionsOpen && (
               <div
-                className="mt-2.5 flex gap-2"
+                id="tx-tanggal-opsi"
+                className="mt-2 flex gap-2"
                 role="group"
-                aria-label="Transaksi berulang"
+                aria-label="Tanggal transaksi"
               >
-                {([null, 'mingguan', 'bulanan'] as const).map((r) => {
-                  const on = recurrence === r
+                {[
+                  { key: 'today', label: 'Hari ini', iso: today },
+                  { key: 'yesterday', label: 'Kemarin', iso: yesterday },
+                ].map((chip) => {
+                  const on = date === chip.iso
                   return (
                     <button
-                      key={r ?? 'sekali'}
+                      key={chip.key}
                       type="button"
-                      onClick={() => setRecurrence(r as Recurrence | null)}
+                      onClick={() => setDate(chip.iso)}
                       aria-pressed={on}
                       className={`h-11 flex-1 cursor-pointer rounded-xl text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         on
@@ -437,10 +460,89 @@ export function AddTxSheet() {
                           : 'border border-border bg-surface-sunken text-content-secondary'
                       }`}
                     >
-                      {r === null ? 'Sekali' : r === 'mingguan' ? 'Mingguan' : 'Bulanan'}
+                      {chip.label}
                     </button>
                   )
                 })}
+                <input
+                  id="tx-date"
+                  type="date"
+                  value={date}
+                  min={addDaysISO(today, -365)}
+                  max={today}
+                  onChange={(e) => {
+                    /* Kosong (dibersihkan UI native) jatuh kembali ke
+                       hari ini — tidak pernah menyimpan tanggal kosong. */
+                    setDate(e.target.value || today)
+                  }}
+                  aria-label="Pilih tanggal lain, paling jauh satu tahun ke belakang"
+                  className="h-11 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-meta font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                />
+              </div>
+            )}
+
+            {/* Pengulangan (v2.82) — SATU baris berikut nilainya; pilihan
+                Sekali/Mingguan/Bulanan dibuka saat diminta. Nilai berulang
+                transaksi lama tetap terbaca di baris (audit UX §A). */}
+            {editing?.recurOf ? (
+              <p className="mt-2.5 rounded-xl bg-surface-sunken px-3.5 py-2 text-meta leading-relaxed text-content-muted">
+                Salinan otomatis dari transaksi berulang — jadwalnya diatur di
+                templat asal.
+              </p>
+            ) : (
+              <div className="mt-2.5">
+                <button
+                  type="button"
+                  onClick={() => setRecurrenceOptionsOpen((v) => !v)}
+                  aria-expanded={recurrenceOptionsOpen}
+                  aria-controls="tx-pengulangan-opsi"
+                  className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <span className="text-meta font-semibold text-content-primary">
+                    Pengulangan
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 text-meta font-bold text-content-secondary">
+                    {recurrence === 'mingguan'
+                      ? 'Mingguan'
+                      : recurrence === 'bulanan'
+                        ? 'Bulanan'
+                        : 'Sekali'}
+                    <ChevronDown
+                      aria-hidden="true"
+                      className={
+                        'h-3.5 w-3.5 text-content-muted transition-transform duration-300 ' +
+                        (recurrenceOptionsOpen ? 'rotate-180' : '')
+                      }
+                    />
+                  </span>
+                </button>
+                {recurrenceOptionsOpen && (
+                  <div
+                    id="tx-pengulangan-opsi"
+                    className="mt-2 flex gap-2"
+                    role="group"
+                    aria-label="Transaksi berulang"
+                  >
+                    {([null, 'mingguan', 'bulanan'] as const).map((r) => {
+                      const on = recurrence === r
+                      return (
+                        <button
+                          key={r ?? 'sekali'}
+                          type="button"
+                          onClick={() => setRecurrence(r as Recurrence | null)}
+                          aria-pressed={on}
+                          className={`h-11 flex-1 cursor-pointer rounded-xl text-meta font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                            on
+                              ? 'bg-primary text-primary-foreground shadow-soft'
+                              : 'border border-border bg-surface-sunken text-content-secondary'
+                          }`}
+                        >
+                          {r === null ? 'Sekali' : r === 'mingguan' ? 'Mingguan' : 'Bulanan'}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 

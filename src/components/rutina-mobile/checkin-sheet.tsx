@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { create } from 'zustand'
-import { BatteryLow, Laugh, Meh, Minus, Plus, Smile } from 'lucide-react'
+import { BatteryLow, ChevronDown, Laugh, Meh, Minus, Plus, Smile } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
@@ -121,6 +121,10 @@ export function CheckInSheet() {
   const [soreness, setSoreness] = useState<number | null>(null)
   const [stress, setStress] = useState<number | null>(null)
   const [sleepH, setSleepH] = useState<number | null>(null)
+  /* v2.82 (audit UX §E): nyeri otot & stres = Detail pemulihan —
+     dilipat default; nilai yang pernah diisi tetap terbaca di pemicu
+     dan tidak hilang (state sama, hanya dibuka saat diminta). */
+  const [recoveryOpen, setRecoveryOpen] = useState(false)
   const [prevOpen, setPrevOpen] = useState(false)
 
   /* Pra-isi draf setiap kali lembar dibuka — dari mood tersimpan dan log
@@ -134,6 +138,7 @@ export function CheckInSheet() {
       setSoreness(today?.soreness ?? null)
       setStress(today?.stress ?? null)
       setSleepH(today?.sleepH ?? null)
+      setRecoveryOpen(false)
     }
   }
 
@@ -196,7 +201,8 @@ export function CheckInSheet() {
         </div>
       </div>
 
-      {/* Skala 1–5 — energi, nyeri otot (DOMS), stres; pola visual satu sumber */}
+      {/* Skala 1–5 — energi di depan (input utama check-in); nyeri otot
+          (DOMS) & stres = Detail pemulihan (v2.82, audit UX §E). */}
       <Scale1to5
         label="Energi"
         value={energy}
@@ -205,22 +211,54 @@ export function CheckInSheet() {
         lowLabel="sangat lelah"
         highLabel="bugar"
       />
-      <Scale1to5
-        label="Nyeri otot (DOMS)"
-        value={soreness}
-        onPick={setSoreness}
-        scaleLabel="Nyeri otot"
-        lowLabel="tidak nyeri"
-        highLabel="sangat nyeri"
-      />
-      <Scale1to5
-        label="Stres"
-        value={stress}
-        onPick={setStress}
-        scaleLabel="Stres"
-        lowLabel="tenang"
-        highLabel="sangat stres"
-      />
+
+      {/* Detail pemulihan — dilipat default; nilai terisi tetap terbaca
+          di pemicu (mis. "Nyeri 3 · Stres 2") dan utuh saat dibuka. */}
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => setRecoveryOpen((v) => !v)}
+          aria-expanded={recoveryOpen}
+          aria-controls="detail-pemulihan"
+          className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <span className="text-meta font-semibold text-content-primary">
+            Detail pemulihan
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-meta font-bold tabular-nums text-content-secondary">
+            {soreness != null || stress != null
+              ? `Nyeri ${soreness ?? '–'} · Stres ${stress ?? '–'}`
+              : 'opsional'}
+            <ChevronDown
+              aria-hidden="true"
+              className={
+                'h-3.5 w-3.5 text-content-muted transition-transform duration-300 ' +
+                (recoveryOpen ? 'rotate-180' : '')
+              }
+            />
+          </span>
+        </button>
+        {recoveryOpen && (
+          <div id="detail-pemulihan" className="mt-3">
+            <Scale1to5
+              label="Nyeri otot (DOMS)"
+              value={soreness}
+              onPick={setSoreness}
+              scaleLabel="Nyeri otot"
+              lowLabel="tidak nyeri"
+              highLabel="sangat nyeri"
+            />
+            <Scale1to5
+              label="Stres"
+              value={stress}
+              onPick={setStress}
+              scaleLabel="Stres"
+              lowLabel="tenang"
+              highLabel="sangat stres"
+            />
+          </div>
+        )}
+      </div>
 
       {/* Tidur — stepper setengah jam */}
       <div className="mt-4">

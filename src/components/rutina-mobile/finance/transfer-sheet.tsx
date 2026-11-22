@@ -39,6 +39,9 @@ export function TransferSheet() {
   const [note, setNote] = useState('')
   /* v2.42: tanggal transfer — default hari ini, bisa kemarin/lain. */
   const [date, setDate] = useState<string>(todayISO())
+  /* v2.82 (audit UX §C): tanggal manual & catatan = Detail tambahan —
+     dilipat default; tanggal aktif terbaca di pemicu. */
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [pickerFor, setPickerFor] = useState<'from' | 'to' | null>(null)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
@@ -54,6 +57,7 @@ export function TransferSheet() {
       setDigits('')
       setNote('')
       setDate(todayISO())
+      setDetailsOpen(false)
       setPickerFor(null)
     }
   }
@@ -231,66 +235,101 @@ export function TransferSheet() {
               </span>
             </div>
 
-            {/* Tanggal transfer (v2.42) — chip cepat + input tanggal,
-                pola sama dengan lembar transaksi. */}
-            <div className="mt-4 space-y-1.5" role="group" aria-label="Tanggal transfer">
-              <span className="text-note font-semibold text-content-secondary">
-                Tanggal{' '}
-                <span className="font-normal text-content-muted">
-                  (bisa pilih kemarin)
-                </span>
-              </span>
-              <div className="flex gap-2">
-                {[
-                  { key: 'today', label: 'Hari ini', iso: todayISO() },
-                  { key: 'yesterday', label: 'Kemarin', iso: addDaysISO(todayISO(), -1) },
-                ].map((chip) => {
-                  const on = date === chip.iso
-                  return (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      onClick={() => setDate(chip.iso)}
-                      aria-pressed={on}
-                      className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                        on
-                          ? 'bg-primary text-primary-foreground shadow-soft'
-                          : 'border border-border bg-surface-sunken text-content-secondary'
-                      }`}
-                    >
-                      {chip.label}
-                    </button>
-                  )
-                })}
-                <input
-                  id="tr-date"
-                  type="date"
-                  value={date}
-                  min={addDaysISO(todayISO(), -365)}
-                  max={todayISO()}
-                  onChange={(e) => {
-                    /* Kosong jatuh kembali ke hari ini. */
-                    setDate(e.target.value || todayISO())
-                  }}
-                  aria-label="Pilih tanggal transfer lain, maksimal satu tahun ke belakang"
-                  className="h-10 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-note font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                />
-              </div>
-            </div>
-
-            {/* Catatan */}
+            {/* Detail tambahan (v2.82, audit UX §C) — tanggal (default
+                hari ini) & catatan opsional dilipat; tanggal aktif
+                terbaca di pemicu, memperbaiki tanggal transfer lampau
+                tetap satu ketukan jauh. */}
             <div className="mt-4">
-              <Label htmlFor="tr-note" className="text-note font-semibold text-content-secondary">
-                Catatan <span className="font-normal text-content-muted">(opsional)</span>
-              </Label>
-              <input
-                id="tr-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="mis. Tarik tunai ATM"
-                maxLength={40}
-                className="mt-1.5 h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-body text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
-              />
+              <button
+                type="button"
+                onClick={() => setDetailsOpen((v) => !v)}
+                aria-expanded={detailsOpen}
+                aria-controls="transfer-detail"
+                className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-border bg-surface-sunken px-3.5 text-left transition-colors hover:border-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span className="text-meta font-semibold text-content-primary">
+                  Detail tambahan
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5 text-meta font-bold text-content-secondary">
+                  {date === todayISO() ? 'Hari ini' : shortDateLabel(date)}
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={
+                      'h-3.5 w-3.5 text-content-muted transition-transform duration-300 ' +
+                      (detailsOpen ? 'rotate-180' : '')
+                    }
+                  />
+                </span>
+              </button>
+              {detailsOpen && (
+                <div id="transfer-detail" className="mt-3 space-y-4">
+                  {/* Tanggal transfer (v2.42) — chip cepat + input tanggal,
+                      pola sama dengan lembar transaksi. */}
+                  <div className="space-y-1.5" role="group" aria-label="Tanggal transfer">
+                    <span className="text-note font-semibold text-content-secondary">
+                      Tanggal{' '}
+                      <span className="font-normal text-content-muted">
+                        (bisa pilih kemarin)
+                      </span>
+                    </span>
+                    <div className="flex gap-2">
+                      {[
+                        { key: 'today', label: 'Hari ini', iso: todayISO() },
+                        {
+                          key: 'yesterday',
+                          label: 'Kemarin',
+                          iso: addDaysISO(todayISO(), -1),
+                        },
+                      ].map((chip) => {
+                        const on = date === chip.iso
+                        return (
+                          <button
+                            key={chip.key}
+                            type="button"
+                            onClick={() => setDate(chip.iso)}
+                            aria-pressed={on}
+                            className={`h-10 flex-1 cursor-pointer rounded-xl text-note font-bold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                              on
+                                ? 'bg-primary text-primary-foreground shadow-soft'
+                                : 'border border-border bg-surface-sunken text-content-secondary'
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        )
+                      })}
+                      <input
+                        id="tr-date"
+                        type="date"
+                        value={date}
+                        min={addDaysISO(todayISO(), -365)}
+                        max={todayISO()}
+                        onChange={(e) => {
+                          /* Kosong jatuh kembali ke hari ini. */
+                          setDate(e.target.value || todayISO())
+                        }}
+                        aria-label="Pilih tanggal transfer lain, maksimal satu tahun ke belakang"
+                        className="h-10 flex-1 rounded-xl border border-border bg-surface-sunken px-2 text-center text-note font-semibold tabular-nums text-content-primary transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Catatan */}
+                  <div>
+                    <Label htmlFor="tr-note" className="text-note font-semibold text-content-secondary">
+                      Catatan <span className="font-normal text-content-muted">(opsional)</span>
+                    </Label>
+                    <input
+                      id="tr-note"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="mis. Tarik tunai ATM"
+                      maxLength={40}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-input bg-surface-sunken px-3.5 text-body text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary/30"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Keypad */}

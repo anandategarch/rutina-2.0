@@ -45,6 +45,9 @@ export function WalletPickerSheet({
   const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
+  /* v2.82 (audit UX §B): pencarian hanya saat diminta — dan hanya
+     dibutuhkan ketika dompet cukup banyak (>5); daftar langsung tampil. */
+  const [searchOpen, setSearchOpen] = useState(false)
   const [prevOpen, setPrevOpen] = useState(false)
   const dragControls = useDragControls()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -59,39 +62,22 @@ export function WalletPickerSheet({
       setQuery('')
       setAdding(false)
       setNewName('')
+      setSearchOpen(false)
     }
   }
 
   /* v2.49 (audit): Escape lewat tumpukan lapisan (overlay-escape). */
   useEscapeLayer(open, onClose)
 
-  /* Fokus langsung ke pencarian saat dibuka. */
+  /* Keyboard hanya setelah pengguna mengetuk "Cari dompet". */
   useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => searchRef.current?.focus(), 250)
+    if (open && searchOpen) {
+      const t = setTimeout(() => searchRef.current?.focus(), 120)
       return () => clearTimeout(t)
     }
-  }, [open])
+  }, [open, searchOpen])
 
   const q = query.trim().toLowerCase()
-
-  /* Dompet sering dipakai — frekuensi transaksi nyata per dompet
-     (sebagai sumber maupun tujuan transfer). */
-  const frequent = useMemo(() => {
-    if (q) return []
-    const counts = new Map<string, number>()
-    for (const t of txs) {
-      if (t.walletId) counts.set(t.walletId, (counts.get(t.walletId) ?? 0) + 1)
-      if (t.toWalletId)
-        counts.set(t.toWalletId, (counts.get(t.toWalletId) ?? 0) + 1)
-    }
-    return wallets
-      .filter((w) => w.id !== excludeId)
-      .map((w) => ({ wallet: w, count: counts.get(w.id) ?? 0 }))
-      .filter((e) => e.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6)
-  }, [txs, wallets, q, excludeId])
 
   /* Daftar lengkap — difilter pencarian & pengecualian. */
   const list = useMemo(() => {
@@ -186,55 +172,51 @@ export function WalletPickerSheet({
               </button>
             </div>
 
-            {/* 1 — Kolom pencarian */}
-            <div className="shrink-0 px-5 pt-3">
-              <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
-                <Input
-                  ref={searchRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Cari dompet…"
-                  className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
-                />
-              </div>
-            </div>
-
-            {/* Daftar bisa digulir */}
-            <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-5 pt-3">
-              {/* 2 — Dompet yang sering dipakai */}
-              {frequent.length > 0 && (
-                <section aria-label="Dompet yang sering dipakai">
-                  <p className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
-                    Sering dipakai
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {frequent.map(({ wallet: w, count }) => {
-                      const on = selectedId === w.id
-                      return (
-                        <button
-                          key={w.id}
-                          type="button"
-                          onClick={() => pick(w.id)}
-                          aria-pressed={on}
-                          className={`flex h-9 max-w-full shrink-0 cursor-pointer items-center gap-1.5 rounded-full border pl-2.5 pr-3 text-meta font-semibold transition-all active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                            on
-                              ? 'border-primary bg-secondary text-success shadow-leaf'
-                              : 'border-border bg-surface-sunken text-content-secondary hover:border-primary/40'
-                          }`}
-                        >
-                          <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          <span className="min-w-0 truncate">{w.name}</span>
-                          <span className="text-content-muted/70 tabular-nums">{count}×</span>
-                        </button>
-                      )
-                    })}
+            {/* 1 — Pencarian (v2.82): daftar langsung tampil untuk sedikit
+                dompet; "Cari dompet" hanya muncul ketika daerah > 5. */}
+            {list.length > 5 || searchOpen ? (
+              searchOpen ? (
+                <div className="shrink-0 px-5 pt-3">
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
+                    <Input
+                      ref={searchRef}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Cari dompet…"
+                      aria-label="Cari dompet"
+                      className="h-11 rounded-xl border-border bg-surface-sunken pl-10 text-content-primary placeholder:text-content-muted focus-visible:border-primary focus-visible:ring-primary/25"
+                    />
+                    {query && (
+                      <button
+                        type="button"
+                        onClick={() => setQuery('')}
+                        aria-label="Hapus pencarian"
+                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
-                </section>
-              )}
+                </div>
+              ) : (
+                <div className="shrink-0 px-5 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-sunken text-meta font-bold text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <Search className="h-3.5 w-3.5" aria-hidden="true" />
+                    Cari dompet
+                  </button>
+                </div>
+              )
+            ) : null}
 
-              {/* 3 — Daftar lengkap */}
-              <section aria-label="Daftar dompet" className="mt-4 pb-2">
+            {/* Daftar bisa digulir (v2.82: tanpa deret "sering dipakai" —
+                duplikasi daftar untuk jumlah dompet yang selalu kecil). */}
+            <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-5 pt-3">
+              <section aria-label="Daftar dompet" className="pb-2">
                 <p className="text-meta font-bold uppercase tracking-[0.08em] text-content-muted">
                   Semua dompet
                 </p>
