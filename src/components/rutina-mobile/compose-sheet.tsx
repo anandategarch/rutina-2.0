@@ -38,14 +38,17 @@ export function ComposeSheet() {
   /* Focus management: fokus awal, trap Tab, kembalikan fokus saat tutup. */
   useFocusTrap(open, panelRef)
 
-  // Reset draf setiap kali sheet dibuka — pola "sesuaikan state saat render"
-  // (folder awal mengikuti composeFolder, mis. dari tombol + di kartu folder)
+  /* v2.75 (audit PWA P1 — draft recovery): draf TIDAK lagi direset saat
+     sheet dibuka kembali. Ketukan backdrop/Escape yang tak sengaja atau
+     giliran aplikasi sebelumnya membuat judul+isi lenyap begitu sheet
+     ditutup — kini draf bertahan di state komponen (sheet selalu
+     terpasang di cangkang) sampai BERSIH DIKIRIM. Folder awal hanya
+     diisi ulang bila draf kosong (catatan baru); draf lanjutan
+     mempertahankan folder pilihan pengguna. */
   if (open !== prevOpen) {
     setPrevOpen(open)
-    if (open) {
+    if (open && title.trim() === '' && body.trim() === '') {
       setFolder(composeFolder)
-      setTitle('')
-      setBody('')
     }
   }
 
