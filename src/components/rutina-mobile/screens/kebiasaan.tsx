@@ -63,10 +63,12 @@ import { GrowthVine } from '../visualizations/habits/growth-vine'
 import Heatmap from '../heatmap'
 import { HabitComparisonMatrix } from '../habit-comparison-matrix'
 import { PlantGlyph } from '../plant-glyph'
-import { RutinaCard } from '../rutina-card'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
 import { playfair } from '../serif'
 import {
   HABIT_CATS,
@@ -687,16 +689,16 @@ function HabitDetailPanel({
     : undefined
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: motionTokens.duration.enter,
-        delay: motionTokens.delay.normal,
-        ease: motionTokens.easing.standard,
-      }}
+    <MotionCard
+      /* v2.87: kartu detail kini MotionCard — masuk saat terlihat +
+          hover halus; wrapper m.div lama dipensiunkan (gerak ganda).
+          visitKey per kebiasaan: tiap kebiasaan diantar sekali seumur
+          sesi, kunjungan ulang tenang (governance anti-replay). */
+      variant="elevated"
+      density="spacious"
+      radius="2xl"
+      visitKey={`kebiasaan-detail-${habit.id}`}
     >
-      <RutinaCard variant="elevated" density="spacious" radius="2xl">
         <RutinaSectionHeader
           title={habit.title}
           eyebrow="Detail kebiasaan"
@@ -1031,8 +1033,7 @@ function HabitDetailPanel({
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </RutinaCard>
-    </m.div>
+      </MotionCard>
   )
 }
 
@@ -1467,11 +1468,14 @@ export default function KebiasaanScreen() {
   }, [room])
 
   return (
-    <div
-      ref={rootRef}
+    <SmoothScrollArea
+      viewportRef={rootRef}
       data-module="kebiasaan"
       data-layout="garden"
-      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      /* v2.87: gulir halus Lenis per-wadah + ScrollTrigger;
+         overscroll-contain & ritme padding tetap seperti aslinya. */
+      className="overscroll-contain"
+      contentClassName="px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* v2.46 Growth Garden hero (audit Warm Editorial P2.0) — kepala
           taman: eyebrow "Tamanmu · Pekan N", headline editorial kontekstual,
@@ -1496,11 +1500,12 @@ export default function KebiasaanScreen() {
               />
               Tamanmu · Pekan {isoWeekOf(today)}
             </p>
-            <h1
+            <WordReveal
+              as="h1"
+              text={gardenHeadline}
+              visitKey="kebiasaan-title"
               className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
-            >
-              {gardenHeadline}
-            </h1>
+            />
             <p className="mt-2 text-body font-medium tabular-nums text-content-muted">
               {activeHabits.length} kebiasaan aktif · {tendedCount} dirawat
               pekan ini
@@ -1636,6 +1641,8 @@ export default function KebiasaanScreen() {
           >
             <RutinaSectionHeader
               title="Agenda hari ini"
+              reveal
+              visitKey="kebiasaan-agenda-title"
               description={
                 scheduledToday.length === 0
                   ? 'Hari ini bebas dari jadwal'
@@ -1849,6 +1856,8 @@ export default function KebiasaanScreen() {
               <RutinaSectionHeader
                 title="Saran Coach"
                 description="Pemulihan & penyesuaian kecil dari pekan ini"
+                reveal
+                visitKey="kebiasaan-coach-title"
               />
               <m.div
                 variants={journalList}
@@ -2000,6 +2009,8 @@ export default function KebiasaanScreen() {
                 accent
                 title="Konsistensi"
                 description="Runtun, capaian pekan, dan taman pertumbuhan"
+                reveal
+                visitKey="kebiasaan-konsistensi-title"
               />
 
               {/* v2.31 Garden: kebun tidak lagi LENYAP saat semua kebiasaan
@@ -2220,6 +2231,8 @@ export default function KebiasaanScreen() {
             <RutinaSectionHeader
               title="Perpustakaan kebiasaan"
               description="Inventaris lengkap — cari, kelola, dan sunting"
+              reveal
+              visitKey="kebiasaan-perpustakaan-title"
             />
 
             {/* Pencarian inventaris (audit v2.37) — 30–50 kebiasaan tidak
@@ -2434,6 +2447,9 @@ export default function KebiasaanScreen() {
                   <aside
                     id="detail-kebiasaan"
                     aria-label="Detail kebiasaan terpilih"
+                    /* v2.87: data-lenis-prevent — kolom detail melebar
+                       bergulir sendiri di ruang kerja ≥52rem. */
+                    data-lenis-prevent
                     className="self-start @[52rem]:sticky @[52rem]:top-0 @[52rem]:col-span-5 @[52rem]:mt-4 @[52rem]:max-h-[calc(100dvh-12rem)] @[52rem]:overflow-y-auto no-scrollbar scroll-mt-20"
                   >
                     <HabitDetailPanel
@@ -2567,6 +2583,6 @@ export default function KebiasaanScreen() {
           )}
         </RutinaSheet>
       )}
-    </div>
+    </SmoothScrollArea>
   )
 }
