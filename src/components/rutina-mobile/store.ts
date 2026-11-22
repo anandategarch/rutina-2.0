@@ -1591,7 +1591,6 @@ interface RutinaState {
   /** Perbarui sasaran bugar (v2.22) — patch dangkal atas FitTargets. */
   setFitTargets: (patch: Partial<FitTargets>) => void
   setJournalFilter: (filter: FolderKey | 'semua') => void
-  openFolder: (folder: FolderKey) => void
   openCompose: (folder?: FolderKey) => void
   closeCompose: () => void
   /* Aksi kebiasaan */
@@ -2351,8 +2350,6 @@ export const useRutina = create<RutinaState>()(
     set((s) => ({ fitTargets: { ...s.fitTargets, ...patch } })),
 
   setJournalFilter: (journalFilter) => set({ journalFilter }),
-
-  openFolder: (folder) => set({ screen: 'jurnal', journalFilter: folder }),
 
   openCompose: (folder) =>
     set((s) => ({ composeOpen: true, composeFolder: folder ?? s.composeFolder })),

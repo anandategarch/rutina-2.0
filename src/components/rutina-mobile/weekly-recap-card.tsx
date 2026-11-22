@@ -282,7 +282,8 @@ export function WeeklyRecapCard({
     <section
       aria-label="Rekap pekan ini"
       /* v2.38: 12px → 16px — menyatu dengan permukaan garden 24px
-         (GardenTree / PlantGarden) yang tepat di bawahnya di Beranda. */
+         (Pohon Kebun — v2.86 audit: PlantGarden dipensiunkan dari
+         Beranda sejak v2.83) yang tepat di bawahnya di Beranda. */
       className="garden-surface rounded-2xl border border-border-default p-4 shadow-soft sm:p-5"
     >
       {/* Kepala — judul + rentang + pintu ke Statistik (Statistik bukan

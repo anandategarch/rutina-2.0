@@ -252,6 +252,14 @@ export default function ProfileScreen() {
      dikembangkan — slider muncul di bawah barisnya) */
   const [goalOpen, setGoalOpen] = useState(false)
 
+  /* v2.86 (audit P2): tiga lipatan administrasi (Data & Penyimpanan,
+     Zona Kritis, Aplikasi & Bantuan) kini TERKENDALI — nav kategori
+     desktop membuka lipatan tujuan sebelum menggulir, agar tidak
+     mendarat di pemicu yang terlipat (regresi kecil v2.83). */
+  const [dataOpen, setDataOpen] = useState(false)
+  const [zonaOpen, setZonaOpen] = useState(false)
+  const [bantuanOpen, setBantuanOpen] = useState(false)
+
   /* Preferensi tampilan — mode gelap via next-themes (satu sumber
      kebenaran tema bersama cangkang aplikasi). Pola mounted mencegah
      mismatch hidrasi: SSR selalu merender keadaan terang. */
@@ -607,7 +615,7 @@ export default function ProfileScreen() {
                 [
                   ['profil-identitas', 'Identitas', false],
                   ['profil-preferensi', 'Preferensi', false],
-                  ['profil-data', 'Data & Sinkron', false],
+                  ['profil-data', 'Data & Penyimpanan', false],
                   ['profil-bantuan', 'Bantuan', false],
                   ['profil-zona', 'Zona Kritis', true],
                 ] as const
@@ -617,7 +625,13 @@ export default function ProfileScreen() {
                   <li key={id}>
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        /* v2.86 (audit P2): tiga seksi ini lipatan sejak
+                           v2.83 — nav MEMBUKA dulu, baru menggulir, agar
+                           pengguna tidak mendarat di pemicu terlipat. */
+                        if (id === 'profil-data') setDataOpen(true)
+                        else if (id === 'profil-zona') setZonaOpen(true)
+                        else if (id === 'profil-bantuan') setBantuanOpen(true)
                         document
                           .getElementById(id)
                           ?.scrollIntoView({
@@ -627,7 +641,7 @@ export default function ProfileScreen() {
                             behavior: reducedMotion ? 'auto' : 'smooth',
                             block: 'start',
                           })
-                      }
+                      }}
                       aria-current={isActive ? 'location' : undefined}
                       className={
                         'w-full cursor-pointer rounded-lg px-3 py-2 text-left text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
@@ -1045,7 +1059,7 @@ export default function ProfileScreen() {
           aria-label="Data dan penyimpanan"
           className="mt-8 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <Collapsible defaultOpen={false}>
+          <Collapsible open={dataOpen} onOpenChange={setDataOpen}>
             <CollapsibleTrigger asChild>
               <button
                 type="button"
@@ -1222,7 +1236,7 @@ export default function ProfileScreen() {
           aria-label="Zona kritis"
           className="mt-10 overflow-hidden rounded-xl border border-destructive/30 bg-surface-primary shadow-soft"
         >
-          <Collapsible defaultOpen={false}>
+          <Collapsible open={zonaOpen} onOpenChange={setZonaOpen}>
             <CollapsibleTrigger asChild>
               <button
                 type="button"
@@ -1327,7 +1341,7 @@ export default function ProfileScreen() {
           aria-label="Aplikasi dan bantuan"
           className="mt-8 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
         >
-          <Collapsible defaultOpen={false}>
+          <Collapsible open={bantuanOpen} onOpenChange={setBantuanOpen}>
             <CollapsibleTrigger asChild>
               <button
                 type="button"
@@ -1410,7 +1424,7 @@ export default function ProfileScreen() {
 
           {/* Pertanyaan umum (shadcn Accordion) — di dalam lipatan
               Aplikasi & Bantuan (v2.83). */}
-          <div className="border-t border-border-default px-4" aria-label="Pertanyaan umum">
+          <section className="border-t border-border-default px-4" aria-label="Pertanyaan umum">
             <Accordion type="single" collapsible className="w-full">
               {FAQ_ITEMS.map((f, i) => (
                 <AccordionItem
@@ -1427,7 +1441,7 @@ export default function ProfileScreen() {
                 </AccordionItem>
               ))}
             </Accordion>
-          </div>
+          </section>
             </CollapsibleContent>
           </Collapsible>
         </m.section>

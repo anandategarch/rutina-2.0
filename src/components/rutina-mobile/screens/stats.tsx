@@ -1193,7 +1193,7 @@ export default function StatsScreen() {
             density v2.37 §9): grafik lengkap modul Bugar (tonase, PR,
             asupan kkal, tidur/energi/hidrasi) tidak lagi diduplikasi
             di sini — empat metrik utama + pintu ke layar Bugar. ===== */}
-        <section id="stats-bugar" aria-label="Ringkasan bugar dan tubuh" className="@container mt-[var(--layout-gap)]">
+        <section aria-label="Ringkasan bugar dan tubuh" className="@container mt-[var(--layout-gap)]">
           <SectionTitle title="Bugar & Tubuh" hint="ringkasan · detail di tab Bugar" />
           <m.div
             initial={playEntrance ? { opacity: 0, y: 16 } : false}
@@ -1303,12 +1303,11 @@ export default function StatsScreen() {
             (tren) atau heatmap 12 pekan (historis). Dulu mode Grafik
             menumpuk DUA grafik konsistensi besar (batang misi + rasi)
             secara vertikal di ponsel; batang misi per periode kini
-            analisis lanjutan di dalam lipatan Wawasan & Pencapaian.
-            id stats-tren dipertahankan untuk pintasan nav. ===== */}
+            analisis lanjutan di dalam lipatan Grafik Misi Selesai
+            (v2.86 audit: id stats-* & scroll-mt yatim disapu — pintasan
+            gulir sudah diganti pandangan tab sejak v2.77). ===== */}
         <section
-          id="stats-tren"
           aria-label="Konsistensi"
-          className="scroll-mt-3"
         >
           <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
             <div className="min-w-0">
@@ -1464,13 +1463,11 @@ export default function StatsScreen() {
           <RutinaBentoItem className="col-span-2 @[52rem]:col-span-7">
             {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
             <m.section
-              id="stats-kalender"
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-24px' }}
               transition={motionTokens.preset.data}
               aria-label="Kalender aktivitas bulanan"
-              className="scroll-mt-3"
             >
               <RutinaSectionHeader
                 title="Kalender Aktivitas"
@@ -1518,7 +1515,7 @@ export default function StatsScreen() {
                     Dilipat secara default (review Statistik v2.13): laporan
                     jarang dibuka tiap kunjungan — ringkasan singkat tampil di
                     pemicu, detail penuh dibuka bila dibutuhkan. ===== */}
-                <div id="stats-laporan" className="scroll-mt-3">
+                <div>
                 <Collapsible defaultOpen={false}>
                   <CollapsibleTrigger asChild>
                     <button
@@ -1736,7 +1733,7 @@ export default function StatsScreen() {
         </div>
 
         <div className={view === 'wawasan' ? 'block' : 'hidden'}>
-          <div id="stats-wawasan" className="mt-[var(--layout-gap)] space-y-[var(--layout-gap)]">
+          <div className="mt-[var(--layout-gap)] space-y-[var(--layout-gap)]">
           {/* ===== Wawasan Periode Ini (review UI/UX v2.44 Tahap 2) —
               maksimal tiga temuan pembanding periode tepat setelah KPI:
               konsistensi vs periode sebelumnya, ringkasan Bugar, arus
@@ -2378,7 +2375,7 @@ export default function StatsScreen() {
               streak & rekor sudah terbaca di KPI utama. Review v2.13:
               koleksi lencana jarang dibuka tiap kunjungan — hitungan
               terbuka tampil di pemicu, kisi dibuka bila diminati.) ===== */}
-          <div id="stats-piala" className="@container scroll-mt-3">
+          <div className="@container">
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger asChild>
               <button
