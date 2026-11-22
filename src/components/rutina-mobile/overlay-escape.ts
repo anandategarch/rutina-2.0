@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 
+import { useRutina, type Screen } from './store'
+
 /* =====================================================================
  * Tumpukan lapisan Escape — v2.49 (audit).
  *
@@ -58,15 +60,25 @@ let nextOverlayId = 1
    BUKAN Back pengguna; jangan tutup lapisan apa pun. */
 let internalBack = false
 
-/** Penanda entri riwayat milik lapisan. */
 interface OverlayStateMark {
   rutinaOverlay?: number
+  /** v2.72: layar non-tab (Profil/Jurnal/Statistik) — entri riwayat
+      layar tersendiri agar Back kembali ke layar asal. */
+  rutinaScreen?: Screen
 }
 
 function readMark(state: unknown): number | null {
   if (state && typeof state === 'object' && 'rutinaOverlay' in state) {
     const v = (state as OverlayStateMark).rutinaOverlay
     if (typeof v === 'number') return v
+  }
+  return null
+}
+
+function readScreenMark(state: unknown): Screen | null {
+  if (state && typeof state === 'object' && 'rutinaScreen' in state) {
+    const v = (state as OverlayStateMark).rutinaScreen
+    if (typeof v === 'string') return v as Screen
   }
   return null
 }
@@ -121,6 +133,23 @@ function installGlobal(): void {
          memberi tahu lapisan mana yang seharusnya tetap hidup. */
       const target = readMark(e.state)
       unwindLayers(target)
+      /* v2.72: layar — hanya bila tak ada lapisan overlay hidup
+         (entri layar berada DI BAWAH entri overlay). */
+      if (layers.length === 0) {
+        const screenTarget = readScreenMark(e.state)
+        if (screenTarget != null) {
+          /* Mendarat pada entri layar non-tab → pulihkan layar itu. */
+          screenEntryLive = true
+          restoreScreen(screenTarget)
+        } else if (screenEntryLive) {
+          /* Entri layar terpop oleh Back pengguna → kembali ke tab
+             utama tempat alur bermula. */
+          screenEntryLive = false
+          if (isSubtreeScreen(useRutina.getState().screen)) {
+            restoreScreen(lastBaseScreen)
+          }
+        }
+      }
     }
     /* Entri hantu: mendarat pada entri milik lapisan yang sudah mati
        (transisi satu-tick) — buang berantai sampai entri bersih. */
@@ -137,7 +166,120 @@ function installGlobal(): void {
     /* Balapan traversa: lapisan baru dibuka di tengah back() lapisan
        lama → entrinya ikut terpop. Pulihkan. */
     repairHistory()
+    /* v2.72: balapan yang sama bisa mempop entri layar — pulihkan
+       bila layar non-tab aktif tanpa entrinya. */
+    if (
+      wasInternal &&
+      layers.length === 0 &&
+      screenEntryLive &&
+      readScreenMark(window.history.state) == null &&
+      isSubtreeScreen(useRutina.getState().screen)
+    ) {
+      try {
+        window.history.pushState(
+          { rutinaScreen: useRutina.getState().screen },
+          '',
+        )
+      } catch {
+        /* tanpa history — biarkan */
+      }
+    }
   })
+}
+
+/* =====================================================================
+ * v2.72 (audit PWA P0): Back dari layar non-tab.
+ * Profil, Jurnal, dan Statistik dibuka dari kartu/hub/avatar — bukan
+ * tab bawah. Tanpa entri riwayat, Back dari layar tersebut KELUAR
+ * aplikasi, padahal konvensi mobile: kembali ke layar asal.
+ *
+ * Model: SATU entri {rutinaScreen} di atas entri dasar, dibuat saat
+ * berpindah tab-utama → layar non-tab; dibuang saat kembali ke tab
+ * utama (bottom nav); dipulihkan oleh Back pengguna. Perpindahan
+ * antar layar non-tab memperbarui penanda di tempat (replaceState).
+ * ===================================================================== */
+
+/** Layar yang dijangkau lewat kartu/hub — bukan tab bawah. */
+const SUBTREE_SCREENS: ReadonlySet<Screen> = new Set([
+  'jurnal',
+  'profil',
+  'statistik',
+])
+
+function isSubtreeScreen(s: Screen): boolean {
+  return SUBTREE_SCREENS.has(s)
+}
+
+/* Apakah entri layar {rutinaScreen} sedang hidup di atas entri dasar? */
+let screenEntryLive = false
+/* Tab utama terakhir — tujuan pemulihan saat Back keluar dari layar
+   non-tab (dicatat pada tiap kunjungan layar utama). */
+let lastBaseScreen: Screen = 'beranda'
+/* Pemulihann popstate memanggil setScreen — jangan catat/push ulang. */
+let restoringScreen = false
+
+function restoreScreen(s: Screen): void {
+  if (useRutina.getState().screen === s) return
+  restoringScreen = true
+  try {
+    useRutina.getState().setScreen(s)
+  } finally {
+    restoringScreen = false
+  }
+}
+
+/** Pasang sekali di cangkang aplikasi (RutinaApp): kelola entri riwayat
+ *  layar non-tab; Back pengguna memulihkan layar asal. */
+export function useScreenBackHistory(): void {
+  useEffect(() => {
+    installGlobal()
+    const unsub = useRutina.subscribe((s, prev) => {
+      if (s.screen === prev.screen) return
+      if (restoringScreen) return
+      if (!isSubtreeScreen(s.screen)) {
+        /* Kunjungan tab utama — catat tujuan pemulihan Back. */
+        lastBaseScreen = s.screen
+        /* Keluar dari layar non-tab via tab bawah → konsumsi entrinya
+           agar Back berikutnya tidak memantul kembali. */
+        if (isSubtreeScreen(prev.screen) && screenEntryLive) {
+          screenEntryLive = false
+          try {
+            if (readScreenMark(window.history.state) != null) {
+              internalBack = true
+              window.history.back()
+            }
+          } catch {
+            /* tanpa history — biarkan */
+          }
+        }
+        return
+      }
+      /* Menuju layar non-tab. */
+      if (isSubtreeScreen(prev.screen)) {
+        /* non-tab → non-tab: perbarui penanda entri di tempat. */
+        try {
+          if (readScreenMark(window.history.state) != null) {
+            window.history.replaceState(
+              { rutinaScreen: s.screen },
+              '',
+            )
+            screenEntryLive = true
+          }
+        } catch {
+          /* tanpa history — biarkan */
+        }
+      } else {
+        /* tab utama → non-tab: dorong entri layar. */
+        try {
+          window.history.pushState({ rutinaScreen: s.screen }, '')
+          screenEntryLive = true
+        } catch {
+          /* tanpa history — Back tetap keluar; tak fatal. */
+        }
+      }
+    })
+    return unsub
+  }, [])
 }
 
 /** Pasang satu lapisan Escape selama `open` bernilai true. Handler

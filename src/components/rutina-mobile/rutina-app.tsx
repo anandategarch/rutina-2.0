@@ -32,6 +32,7 @@ import { HabitSheet } from './habit-sheet'
 import { useJournalUi } from './journal-ui'
 import { useSessionStore } from './fitness/session-store'
 import { useSyncEngine } from './sync-engine'
+import { useScreenBackHistory } from './overlay-escape'
 import dynamic from 'next/dynamic'
 import { WorkoutSheet } from './fitness/workout-sheet'
 import { FoodSheet } from './fitness/food-sheet'
@@ -174,6 +175,11 @@ export function RutinaApp() {
      server, lalu kirim setiap perubahan domain secara ter-debounce.
      materializeRecurring dijalankan engine setelah sinkronisasi awal. */
   useSyncEngine()
+
+  /* v2.72 (audit PWA P0): entri riwayat untuk layar non-tab (Profil/
+     Jurnal/Statistik) — Back pengguna memulihkan layar asal, bukan
+     keluar aplikasi. Dipasang di cangkang, sekali. */
+  useScreenBackHistory()
 
   /* v2.45 (audit J1 — P0): rehidrasi mood catatan DI SHELL — selama ini
      hanya layar Jurnal yang memanggilnya; membuka catatan lewat Hub atau
