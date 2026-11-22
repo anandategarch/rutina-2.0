@@ -36,7 +36,7 @@ import { MODULE_SOFT_BG, type RutinaModule } from './rutina-module'
  *                 latar tenggelam; untuk grafik & observatorium.
  *   Ink/espresso tetap dilayani varian `dark` (identitas global).
  */
-const cardVariants = cva('relative overflow-hidden', {
+export const cardVariants = cva('relative overflow-hidden', {
   variants: {
     variant: {
       /** Kartu kertas di atas kanvas sand. */

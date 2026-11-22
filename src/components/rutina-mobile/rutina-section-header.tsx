@@ -3,6 +3,7 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
+import { WordReveal } from './word-reveal'
 
 /**
  * RutinaSectionHeader — judul standar setiap bagian layar.
@@ -11,6 +12,11 @@ import { cn } from '@/lib/utils'
  * editorial di tingkat halaman, bukan judul seksi operasional.
  * `accent` mewarnai titik & eyebrow dengan warna domain layar (token
  * module-accent kontekstual) — identitas modul tanpa mengubah judul.
+ *
+ * v2.87: `reveal` — judul seksi terungkap per kata (GSAP ScrollTrigger)
+ * saat seksi masuk viewport; tanpa prop ini perilaku lama (teks statis)
+ * sepenuhnya dipertahankan. Pasangkan `visitKey` untuk gerbang
+ * anti-replay kunjungan pertama.
  */
 export interface RutinaSectionHeaderProps
   extends HTMLAttributes<HTMLDivElement> {
@@ -24,6 +30,10 @@ export interface RutinaSectionHeaderProps
   description?: string
   /** Tampilkan titik aksen warna domain (pakai bersama data-module). */
   accent?: boolean
+  /** Ungkap judul per kata saat masuk viewport (GSAP, v2.87). */
+  reveal?: boolean
+  /** Gerbang anti-replay untuk reveal — konvensi '<layar>-<blok>'. */
+  visitKey?: string
 }
 
 export function RutinaSectionHeader({
@@ -32,6 +42,8 @@ export function RutinaSectionHeader({
   action,
   description,
   accent = false,
+  reveal = false,
+  visitKey,
   className,
   ...props
 }: RutinaSectionHeaderProps) {
@@ -62,13 +74,24 @@ export function RutinaSectionHeader({
             {eyebrow}
           </p>
         )}
-        <h2
-          className={cn(
-            'text-section-lg font-semibold leading-tight tracking-tight text-content-primary',
-          )}
-        >
-          {title}
-        </h2>
+        {reveal ? (
+          <WordReveal
+            as="h2"
+            text={title}
+            visitKey={visitKey}
+            className={cn(
+              'text-section-lg font-semibold leading-tight tracking-tight text-content-primary',
+            )}
+          />
+        ) : (
+          <h2
+            className={cn(
+              'text-section-lg font-semibold leading-tight tracking-tight text-content-primary',
+            )}
+          >
+            {title}
+          </h2>
+        )}
         {description && (
           <p className="mt-1 text-note leading-snug text-content-muted">
             {description}

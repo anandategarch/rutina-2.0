@@ -44,9 +44,12 @@ import { HomeFinanceCard } from '../home-finance-card'
 import { WeeklyRecapCard } from '../weekly-recap-card'
 import { ForTodaySection } from '../for-today'
 import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
-import { RutinaCard } from '../rutina-card'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
+import { useShellRevealed } from '../shell-reveal'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
@@ -660,6 +663,9 @@ export default function HomeScreen() {
      diantar animasi penuh, kunjungan ulang (remount antar-tab) tampil
      instan (direktif: jangan animasikan seluruh layout tiap ganti tab). */
   const playEntrance = useFirstVisit('home-daybook')
+  /* v2.87: judul sapaan menunggu splash — kata terungkap per kata
+     PERSIS saat kanvas pertama kali terlihat (bukan di balik splash). */
+  const shellRevealed = useShellRevealed()
 
   /* Perayaan + toast saat SEMUA misi terjadwal hari ini selesai —
      hanya sekali per hari. v2.49 (audit): penanda kini PERSISTENT
@@ -690,15 +696,18 @@ export default function HomeScreen() {
   ])
 
   return (
-    <div
-      ref={scrollRef}
+    <SmoothScrollArea
+      viewportRef={scrollRef}
       data-module="home"
       data-layout="daybook"
-      /* Ritme daybook: tiap bagian utama dipisah --layout-gap (1.75rem).
+      /* v2.87: wadah gulir kini SmoothScrollArea — gulir roda dihaluskan
+         Lenis (per-wadah; sentuhan tetap native), sinkron dengan detak
+         gsap.ticker untuk ScrollTrigger WordReveal.
+         Ritme daybook: tiap bagian utama dipisah --layout-gap (1.75rem).
          Aturan anak-berikutnya menimpa mt-* internal komponen asing
          (mis. HomeFinanceCard mt-8) secara deterministik
          lewat spesifisitas. */
-      className="h-full overflow-y-auto no-scrollbar px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
+      contentClassName="px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
     >
       {/* Kepala layar — sapaan yang menyusut halus saat digulir */}
       <div className="pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -752,11 +761,13 @@ export default function HomeScreen() {
               </m.button>
             </div>
           </div>
-          <h1
+          <WordReveal
+            as="h1"
+            text={greeting}
+            visitKey="home-greeting"
+            hold={!shellRevealed}
             className={`${playfair.className} mt-2.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
-          >
-            {greeting}
-          </h1>
+          />
           <m.p
             style={{ opacity: subtitleOpacity }}
             className="mt-1 text-body font-medium text-content-muted"
@@ -784,20 +795,18 @@ export default function HomeScreen() {
       >
         <RutinaBentoGrid>
           <RutinaBentoItem span="hero">
-            <m.section
-              initial={playEntrance ? { opacity: 0, y: 22 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={motionTokens.preset.pageEntrance}
-              aria-label="Progres hari ini"
-              className="h-full"
-            >
-              <RutinaCard
+            {/* v2.87: entrance kartu hero kini dipegang MotionCard
+                (motion.dev — masuk viewport + hover); pembungkus m.section
+                lama dipensiunkan agar tidak ada gerak ganda. */}
+            <section aria-label="Progres hari ini" className="h-full">
+              <MotionCard
                 /* v2.46: permukaan kebun (kabut matcha lembut) kini varian
                    `botanical` resmi RutinaCard; radius token hero daybook
                    tetap — lebih lapang dari kartu biasa. */
                 variant="botanical"
                 density="spacious"
                 radius="2xl"
+                visitKey="home-hero"
                 className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
               >
                 {/* Ilustrasi botanical tipis — HANYA pada hero (audit:
@@ -972,8 +981,8 @@ export default function HomeScreen() {
                     </div>
                   </div>
                 </div>
-              </RutinaCard>
-            </m.section>
+              </MotionCard>
+            </section>
           </RutinaBentoItem>
 
           {/* Insight hari ini — tile pendamping hero, FLAT editorial tanpa
@@ -1536,15 +1545,14 @@ export default function HomeScreen() {
           kini satu kartu ringkas (review v2.13: "koleksi folder lebih
           cocok menjadi pintu masuk Jurnal"); kisi folder lengkap ada
           di layar Jurnal. */}
-      <m.section
-        initial={playEntrance ? { opacity: 0, y: 14 } : false}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-20px' }}
-        transition={motionTokens.preset.data}
+      <MotionCard
+        as="section"
+        visitKey="home-jurnal-door"
         aria-label="Jurnal dan catatan"
         /* v2.27 Daybook: pintu Jurnal bertint domain (dusty mauve) —
            band bawah halaman kini punya hierarki permukaan: flat insight,
-           dashed bonus, tint jurnal, garden rekap, tint finance. */
+           dashed bonus, tint jurnal, garden rekap, tint finance.
+           v2.87: MotionCard — masuk viewport + hover halus (motion.dev). */
         className="rounded-lg border border-module-journal/30 bg-module-journal-soft/55 p-4"
       >
         <div className="flex items-center gap-3.5">
@@ -1600,7 +1608,7 @@ export default function HomeScreen() {
             <span className="min-w-0 truncate">{draftLabel}</span>
           </button>
         )}
-      </m.section>
+      </MotionCard>
 
       {/* Taman Pertumbuhan Beranda (v2.83, audit UX §A) — SATU lokasi
           utama per visualisasi: Pohon Kebun (konsistensi global, khas
@@ -1714,6 +1722,6 @@ export default function HomeScreen() {
       </m.section>
         </CollapsibleContent>
       </Collapsible>
-    </div>
+    </SmoothScrollArea>
   )
 }

@@ -83,6 +83,12 @@ export function RutinaSheet({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetSpring}
+            /* Fondasi animasi v2.87 (Lenis): sheet dirender DI DALAM pohon
+               layar (bukan portal) — tanpa penanda ini, roda tetikus di
+               atas konten sheet yang bisa digulir justru menggulir layar
+               di belakangnya (Lenis membajak wheel yang menggelembung ke
+               wadah gulir halus). data-lenis-prevent memagari subtree. */
+            data-lenis-prevent
             className={cn(
               /* v2.49 (audit): max-height + gulir — tanpa ini, sheet panjang
                  (check-in harian ≈668px) melampaui viewport kelas 320–568px:

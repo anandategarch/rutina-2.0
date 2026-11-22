@@ -34,6 +34,7 @@ import { useSessionStore } from './fitness/session-store'
 import { useSyncEngine } from './sync-engine'
 import { useScreenBackHistory } from './overlay-escape'
 import { SyncStatusStrip } from './sync-status-card'
+import { markShellRevealed } from './shell-reveal'
 import dynamic from 'next/dynamic'
 import { WorkoutSheet } from './fitness/workout-sheet'
 import { FoodSheet } from './fitness/food-sheet'
@@ -347,8 +348,14 @@ export function RutinaApp() {
 
   /* `revealed` — gerbang koreografi ikon cangkang: nav & FAB menunggu
      momen splash benar-benar pergi sebelum menari (lihat bottom-nav &
-     quick-action-hub). */
+     quick-action-hub). v2.87: sinyal yang sama dibagikan ke WordReveal
+     judul Beranda (shell-reveal) — reveal per-kata menunggu splash,
+     bukan bermain tersembunyi di baliknya. */
   const revealed = phase === 'app'
+
+  useEffect(() => {
+    if (revealed) markShellRevealed()
+  }, [revealed])
 
   return (
     /* MotionConfig reducedMotion="user" kini disediakan AppMotionProvider
