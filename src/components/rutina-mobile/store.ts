@@ -1021,6 +1021,12 @@ export type StatsPeriod = 'pekan' | 'bulan'
 export type WoFilter = 'semua' | 'kardio' | 'badminton' | 'beban'
 /** Rentang tanggal riwayat aktivitas Bugar (v2.17). */
 export type WoRange = '30' | '90' | 'semua'
+/** Ruang aktif layar Kebiasaan (v2.77) — tab konten sungguhan, bukan
+ *  navigasi gulir: hanya satu ruang kerja tampil dalam satu waktu. */
+export type KebiasaanRoom = 'agenda' | 'konsistensi' | 'perpustakaan'
+/** Pandangan aktif layar Statistik (v2.77) — empat tampilan yang
+ *  mengganti konten: Ringkasan, Tren, Kalender, Wawasan. */
+export type StatsView = 'ringkasan' | 'tren' | 'kalender' | 'wawasan'
 
 export interface UiPrefs {
   /** Subtab aktif layar Bugar. */
@@ -1033,6 +1039,12 @@ export interface UiPrefs {
   mutasiFilter: MutasiFilter
   /** Periode ringkasan layar Statistik. */
   statsPeriod: StatsPeriod
+  /** Ruang aktif layar Kebiasaan (v2.77) — bertahan antar perpindahan
+   *  layar; pengguna kembali ke ruang terakhir yang dibukanya. */
+  kebiasaanRoom: KebiasaanRoom
+  /** Pandangan aktif layar Statistik (v2.77) — bertahan antar
+   *  perpindahan layar. */
+  statsView: StatsView
   /** Filter jenis riwayat aktivitas Bugar (v2.17). */
   woFilter: WoFilter
   /** Rentang tanggal riwayat aktivitas Bugar (v2.17). */
@@ -1757,6 +1769,8 @@ export const useRutina = create<RutinaState>()(
     chartPeriod: 'bulan',
     mutasiFilter: 'semua',
     statsPeriod: 'pekan',
+    kebiasaanRoom: 'agenda',
+    statsView: 'ringkasan',
     woFilter: 'semua',
     woRange: 'semua',
   },
@@ -2781,6 +2795,24 @@ export const useRutina = create<RutinaState>()(
           !['minggu', 'bulan', 'semua'].includes(String(prefs.chartPeriod))
         )
           prefs.chartPeriod = 'bulan'
+        /* v2.77: ruang Kebiasaan & pandangan Statistik baru — storage
+           lama belum memuatnya (merge dangkal mengganti seluruh objek
+           uiPrefs), pulihkan default agar tab tak pernah bernilai
+           tak-terdefinisi. */
+        if (prefs) {
+          if (
+            !['agenda', 'konsistensi', 'perpustakaan'].includes(
+              String(prefs.kebiasaanRoom),
+            )
+          )
+            prefs.kebiasaanRoom = 'agenda'
+          if (
+            !['ringkasan', 'tren', 'kalender', 'wawasan'].includes(
+              String(prefs.statsView),
+            )
+          )
+            prefs.statsView = 'ringkasan'
+        }
         if (!Array.isArray(p.habitGroups)) p.habitGroups = []
         if (!p.catRenames || typeof p.catRenames !== 'object') p.catRenames = {}
         if (!Array.isArray(p.hiddenCats)) p.hiddenCats = []

@@ -1,10 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  LayoutGroup,
-  useReducedMotion,
-} from 'motion/react'
+import { LayoutGroup } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   Archive,
@@ -50,6 +47,7 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
 import { useMinWidth } from '../use-min-width'
 import { RutinaSheet } from '../rutina-sheet'
+import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 
 import {
   PLANT_STAGES,
@@ -88,6 +86,7 @@ import {
   type Completions,
   type Habit,
   type HabitDayStatus,
+  type KebiasaanRoom,
 } from '../store'
 
 /* ===== Layar Kebiasaan — tiga konsep, tiga komposisi (Rutina 2.0 Tahap 2) =====
@@ -1034,8 +1033,6 @@ export default function KebiasaanScreen() {
      v2.38: gerbang yang sama menaungi daftar stagger & batang % agenda
      di bawah — remount antar-tab tidak boleh memutar ulang entrance. */
   const playEntrance = useFirstVisit('kebiasaan-garden')
-  /* Reduce-motion: pil ruang melompat instan, bukan gulir animasi. */
-  const reducedMotion = useReducedMotion()
   const habits = useRutina((s) => s.habits)
   const completions = useRutina((s) => s.completions)
   const toggleHabit = useRutina((s) => s.toggleHabit)
@@ -1064,6 +1061,11 @@ export default function KebiasaanScreen() {
      bottom sheet (sempit) atau kolom sticky (≥52rem). */
   const rootRef = useRef<HTMLDivElement>(null)
   const libraryWide = useMinWidth(rootRef, 832)
+  /* v2.77 (audit UX §1): ruang aktif pindah ke uiPrefs store — tiga ruang
+     kini TAB KONTEN SUNGGUHAN (bukan gulir panjang + scrollspy); posisi
+     terakhir bertahan saat pengguna berpindah layar dan kembali. */
+  const room = useRutina((s) => s.uiPrefs.kebiasaanRoom)
+  const setUiPref = useRutina((s) => s.setUiPref)
 
   const today = todayISO()
 
@@ -1391,22 +1393,31 @@ export default function KebiasaanScreen() {
 
   /* v2.45 (audit + review): satu jalur buka-detail dari semua bedeng
      visual (matriks konsistensi, taman pertumbuhan) — di ruang kerja
-     lebar panel detail hidup jauh di bawah (seksi Perpustakaan): antar
-     pandangan pengguna ke sana, bukan diam-diam mengubah yang tak
-     terlihat. */
+     lebar panel detail hidup di ruang Perpustakaan (v2.77: kini tab
+     terpisah, jadi ganti ruang dulu, lalu antar pandangan ke panel);
+     di ponsel tetap bottom sheet di atas ruang mana pun. */
+  const pendingDetailScrollRef = useRef(false)
   const openHabitDetail = useCallback(
     (id: string) => {
       setSelectedId(id)
       if (libraryWide) {
-        requestAnimationFrame(() => {
-          document
-            .getElementById('detail-kebiasaan')
-            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        })
+        setUiPref({ kebiasaanRoom: 'perpustakaan' })
+        pendingDetailScrollRef.current = true
       }
     },
-    [libraryWide],
+    [libraryWide, setUiPref],
   )
+  /* Gulir ke panel detail berjalan PASCA-commit — ruang Perpustakaan
+     baru tampil setelah React menyelesaikan pergantian tab, jadi
+     scrollIntoView sebelum commit akan mengarah ke elemen tersembunyi.
+     Penanda memakai ref (bukan state): tak ada render tambahan. */
+  useEffect(() => {
+    if (!pendingDetailScrollRef.current) return
+    pendingDetailScrollRef.current = false
+    document
+      .getElementById('detail-kebiasaan')
+      ?.scrollIntoView({ behavior: 'auto', block: 'start' })
+  }, [room])
 
   /* Buka/tutup grup perpustakaan (audit v2.37 — collapsible). */
   const toggleGroup = (key: string) =>
@@ -1425,36 +1436,16 @@ export default function KebiasaanScreen() {
     toast.success(`Cukup ${h.mini} — dihitung!`)
   }
 
-  /* v2.31 Garden: ruang aktif untuk petunjuk arah — scrollspy sederhana
-     (IntersectionObserver, zona pita tengah layar); semua ruang kini
-     selalu dirender pada state non-kosong (konsistensi tidak lagi
-     lenyap saat semua kebiasaan diarsip). */
-  const [activeRoom, setActiveRoom] = useState<
-    'agenda' | 'konsistensi' | 'perpustakaan'
-  >('agenda')
+  /* v2.77 (audit UX §1): pergantian ruang menggulir kembali ke puncak —
+     tiap ruang adalah halaman sendiri; sisa gulir ruang lama tidak boleh
+     “membocorkan” posisinya ke ruang baru. Lewati siklus pertama: layar
+     baru saja dipasang (gulir sudah 0) dan room pembuka dipertahankan. */
+  const roomRef = useRef(room)
   useEffect(() => {
-    if (hasNoHabits) return
-    const rooms: [string, 'agenda' | 'konsistensi' | 'perpustakaan'][] = [
-      ['garden-agenda', 'agenda'],
-      ['garden-konsistensi', 'konsistensi'],
-      ['garden-perpustakaan', 'perpustakaan'],
-    ]
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue
-          const hit = rooms.find(([id]) => id === e.target.id)
-          if (hit) setActiveRoom(hit[1])
-        }
-      },
-      { rootMargin: '-30% 0px -55% 0px' },
-    )
-    for (const [id] of rooms) {
-      const el = document.getElementById(id)
-      if (el) obs.observe(el)
-    }
-    return () => obs.disconnect()
-  }, [hasNoHabits])
+    if (roomRef.current === room) return
+    roomRef.current = room
+    rootRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+  }, [room])
 
   return (
     <div
@@ -1563,51 +1554,46 @@ export default function KebiasaanScreen() {
         </m.section>
       ) : (
         <>
-          {/* Petunjuk arah antar-ruang (v2.31 Garden, audit wayfinding):
-              tiga ruangan dalam satu gulir panjang — bilah pil menempel
-              di tepi atas; ruang aktif mengikuti scrollspy, ketukan
-              menggulir halus ke ruang tujuan. */}
-          <nav
-            aria-label="Petunjuk arah ruang kebiasaan"
-            className="sticky top-2 z-30 mt-[var(--layout-gap)] flex justify-center"
+          {/* v2.77 (audit UX §1): TAB KONTEN SUNGGUHAN — dulu tiga ruang
+              menumpuk dalam SATU gulir panjang dan pil hanya menggulir
+              (scrollspy mengikuti posisi); kini ketukan BENAR-BENAR
+              mengganti ruang yang tampil (pola keep-alive subtab Bugar:
+              panel disembunyikan, bukan dilepas — state lipatan, pencarian,
+              dan pilihan bertahan). Bilah tetap menempel di tepi atas agar
+              pindah ruang tetap satu ketukan di tengah gulir; ruang
+              terakhir diingat uiPrefs saat pulang-pergi antar layar. */}
+          <RutinaTabs
+            value={room}
+            onValueChange={(v) =>
+              setUiPref({ kebiasaanRoom: v as KebiasaanRoom })
+            }
           >
-            <div className="flex items-center gap-1 rounded-full border border-border bg-surface-primary/92 p-1 shadow-soft backdrop-blur-md">
+            <RutinaTabsList
+              aria-label="Ruang kebiasaan"
+              className="sticky top-2 z-30 mt-[var(--layout-gap)] w-full border-border bg-surface-primary/92 shadow-soft backdrop-blur-md"
+            >
               {(
                 [
-                  ['garden-agenda', 'Agenda'],
-                  ['garden-konsistensi', 'Konsistensi'],
-                  ['garden-perpustakaan', 'Perpustakaan'],
+                  ['agenda', 'Agenda'],
+                  ['konsistensi', 'Konsistensi'],
+                  ['perpustakaan', 'Perpustakaan'],
                 ] as const
-              ).map(([id, label]) => {
-                const isActive = activeRoom === id.replace('garden-', '')
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() =>
-                      document
-                        .getElementById(id)
-                        /* Reduce-motion: lompat instan ke ruang tujuan. */
-                        ?.scrollIntoView({
-                          behavior: reducedMotion ? 'auto' : 'smooth',
-                          block: 'start',
-                        })
-                    }
-                    aria-current={isActive ? 'location' : undefined}
-                    className={
-                      'interactive h-10 cursor-pointer rounded-full px-3.5 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
-                      (isActive
-                        ? 'bg-module-accent/15 text-module-accent-strong'
-                        : 'text-content-muted hover:text-content-primary')
-                    }
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </nav>
+              ).map(([id, label]) => (
+                <RutinaTabsTrigger
+                  key={id}
+                  value={id}
+                  className="flex-1 px-1.5 text-meta font-semibold data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
+                >
+                  {label}
+                </RutinaTabsTrigger>
+              ))}
+            </RutinaTabsList>
+          </RutinaTabs>
 
+          {/* v2.77: pembungkus ruang keep-alive — hanya ruang aktif yang
+              tampil; dua lainnya disembunyikan (bukan dilepas) sehingga
+              state internal tiap ruang tak ter-reset saat berpindah. */}
+          <div className={room === 'agenda' ? 'block' : 'hidden'}>
           {/* ============ 1 — AGENDA HARI INI (paling operasional) ============
               Halaman planner kertas: paper-surface memberi garis margin kiri
               Rose Clay; yang menunggu naik ke rel timeline Pagi/Siang/Malam
@@ -1910,7 +1896,9 @@ export default function KebiasaanScreen() {
               </m.div>
             </section>
           )}
+          </div>
 
+          <div className={room === 'konsistensi' ? 'block' : 'hidden'}>
           {/* ============ 2 — KONSISTENSI (satu komposisi kebun) ============
               Zona botanical tunggal: permukaan garden-surface membungkus
               bedeng metrik (runtun · capaian pekan · tanaman) dan Taman
@@ -2086,7 +2074,9 @@ export default function KebiasaanScreen() {
               </>
               )}
             </m.section>
+          </div>
 
+          <div className={room === 'perpustakaan' ? 'block' : 'hidden'}>
           {/* ============ 3 — PERPUSTAKAAN KEBIASAAN (inventaris) ============
               Daftar ledger hairline ringkas per kategori/grup — referensi
               yang tidak bersaing dengan agenda. Ketuk baris membuka Panel
@@ -2360,6 +2350,7 @@ export default function KebiasaanScreen() {
               </Collapsible>
             )}
           </m.section>
+          </div>
         </>
       )}
 

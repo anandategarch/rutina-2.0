@@ -88,6 +88,7 @@ import {
   type FinCat,
   type Habit,
   type HabitCat,
+  type StatsView,
 } from '../store'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaCard } from '../rutina-card'
@@ -505,9 +506,21 @@ export default function StatsScreen() {
      + rasi secara vertikal). */
   const [vizMode, setVizMode] = useState<'tren' | 'panas'>('tren')
 
-  /* Lipatan Wawasan & Pencapaian (v2.58) — terkendali agar pintasan nav
-     "Wawasan" bisa membukanya lalu menggulir padanya. */
-  const [insightsOpen, setInsightsOpen] = useState(false)
+  /* v2.77 (audit UX §1): pandangan aktif Statistik — empat tampilan yang
+     BENAR-BENAR mengganti konten (bukan chip pintasan yang menggulir);
+     uiPrefs mengingat pandangan terakhir antar perpindahan layar. */
+  const view = useRutina((s) => s.uiPrefs.statsView)
+  const setUiPref = useRutina((s) => s.setUiPref)
+
+  /* Pergantian pandangan menggulir kembali ke puncak — tiap pandangan
+     adalah halaman sendiri; sisa gulir pandangan lama tidak boleh
+     membocorkan posisinya ke pandangan baru. */
+  const viewRef = useRef(view)
+  useEffect(() => {
+    if (viewRef.current === view) return
+    viewRef.current = view
+    rootRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+  }, [view])
 
   /* Gerbang pandangan-pertama untuk grafik tren (audit Tahap 2 #4):
      kartu dipasang sejak awal (tinggi tetap, tanpa layout shift), grafik
@@ -977,12 +990,54 @@ export default function StatsScreen() {
           </p>
         </header>
 
+        {/* v2.77 (audit UX §1): EMPAT PANDANGAN SUNGGUHAN — dulu chip
+            pintasan hanya MENGGULIR ke seksi dalam satu tumpukan panjang;
+            kini tab mengganti konten: Ringkasan (hero + metrik Bugar),
+            Tren, Kalender, dan Wawasan. Pandangan terakhir diingat uiPrefs
+            saat pengguna pulang-pergi antar layar (pola subtab Bugar). */}
+        <RutinaTabs
+          value={view}
+          onValueChange={(v) => {
+            setUiPref({ statsView: v as StatsView })
+            /* Sheet detail tanggal hanya relevan di pandangan Kalender —
+               pindah pandangan menutupnya, bukan membiarkannya melayang
+               di atas konten yang tak lagi terlihat. */
+            setSelectedDay(null)
+          }}
+        >
+          <RutinaTabsList
+            aria-label="Pandangan Statistik"
+            className="mt-[var(--layout-gap)] w-full"
+          >
+            {(
+              [
+                ['ringkasan', 'Ringkasan'],
+                ['tren', 'Tren'],
+                ['kalender', 'Kalender'],
+                ['wawasan', 'Wawasan'],
+              ] as const
+            ).map(([id, label]) => (
+              <RutinaTabsTrigger
+                key={id}
+                value={id}
+                className="flex-1 data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
+              >
+                {label}
+              </RutinaTabsTrigger>
+            ))}
+          </RutinaTabsList>
+        </RutinaTabs>
+
+        {/* v2.77: pandangan keep-alive — hanya pandangan aktif yang tampil,
+            sisanya disembunyikan (state internal tak ter-reset). */}
+        <div className={view === 'ringkasan' ? 'block' : 'hidden'}>
+
         {/* ===== HERO OBSERVATORIUM (v2.58, audit Tahap 2) — profil
             pemain, cincin Level/XP, dan tiga metrik kunci disatukan dalam
             SATU permukaan hero. Dulu empat blok bertumpuk sebelum grafik
             pertama (baris profil + cincin XP 176px + kartu KPI + kartu
-            wawasan periode); wawasan periode kini tinggal di lipatan
-            Wawasan & Pencapaian di bawah. ===== */}
+            wawasan periode); wawasan periode kini tinggal di pandangan
+            Wawasan. ===== */}
         <section aria-label="Ringkasan pemain" className="mt-[var(--layout-gap)]">
           <m.div
             initial={playEntrance ? { opacity: 0, y: reducedMotion ? 0 : 12 } : false}
@@ -1133,43 +1188,114 @@ export default function StatsScreen() {
           </m.div>
         </section>
 
-        {/* Pintasan seksi (v2.58, audit Tahap 2): empat area utama —
-            ringkasan (di atas), konsistensi, kalender, dan wawasan; chip
-            Wawasan membuka lipatan Wawasan & Pencapaian lalu menggulir. */}
-        <nav
-          aria-label="Pintasan seksi Statistik"
-          className="mt-[var(--layout-gap)] grid grid-cols-2 gap-2 @[30rem]:flex @[30rem]:flex-wrap"
-        >
-          {[
-            { id: 'stats-tren', label: 'Tren', open: false },
-            { id: 'stats-kalender', label: 'Kalender', open: false },
-            { id: 'stats-wawasan', label: 'Wawasan', open: true },
-            { id: 'stats-bugar', label: 'Bugar', open: false },
-          ].map((s) => (
+        {/* ===== Bugar & Tubuh — ringkasan satu baris + tautan (audit
+            density v2.37 §9): grafik lengkap modul Bugar (tonase, PR,
+            asupan kkal, tidur/energi/hidrasi) tidak lagi diduplikasi
+            di sini — empat metrik utama + pintu ke layar Bugar. ===== */}
+        <section id="stats-bugar" aria-label="Ringkasan bugar dan tubuh" className="@container mt-[var(--layout-gap)]">
+          <SectionTitle title="Bugar & Tubuh" hint="ringkasan · detail di tab Bugar" />
+          <m.div
+            initial={playEntrance ? { opacity: 0, y: 16 } : false}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-24px' }}
+            transition={motionTokens.preset.data}
+            className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
+          >
+            <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
+              <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
+              Latihan &amp; Tubuh · 30 hari
+            </p>
+            <div className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-4 @[30rem]:grid-cols-4">
+              <RutinaMetric
+                label="Sesi latihan"
+                value={fitSessions}
+                unit="sesi"
+                size="sm"
+              />
+              <RutinaMetric
+                label="Total durasi"
+                value={fitMinutes}
+                unit="menit"
+                size="sm"
+              />
+              <RutinaMetric
+                label="Kardio"
+                value={cardio30.km.toFixed(1).replace('.', ',')}
+                unit="km"
+                size="sm"
+                caption={`${cardio30.sessions} sesi jalan/lari`}
+              />
+              <div>
+                <RutinaMetric
+                  label="Berat terakhir"
+                  value={
+                    lastWeight != null
+                      ? lastWeight.toFixed(1).replace('.', ',')
+                      : '–'
+                  }
+                  unit={lastWeight != null ? 'kg' : undefined}
+                  size="sm"
+                  caption={
+                    weightDelta != null
+                      ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
+                      : 'belum ada riwayat berat'
+                  }
+                />
+                {/* Sparkline mini (v2.39 audit visual data) — warna
+                    netral (naik/turun belum tentu baik/buruk); baru
+                    digambar dari 3 catatan (aturan jujur: 2 titik
+                    bukan tren). Skala penuh 14 catatan terakhir. */}
+                {weightSpark.length >= 3 && (
+                  <svg
+                    viewBox="0 0 120 26"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                    className="mt-1.5 h-6 w-full"
+                  >
+                    {(() => {
+                      const lo = Math.min(...weightSpark)
+                      const hi = Math.max(...weightSpark)
+                      const span = Math.max(hi - lo, 0.5)
+                      const n = weightSpark.length
+                      const pts = weightSpark
+                        .map(
+                          (v, i) =>
+                            `${((i / (n - 1)) * 120).toFixed(1)},${(
+                              3 +
+                              (1 - (v - lo) / span) * 20
+                            ).toFixed(1)}`,
+                        )
+                        .join(' ')
+                      return (
+                        <polyline
+                          points={pts}
+                          fill="none"
+                          stroke="var(--chart-stroke-1)"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      )
+                    })()}
+                  </svg>
+                )}
+              </div>
+            </div>
             <button
-              key={s.id}
               type="button"
-              onClick={() => {
-                if (s.open) setInsightsOpen(true)
-                document
-                  .getElementById(s.id)
-                  ?.scrollIntoView({
-                    /* Reduced-motion: lompat instan, tanpa animasi gulir. */
-                    behavior: reducedMotion ? 'auto' : 'smooth',
-                    block: 'start',
-                  })
-              }}
-              className="interactive flex h-10 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-3 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
+              onClick={() => setScreen('bugar')}
+              aria-label="Buka layar Bugar untuk detail latihan, asupan, dan tubuh"
+              className="interactive mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-module-accent-strong text-note font-bold text-module-accent-fg shadow-soft transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              {s.label}
+              <Dumbbell aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
+              Buka Bugar untuk detail latihan, asupan, &amp; tubuh
             </button>
-          ))}
-        </nav>
+          </m.div>
+        </section>
+        </div>
 
-        {/* Tumpukan seksi utama — ritme antar-bagian memakai token layout
-            observatory (var(--layout-gap)) agar seluruh layar berbagi satu
-            denyut laboratorium data yang seragam. */}
-        <div className="mt-[var(--layout-gap)] flex flex-col gap-[var(--layout-gap)]">
+        <div className={view === 'tren' ? 'mt-[var(--layout-gap)] block' : 'hidden'}>
 
         {/* ===== KONSISTENSI (v2.58, audit Tahap 2) — SATU grafik besar
             dengan pemilih mode Tren | Peta Panas: rasi bintang 30 hari
@@ -1326,7 +1452,9 @@ export default function StatsScreen() {
             )}
           </div>
         </section>
+        </div>
 
+        <div className={view === 'kalender' ? 'mt-[var(--layout-gap)] block' : 'hidden'}>
         {/* Kalender Aktivitas + Laporan Bulanan terpadu (v2.58, audit
             Tahap 2): laporan hidup DI DALAM kartu kalender — satu panel
             aktivitas bulanan; panel detail tanggal tetap di samping pada
@@ -1598,147 +1726,16 @@ export default function StatsScreen() {
           )}
         </RutinaBentoGrid>
 
-        {/* ===== Bugar & Tubuh — ringkasan satu baris + tautan (audit
-            density v2.37 §9): grafik lengkap modul Bugar (tonase, PR,
-            asupan kkal, tidur/energi/hidrasi) tidak lagi diduplikasi
-            di sini — empat metrik utama + pintu ke layar Bugar. ===== */}
-        <section id="stats-bugar" aria-label="Ringkasan bugar dan tubuh" className="@container scroll-mt-3">
-          <SectionTitle title="Bugar & Tubuh" hint="ringkasan · detail di tab Bugar" />
-          <m.div
-            initial={playEntrance ? { opacity: 0, y: 16 } : false}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-24px' }}
-            transition={motionTokens.preset.data}
-            className="rounded-2xl border border-border bg-surface-primary p-5 shadow-soft"
-          >
-            <p className="flex items-center gap-1.5 text-body font-semibold tracking-tight text-content-secondary">
-              <Dumbbell className="h-3.5 w-3.5 text-chart-stroke-4" />
-              Latihan &amp; Tubuh · 30 hari
-            </p>
-            <div className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-4 @[30rem]:grid-cols-4">
-              <RutinaMetric
-                label="Sesi latihan"
-                value={fitSessions}
-                unit="sesi"
-                size="sm"
-              />
-              <RutinaMetric
-                label="Total durasi"
-                value={fitMinutes}
-                unit="menit"
-                size="sm"
-              />
-              <RutinaMetric
-                label="Kardio"
-                value={cardio30.km.toFixed(1).replace('.', ',')}
-                unit="km"
-                size="sm"
-                caption={`${cardio30.sessions} sesi jalan/lari`}
-              />
-              <div>
-                <RutinaMetric
-                  label="Berat terakhir"
-                  value={
-                    lastWeight != null
-                      ? lastWeight.toFixed(1).replace('.', ',')
-                      : '–'
-                  }
-                  unit={lastWeight != null ? 'kg' : undefined}
-                  size="sm"
-                  caption={
-                    weightDelta != null
-                      ? `${weightDelta > 0 ? 'naik' : weightDelta < 0 ? 'turun' : 'tetap'} ${Math.abs(weightDelta).toFixed(1).replace('.', ',')} kg sejak catatan pertama`
-                      : 'belum ada riwayat berat'
-                  }
-                />
-                {/* Sparkline mini (v2.39 audit visual data) — warna
-                    netral (naik/turun belum tentu baik/buruk); baru
-                    digambar dari 3 catatan (aturan jujur: 2 titik
-                    bukan tren). Skala penuh 14 catatan terakhir. */}
-                {weightSpark.length >= 3 && (
-                  <svg
-                    viewBox="0 0 120 26"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                    className="mt-1.5 h-6 w-full"
-                  >
-                    {(() => {
-                      const lo = Math.min(...weightSpark)
-                      const hi = Math.max(...weightSpark)
-                      const span = Math.max(hi - lo, 0.5)
-                      const n = weightSpark.length
-                      const pts = weightSpark
-                        .map(
-                          (v, i) =>
-                            `${((i / (n - 1)) * 120).toFixed(1)},${(
-                              3 +
-                              (1 - (v - lo) / span) * 20
-                            ).toFixed(1)}`,
-                        )
-                        .join(' ')
-                      return (
-                        <polyline
-                          points={pts}
-                          fill="none"
-                          stroke="var(--chart-stroke-1)"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      )
-                    })()}
-                  </svg>
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setScreen('bugar')}
-              aria-label="Buka layar Bugar untuk detail latihan, asupan, dan tubuh"
-              className="interactive mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-module-accent-strong text-note font-bold text-module-accent-fg shadow-soft transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <Dumbbell aria-hidden="true" className="h-4 w-4" strokeWidth={2.1} />
-              Buka Bugar untuk detail latihan, asupan, &amp; tubuh
-            </button>
-          </m.div>
-        </section>
-        {/* ===== WAWASAN & PENCAPAIAN (v2.58, audit Tahap 2) — seluruh
-            analisis sekunder di balik SATU lipatan tertutup: temuan
-            periode, komposisi kebiasaan, wawasan lintas domain, grafik
-            misi per periode, pembanding pekan, piala & lencana, dan ruang
-            suasana. Observatorium kini empat area jernih: ringkasan →
-            konsistensi → kalender → wawasan. Kualifikasi observasional
-            lintas domain tetap terpelihara (bukan sebab-akibat). ===== */}
-        <div id="stats-wawasan" className="scroll-mt-3">
-          <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                aria-label={`Wawasan dan pencapaian — ${periodInsights.length} temuan periode, ${unlockedCount} dari ${badges.length} lencana terbuka. Buka untuk detail`}
-                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary">
-                  <Sparkles aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-body font-semibold text-content-primary">
-                    Wawasan &amp; Pencapaian
-                  </span>
-                  <span className="mt-0.5 block text-meta font-medium text-content-muted">
-                    {`${periodInsights.length} temuan periode · ${unlockedCount}/${badges.length} lencana${
-                      mood ? ` · merasa ${mood.toLowerCase()} hari ini` : ''
-                    }`}
-                  </span>
-                </span>
-                <ChevronDown
-                  aria-hidden="true"
-                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
-                />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-            <div className="mt-4 space-y-[var(--layout-gap)]">
+        {/* ===== WAWASAN & PENCAPAIAN — v2.77: pandangan keempat yang
+            SUNGGUHAN (tab, bukan lipatan): temuan periode, komposisi
+            kebiasaan, wawasan lintas domain, grafik misi per periode,
+            pembanding pekan, piala & lencana, dan ruang suasana.
+            Kualifikasi observasional lintas domain tetap terpelihara
+            (bukan sebab-akibat). ===== */}
+        </div>
+
+        <div className={view === 'wawasan' ? 'block' : 'hidden'}>
+          <div id="stats-wawasan" className="mt-[var(--layout-gap)] space-y-[var(--layout-gap)]">
           {/* ===== Wawasan Periode Ini (review UI/UX v2.44 Tahap 2) —
               maksimal tiga temuan pembanding periode tepat setelah KPI:
               konsistensi vs periode sebelumnya, ringkasan Bugar, arus
@@ -2579,12 +2576,7 @@ export default function StatsScreen() {
             )}
           </section>
 
-            </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-
-
+          </div>
         </div>
 
         {/* Detail harian — di ponsel/tablet dibuka dengan mengetuk tanggal
