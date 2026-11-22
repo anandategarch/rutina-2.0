@@ -96,6 +96,9 @@ import {
 import { BarbellToolsSheet } from '../fitness/barbell-tools'
 import { TrainingCalendar } from '../fitness/training-calendar'
 import { ExerciseDetailSheet } from '../fitness/exercise-detail-sheet'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
 import { MuscleBalanceCard } from '../fitness/muscle-balance-card'
 import { PaceTrack } from '../visualizations/fitness/pace-track'
 import { useCheckInSheet } from '../checkin-sheet'
@@ -1799,10 +1802,13 @@ export default function BugarScreen() {
     })
 
   return (
-    <div
+    <SmoothScrollArea
       data-module="bugar"
       data-layout="performance"
-      className="h-full overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      /* v2.87: gulir halus Lenis per-wadah (roda) + ScrollTrigger.
+         overscroll-contain + ritme padding tetap seperti aslinya. */
+      className="overscroll-contain"
+      contentClassName="px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Header studio performa — judul operasional Geist Sans tegas
           (bukan serif editorial); Tipografi System v1. */}
@@ -1811,9 +1817,13 @@ export default function BugarScreen() {
           <Dumbbell className="h-3.5 w-3.5" />
           Gerak &amp; kekuatan
         </p>
-        <h1 className="mt-1.5 text-balance text-fluid-page font-bold leading-none">
-          Bugar<span className="text-module-accent">.</span>
-        </h1>
+        <WordReveal
+          as="h1"
+          text="Bugar"
+          visitKey="bugar-title"
+          suffix={<span className="text-module-accent">.</span>}
+          className="mt-1.5 text-balance text-fluid-page font-bold leading-none"
+        />
         <p className="mt-2 text-body font-medium text-content-muted">
           {tab === 'latihan'
             ? week.runSessions + week.badmintonSessions + week.strengthSessions > 0
@@ -1867,12 +1877,14 @@ export default function BugarScreen() {
               bertint eucalyptus (Color System v2: strong sebagai latar solid
               agar teks putih lolos AA 6,4:1; base dipertahankan untuk ikon/
               aksen), teks module-accent-fg ikut terbalik di mode gelap. */}
-          <m.section
-            initial={playEntrance ? { opacity: 0, y: 14 } : false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={motionTokens.preset.chipReveal}
+          {/* v2.87: hero kini MotionCard — masuk saat terlihat + hover
+              halus (motion.dev); entrance m.section lama dipensiunkan
+              agar tidak ada gerak ganda. */}
+          <MotionCard
+            as="section"
+            visitKey="bugar-hero"
             aria-label="Ringkasan latihan pekan ini"
-            className="relative overflow-hidden rounded-2xl bg-module-accent-strong p-5 text-module-accent-fg shadow-leaf @[24rem]:p-6"
+            className="rounded-2xl bg-module-accent-strong p-5 text-module-accent-fg shadow-leaf @[24rem]:p-6"
           >
         <div className="relative z-10">
           {/* v2.46 Performance Studio (audit Warm Editorial P2.0): hero
@@ -2098,7 +2110,7 @@ export default function BugarScreen() {
             </p>
           )}
         </div>
-      </m.section>
+      </MotionCard>
 
       {/* Tombol utama dominan — SATU CTA terbesar di layar (matcha
           aksi, audit Tahap 2); pintasan mode di bawahnya jadi chip
@@ -2187,8 +2199,14 @@ export default function BugarScreen() {
           title="Coach Bugar"
           description="Kesiapan, deload, dan alat bantu — dihitung dari data latihanmu sendiri."
           accent
+          reveal
+          visitKey="bugar-coach-title"
         />
-        <div className="mt-3 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft">
+        {/* v2.87: kartu Coach kini MotionCard (masuk + hover). */}
+        <MotionCard
+          visitKey="bugar-coach"
+          className="mt-3 rounded-xl border border-border bg-surface-primary shadow-soft"
+        >
           {/* a. Kesiapan latihan — ringkas dari check-in hari ini */}
           <div className="p-4">
             <div className="flex items-center gap-3">
@@ -2346,7 +2364,7 @@ export default function BugarScreen() {
               aria-hidden="true"
             />
           </button>
-        </div>
+        </MotionCard>
       </section>
               </RutinaBentoItem>
             </RutinaBentoGrid>
@@ -2498,8 +2516,10 @@ export default function BugarScreen() {
         </RutinaTabs>
         {/* Daftar riwayat — hairline ledger-row per item (audit Tahap 2),
             bukan tumpukan kartu berbayang; ponsel tanpa nested scroll
-            (audit v2.37), ruang kerja ≥52rem bergulir sendiri. */}
-        <div className="mt-3 pr-1 @[52rem]:max-h-[430px] @[52rem]:overflow-y-auto no-scrollbar">
+            (audit v2.37), ruang kerja ≥52rem bergulir sendiri.
+            v2.87: data-lenis-prevent — gulir sendiri di ruang kerja
+            lebar tidak dibocorkan ke Lenis wadah utama. */}
+        <div data-lenis-prevent className="mt-3 pr-1 @[52rem]:max-h-[430px] @[52rem]:overflow-y-auto no-scrollbar">
           <AnimatePresence initial={false} mode="popLayout">
             {historySlice.map((w, i) => (
               <WorkoutRow key={w.id} w={w} index={i} bodyWeight={weight} />
@@ -2852,6 +2872,6 @@ export default function BugarScreen() {
         onClose={() => setExDetail(null)}
       />
       <WorkoutSessionOverlay />
-    </div>
+    </SmoothScrollArea>
   )
 }

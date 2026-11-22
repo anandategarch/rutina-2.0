@@ -144,6 +144,9 @@ export function ExerciseDetailSheet({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetSpring}
+            /* v2.87: sheet dalam pohon layar — cegah Lenis membajak
+               wheel di dalam panel yang bisa digulir. */
+            data-lenis-prevent
             className={`absolute inset-x-0 bottom-0 z-[60] mx-auto flex max-h-[86%] w-full flex-col rounded-t-sheet bg-surface-primary pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar ${CONTENT_W}`}
           >
             {/* Pegangan seret */}

@@ -819,6 +819,10 @@ function SessionView({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.02 }}
       transition={motionTokens.preset.cardReveal}
+      /* v2.87: overlay dirender dalam pohon layar Bugar — tanpa penanda
+         ini roda tetikus di dalam sesi menggulir layar di belakangnya
+         (Lenis wadah utama membajak wheel yang menggelembung). */
+      data-lenis-prevent
       className="fixed inset-0 z-[70] bg-hero-surface text-hero-content"
     >
       <div
@@ -1469,6 +1473,8 @@ export function SessionPickerSheet({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={sheetSpring}
+              /* v2.87: lihat catatan data-lenis-prevent di overlay sesi. */
+              data-lenis-prevent
               className={`pointer-events-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
             >
               {/* Pegangan seret */}

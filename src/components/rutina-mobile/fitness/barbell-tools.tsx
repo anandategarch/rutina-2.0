@@ -618,6 +618,9 @@ export function BarbellToolsSheet({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={sheetSpring}
+              /* v2.87: sheet dalam pohon layar — cegah Lenis membajak
+                 wheel di dalam panel yang bisa digulir. */
+              data-lenis-prevent
               className={`pointer-events-auto max-h-[92%] w-full overflow-y-auto rounded-t-sheet bg-surface-primary px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2.5 no-scrollbar shadow-sheet ${CONTENT_W}`}
             >
               {/* Pegangan seret */}
