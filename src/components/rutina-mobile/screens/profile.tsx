@@ -63,6 +63,9 @@ import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
 import { slideInRow, staggerRows } from '@/lib/motion/variants'
 import { barFill } from '@/lib/motion/transitions'
 import { playfair } from '../serif'
@@ -565,10 +568,13 @@ export default function ProfileScreen() {
      membungkus tiap layar dalam CONTENT_W; penggandaan max-w ganda
      hanya menumpuk batas yang identik (audit: redundan). */
   return (
-    <div
+    <SmoothScrollArea
       data-module="profil"
       data-layout="control-room"
-      className="h-full w-full overflow-y-auto no-scrollbar px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
+      /* v2.87: gulir halus Lenis per-wadah + ScrollTrigger; ritme
+         padding (pb-16 khas Profil) tetap seperti aslinya. */
+      className="w-full"
+      contentClassName="px-4 pb-16 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
       {/* Tombol kembali — Profil bukan tab, orientasi via Beranda */}
       <m.button
@@ -592,12 +598,13 @@ export default function ProfileScreen() {
           <Leaf className="h-3.5 w-3.5 text-module-accent-strong" />
           Akun &amp; preferensi
         </p>
-        <h1
+        <WordReveal
+          as="h1"
+          text="Profil"
+          visitKey="profil-title"
+          suffix={<span className="text-module-accent">.</span>}
           className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-none tracking-tight text-content-primary`}
-        >
-          Profil
-          <span className="text-module-accent">.</span>
-        </h1>
+        />
       </header>
 
       {/* ANIMATION OWNERSHIP RULE — koreografi seluruh baris/seksi dipegang
@@ -666,15 +673,22 @@ export default function ProfileScreen() {
           <RutinaSectionHeader
             title="Identitas"
             description="Siapa dirimu di Rutina — tanpa akun, tersinkron cloud"
+            reveal
+            visitKey="profil-identitas-title"
           />
         </m.div>
 
         {/* Kartu hero identitas (espresso + emas + parchment) — satu-satunya
             kartu hero di layar ini; statistik ringkas dilipat ke dalamnya
-            (audit 2g: kurangi kartu kecil berserakan). */}
-        <m.section
-          variants={slideInRow}
+            (audit 2g: kurangi kartu kecil berserakan).
+            v2.87: kini MotionCard — masuk saat terlihat + hover halus
+            (motion.dev); variants slideInRow lama dipensiunkan (stagger
+            halaman memang dihentikan v2.33 — satu kartu hero tetap
+            diantar lembut, sekali per sesi). */}
+        <MotionCard
+          as="section"
           aria-label="Identitas pengguna"
+          visitKey="profil-hero"
           className="mt-3 flex flex-col items-center rounded-2xl border border-border bg-hero-surface p-5 text-center text-hero-content shadow-soft"
         >
           {/* HoverCard avatar — alami desktop-only (butuh kursor); kartu
@@ -841,7 +855,7 @@ export default function ProfileScreen() {
             </div>
           )}
           </div>
-        </m.section>
+        </MotionCard>
 
         {/* ===== Suasana hari ini — ringkas (audit density v2.37 §9).
             Riwayat mood 14 hari + input check-in suasana kini terpusat di
@@ -1505,6 +1519,6 @@ export default function ProfileScreen() {
       >
         Rutina 2.0 · Kebun Kebiasaan
       </button>
-    </div>
+    </SmoothScrollArea>
   )
 }

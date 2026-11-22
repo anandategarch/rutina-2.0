@@ -30,6 +30,9 @@ import {
 } from '../store'
 import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { SmoothScrollArea } from '../smooth-scroll-area'
+import { WordReveal } from '../word-reveal'
+import { MotionCard } from '../rutina-motion-card'
 import { InkDot, InkStroke } from '../visualizations/journal/ink-stroke'
 import { MoodWheel } from '../visualizations/journal/mood-wheel'
 
@@ -241,9 +244,13 @@ function WritingActivityCard({
     .filter(Boolean)
     .join(' · ')
 
+  /* v2.87: kartu aktivitas kini MotionCard — masuk saat terlihat +
+     hover halus (motion.dev). */
   return (
-    <section
+    <MotionCard
+      as="section"
       aria-label="Aktivitas menulis"
+      visitKey="jurnal-aktivitas"
       className="rounded-lg border border-border bg-surface-primary p-4"
     >
       {/* Dilipat secara default (audit UX density v2.37, P1): pemicu
@@ -606,7 +613,7 @@ function WritingActivityCard({
           )}
         </CollapsibleContent>
       </Collapsible>
-    </section>
+    </MotionCard>
   )
 }
 
@@ -729,13 +736,15 @@ export default function JournalScreen() {
   const playEntrance = useFirstVisit('journal-writing')
 
   return (
-    <div
+    <SmoothScrollArea
       data-module="journal"
       data-layout="writing-room"
       /* v2.33 Writing Room: lebar kanvas mengikuti token layout grammar
          (--layout-content-max, 720px — v2.35), ritme antar-blok memakai
-         token layout-gap (bukan mt-4 ad-hoc). */
-      className="mx-auto h-full w-full max-w-[var(--layout-content-max)] overflow-y-auto no-scrollbar overscroll-contain px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary [&>*+*]:mt-[var(--layout-gap)]"
+         token layout-gap (bukan mt-4 ad-hoc).
+         v2.87: gulir halus Lenis per-wadah + ScrollTrigger. */
+      className="mx-auto w-full max-w-[var(--layout-content-max)] overscroll-contain"
+      contentClassName="px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary [&>*+*]:mt-[var(--layout-gap)]"
     >
       {/* Judul layar untuk pembaca layar — satu-satunya layar tanpa h1;
          kepala editorial visual tetap dipimpin RutinaSectionHeader. */}
@@ -751,6 +760,8 @@ export default function JournalScreen() {
           title="Jurnal"
           description={summary}
           accent
+          reveal
+          visitKey="jurnal-title"
         />
       </m.header>
 
@@ -1101,7 +1112,7 @@ export default function JournalScreen() {
           </>
         )}
       </section>
-    </div>
+    </SmoothScrollArea>
   )
 }
 
