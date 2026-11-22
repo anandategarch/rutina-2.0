@@ -2840,8 +2840,11 @@ export default function KeuanganScreen() {
     () => goals.reduce((a, g) => a + g.target, 0),
     [goals],
   )
-  /* Mutasi dikelompokkan per hari — ringkasan arus kas harian. */
-  const dayGroups = useMemo(() => groupByDay(txs), [txs])
+  /* v2.85 (audit P2): memo dayGroups dipensiunkan — daftar ponsel kini
+     mengelompokkan sendiri hasilnya, meja kerja desktop menghitung
+     internal; pengelompokan penuh hanya demi uji kekosongan adalah
+     beban mati (groupByDay mengurutkan + mereduksi seluruh txs).
+     Kekosongan cukup diuji dari txs langsung. */
   const transfers = useMemo(
     () => txs.filter((t) => t.type === 'transfer'),
     [txs],
@@ -3613,7 +3616,7 @@ export default function KeuanganScreen() {
               }
             />
 
-            {dayGroups.length === 0 ? (
+            {txs.length === 0 ? (
               <RutinaEmptyState
                 className="mt-3"
                 icon={<Wallet />}
@@ -3948,8 +3951,13 @@ function MutasiPhoneList({
     [txs, filter, q, cutoff, catMeta],
   )
   const groups = useMemo(() => groupByDay(filtered), [filtered])
+  /* v2.85 (audit P2): lencana dihitung per tombol — Cari membawa jumlah
+     kata kunci aktif, Filter membawa jumlah saringan jenis arus +
+     tanggal; dulu keduanya menyatu di Filter sehingga “Cari” aktif
+     sendirian tetap menyalakan lencana Filter yang menyesatkan. */
+  const searchActive = q ? 1 : 0
   const filterActive =
-    (filter !== 'semua' ? 1 : 0) + (periodDays != null ? 1 : 0) + (q ? 1 : 0)
+    (filter !== 'semua' ? 1 : 0) + (periodDays != null ? 1 : 0)
 
   return (
     <div className={className ?? ''}>
@@ -3966,6 +3974,11 @@ function MutasiPhoneList({
         >
           <Search aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.2} />
           Cari
+          {searchActive > 0 && (
+            <span className="rounded-full bg-primary px-1.5 text-chart-label font-bold tabular-nums text-primary-foreground">
+              {searchActive}
+            </span>
+          )}
         </button>
         <button
           type="button"
@@ -4088,7 +4101,7 @@ function MutasiPhoneList({
 
       {/* Status hasil — hanya saat ada pencarian/filter aktif, dengan
           reset satu ketukan. */}
-      {filterActive > 0 && (
+      {(searchActive > 0 || filterActive > 0) && (
         <p className="mt-2.5 flex flex-wrap items-center gap-x-2 px-0.5 text-eyebrow font-medium tabular-nums text-content-muted">
           {filtered.length} transaksi cocok
           <button

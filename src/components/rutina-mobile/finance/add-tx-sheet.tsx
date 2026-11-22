@@ -68,6 +68,10 @@ export function AddTxSheet() {
   const updateTx = useRutina((s) => s.updateTx)
   const wallets = useRutina((s) => s.wallets)
   const customCats = useRutina((s) => s.customCats)
+  /* v2.85 (audit P2): kategori tersembunyi tidak boleh menjadi default —
+     pemilih mengeluarkannya dari semua daftar; default yang tak bisa
+     dipilih/dilihat di pemilih adalah jebakan senyap. */
+  const hiddenCats = useRutina((s) => s.hiddenCats)
 
   /* Transaksi yang sedang disunting (v2.22) — null = mode tambah. */
   const editing = txEditId ? (txs.find((t) => t.id === txEditId) ?? null) : null
@@ -101,12 +105,18 @@ export function AddTxSheet() {
   /* v2.82 (audit UX §A): DEFAULT CERDAS — kategori terakhir yang dipakai
      untuk jenis arus ini & dompet terakhir dipakai; tanpa histori jatuh
      ke kategori utama (Makan & Minum / Gaji) & dompet pertama. Pengguna
-     rutin tak perlu memilih ulang tiap kali mencatat. */
+     rutin tak perlu memilih ulang tiap kali mencatat.
+     v2.85: kandidat & fallback melewati saringan kategori tersembunyi
+     (senada dengan pemilih kategori — allCatsOf mengeluarkannya). */
   const lastCatOf = (t: TxType) => {
     const recent = [...txs].sort((a, b) =>
       a.ts === b.ts ? b.id.localeCompare(a.id) : a.ts < b.ts ? 1 : -1,
     )
-    return recent.find((tx) => tx.type === t)?.cat ?? PRIMARY_CATS_BY_TYPE[t][0]
+    return (
+      recent.find((tx) => tx.type === t && !hiddenCats.includes(tx.cat))?.cat ??
+      PRIMARY_CATS_BY_TYPE[t].find((c) => !hiddenCats.includes(c)) ??
+      PRIMARY_CATS_BY_TYPE[t][0]
+    )
   }
   const lastWalletId = () => {
     const recent = [...txs].sort((a, b) =>
