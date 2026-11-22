@@ -63,5 +63,7 @@ tool-results/
 
 # kredensial Vercel untuk salin-tempel manual (jangan commit)
 vercel-env.txt
+# catatan lokal nilai NEXT_PUBLIC_SYNC_TOKEN produksi (terpasang via API v2.64)
+.sync-token-record.txt
 upload/
 .zscripts/
