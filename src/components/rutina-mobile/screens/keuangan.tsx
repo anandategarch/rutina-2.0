@@ -27,6 +27,7 @@ import {
   ScrollText,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -2604,6 +2605,11 @@ export default function KeuanganScreen() {
   /* Dompet yang sedang dibedah (v2.60, audit Tahap 2) — akordeon SATU
      terbuka: daftar dompet ringkas, detail hanya untuk yang terpilih. */
   const [expandedWalletId, setExpandedWalletId] = useState<string | null>(null)
+  /* v2.80 (audit UX §D): pagar tab Anggaran — tiga baris teratas dulu,
+     sisanya di balik "Lihat semua anggaran"; kategori yang belum
+     dianggarkan ditawarkan lewat tombol Tambah anggaran. */
+  const [showAllBudgetRows, setShowAllBudgetRows] = useState(false)
+  const [showAddBudget, setShowAddBudget] = useState(false)
   const setBudget = useRutina((s) => s.setBudget)
 
   /* Tab & periode grafik di uiPrefs — bertahan saat berpindah layar.
@@ -2799,17 +2805,32 @@ export default function KeuanganScreen() {
     const diff = rawTotalPct - idealPct
     return { elapsed, dim, idealPct, daysLeft, remainingTotal, overTotal, daily, diff }
   }, [totalLimit, spentTotal, rawTotalPct])
+  /* Baris anggaran diurut persentase penggunaan tertinggi (v2.80) —
+     dipakai Ringkasan (3 teratas) dan tab Anggaran (pagar Lihat semua). */
+  const sortedBudgetRows = useMemo(
+    () =>
+      [...budgetRows].sort(
+        (a, b) =>
+          (spent[b.cat] ?? 0) / Math.max(1, b.limit) -
+          (spent[a.cat] ?? 0) / Math.max(1, a.limit),
+      ),
+    [budgetRows, spent],
+  )
   /* Ringkasan anggaran di Beranda: tiga kategori paling terbebani. */
   const topBudgets = useMemo(
+    () => sortedBudgetRows.slice(0, 3),
+    [sortedBudgetRows],
+  )
+  /* Kategori yang belum dianggarkan (v2.80) — bawaan + buatan
+     pengguna (v2.17), kategori tersembunyi tidak ditawarkan (K15);
+     hidup di balik tombol "Tambah anggaran", bukan chip permanen. */
+  const unbudgetedCats = useMemo(
     () =>
-      [...budgetRows]
-        .sort(
-          (a, b) =>
-            (spent[b.cat] ?? 0) / Math.max(1, b.limit) -
-            (spent[a.cat] ?? 0) / Math.max(1, a.limit),
-        )
-        .slice(0, 3),
-    [budgetRows, spent],
+      [
+        ...BUDGETABLE_CATS,
+        ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id),
+      ].filter((c) => !(c in budgets) && !hiddenCats.includes(c)),
+    [customCats, budgets, hiddenCats],
   )
   const totalSaved = useMemo(
     () => goals.reduce((a, g) => a + g.saved, 0),
@@ -3114,21 +3135,46 @@ export default function KeuanganScreen() {
         </BlurFade>
         </div>
 
-        {/* ===== LAPISAN 2 (baris penuh) — ARUS KAS: periode + grafik ===== */}
+        {/* ===== LAPISAN 2 (baris penuh) — ARUS KAS (v2.80, audit UX §D):
+              grafik kini BAGIAN TAMBAHAN yang dibuka — Ringkasan
+              menonjolkan saldo, jatah, aktivitas terbaru, anggaran, dan
+              tujuan; arus kas dibuka satu ketukan, net periode terbaca
+              di pemicu. ===== */}
         <div className="@[52rem]:col-span-12">
-        <BlurFade
-          visitKey="keuangan-arus-kas"
-          delay={motionTokens.delay.step}
-          className="rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5"
-        >
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-section font-semibold tracking-tight text-content-secondary">
-              Arus Kas
-            </h2>
-            <span className="text-eyebrow font-medium tabular-nums text-content-muted">
-              {period === 'semua' ? 'Semua waktu' : periodScope(period, txs)}
-            </span>
-          </div>
+        <BlurFade visitKey="keuangan-arus-kas" delay={motionTokens.delay.step}>
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Arus kas ${period === 'semua' ? 'semua waktu' : periodScope(period, txs)} — net ${
+                  net > 0 ? 'plus' : net < 0 ? 'minus' : 'nol'
+                } ${formatIDRShort(Math.abs(net))}. Buka untuk grafik dan rincian periode`}
+                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                >
+                  <TrendingUp aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Arus Kas
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                    {`${period === 'semua' ? 'Semua waktu' : periodScope(period, txs)} · net ${
+                      net > 0 ? '+' : net < 0 ? '−' : ''
+                    }${formatIDRShort(Math.abs(net))}`}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+          <div className="mt-3 rounded-2xl border border-border bg-surface-primary p-4 shadow-soft sm:p-5">
 
           {/* Kontrol periode — segmented control Radix (papan tombal penuh) */}
           <RutinaTabs value={period} onValueChange={changePeriod}>
@@ -3273,6 +3319,9 @@ export default function KeuanganScreen() {
               </div>
             </div>
           </div>
+          </div>
+            </CollapsibleContent>
+          </Collapsible>
         </BlurFade>
 
         </div>
@@ -3586,7 +3635,7 @@ export default function KeuanganScreen() {
                 {/* Ponsel/tablet — daftar terkelompok per hari dengan anggar
                     render (audit v2.16 T5-c #4): 14 hari pertama + muat lagi,
                     selaras budget ledger desktop (MutasiWorkspace). */}
-                <MutasiPhoneList className="mt-3 @[52rem]:hidden" dayGroups={dayGroups} />
+                <MutasiPhoneList className="mt-3 @[52rem]:hidden" txs={txs} />
               </>
             )}
           </BlurFade>
@@ -3666,46 +3715,74 @@ export default function KeuanganScreen() {
                     playEntrance={firstBudgetTotal}
                   />
 
-                  {/* Baris per kategori — batas dapat disunting.
-                      v2.36 (audit visualisasi): diurutkan berdasarkan
-                      persentase penggunaan TERTINGGI — kategori yang paling
-                      dekat/melewati batas dibaca lebih dulu, bukan urutan
-                      penambahan. */}
+                  {/* Baris per kategori (v2.80, audit UX §D) — TIGA
+                      kategori paling terbebani dulu; sisanya di balik
+                      "Lihat semua anggaran". Urutan tetap persentase
+                      penggunaan TERTINGGI (v2.36): yang paling dekat /
+                      melewati batas dibaca lebih dulu. */}
                   <div className="mt-4 space-y-4">
-                    {[...budgetRows]
-                      .sort(
-                        (a, b) =>
-                          (spent[b.cat] ?? 0) / Math.max(1, b.limit) -
-                          (spent[a.cat] ?? 0) / Math.max(1, a.limit),
-                      )
-                      .map((b) => (
-                        <BudgetRow key={b.cat} {...budgetRowProps(b, spent)} />
-                      ))}
+                    {(showAllBudgetRows
+                      ? sortedBudgetRows
+                      : sortedBudgetRows.slice(0, 3)
+                    ).map((b) => (
+                      <BudgetRow key={b.cat} {...budgetRowProps(b, spent)} />
+                    ))}
                   </div>
+                  {sortedBudgetRows.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllBudgetRows((v) => !v)}
+                      aria-expanded={showAllBudgetRows}
+                      className="mt-4 h-9 w-full cursor-pointer rounded-full bg-surface-sunken text-meta font-semibold text-content-secondary transition-all hover:bg-surface-secondary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      {showAllBudgetRows
+                        ? 'Tampilkan ringkas'
+                        : `Lihat semua anggaran (${sortedBudgetRows.length})`}
+                    </button>
+                  )}
                 </>
               )}
 
-              {/* Tambah kategori yang belum dianggarkan — bawaan +
-                  kategori buatan pengguna, satu sistem (v2.17). v2.45
-                  (audit K15): kategori tersembunyi tidak ditawarkan. */}
-              {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id)]
-                .filter((c) => !(c in budgets) && !hiddenCats.includes(c)).length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2 pt-1">
-                  {[...BUDGETABLE_CATS, ...customCats.filter((cc) => cc.type === 'keluar').map((cc) => cc.id)]
-                    .filter((c) => !(c in budgets) && !hiddenCats.includes(c)).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => {
-                        setBudget(c, 300_000)
-                        toast(`${catMeta(c).label} ditambahkan — ubah batasnya sesukamu.`)
-                      }}
-                      className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 text-meta font-semibold text-content-muted transition-all hover:bg-surface-sunken active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              {/* Tambah kategori yang belum dianggarkan (v2.80, audit
+                  UX §D) — SATU tombol "Tambah anggaran" membuka pilihan
+                  kategori; tidak lagi deret chip dashed permanen.
+                  Bawaan + buatan pengguna satu sistem (v2.17); kategori
+                  tersembunyi tidak ditawarkan (audit K15). */}
+              {unbudgetedCats.length > 0 && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddBudget((v) => !v)}
+                    aria-expanded={showAddBudget}
+                    aria-controls="pilihan-kategori-anggaran"
+                    className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-dashed border-border-strong text-meta font-semibold text-content-muted transition-all hover:border-primary/40 hover:text-content-primary active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    {showAddBudget
+                      ? 'Sembunyikan pilihan kategori'
+                      : `Tambah anggaran · ${unbudgetedCats.length} kategori tersedia`}
+                  </button>
+                  {showAddBudget && (
+                    <div
+                      id="pilihan-kategori-anggaran"
+                      className="mt-2 flex flex-wrap gap-2"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      {catMeta(c).label}
-                    </button>
-                  ))}
+                      {unbudgetedCats.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setBudget(c, 300_000)
+                            toast(`${catMeta(c).label} ditambahkan — ubah batasnya sesukamu.`)
+                          }}
+                          className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 text-meta font-semibold text-content-muted transition-all hover:bg-surface-sunken active:scale-[0.96] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          {catMeta(c).label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -3830,57 +3907,251 @@ export default function KeuanganScreen() {
   )
 }
 
-/* ===== Daftar mutasi ponsel — anggar render (audit v2.16 T5-c #4) =====
-   Desktop sudah punya budget ledger (MutasiWorkspace, 60 baris awal);
-   ponsel sebelumnya me-mount SEMUA TxRow sekaligus. Tampilkan 14 hari
-   pertama + tombol "Muat lagi" — jumlah baris terpasang kini konstan. */
+/* ===== Daftar mutasi ponsel (v2.80, audit UX §D) — anggar render tetap
+   (audit v2.16 T5-c #4: 14 hari pertama + muat lagi, selaras budget
+   ledger desktop) dan kini sederajat dengan meja kerja desktop:
+   SATU tombol Cari dan SATU tombol Filter di atas daftar
+   (bukan empat filter terpasang permanen). Filter jenis arus berbagi
+   uiPrefs.mutasiFilter dengan MutasiWorkspace — satu preferensi, dua
+   permukaan. Pencarian & periode sesaat (wajar di-reset tiap kunjungan). */
 function MutasiPhoneList({
   className,
-  dayGroups,
+  txs,
 }: {
   className?: string
-  dayGroups: ReturnType<typeof groupByDay>
+  txs: Tx[]
 }) {
   const PAGE = 14
   const [limit, setLimit] = useState(PAGE)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [periodDays, setPeriodDays] = useState<7 | 30 | null>(null)
+  const catMeta = useCatMeta()
+  const filter = useRutina((s) => s.uiPrefs.mutasiFilter)
+  const setFilterPref = useRutina((s) => s.setUiPref)
+  const today = todayISO()
+
+  const q = query.trim().toLowerCase()
+  const cutoff = periodDays == null ? null : addDaysISO(today, -periodDays + 1)
+  const filtered = useMemo(
+    () =>
+      txs.filter((t) => {
+        if (filter !== 'semua' && t.type !== filter) return false
+        if (cutoff && t.ts < cutoff) return false
+        if (!q) return true
+        return (
+          t.note.toLowerCase().includes(q) ||
+          catMeta(t.cat).label.toLowerCase().includes(q)
+        )
+      }),
+    [txs, filter, q, cutoff, catMeta],
+  )
+  const groups = useMemo(() => groupByDay(filtered), [filtered])
+  const filterActive =
+    (filter !== 'semua' ? 1 : 0) + (periodDays != null ? 1 : 0) + (q ? 1 : 0)
+
   return (
     <div className={className ?? ''}>
-      {dayGroups.slice(0, limit).map((g) => (
-        <div key={g.date} className="[&+&]:mt-5">
-          <div className="mb-2 flex items-center justify-between px-0.5">
-            <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
-              {fmtDate(g.date)}
-            </p>
-            <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
-              {g.masuk > 0 && (
-                <span className="text-success">
-                  +{formatIDRShort(g.masuk)}{' '}
-                </span>
-              )}
-              {g.keluar > 0 && (
-                <span className="text-content-danger">
-                  −{formatIDRShort(g.keluar)}
-                </span>
-              )}
-            </p>
-          </div>
-          <div>
-            <AnimatePresence initial={false} mode="popLayout">
-              {g.txs.map((tx) => (
-                <TxRow key={tx.id} tx={tx} flat />
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-      ))}
-      {dayGroups.length > limit && (
+      {/* Toolbar Cari + Filter — satu ketukan untuk membuka, bukan kolom
+          pencarian yang selalu memakan ruang (dan membuka keyboard tanpa
+          diminta). autoFocus hanya saat pengguna MEMINTA pencarian. */}
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setLimit((n) => n + PAGE)}
-          className="mt-5 flex h-11 w-full cursor-pointer items-center justify-center rounded-2xl border border-dashed border-border-strong text-note font-semibold text-content-secondary transition-colors hover:bg-surface-sunken active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          onClick={() => setSearchOpen((v) => !v)}
+          aria-expanded={searchOpen}
+          aria-controls="mutasi-cari"
+          className="interactive flex h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary px-4 text-meta font-bold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          Muat lagi — sisa {dayGroups.length - limit} hari
+          <Search aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.2} />
+          Cari
         </button>
+        <button
+          type="button"
+          onClick={() => setFilterOpen((v) => !v)}
+          aria-expanded={filterOpen}
+          aria-controls="mutasi-filter"
+          className="interactive flex h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-surface-primary px-4 text-meta font-bold text-content-secondary shadow-soft transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <SlidersHorizontal
+            aria-hidden="true"
+            className="h-3.5 w-3.5"
+            strokeWidth={2.2}
+          />
+          Filter
+          {filterActive > 0 && (
+            <span className="rounded-full bg-primary px-1.5 text-chart-label font-bold tabular-nums text-primary-foreground">
+              {filterActive}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {searchOpen && (
+        <div className="relative mt-2.5" id="mutasi-cari">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted"
+          />
+          <Input
+            type="search"
+            value={query}
+            /* Pengguna mengetuk "Cari" — keyboard DIPERINTAHKAN di sini. */
+            autoFocus
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari catatan atau kategori…"
+            aria-label="Cari transaksi"
+            className="h-11 rounded-full border-border bg-surface-primary pl-10 pr-10 text-note shadow-soft placeholder:text-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Hapus pencarian"
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-content-muted transition-colors hover:bg-surface-sunken hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <X aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {filterOpen && (
+        <div
+          id="mutasi-filter"
+          role="group"
+          aria-label="Filter mutasi"
+          className="mt-2.5 space-y-3 rounded-2xl border border-border bg-surface-primary p-3.5 shadow-soft"
+        >
+          <div>
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+              Jenis arus
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(
+                [
+                  ['semua', 'Semua'],
+                  ['masuk', 'Masuk'],
+                  ['keluar', 'Keluar'],
+                  ['transfer', 'Transfer'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={filter === id}
+                  onClick={() =>
+                    setFilterPref({ mutasiFilter: id })
+                  }
+                  className={`interactive h-9 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    filter === id
+                      ? 'bg-primary text-primary-foreground shadow-soft'
+                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-surface-secondary hover:text-content-primary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+              Tanggal
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(
+                [
+                  [7, '7 hari'],
+                  [30, '30 hari'],
+                  [null, 'Semua waktu'],
+                ] as const
+              ).map(([days, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={periodDays === days}
+                  onClick={() => setPeriodDays(days)}
+                  className={`interactive h-9 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    periodDays === days
+                      ? 'bg-primary text-primary-foreground shadow-soft'
+                      : 'border border-border bg-surface-primary text-content-secondary hover:bg-surface-secondary hover:text-content-primary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status hasil — hanya saat ada pencarian/filter aktif, dengan
+          reset satu ketukan. */}
+      {filterActive > 0 && (
+        <p className="mt-2.5 flex flex-wrap items-center gap-x-2 px-0.5 text-eyebrow font-medium tabular-nums text-content-muted">
+          {filtered.length} transaksi cocok
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              setPeriodDays(null)
+              setFilterPref({ mutasiFilter: 'semua' })
+            }}
+            className="cursor-pointer font-bold text-module-accent-strong underline-offset-2 transition-colors hover:text-content-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Atur ulang
+          </button>
+        </p>
+      )}
+
+      {groups.length === 0 ? (
+        <RutinaEmptyState
+          className="mt-3"
+          icon={<Search className="h-6 w-6" />}
+          title="Tidak ada transaksi cocok"
+          description="Coba lepaskan sebagian filter, atau ganti kata kunci pencarianmu."
+        />
+      ) : (
+        <>
+          {groups.slice(0, limit).map((g) => (
+            <div key={g.date} className="[&+&]:mt-5">
+              <div className="mb-2 flex items-center justify-between px-0.5">
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.12em] text-content-muted">
+                  {fmtDate(g.date)}
+                </p>
+                <p className="text-eyebrow font-semibold tabular-nums text-content-muted">
+                  {g.masuk > 0 && (
+                    <span className="text-success">
+                      +{formatIDRShort(g.masuk)}{' '}
+                    </span>
+                  )}
+                  {g.keluar > 0 && (
+                    <span className="text-content-danger">
+                      −{formatIDRShort(g.keluar)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <AnimatePresence initial={false} mode="popLayout">
+                  {g.txs.map((tx) => (
+                    <TxRow key={tx.id} tx={tx} flat />
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          ))}
+          {groups.length > limit && (
+            <button
+              type="button"
+              onClick={() => setLimit((n) => n + PAGE)}
+              className="mt-5 flex h-11 w-full cursor-pointer items-center justify-center rounded-2xl border border-dashed border-border-strong text-note font-semibold text-content-secondary transition-colors hover:bg-surface-sunken active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Muat lagi — sisa {groups.length - limit} hari
+            </button>
+          )}
+        </>
       )}
     </div>
   )
