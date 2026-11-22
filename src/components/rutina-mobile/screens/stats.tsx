@@ -8,6 +8,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Award,
+  BarChart3,
   BatteryLow,
   CalendarCheck,
   CalendarDays,
@@ -1050,12 +1051,12 @@ export default function StatsScreen() {
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10 border-2 border-cocoa/40">
                 <AvatarFallback className="bg-cocoa text-eyebrow font-semibold tracking-widest text-parchment">
-                  AN
+                  PR
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-section font-semibold tracking-tight text-hero-content">
-                  Ananda
+                  Petualang Rutina
                 </p>
                 <p className="text-eyebrow font-medium text-hero-content-muted">
                   Petualang Konsisten
@@ -1942,8 +1943,46 @@ export default function StatsScreen() {
           </RutinaBentoGrid>
 
 
-          {/* Misi selesai — panel fokus periode + instrumen grafik.
-              Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
+          {/* Misi selesai (v2.79, audit UX §F) — grafik tambahan kini
+              dibuka sendiri: pandangan Wawasan menonjolkan temuan;
+              instrumen grafik misi (fokus periode + batang) hidup di
+              balik SATU ketukan dengan ringkasan di pemicu. Data &
+              perhitungan tak berubah. */}
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Grafik misi selesai — ${chartTotal} misi ${period === 'pekan' ? 'tujuh hari terakhir' : 'empat pekan terakhir'}. Buka untuk detail`}
+                className="interactive group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-primary p-3.5 text-left shadow-soft transition-colors hover:bg-surface-sunken/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-content-secondary"
+                >
+                  <BarChart3
+                    aria-hidden="true"
+                    className="h-[18px] w-[18px]"
+                    strokeWidth={2}
+                  />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-body font-semibold text-content-primary">
+                    Grafik Misi Selesai
+                  </span>
+                  <span className="mt-0.5 block text-meta font-medium tabular-nums text-content-muted">
+                    {`${chartTotal} misi · ${
+                      period === 'pekan' ? '7 hari terakhir' : '4 pekan terakhir'
+                    }`}
+                  </span>
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-content-muted transition-transform duration-300 group-data-[state=open]:rotate-180"
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+          {/* Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
               periode, total, dan ringkasan; kartu grafik murni batang. */}
           <RutinaBentoGrid>
           <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4">
@@ -2198,6 +2237,8 @@ export default function StatsScreen() {
             </m.section>
           </RutinaBentoItem>
         </RutinaBentoGrid>
+            </CollapsibleContent>
+          </Collapsible>
 
 
           {/* ===== Pekan Ini vs Pekan Lalu — pembanding penuh (audit #12),

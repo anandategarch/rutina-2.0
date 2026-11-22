@@ -663,7 +663,7 @@ export default function ProfileScreen() {
             <HoverCardTrigger asChild>
               <Avatar className="h-16 w-16 border-4 border-hero-surface shadow-card ring-2 ring-hero-accent/40">
                 <AvatarFallback className="bg-cocoa text-lead font-bold text-parchment">
-                  AN
+                  PR
                 </AvatarFallback>
               </Avatar>
             </HoverCardTrigger>
@@ -680,17 +680,17 @@ export default function ProfileScreen() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-note font-semibold leading-tight text-content-primary">
-                    Ananda
+                    Pengguna Rutina
                   </p>
                   <p className="mt-0.5 text-eyebrow font-medium leading-snug text-content-muted">
-                    Pengguna Rutina
+                    Profil pribadi Rutina
                   </p>
                 </div>
               </div>
             </HoverCardContent>
           </HoverCard>
           <h2 className="mt-3 text-lead font-bold tracking-tight text-hero-content">
-            Ananda
+            Pengguna Rutina
           </h2>
           <p className="mt-0.5 text-meta font-medium text-hero-content-muted">
             Profil pribadi · tersinkron cloud
