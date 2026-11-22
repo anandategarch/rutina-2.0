@@ -2,6 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    /* v2.76 (audit PWA P3): id — identitas stabil aplikasi terpasang.
+       Tanpa ini, PWA diidentifikasi dari start_url; perubahan kecil pada
+       URL bisa membuat sistem memperlakukan instalasi lama & baru sebagai
+       dua aplikasi berbeda (duplikat ikon, data terpisah). */
+    id: "/",
     name: "Rutina — Kebun Kebiasaan",
     short_name: "Rutina",
     description:
