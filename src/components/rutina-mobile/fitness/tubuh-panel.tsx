@@ -278,7 +278,7 @@ function WeightWindowPicker({
           type="button"
           aria-pressed={win === id}
           onClick={() => setWin(id)}
-          className={`interactive h-7 flex-1 cursor-pointer rounded-full px-2.5 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          className={`interactive h-10 flex-1 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
             win === id
               ? 'bg-primary text-primary-foreground'
               : 'text-content-secondary hover:text-content-primary'
@@ -511,7 +511,7 @@ function BodyHistory({
                   setMetric(id)
                   setSel(null)
                 }}
-                className={`interactive h-9 shrink-0 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                className={`interactive h-10 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   metric === id
                     ? 'bg-primary text-primary-foreground'
                     : 'text-content-secondary hover:text-content-primary'

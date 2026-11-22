@@ -2357,7 +2357,7 @@ export default function BugarScreen() {
                     type="button"
                     aria-pressed={histView === id}
                     onClick={() => setHistView(id)}
-                    className={`interactive h-9 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    className={`interactive h-10 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       histView === id
                         ? 'bg-primary text-primary-foreground'
                         : 'text-content-secondary hover:text-content-primary'

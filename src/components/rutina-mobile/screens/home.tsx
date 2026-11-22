@@ -339,7 +339,7 @@ function DateStrip() {
             <button
               type="button"
               onClick={() => setSelectedDate(today)}
-              className="interactive h-9 shrink-0 cursor-pointer rounded-full bg-surface-primary px-3 text-chart-label font-bold text-module-accent-strong shadow-soft transition-colors hover:bg-module-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive h-9 shrink-0 cursor-pointer rounded-full bg-surface-primary px-3.5 text-meta font-bold text-module-accent-strong shadow-soft transition-colors hover:bg-module-accent/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Kembali ke hari ini
             </button>

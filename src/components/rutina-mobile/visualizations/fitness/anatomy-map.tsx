@@ -615,7 +615,7 @@ export function AnatomyMap({
               aria-label={`${s.group}: ${s.sets} set`}
               onClick={() => toggle(s.group)}
               className={
-                'interactive flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-chart-label font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
+                'interactive flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-module-accent-strong ' +
                 (on
                   ? 'border-transparent bg-module-accent-strong text-content-inverse'
                   : s.sets > 0

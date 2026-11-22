@@ -1159,7 +1159,7 @@ export default function StatsScreen() {
                     block: 'start',
                   })
               }}
-              className="interactive flex h-9 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-2 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
+              className="interactive flex h-10 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-primary px-3 text-center text-meta font-semibold text-content-secondary shadow-soft transition-colors hover:border-module-accent/40 hover:text-module-accent-strong"
             >
               {s.label}
             </button>
@@ -1212,7 +1212,7 @@ export default function StatsScreen() {
                   type="button"
                   aria-pressed={vizMode === id}
                   onClick={() => setVizMode(id)}
-                  className={`interactive h-9 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`interactive h-10 cursor-pointer rounded-full px-3.5 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     vizMode === id
                       ? 'bg-primary text-primary-foreground'
                       : 'text-content-secondary hover:text-content-primary'

@@ -1595,7 +1595,7 @@ export default function KebiasaanScreen() {
                     }
                     aria-current={isActive ? 'location' : undefined}
                     className={
-                      'interactive h-8 cursor-pointer rounded-full px-3.5 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                      'interactive h-10 cursor-pointer rounded-full px-3.5 text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
                       (isActive
                         ? 'bg-module-accent/15 text-module-accent-strong'
                         : 'text-content-muted hover:text-content-primary')
@@ -2161,7 +2161,7 @@ export default function KebiasaanScreen() {
                                 ? 'Tertaut aktivitas Bugar'
                                 : 'Semua kebiasaan aktif'
                       }
-                      className={`interactive h-8 cursor-pointer rounded-full px-3 text-chart-label font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                      className={`interactive h-9 cursor-pointer rounded-full px-3 text-meta font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         libFilter === id
                           ? 'bg-primary text-primary-foreground shadow-soft'
                           : 'border border-border bg-surface-primary text-content-secondary hover:bg-surface-secondary hover:text-content-primary'

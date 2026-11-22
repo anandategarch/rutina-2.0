@@ -218,7 +218,7 @@ export function CashflowRiver({
                   aria-label={`${p.label}: masuk ${p.masuk.toLocaleString(
                     'id-ID',
                   )}, keluar ${p.keluar.toLocaleString('id-ID')}`}
-                  className={`group relative flex min-w-[26px] flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`group relative flex min-w-[32px] flex-1 cursor-pointer flex-col items-center justify-end rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     isOn
                       ? ''
                       : 'transition-colors duration-200 hover:bg-surface-sunken/70'

@@ -34,7 +34,7 @@ import type { PeriodPoint } from './utils'
 const TRACK_H = 118 // ruang tumbuh batang (px)
 const LABEL_H = 24 // baris label di bawah
 const BAR_MIN = 5
-const MODE_H = 42 // baris pemilih mode di atas grafik (tombol h-9 + p-0.5 + tepi)
+const MODE_H = 46 // baris pemilih mode di atas grafik (tombol h-10 + p-0.5 + tepi)
 
 /* Easing standar — dari motionTokens (governance: tanpa kurva bebas). */
 const EASE = motionTokens.easing.standard
@@ -157,7 +157,7 @@ export function FinChart({
             type="button"
             aria-pressed={mode === id}
             onClick={() => setMode(id)}
-            className={`interactive h-9 flex-1 cursor-pointer rounded-full px-1.5 text-chart-label font-bold whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            className={`interactive h-10 flex-1 cursor-pointer rounded-full px-2 text-meta font-bold whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               mode === id
                 ? 'bg-primary text-primary-foreground'
                 : 'text-content-secondary hover:text-content-primary'

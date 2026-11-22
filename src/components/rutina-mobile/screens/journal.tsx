@@ -377,9 +377,10 @@ function WritingActivityCard({
                   }
                   onClick={() => onPickDay(isSel ? null : iso)}
                   className={
-                    /* Audit v2.47 (3-d): h-8 (32px) → h-9 (36px) — target
-                        sentuh sel kalender; kisi 7 kolom tak berubah lebar. */
-                    'interactive h-9 w-full cursor-pointer rounded-[5px] text-chart-label font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
+                    /* Audit v2.47 (3-d) & v2.66: h-9 (36px) target sentuh
+                        sel kalender + label kini text-meta (12px, bukan
+                        10px) — kontrol interaktif minimal 12px. */
+                    'interactive h-9 w-full cursor-pointer rounded-[5px] text-meta font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary ' +
                     (isSel
                       ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface-primary '
                       : iso === today
@@ -578,7 +579,7 @@ function WritingActivityCard({
             <button
               type="button"
               onClick={() => onPickDay(null)}
-              className="interactive mt-3 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive mt-3 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3.5 text-meta font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Filter aktif: {noteDateLabel({ id: 'x', date: dayFilter } as Note, today)}
               <span aria-hidden="true">✕</span>
@@ -592,7 +593,7 @@ function WritingActivityCard({
             <button
               type="button"
               onClick={() => onPickWeek(null)}
-              className="interactive mt-3 ml-2 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3 text-chart-label font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="interactive mt-3 ml-2 flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-3.5 text-meta font-semibold text-content-secondary hover:bg-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Filter pekan: {shortDateLabel(weekFilter)}–
               {shortDateLabel(addDaysISO(weekFilter, 6))} ·{' '}
@@ -880,7 +881,7 @@ export default function JournalScreen() {
                   aria-pressed={active}
                   onClick={() => setMoodFilter(active ? null : mood)}
                   className={
-                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3 text-chart-label font-bold ' +
+                    'interactive h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-meta font-bold ' +
                     (active
                       ? 'border border-module-accent/35 bg-module-accent/15 text-module-accent-strong'
                       : 'border border-border bg-surface-primary text-content-secondary hover:bg-secondary')
@@ -901,7 +902,7 @@ export default function JournalScreen() {
               <button
                 type="button"
                 onClick={() => setMoodFilter(null)}
-                className="interactive h-9 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3 text-chart-label font-bold text-content-muted hover:bg-secondary"
+                className="interactive h-9 shrink-0 cursor-pointer rounded-full border border-border bg-surface-primary px-3.5 text-meta font-bold text-content-muted hover:bg-secondary"
               >
                 Hapus saringan
               </button>
