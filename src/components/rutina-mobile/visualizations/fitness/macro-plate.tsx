@@ -236,7 +236,7 @@ export function MacroPlate({
                 {fmt(a.grams)} g
               </p>
             </div>
-            <p className="mt-0.5 text-chart-label tabular-nums text-module-accent-fg/75">
+            <p className="mt-0.5 text-chart-label tabular-nums text-module-accent-fg/85">
               {pctOf[a.key]}% dari energi makro
               {a.target > 0 ? ` · sasaran ${fmt(a.target)} g` : ''}
             </p>

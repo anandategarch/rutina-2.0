@@ -174,6 +174,27 @@ export function buildSeries(txs: Tx[], period: FinPeriod): PeriodPoint[] {
   return pts
 }
 
+/** Saring transaksi ke jendela periode berjalan — Sen..Min (minggu),
+    1..akhir bulan (bulan), atau 1 Jan..akhir tahun berjalan (tahun).
+    Jendela sama persis dengan yang dipakai buildSeries sehingga daftar
+    & grafik selalu bicara tentang rentang yang sama.
+    (Dipulihkan v2.65: sapuan dead-code v2.63 sempat menghapus fungsi
+    ini padahal tes calc-finance masih mengujinya — tes gagal total.) */
+export function filterByPeriod(txs: Tx[], period: FinPeriod): Tx[] {
+  if (period === 'minggu') {
+    const w = currentWeek()
+    return txs.filter((t) => inRange(t.ts, w))
+  }
+  if (period === 'bulan') {
+    const m = currentMonth()
+    return txs.filter((t) => inRange(t.ts, m))
+  }
+  const y = fromISO(todayISO()).getFullYear()
+  const start = `${y}-01-01`
+  const end = `${y}-12-31`
+  return txs.filter((t) => t.ts >= start && t.ts <= end)
+}
+
 /** Total belanja bulan berjalan per kategori — pemakaian anggaran.
     Transfer dikecualikan (bukan pengeluaran). */
 export function spentByCat(txs: Tx[]): Record<string, number> {
@@ -319,6 +340,12 @@ export function monthFlow(txs: Tx[], ym: string): { masuk: number; keluar: numbe
     else keluar += t.amount
   }
   return { masuk, keluar }
+}
+
+/** Sisi pengeluaran bulan tertentu — kontrak yang diuji tests/calc-finance.
+ *  (Dipulihkan v2.65 — ikut terhapus pada sapuan dead-code v2.63.) */
+export function monthSpend(txs: Tx[], ym: string): number {
+  return monthFlow(txs, ym).keluar
 }
 
 /** Pengeluaran per kategori (keluar, tanpa transfer) pada bulan tertentu. */

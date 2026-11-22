@@ -349,7 +349,7 @@ export function AsupanPanel() {
                   onChange={(e) =>
                     setTargetDraft(e.target.value.replace(/\D/g, '').slice(0, 4))
                   }
-                  className="h-10 flex-1 rounded-xl border-transparent bg-module-accent-fg/15 text-center text-section font-bold tabular-nums text-module-accent-fg placeholder:text-module-accent-fg/50 focus-visible:border-module-accent-fg/40 focus-visible:ring-module-accent-fg/20"
+                  className="h-10 flex-1 rounded-xl border-transparent bg-module-accent-fg/10 text-center text-section font-bold tabular-nums text-module-accent-fg placeholder:text-module-accent-fg/80 focus-visible:border-module-accent-fg/40 focus-visible:ring-module-accent-fg/20"
                 />
                 <button
                   type="button"
@@ -394,13 +394,13 @@ export function AsupanPanel() {
 
         {/* Energi terbakar — baris tambahan neraca v2 */}
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-espresso/35 px-3.5 py-2.5 backdrop-blur-sm">
-          <p className="flex items-center gap-1.5 text-meta font-semibold text-module-accent-fg/90">
+          <p className="flex items-center gap-1.5 text-meta font-semibold text-module-accent-fg">
             <Flame className="h-4 w-4 text-gold" aria-hidden="true" />
             Energi terbakar
           </p>
           <p className="text-note font-bold tabular-nums text-module-accent-fg">
             +<span ref={burnedRef} className="inline-block">{fmt(burned)}</span>
-            <span className="ml-0.5 text-chart-label font-semibold text-module-accent-fg/75">
+            <span className="ml-0.5 text-chart-label font-semibold text-module-accent-fg/85">
               kkal{burnedEstimated && burned > 0 ? ' (taksiran)' : ''}
             </span>
           </p>
@@ -467,7 +467,7 @@ export function AsupanPanel() {
                     fatTarget={fitTargets.fat}
                   />
                   {partial && (
-                    <p className="mt-1.5 text-chart-label leading-relaxed text-module-accent-fg/65">
+                    <p className="mt-1.5 text-chart-label leading-relaxed text-module-accent-fg/85">
                       Komposisi dari {fmt(sum.knownKcal)} dari {fmt(sum.kcal)}{' '}
                       kkal — sebagian makanan belum punya rincian makro.
                     </p>
@@ -502,7 +502,7 @@ export function AsupanPanel() {
                         <p className="text-lead font-bold leading-none tabular-nums">
                           {fmt(r.value)}<span className="text-eyebrow font-semibold"> g</span>
                         </p>
-                        <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/70">
+                        <p className="mt-1 text-chart-label font-semibold uppercase tracking-wide text-module-accent-fg/85">
                           {r.label.toLowerCase()}
                         </p>
                       </div>
@@ -518,7 +518,7 @@ export function AsupanPanel() {
                         </p>
                         <p className="text-note font-bold tabular-nums text-module-accent-fg">
                           {fmt(r.value)}
-                          <span className="text-chart-label font-semibold text-module-accent-fg/60">
+                          <span className="text-chart-label font-semibold text-module-accent-fg/85">
                             {' '}/ {fmt(r.target)} g
                           </span>
                         </p>
@@ -545,7 +545,7 @@ export function AsupanPanel() {
               tidak disimpulkan lengkap bila sebagian makanan tanpa data —
               persentase kkal ber-makro ditampilkan eksplisit. */}
           {todayEntries.length > 0 && sum.kcal > 0 && (
-            <p className="mt-2.5 text-chart-label leading-relaxed text-module-accent-fg/65">
+            <p className="mt-2.5 text-chart-label leading-relaxed text-module-accent-fg/85">
               {sum.knownKcal >= sum.kcal
                 ? 'Seluruh makanan hari ini punya rincian makro.'
                 : `Cakupan makro ${Math.round((sum.knownKcal / sum.kcal) * 100)}% — ${fmt(sum.kcal - sum.knownKcal)} kkal dari makanan tanpa rincian makro.`}
@@ -553,7 +553,7 @@ export function AsupanPanel() {
           )}
         </div>
         {!sum.macroKnown && todayEntries.length > 0 && (
-          <p className="mt-2 text-eyebrow leading-relaxed text-module-accent-fg/70">
+          <p className="mt-2 text-eyebrow leading-relaxed text-module-accent-fg/85">
             Sebagian makanan di master belum punya rincian makro — kalori tetap
             dihitung penuh.
           </p>

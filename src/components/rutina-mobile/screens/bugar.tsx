@@ -1972,7 +1972,7 @@ export default function BugarScreen() {
                   <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
                     {weekSessions}
                   </span>
-                  <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">sesi</span>
+                  <span className="ml-0.5 text-note font-medium text-module-accent-fg/85">sesi</span>
                 </p>
                 <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
                   total sesi
@@ -1986,7 +1986,7 @@ export default function BugarScreen() {
                       : Math.round(week.tonase).toLocaleString('id-ID')}
                   </span>
                   {week.tonase < 1000 && (
-                    <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">kg</span>
+                    <span className="ml-0.5 text-note font-medium text-module-accent-fg/85">kg</span>
                   )}
                 </p>
                 <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
@@ -1998,7 +1998,7 @@ export default function BugarScreen() {
                   <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
                     {week.activeDays}
                   </span>
-                  <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">hari</span>
+                  <span className="ml-0.5 text-note font-medium text-module-accent-fg/85">hari</span>
                 </p>
                 <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
                   hari aktif
@@ -2025,7 +2025,7 @@ export default function BugarScreen() {
                 <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
                   {week.runKm > 0 ? week.runKm.toFixed(1).replace('.', ',') : 0}
                 </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">km</span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/85">km</span>
               </p>
               <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
                 lari &amp; jalan{week.runSessions > 0 ? ` · ${week.runSessions}×` : ''}
@@ -2038,7 +2038,7 @@ export default function BugarScreen() {
                     ? week.badmintonHours.toFixed(1).replace('.', ',')
                     : 0}
                 </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">jam</span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/85">jam</span>
               </p>
               <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
                 badminton{week.badmintonSessions > 0 ? ` · ${week.badmintonSessions}×` : ''}
@@ -2049,7 +2049,7 @@ export default function BugarScreen() {
                 <span className="text-kpi-sm font-semibold leading-none tracking-tight tabular-nums">
                   {week.strengthSessions}
                 </span>
-                <span className="ml-0.5 text-note font-medium text-module-accent-fg/75">sesi</span>
+                <span className="ml-0.5 text-note font-medium text-module-accent-fg/85">sesi</span>
               </p>
               <p className="mt-1 text-eyebrow font-medium leading-snug text-module-accent-fg/80">
                 latihan barbel

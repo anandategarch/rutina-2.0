@@ -167,7 +167,11 @@
   --destructive-foreground: #ffffff;
   --border: var(--border-default);
   --input: var(--border-strong);
-  --ring: var(--palette-matcha);
+  /* Ring fokus (audit kontras v2.65): matcha identitas hanya 2,5–3,0:1
+     di atas permukaan tinted (linen/mist/soft modul) — di bawah ambang
+     non-teks WCAG 1.4.11 (3:1). Matcha-action 3,9–4,6:1 di atas semua
+     permukaan terang produk. Mode gelap pistachio sudah 6,8–7,8:1. */
+  --ring: var(--palette-matcha-action);
 
   /* Grafik — turunan palet earth-tone.
      Color System v2 memisahkan dua peran:
