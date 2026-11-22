@@ -62,22 +62,29 @@ const StatsScreen = dynamic(loadStats, { ssr: false, loading: ScreenSkeleton })
 const ProfileScreen = dynamic(loadProfile, { ssr: false, loading: ScreenSkeleton })
 
 /** Skeleton layar — blok kertas tenang bergaya Rutina (rutina-skeleton),
- *  bentuk mengikuti anatomi umum layar: kepala + hero + deretan bento. */
+ *  bentuk mengikuti anatomi umum layar: kepala + hero + deretan bento.
+ *  v2.67 (audit UX §3): visual tetap aria-hidden, PENGUMUMAN terpisah
+ *  lewat role=status — aria-busy di dalam aria-hidden diabaikan pembaca
+ *  layar, sehingga pemuatan layar sebelumnya senyap total. */
 function ScreenSkeleton() {
   return (
-    <div
-      aria-hidden="true"
-      aria-busy="true"
-      className="flex h-full flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))]"
-    >
-      <div className="h-8 w-40 rounded-lg rutina-skeleton" />
-      <div className="h-36 rounded-2xl rutina-skeleton" />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="h-24 rounded-xl rutina-skeleton" />
-        <div className="h-24 rounded-xl rutina-skeleton" />
+    <>
+      <p role="status" aria-live="polite" className="sr-only">
+        Memuat layar…
+      </p>
+      <div
+        aria-hidden="true"
+        className="flex h-full flex-col gap-4 px-4 pt-[max(1.25rem,env(safe-area-inset-top))]"
+      >
+        <div className="h-8 w-40 rounded-lg rutina-skeleton" />
+        <div className="h-36 rounded-2xl rutina-skeleton" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-24 rounded-xl rutina-skeleton" />
+          <div className="h-24 rounded-xl rutina-skeleton" />
+        </div>
+        <div className="h-64 rounded-2xl rutina-skeleton" />
       </div>
-      <div className="h-64 rounded-2xl rutina-skeleton" />
-    </div>
+    </>
   )
 }
 

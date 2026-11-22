@@ -126,6 +126,8 @@ interface SettingRowProps {
   /** Render baris sebagai <label> (mis. membungkus input berkas sr-only). */
   htmlFor?: string
   disabled?: boolean
+  /** Proses asinkun berjalan di baris ini — aria-busy untuk pembaca layar. */
+  busy?: boolean
 }
 
 function SettingRow({
@@ -136,6 +138,7 @@ function SettingRow({
   onClick,
   htmlFor,
   disabled,
+  busy,
 }: SettingRowProps) {
   const body = (
     <>
@@ -183,6 +186,7 @@ function SettingRow({
         type="button"
         onClick={onClick}
         disabled={disabled}
+        aria-busy={busy || undefined}
         className={cn(
           base,
           'interactive cursor-pointer hover:bg-surface-sunken disabled:cursor-wait disabled:opacity-60',
@@ -418,16 +422,26 @@ export default function ProfileScreen() {
       window.removeEventListener('appinstalled', onInstalled)
     }
   }, [])
+  /* v2.67 (audit UX §2): proses pemasangan PWA kini punya state — prompt
+     native bisa menggantung beberapa detik; baris menampilkan spinner
+     dan terkunci agar tidak dipicu ganda. */
+  const [installingApp, setInstallingApp] = useState(false)
   const handleInstall = async () => {
+    if (installingApp) return
     if (installPrompt) {
-      await installPrompt.prompt()
-      const choice = await installPrompt.userChoice
-      if (choice?.outcome === 'accepted') {
-        toast.success('Rutina terpasang', {
-          description: 'Buka dari layar utama — bekerja penuh bahkan offline.',
-        })
+      setInstallingApp(true)
+      try {
+        await installPrompt.prompt()
+        const choice = await installPrompt.userChoice
+        if (choice?.outcome === 'accepted') {
+          toast.success('Rutina terpasang', {
+            description: 'Buka dari layar utama — bekerja penuh bahkan offline.',
+          })
+        }
+        setInstallPrompt(null)
+      } finally {
+        setInstallingApp(false)
       }
-      setInstallPrompt(null)
       return
     }
     toast.info('Cara memasang Rutina', {
@@ -1045,6 +1059,7 @@ export default function ProfileScreen() {
               label="Pulihkan dari cadangan"
               description="Impor berkas JSON — mengganti seluruh data saat ini"
               htmlFor="import-backup"
+              busy={importing}
               control={
                 importing ? (
                   <>
@@ -1065,6 +1080,7 @@ export default function ProfileScreen() {
               description="Muat snapshot terbaru dari Turso ke perangkat ini"
               onClick={() => void handleForcePull()}
               disabled={pulling}
+              busy={pulling}
               control={
                 pulling ? (
                   <>
@@ -1278,8 +1294,18 @@ export default function ProfileScreen() {
                 label="Pasang di perangkat"
                 description="Aplikasi mandiri (PWA) — layar penuh, bekerja offline"
                 onClick={() => void handleInstall()}
+                disabled={installingApp}
+                busy={installingApp}
                 control={
-                  installPrompt ? (
+                  installingApp ? (
+                    <>
+                      <Loader2
+                        className="h-4 w-4 animate-spin text-content-muted"
+                        aria-hidden="true"
+                      />
+                      <span className="sr-only">Memasang aplikasi…</span>
+                    </>
+                  ) : installPrompt ? (
                     <ChevronRight
                       aria-hidden="true"
                       className="h-4 w-4 text-content-muted"

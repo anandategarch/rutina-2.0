@@ -3,6 +3,7 @@
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,12 @@ import { cn } from '@/lib/utils'
  *
  * Ukuran target sentuh (WCAG 2.5.5): lg 48px · md 44px · sm 36px
  * (sm hanya untuk kontrol sekunder yang jarang dipakai).
+ *
+ * Kontrak umpan balik (audit UX v2.67 — prinsip Feedback):
+ * `loading` mengunci tombol (anti klik-ganda), memutar spinner,
+ * menandai aria-busy, dan membacakan label proses ke pembaca layar.
+ * Lebar tombol dipertahankan (children tetap dirender) agar layout
+ * tidak melompat saat state berubah.
  */
 const rutinaButtonVariants = cva(
   "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap font-semibold outline-none transition-all duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/70 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -60,18 +67,57 @@ export interface RutinaButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof rutinaButtonVariants> {
   asChild?: boolean
+  /** Proses asinkun sedang berjalan — tombol terkunci + spinner +
+   *  aria-busy (klik ganda mustahil selama proses). */
+  loading?: boolean
+  /** Frasa proses untuk pembaca layar saat loading (mis. "Menyimpan…") —
+   *  dirender sr-only; visual tetap menampilkan children. */
+  loadingLabel?: string
 }
 
 export const RutinaButton = forwardRef<HTMLButtonElement, RutinaButtonProps>(
-  ({ className, variant, size, block, asChild = false, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      block,
+      asChild = false,
+      loading = false,
+      loadingLabel,
+      disabled,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const Comp = asChild ? Slot : 'button'
     return (
       <Comp
         ref={ref}
         data-slot="rutina-button"
+        data-loading={loading ? 'true' : undefined}
+        aria-busy={loading || undefined}
+        disabled={disabled || loading}
         className={cn(rutinaButtonVariants({ variant, size, block }), className)}
         {...props}
-      />
+      >
+        {loading ? (
+          <>
+            <Loader2
+              className="animate-spin"
+              aria-hidden="true"
+              data-loading-icon="true"
+            />
+            <span aria-hidden="true">{children}</span>
+            <span className="sr-only">
+              {loadingLabel ?? 'Sedang memproses'}
+            </span>
+          </>
+        ) : (
+          children
+        )}
+      </Comp>
     )
   },
 )
