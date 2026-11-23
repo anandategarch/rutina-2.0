@@ -64,6 +64,7 @@ import Heatmap from '../heatmap'
 import { HabitComparisonMatrix } from '../habit-comparison-matrix'
 import { PlantGlyph } from '../plant-glyph'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
@@ -2374,12 +2375,16 @@ export default function KebiasaanScreen() {
             ) : (
               /* Split-screen desktop (kontainer ≥52rem): daftar ledger di
                  kiri, panel detail menempel di kanan. Di bawah itu susunan
-                 tetap satu kolom — panel inline per baris yang terpilih. */
-              /* v2.38: jarak kisi meniru token RutinaBentoGrid
-                 (--layout-grid-gap), bukan jarak antar-seksi. */
-              <div className="@[52rem]:grid @[52rem]:grid-cols-12 @[52rem]:gap-[var(--layout-grid-gap)]">
+                 tetap satu kolom — panel detail ponsel hidup sebagai
+                 bottom sheet (gerbang libraryWide).
+                 v3.02 (unified bento): pembungkus kini RutinaBentoGrid
+                 resmi — menggantikan kisi tangan v2.38 yang meniru
+                 token; ledger = span full → 7 kolom, panel detail = 5
+                 kolom (proporsi 7/5 dipertahankan agar panel detail &
+                 grafiknya tidak terjepit). */
+              <RutinaBentoGrid>
                 {/* Kolom kiri — daftar ledger terkelompok */}
-                <div className="min-w-0 @[52rem]:col-span-7">
+                <RutinaBentoItem span="full" className="@[52rem]:col-span-7">
                   <m.div
                     variants={journalList}
                     initial={playEntrance ? 'hidden' : 'show'}
@@ -2452,7 +2457,7 @@ export default function KebiasaanScreen() {
                       )
                     })}
                   </m.div>
-                </div>
+                </RutinaBentoItem>
 
                 {/* Kolom kanan — Panel Detail Kebiasaan (hanya ruang kerja
                    lebar, gerbang JS libraryWide — selaras dengan sheet
@@ -2480,7 +2485,7 @@ export default function KebiasaanScreen() {
                     />
                   </aside>
                 )}
-              </div>
+              </RutinaBentoGrid>
             )}
 
             {/* Arsip — pulihkan atau sunting kebiasaan yang ditanggalkan.
