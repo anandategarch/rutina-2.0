@@ -62,6 +62,7 @@ import { MOOD_TONE } from '../journal-ui'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaButton } from '../rutina-button'
 import { RutinaDialog } from '../rutina-dialog'
+import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
@@ -827,6 +828,14 @@ export default function ProfileScreen() {
             </div>
           ) : identityText !== '' ? (
             <figure className="relative mx-auto mt-3 max-w-[520px] px-2 text-center">
+              {/* Bingkai kenangan (aset 20) — pernyataan identitas
+                  diperlakukan seperti bingkai kenangan di atas
+                  pernyataan; muncul bersama kutipan tersimpan. */}
+              <RutinaIllustration
+                name="20-journal-memory-frame"
+                size={160}
+                className="mx-auto mb-3 h-14 w-20"
+              />
               <blockquote
                 className={`${playfair.className} text-lead font-medium italic leading-relaxed text-hero-content`}
               >

@@ -29,6 +29,7 @@ import {
   type Note,
 } from '../store'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
@@ -674,6 +675,11 @@ export default function JournalScreen() {
   }, [])
 
   const total = notes.length
+  /* Hari ini sudah tercatat? — penggoda menulis di bawah hanya hidup
+      bila pengguna PERNAH menulis tapi hari ini belum (bukan duplikasi
+      CTA atas: ini penanda status harian yang pamit setelah catatan
+      pertama hari ini lahir). */
+  const todayHasNote = notes.some((n) => noteDateISO(n) === todayISO())
   const pinnedCount = notes.filter((n) => n.pinned).length
   const draftCount = notes.filter((n) => isDraftNote(n)).length
 
@@ -994,6 +1000,38 @@ export default function JournalScreen() {
           </div>
         )}
       </div>
+
+      {/* Penggoda hari ini (aset 18 — buku terbuka) — muncul hanya bila
+          sudah pernah menulis tapi hari ini belum; ketuk untuk membuka
+          kanvas menulis. */}
+      {total > 0 && !todayHasNote && (
+        <m.button
+          type="button"
+          onClick={() => openCanvas()}
+          whileTap={{ scale: 0.98 }}
+          initial={playEntrance ? { opacity: 0, y: 10 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            ...motionTokens.preset.panelReveal,
+            delay: motionTokens.delay.tight,
+          }}
+          className="interactive mt-4 flex w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-module-accent/25 bg-module-accent-soft/40 p-3.5 text-left hover:bg-module-accent-soft/70"
+        >
+          <RutinaIllustration
+            name="18-journal-open-notebook"
+            size={128}
+            className="size-12 shrink-0"
+          />
+          <span className="min-w-0">
+            <span className="block text-body font-semibold text-content-primary">
+              Hari ini belum ada catatan
+            </span>
+            <span className="mt-0.5 block text-meta font-medium leading-snug text-content-muted">
+              Satu kalimat pun berarti — buka halaman barumu.
+            </span>
+          </span>
+        </m.button>
+      )}
 
       {/* Aktivitas menulis — jejak bulanan + distribusi (audit v2.36
           Tahap 4); hanya muncul bila sudah ada catatan. Dilipat secara

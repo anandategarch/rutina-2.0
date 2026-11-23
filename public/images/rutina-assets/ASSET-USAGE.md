@@ -30,9 +30,9 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 | 15 | `15-finance-growth-chart.webp` | ✅ | Keuangan — Ringkasan › empty state “Belum cukup data untuk temuan bulan ini” (Analisis Pengeluaran › Temuan & Rekomendasi) | Grafik pertumbuhan = temuan menunggu data |
 | 16 | `16-finance-safe-vault.webp` | ✅ | Keuangan — SaldoCard "Rutina Vault" (samping saldo) + empty state dompet | |
 | 17 | `17-journal-leather-notebook.webp` | ✅ | Beranda desktop — ubin Jurnal panel modul (baris bawah di xl+, pojok kanan-atas di lg) | Menggantikan kartu pintu Jurnal desktop |
-| 18 | `18-journal-open-notebook.webp` | ⬜ | — | Satu aset jurnal per permukaan |
+| 18 | `18-journal-open-notebook.webp` | ✅ | Jurnal — penggoda “Hari ini belum ada catatan” (di bawah bilah cari; hanya bila pernah menulis tapi hari ini belum) + header sheet Catatan Baru (Beranda) | Pergi setelah catatan pertama hari ini lahir |
 | 19 | `19-journal-ink-and-pen.webp` | ✅ | Jurnal — empty state "Belum ada catatan" | |
-| 20 | `20-journal-memory-frame.webp` | ⬜ | — | Belum ada konteks yang pas |
+| 20 | `20-journal-memory-frame.webp` | ✅ | Profil — bingkai kenangan di atas kutipan Suara Identitas (kartu hero identitas) | Muncul bersama kutipan tersimpan |
 | 21 | `21-habits-sprout.webp` | ✅ | Kebiasaan — empty state "Kebiasaan pertamamu menunggu ditanam" | |
 | 22 | `22-botanical-monstera.webp` | ✅ | Beranda desktop — ubin Streak panel modul | Identitas taman + hitungan kebiasaan aktif |
 | 23 | `23-botanical-blossom-branch.webp` | ✅ | Kebiasaan — ornamen kanan judul Konsistensi (slot action header) | Aksen dekoratif ruang kebun |
@@ -46,12 +46,12 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 
 ## Ringkasan
 
-- **Terpakai**: 28 aset (hanya 18, 20 yang tersisa)
-- **Belum terpakai**: 2 aset (18, 20) — menunggu rumah kontekstual di Jurnal/Profil (tahap berikutnya).
+- **Terpakai**: 30/30 aset — seluruh koleksi kini punya rumah kontekstual.
+- Penerapan bertahap: v2.96–2.97 (16 aset pertama), v2.99 (8 aset Bugar), v3.00 (4 aset Keuangan/Kebiasaan/Statistik), v3.01 (2 aset Jurnal/Profil).
 
 ## Pedoman
 
-1. Jangan paksa seluruh 30 aset masuk UI — hanya yang kontekstual; sisanya jadi cadangan bertema.
+1. Penempatan harus kontekstual & jujur — ilustrasi memberi kehangatan editorial, bukan menggantikan data/interaksi; aset tanpa konteks jujur tidak dipaksakan (kini semua 30 punya rumah yang jujur).
 2. Ilustrasi memberi konteks visual, bukan menggantikan data/interaksi.
 3. Selalu dalam bingkai rounded + ring (inset terang) — aman untuk mode gelap.
 4. `alt=""` (dekoratif) kecuali gambar informatif.

@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { JournalCanvas } from './journal-canvas'
 import { CONTENT_W } from './layout-widths'
+import { RutinaIllustration } from './rutina-illustration'
 import { FOLDERS, FOLDER_SHORT, useRutina, type FolderKey } from './store'
 import { useFocusTrap } from './use-focus-trap'
 import { useEscapeLayer } from './overlay-escape'
@@ -113,13 +114,22 @@ export function ComposeSheet() {
               <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
             </div>
 
-            <div className="text-left">
-              <h2 className="text-lg font-semibold tracking-tight text-content-primary">
-                Catatan Baru
-              </h2>
-              <p className="mt-0.5 text-note text-content-muted">
-                Simpan pikiran atau ide hari ini ke jurnal.
-              </p>
+            <div className="flex items-center gap-3.5 text-left">
+              {/* Buku catatan terbuka (aset 18) — konteks visual lembar
+                  catatan cepat; teks tetap memimpin. */}
+              <RutinaIllustration
+                name="18-journal-open-notebook"
+                size={160}
+                className="size-14 shrink-0"
+              />
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-content-primary">
+                  Catatan Baru
+                </h2>
+                <p className="mt-0.5 text-note text-content-muted">
+                  Simpan pikiran atau ide hari ini ke jurnal.
+                </p>
+              </div>
             </div>
 
             <div className="mt-4 space-y-4">
