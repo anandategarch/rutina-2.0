@@ -72,3 +72,65 @@
 - Cek: horizontal overflow, text clipping, tile overlap, nested scroll, focus ring,
   konsol bersih, interaksi inti per modul tetap berfungsi.
 - Validasi: `bun run typecheck`, `bun run lint`, `bun test`, `bun run build`.
+
+---
+
+# LAPORAN IMPLEMENTASI — Unified Editorial Bento Grid (v3.02)
+
+## 1. File dibuat
+- `docs/BENTO-REDESIGN.md` — audit, keputusan desain, laporan ini.
+- `docs/screenshots/bento-v3.02/` — 14 screenshot (7 tab × desktop-1440 + mobile-390).
+
+## 2. File diubah (7 commit bertahap)
+| Commit | File | Inti perubahan |
+|---|---|---|
+| `c6294ae` | docs/BENTO-REDESIGN.md | Audit + rencana (tahap 1) |
+| `bf688b2` | home-mobile.tsx, screens/home.tsx | Beranda: kisi container-aware + hero bento 8+4 |
+| `afa0a39` | screens/kebiasaan.tsx | Perpustakaan split → RutinaBentoGrid 7/5 |
+| `c87a43d` | screens/bugar.tsx | Baris-2 medium+medium; workspace pita full |
+| `a19f735` | screens/keuangan.tsx | Ringkasan: hero/feature/wide/medium/full penuh |
+| `076a1ef` | screens/journal.tsx | Stat tiles 4 + pasangan viz/mood; hapus impor mati |
+| `864e440` | screens/stats.tsx | Harmonisasi vocabulary span + kolom-yatim fix |
+| `e40b788` | screens/profile.tsx | Stat tiles akun + relokasi & gating kartu sync |
+
+## 3. Komposisi bento per tab — SEBELUM → SESUDAH
+- **Beranda**: viewport lg: 12-col paralel; rekap 7 + keuangan 5 (raw) → **kisi container @[52rem]** (satu bahasa dgn 6 tab lain): hero progres **hero/8** + Quick Insight **feature/4** (pendamping baru desktop, komponen sama dgn ponsel) → split rail modul 5 / lajur kerja 7 (proporsi dipertahankan, ambang kini kontainer) → bonus **full** → rekap **medium** + arus kas **medium** (6+6 — nominal keuangan ruang setara) → kebun & refleksi **full**. Mobile: bento 2×2 kini `RutinaBentoGrid` span `stat` (dulu grid tangan gap-3; ≥52rem jadi 1 baris 4).
+- **Kebiasaan**: nol bento → Perpustakaan split (kisi tangan v2.38) → **RutinaBentoGrid** [ledger full→7 + panel detail 5]; ruang Agenda/Konsistensi dipertahankan (sudah diaudit v2.57/v2.78: strip metrik editorial + pemilih viz — tidak dibongkar).
+- **Bugar**: hero(8)+coach(4) ✓ dipertahankan; WeekActivityCard **keluar dari dalam hero** → pasangan **medium 6+6** [aktivitas pekan + papan rekor e1RM] (dulu hero ±900px mengangkangi coach ±400px); workspace Program/Pustaka/Neraca → pita **full** (pustaka mudah dicari).
+- **Keuangan**: bento hanya di Analisis → seluruh tab Ringkasan: [**hero/8** saldo + **feature/4** aktivitas terbaru] → [**wide/8** arus kas + **feature/4** jatah harian] → [**medium/6** anggaran + **medium/6** tujuan] → **full/12** analisis (bento internal existing).
+- **Jurnal**: nol bento, kartu aktivitas datar → dalam Collapsible: strip **4 stat tiles** (Tulisan/Kata/Streak/Suasana — RutinaMetric) + pasangan [viz kalender/kata **medium/6** + ringkasan folder-mood **feature/4**]; max-width baca 720px DIPERTAHANKAN.
+- **Statistik**: raw col-span 7/5 & 4/8 → vocabulary: kalender **wide/8** + inspector **feature/4** (kondisional `full` tanpa inspector — kolom yatim dihapus), fokus periode **feature** + grafik misi **wide**; HabitFlower/lintas-domain medium ✓.
+- **Profil**: nol bento → baris **4 stat tiles akun** (Kebiasaan/Catatan/Transaksi/XP) di bawah hero identitas; kartu sync direlokasi ke samping suasana & kini `lg:hidden` (desktop selalu punya sync di chrome: sidebar lg+ / rail xl+).
+
+## 4. Komponen digunakan ulang
+`RutinaBentoGrid`/`RutinaBentoItem` (semua tab), `RutinaMetric` (Jurnal & Profil — stat tiles), `RutinaCard` varian surface, `HomeQuickInsight` (ponsel + pendamping hero desktop), `WeekActivityCard`/`PapanRekor` (dipindah, bukan ditulis ulang), `HomeBentoSummary` (satu sumber 2 varian).
+
+## 5. Perubahan visual & spacing
+- Ambang kisi 12-kolom kini **container `@[52rem]`** di Beranda (dulu viewport lg) — konsisten dengan 6 tab lain; efek: zona 6-kolom pada jendela 1024–1119 & 1280–1407 (rail runtuh) — disengaja, terdokumentasi.
+- Jarak antar-tile selalu token `--layout-grid-gap` (tidak lagi gap tangan).
+- Ritme asimetris per tab: hero+feature → wide+feature / medium+medium → stat×n → full; tidak ada tile seragam.
+- Proporsi 70/20/10 dijaga: mayoritas parchment hairline; aksen domain maks 1–2 tile (hero bugar teal, saldo espresso, fokus periode espresso, keuangan gold pill).
+
+## 6. Fitur yang dipertahankan (semua)
+Navigasi 7 tab + FAB; semua sheet/dialog/form/filter (tx, transfer, dompet, kategori, anggaran, goal, habit, workout, check-in, barbel, exercise detail); keep-alive subtab (bugar/keuangan/statistik/kebiasaan); DateStrip + planner + Untuk Hari Ini + mission trail + bonus + draft jurnal + quick insight + agenda; heatmap/viz picker; MutasiWorkspace resizable; backup/restore/force-pull; semua animasi fungsional; dark mode.
+
+## 7. Dihapus (beserta alasan)
+- Footer ringkasan kata mode 'kata' Jurnal (total/hari-aktif/rata²) — diserap stat tiles (anti-duplikasi).
+- Duplikasi kartu sync inline Profil pada 1024–1279px — chrome sidebar sudah selalu menampilkannya.
+- Impor `WordReveal` mati di journal.tsx.
+- **Tidak ada fitur/aksi/data yang dihapus.**
+
+## 8. Hasil validasi
+- `bun run typecheck` ✓ · `bun run lint` ✓ · `bun test` **155/156** (1 gagal = kegagalan lama tergantung-tanggal `buildSeries minggu`, terverifikasi pra-ada pada baseline bersih v2.93; tidak menyentuh algoritma) · `bun run build` ✓ (4 rute, static prerender OK).
+- Overflow horizontal: **0** pada 320/360/390/768/1024/1280/1440 × semua tab (dengan verifikasi layar aktif per langkah).
+- Dark mode: 3 tab diperiksa VLM — terbaca; 2 catatan minor pre-existing (ring Bugar & tanggal-masa-depan kalender Statistik agak redup — warna internal komponen, di luar lingkup layout).
+- Interaksi nyata diuji: buat kebiasaan ✓, toggle fokus + toast ✓, subtab keuangan ×4 ✓, sheet transaksi ✓, picker aktivitas bugar ✓, view statistik ×4 ✓, kanvas jurnal tulis+simpan ✓.
+
+## 9. Screenshot
+`docs/screenshots/bento-v3.02/` — `desktop-{tab}-1440.png` & `mobile-{tab}-390.png` (7 tab lengkap; mobile-profil memperlihatkan stat tiles 2×2).
+
+## 10. Masalah belum terselesaikan
+1. Uji tanggal-dependent `buildSeries minggu` (pre-existing, gagal pada tanggal tertentu).
+2. Kontras minor dark mode: ring progres tile Bugar mobile & tanggal masa-depan MonthCalendar (pre-existing, warna internal).
+3. Dev server sandbox sesekali mati sendiri (lingkungan, bukan aplikasi).
+4. Kebiasaan ruang Konsistensi belum memakai kisi bento — keputusan sadar: komposisi v2.57/v2.78 sudah teraudit; bento paksaan akan menambah kotak tanpa nilai informasi.
