@@ -64,6 +64,8 @@ import { RutinaButton } from '../rutina-button'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaSectionHeader } from '../rutina-section-header'
+import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
+import { RutinaMetric } from '../rutina-metric'
 import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
 import { MotionCard } from '../rutina-motion-card'
@@ -866,6 +868,50 @@ export default function ProfileScreen() {
           </div>
         </MotionCard>
 
+        {/* ===== Statistik akun (v3.02 unified bento — master task):
+            satu baris stat tiles di bawah hero identitas; selaras audit
+            2g “statistik dilipat ke dalam kartu identitas” — tetap SATU
+            baris ringkas, bukan kisi KPI dashboard. Semua angka dari
+            state nyata yang sudah dilanggan layar ini. */}
+        <RutinaBentoGrid className="mt-3">
+          <RutinaBentoItem span="stat">
+            <RutinaMetric
+              size="sm"
+              label="Kebiasaan"
+              value={activeHabitCount}
+              unit="aktif"
+              caption="sedang ditanam"
+            />
+          </RutinaBentoItem>
+          <RutinaBentoItem span="stat">
+            <RutinaMetric
+              size="sm"
+              label="Catatan"
+              value={notes.length}
+              unit="catatan"
+              caption="di semua folder"
+            />
+          </RutinaBentoItem>
+          <RutinaBentoItem span="stat">
+            <RutinaMetric
+              size="sm"
+              label="Transaksi"
+              value={txs.length}
+              unit="transaksi"
+              caption="di buku kas"
+            />
+          </RutinaBentoItem>
+          <RutinaBentoItem span="stat">
+            <RutinaMetric
+              size="sm"
+              label="XP total"
+              value={xp.toLocaleString('id-ID')}
+              unit="XP"
+              caption={`Level ${level}`}
+            />
+          </RutinaBentoItem>
+        </RutinaBentoGrid>
+
         {/* ===== Suasana hari ini — ringkas (audit density v2.37 §9).
             Riwayat mood 14 hari + input check-in suasana kini terpusat di
             Statistik › Ruang Suasana; Profil menyimpan chip status dan dua
@@ -917,6 +963,18 @@ export default function ProfileScreen() {
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </RutinaButton>
         </m.section>
+
+        {/* Info sinkron hidup — keadaan nyata dari engine (bukan statis):
+            menyiapkan / menyinkronkan / tersinkron + jam / offline / gagal.
+            v3.02 (unified bento): kini lg:hidden — di desktop status
+            sinkron SELALU tersedia di chrome (kartu bawah sidebar pada
+            lg+, rail konteks pada xl+), jadi salinan inline hanya untuk
+            ponsel/tablet; ini juga menghapus duplikasi serentak lama
+            pada zona 1024–1279px. Direlokasi ke sini (dulu setelah seksi
+            Data) sebagai pasangan status suasana di ruang kendali. */}
+        <m.div variants={slideInRow} className="mt-[var(--layout-grid-gap)] lg:hidden">
+          <SyncStatusCard variant="rail" />
+        </m.div>
 
         {/* ===== 2 · PREFERENSI — tampilan & ritme ===== */}
         <m.div variants={slideInRow} className="mt-8">
@@ -1175,14 +1233,6 @@ export default function ProfileScreen() {
             </CollapsibleContent>
           </Collapsible>
         </m.section>
-
-        {/* Info sinkron hidup — keadaan nyata dari engine (bukan statis):
-            menyiapkan / menyinkronkan / tersinkron + jam / offline / gagal.
-            v2.33: disembunyikan di xl+ — kartu sync sudah tampil di rail
-            konteks (hindari duplikasi serentak, audit shell). */}
-        <m.div variants={slideInRow} className="mt-3 xl:hidden">
-          <SyncStatusCard variant="rail" />
-        </m.div>
 
         {/* Dialog ekspor — dua pilihan format dengan penjelasan isi
             masing-masing; unduhan + toast dipicu dari sini. */}
