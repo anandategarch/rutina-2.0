@@ -66,6 +66,7 @@ import { Counter } from '../counter'
 import { BlurFade, Spotlight } from '../motion-kit'
 import { RutinaDialog } from '../rutina-dialog'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import {
   addDaysISO,
@@ -1494,44 +1495,56 @@ function SaldoCard({
 
       {/* Saldo + perubahan periode */}
       <div className="relative z-10 mt-4">
-        <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
-          Saldo Tersedia
-        </p>
-        {/* min-w-0 + truncate: saldo ekstrem (10 digit) terpotong elips
-            secara anggun, bukan meluber keluar kartu overflow-hidden. */}
-        <div className="mt-0.5 flex min-w-0 items-baseline gap-1">
-          <span className="text-lead font-bold text-hero-accent">Rp</span>
-          <span
-            ref={saldoRef}
-            className="truncate text-kpi-lg font-bold leading-none tabular-nums text-hero-content"
-          >
-            <Counter to={saldo} immediate={!playCount} />
-          </span>
-        </div>
-        {delta !== null && (
-          <p
-            className={`mt-1.5 flex items-center gap-1 text-meta font-semibold tabular-nums ${
-              up
-                ? 'text-success'
-                : down
-                  ? 'text-content-danger'
-                  : 'text-hero-content-muted'
-            }`}
-          >
-            {up ? (
-              <TrendingUp className="h-3.5 w-3.5" strokeWidth={2.4} />
-            ) : down ? (
-              <TrendingDown className="h-3.5 w-3.5" strokeWidth={2.4} />
-            ) : (
-              <Minus className="h-3.5 w-3.5" strokeWidth={2.4} />
-            )}
-            {delta === 0
-              ? 'Sama dengan periode lalu'
-              : `${up ? '+' : '−'}${formatIDRShort(Math.abs(delta))}${
-                  deltaSuffix ? ` ${deltaSuffix}` : ''
+        {/* Baris saldo + foto brankas (aset 30-pak) — angka tetap
+            memakai truncate di kolom min-w-0, foto tidak pernah
+            menindih angka. */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-hero-content-muted">
+              Saldo Tersedia
+            </p>
+            {/* min-w-0 + truncate: saldo ekstrem (10 digit) terpotong elips
+                secara anggun, bukan meluber keluar kartu overflow-hidden. */}
+            <div className="mt-0.5 flex min-w-0 items-baseline gap-1">
+              <span className="text-lead font-bold text-hero-accent">Rp</span>
+              <span
+                ref={saldoRef}
+                className="truncate text-kpi-lg font-bold leading-none tabular-nums text-hero-content"
+              >
+                <Counter to={saldo} immediate={!playCount} />
+              </span>
+            </div>
+            {delta !== null && (
+              <p
+                className={`mt-1.5 flex items-center gap-1 text-meta font-semibold tabular-nums ${
+                  up
+                    ? 'text-success'
+                    : down
+                      ? 'text-content-danger'
+                      : 'text-hero-content-muted'
                 }`}
-          </p>
-        )}
+              >
+                {up ? (
+                  <TrendingUp className="h-3.5 w-3.5" strokeWidth={2.4} />
+                ) : down ? (
+                  <TrendingDown className="h-3.5 w-3.5" strokeWidth={2.4} />
+                ) : (
+                  <Minus className="h-3.5 w-3.5" strokeWidth={2.4} />
+                )}
+                {delta === 0
+                  ? 'Sama dengan periode lalu'
+                  : `${up ? '+' : '−'}${formatIDRShort(Math.abs(delta))}${
+                      deltaSuffix ? ` ${deltaSuffix}` : ''
+                    }`}
+              </p>
+            )}
+          </div>
+          <RutinaIllustration
+            name="16-finance-safe-vault"
+            size={160}
+            className="mt-0.5 size-14 shrink-0 sm:size-16"
+          />
+        </div>
 
         {/* Perkembangan saldo 30 hari (v2.39 audit visual data) — garis
             emas lembut di permukaan espresso; min/max label menjelaskan
@@ -3139,7 +3152,7 @@ export default function KeuanganScreen() {
           {recent.length === 0 ? (
             <RutinaEmptyState
               className="mt-3"
-              icon={<Wallet />}
+              image="13-finance-wallet"
               title="Belum ada transaksi"
               description="Catat pemasukan atau pengeluaran pertamamu — gerak saldo langsung tergambar di sini."
               action={
@@ -3373,7 +3386,7 @@ export default function KeuanganScreen() {
             {budgetRows.length === 0 ? (
               <RutinaEmptyState
                 className="mt-3"
-                icon={<Receipt />}
+                image="14-finance-budget-calculator"
                 title="Belum ada anggaran"
                 description="Atur batas belanjamu per kategori supaya pengeluaran lebih mudah dikendalikan."
                 action={
@@ -3440,7 +3453,7 @@ export default function KeuanganScreen() {
             {goals.length === 0 ? (
               <RutinaEmptyState
                 className="mt-3"
-                icon={<PiggyBank />}
+                image="11-finance-savings-jar"
                 title="Belum ada tujuan"
                 description="Tetapkan target tabungan pertamamu dan pantau progresnya di sini."
                 action={
@@ -3645,7 +3658,7 @@ export default function KeuanganScreen() {
             {txs.length === 0 ? (
               <RutinaEmptyState
                 className="mt-3"
-                icon={<Wallet />}
+                image="13-finance-wallet"
                 title="Belum ada transaksi"
                 description="Catat pemasukan/pengeluaran pertamamu — mutasi akan tampil terkelompok per hari."
                 action={
@@ -3710,7 +3723,7 @@ export default function KeuanganScreen() {
               {budgetRows.length === 0 ? (
                 <RutinaEmptyState
                   className="mt-3"
-                  icon={<Receipt />}
+                  image="14-finance-budget-calculator"
                   title="Belum ada anggaran"
                   description="Pilih kategori di bawah untuk menetapkan batas belanja bulanan pertamamu."
                 />
@@ -3850,7 +3863,7 @@ export default function KeuanganScreen() {
               {wallets.length === 0 ? (
                 <RutinaEmptyState
                   className="mt-3"
-                  icon={<Wallet />}
+                  image="16-finance-safe-vault"
                   title="Belum ada dompet"
                   description="Pisahkan uang tunai, rekening bank, atau e-wallet — saldo dihitung per sumber dana."
                   action={

@@ -1073,7 +1073,7 @@ export default function JournalScreen() {
           <>
             {total === 0 ? (
               <RutinaEmptyState
-                icon={<Feather />}
+                image="19-journal-ink-and-pen"
                 title="Belum ada catatan"
                 description="Mulailah dengan satu kalimat jujur — cukup tulis apa yang ada di pikiranmu."
                 action={

@@ -23,6 +23,7 @@ import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
 import { formatIDR, formatIDRShort } from './finance/utils'
+import { RutinaIllustration } from './rutina-illustration'
 import { playfair } from './serif'
 import { useShellRevealed } from './shell-reveal'
 import { useQuickHub } from './quick-action-hub'
@@ -335,7 +336,9 @@ function TodayFocusCard({
             </div>
           </div>
         ) : (
-          <p className="mt-2.5 text-meta font-medium leading-snug text-content-muted">
+          /* pr-10: ruang aman dari tanaman di tepi kanan-bawah — sama
+             disiplinnya dengan daftar prioritas (pr-8) di bawah. */
+          <p className="mt-2.5 pr-10 text-meta font-medium leading-snug text-content-muted">
             Nikmati jedamu — tambah kebiasaan kapan pun kamu siap.
           </p>
         )}
@@ -510,13 +513,17 @@ export function HomeBentoSummary({
             <span className="text-eyebrow font-bold tracking-tight text-content-secondary">
               Keuangan
             </span>
-            <span
-              aria-hidden="true"
-              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-primary text-content-muted"
-            >
-              <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.4} />
-            </span>
           </div>
+          {/* Kartu foto koin — identitas modul dari paket 30 aset.
+              Stempel kecil di pita tengah ubin: tidak pernah menabrak
+              label (di atasnya) maupun nominal saldo (di bawahnya)
+              pada lebar ≥320px (QA DOM: 320px → label berakhir x104,
+              saldo mulai y92; kartu y45–89 di sisi kanan). */}
+          <RutinaIllustration
+            name="12-finance-coin-stacks"
+            size={128}
+            className="absolute right-3 top-11 size-11"
+          />
           <div className="relative mt-auto">
             <p
               className={
@@ -576,12 +583,6 @@ export function HomeBentoSummary({
             <span className="text-eyebrow font-bold tracking-tight text-content-secondary">
               Bugar
             </span>
-            <span
-              aria-hidden="true"
-              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-content-muted"
-            >
-              <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.4} />
-            </span>
           </div>
           <div className="mt-auto">
             {/* Baris angka + cincin; badge di bawahnya memakai lebar
@@ -599,11 +600,24 @@ export function HomeBentoSummary({
                   <span className="text-note font-bold text-content-muted"> sesi</span>
                 </p>
               )}
-              <FitProgressRing
-                ratio={fitTarget > 0 ? fitSessions / fitTarget : 0}
-                showRing={fitTarget > 0}
-                label={`Progres sesi latihan pekan ini ${fitSessions} dari ${fitTarget} sesi`}
-              />
+              {fitTarget > 0 ? (
+                <FitProgressRing
+                  ratio={fitSessions / fitTarget}
+                  showRing
+                  label={`Progres sesi latihan pekan ini ${fitSessions} dari ${fitTarget} sesi`}
+                />
+              ) : (
+                /* Tanpa target mingguan, slot kanan diisi kartu foto
+                   dumbbell (aset 30-pak) — dekorasi mengalah saat data
+                   (cincin) hadir. Tanpa shrink-0: pada ubin sempit
+                   (320px) kartu menyusut anggun (object-cover), angka
+                   tidak pernah terpotong. */
+                <RutinaIllustration
+                  name="01-fitness-dumbbells"
+                  size={128}
+                  className="size-12 min-[380px]:size-14"
+                />
+              )}
             </div>
             <span className="mt-1.5 inline-block rounded-full bg-surface-secondary px-2 py-0.5 text-chart-label font-semibold text-content-muted">
               {fitTarget > 0 ? 'Target Mingguan' : 'pekan ini'}
@@ -758,16 +772,26 @@ export function HomeAgendaToday({
 
       {isEmpty ? (
         /* Tidak ada misi terjadwal — pesan tenang + pintu tambah
-           kebiasaan (aksi nyata yang sudah ada di aplikasi). */
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-surface-secondary/60 p-3.5">
-          <p className="min-w-0 flex-1 text-pretty text-meta font-medium leading-relaxed text-content-secondary">
-            Tidak ada misi terjadwal hari ini. Nikmati jedamu — tambah
-            kebiasaan kapan pun kamu siap.
-          </p>
+           kebiasaan (aksi nyata yang sudah ada di aplikasi).
+           Ilustrasi kalender (aset 30-pak) menemani pesan; tombol
+           turun ke baris sendiri di ponsel agar teks tidak terjepit
+           (QA DOM: dulu flex-1 basis-0 tersisa ±53px). */
+        <div className="mt-3 flex flex-col gap-3 rounded-2xl bg-surface-secondary/60 p-3.5 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <RutinaIllustration
+              name="26-planner-calendar"
+              size={128}
+              className="size-14 shrink-0"
+            />
+            <p className="min-w-0 flex-1 text-pretty text-meta font-medium leading-relaxed text-content-secondary">
+              Agenda hari ini kosong — rencanakan satu kebiasaan kecil,
+              atau biarkan hari ini bernapas sesuai ritmemu.
+            </p>
+          </div>
           <button
             type="button"
             onClick={onAddHabit}
-            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground transition-colors hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:self-auto"
           >
             <Sprout aria-hidden="true" className="h-4 w-4" strokeWidth={2.2} />
             Tambah kebiasaan

@@ -1837,7 +1837,7 @@ export default function StatsScreen() {
                 {catData.length === 0 ? (
                   <RutinaEmptyState
                     className="mt-3 px-4 py-6"
-                    icon={<Leaf />}
+                    image="25-botanical-wreath"
                     title="Belum ada kebiasaan aktif"
                     description="Tanam kebiasaan pertamamu di tab Kebiasaan — komposisi kategori terbaca otomatis di sini."
                   />

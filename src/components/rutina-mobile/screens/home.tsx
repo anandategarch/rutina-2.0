@@ -1296,7 +1296,7 @@ export default function HomeScreen() {
                   /* Tidak ada misi terjadwal — halaman kosong yang dirayakan,
                      bukan kegagalan */
                   <RutinaEmptyState
-                    icon={<CalendarDays className="h-6 w-6" />}
+                    image="26-planner-calendar"
                     title="Tidak ada misi terjadwal hari ini"
                     description={
                       viewingToday

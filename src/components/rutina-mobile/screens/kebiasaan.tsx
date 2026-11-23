@@ -1560,7 +1560,7 @@ export default function KebiasaanScreen() {
           className="mt-[var(--layout-gap)]"
         >
           <RutinaEmptyState
-            icon={<Sprout className="h-6 w-6" />}
+            image="21-habits-sprout"
             title="Kebiasaan pertamamu menunggu ditanam"
             description="Mulai dari versi dua menit — satu tindakan kecil yang bisa kamu lakukan hari ini, biarkan tumbuh perlahan."
             action={
@@ -1667,7 +1667,7 @@ export default function KebiasaanScreen() {
             {scheduledToday.length === 0 ? (
               <div className="mt-4">
                 <RutinaEmptyState
-                  icon={<CalendarDays className="h-6 w-6" />}
+                  image="27-planner-checklist"
                   title="Tidak ada agenda terjadwal"
                   description="Hari ini bebas dari jadwal — nikmati jedamu, atau tanam kebiasaan baru kapan pun siap."
                 />
@@ -2019,7 +2019,7 @@ export default function KebiasaanScreen() {
               {activeHabits.length === 0 ? (
                 <div className="mt-4">
                   <RutinaEmptyState
-                    icon={<Sprout className="h-6 w-6" />}
+                    image="24-botanical-flowering-pot"
                     title="Kebun menunggu ditanam kembali"
                     description="Semua kebiasaan sedang diarsip — pulihkan satu dari Perpustakaan di bawah untuk mulai berkebun lagi."
                   />

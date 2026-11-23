@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
+import { RutinaIllustration } from './rutina-illustration'
 import { playfair } from './serif'
 
 /**
@@ -12,6 +13,8 @@ import { playfair } from './serif'
 export interface RutinaEmptyStateProps {
   /** Ikon/ilustrasi kecil di atas judul. */
   icon?: ReactNode
+  /** Nama aset ilustrasi (mis. "21-habits-sprout") — menggantikan ikon bila diisi. */
+  image?: string
   title: string
   description?: string
   /** Aksi primer, mis. tombol "Catat sesi pertama". */
@@ -21,6 +24,7 @@ export interface RutinaEmptyStateProps {
 
 export function RutinaEmptyState({
   icon,
+  image,
   title,
   description,
   action,
@@ -33,13 +37,21 @@ export function RutinaEmptyState({
         className,
       )}
     >
-      {icon && (
-        <span
-          aria-hidden="true"
-          className="mb-1 flex size-12 items-center justify-center rounded-full bg-secondary text-primary [&_svg]:size-6"
-        >
-          {icon}
-        </span>
+      {image ? (
+        <RutinaIllustration
+          name={image}
+          className="mb-3 h-24 w-32 shadow-sm"
+          size={256}
+        />
+      ) : (
+        icon && (
+          <span
+            aria-hidden="true"
+            className="mb-1 flex size-12 items-center justify-center rounded-full bg-secondary text-primary [&_svg]:size-6"
+          >
+            {icon}
+          </span>
+        )
       )}
       <p
         className={cn(

@@ -2568,7 +2568,7 @@ export default function BugarScreen() {
                 transition={motionTokens.preset.chipReveal}
               >
                 <RutinaEmptyState
-                  icon={<History />}
+                  image="02-fitness-running-shoes"
                   title="Belum ada aktivitas tercatat"
                   description="Catat lari, jalan, badminton, atau latihan barbel pertamamu — riwayat dan rekor tumbuh dari sini."
                   action={
@@ -2632,7 +2632,7 @@ export default function BugarScreen() {
         {prs.length === 0 ? (
           <RutinaEmptyState
             className="mt-3"
-            icon={<Trophy />}
+            image="30-achievement-trophy"
             title="Rekor lahir setelah set beban pertama"
             description="Catat satu set barbel — e1RM tiap gerakan dipantau otomatis di papan ini."
             action={
