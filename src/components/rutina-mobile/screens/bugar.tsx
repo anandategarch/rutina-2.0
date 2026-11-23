@@ -897,12 +897,14 @@ function WeekActivityCard({ embedded = false }: { embedded?: boolean }) {
       aria-label={`Aktivitas pekan ini — mode ${
         WEEK_MODES.find((x) => x.id === mode)?.label ?? 'Semua'
       }`}
-      /* v2.59 (audit Tahap 2): mode embedded — kartu melebur ke unit hero
-         ringkasan pekan (KPI + metrik + grafik utama dalam SATU tile);
-         tanpa bingkai/bayangan sendiri, hanya pembatas hairline. */
+      /* v3.02 (unified bento): mode embedded kini berarti "berbagi angka
+         dengan hero" — kartu jadi TILE sendiri (bingkai kartu penuh,
+         tanpa mt karena jarak dipegang gap kisi) berdampingan Papan
+         Rekor; KPI mode 'semua' tetap disembunyikan karena rel metrik
+         hero sudah membawanya (anti-duplikasi v2.59 tetap hidup). */
       className={
         embedded
-          ? 'mt-4 border-t border-border-default pt-4'
+          ? 'h-full rounded-xl border border-border bg-surface-primary p-4 shadow-soft'
           : 'mt-[var(--layout-gap)] rounded-xl border border-border bg-surface-primary p-4 shadow-soft'
       }
     >
@@ -2192,11 +2194,8 @@ export default function BugarScreen() {
         )}
       </div>
 
-      {/* Grafik aktivitas pekan (v2.59, audit Tahap 2) — melebur ke unit
-          hero ringkasan pekan: SATU tile = KPI utama + metrik ringkas +
-          grafik aktivitas utama; tidak lagi kartu terpisah di bawah
-          bento. Satuan tetap sadar-mode (kg / km / menit). */}
-      <WeekActivityCard embedded />
+      {/* v3.02: grafik aktivitas pekan kini tile tersendiri (lihat
+          BARIS KEDUA di bawah) — tidak lagi melebur ke hero. */}
               </RutinaBentoItem>
               <RutinaBentoItem span="feature">
       {/* ===== Coach Bugar — kesiapan, deload, guard, alat =====
@@ -2379,6 +2378,121 @@ export default function BugarScreen() {
               </RutinaBentoItem>
             </RutinaBentoGrid>
           </m.div>
+
+          {/* v3.02 (unified bento) — BARIS KEDUA studio performa: grafik
+              aktivitas pekan (tile medium/6) berdampingan Papan Rekor
+              e1RM (tile medium/6) — pasangan "usaha pekan ini × rekor
+              sepanjang masa", keduanya muat nyaman di ±410px (spark &
+              nama gerakan tetap utuh). v2.59 dulu melebur grafik ke unit
+              hero sehingga hero ±900px mengangkangi Coach ±400px. */}
+          <div className="mt-[var(--layout-grid-gap)]">
+            <RutinaBentoGrid>
+              <RutinaBentoItem span="medium">
+                <WeekActivityCard embedded />
+              </RutinaBentoItem>
+              <RutinaBentoItem span="medium">
+                {/* ===== Papan rekor e1RM — tile pendamping ===== */}
+                <section aria-label="Papan rekor" className="h-full">
+                  <div className="flex items-center gap-2 px-0.5">
+                    <Trophy className="h-4 w-4 text-warning" />
+                    <h2 className="text-section font-semibold tracking-tight text-content-secondary">
+                      Papan Rekor e1RM
+                    </h2>
+                  </div>
+                  <p className="mt-1 px-0.5 text-meta leading-relaxed text-content-muted">
+                    Estimasi kekuatan Epley (beban × (1 + reps/30)) dari set
+                    yang kamu catat — terpantau otomatis.
+                  </p>
+
+                  {prs.length === 0 ? (
+                    <RutinaEmptyState
+                      className="mt-3"
+                      image="30-achievement-trophy"
+                      title="Rekor lahir setelah set beban pertama"
+                      description="Catat satu set barbel — e1RM tiap gerakan dipantau otomatis di papan ini."
+                      action={
+                        <m.button
+                          type="button"
+                          onClick={() =>
+                            openWorkoutSheet(undefined, { mode: 'beban' })
+                          }
+                          whileTap={{ scale: 0.96 }}
+                          className="interactive flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        >
+                          <Dumbbell className="h-4 w-4" aria-hidden="true" />
+                          Catat Latihan Barbel
+                        </m.button>
+                      }
+                    />
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {prs.map((r, i) => (
+                        <m.button
+                          key={r.name}
+                          type="button"
+                          onClick={() => setExDetail(r.name)}
+                          aria-label={`Buka perkembangan ${r.name} — rekor e1RM ${r.best
+                            .toFixed(1)
+                            .replace('.', ',')} kg dari ${r.sessions} sesi`}
+                          initial={playEntrance ? { opacity: 0, y: 14 } : false}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            ...motionTokens.preset.chipReveal,
+                            delay: Math.min(
+                              i * motionTokens.stagger.normal,
+                              0.3,
+                            ),
+                          }}
+                          className={`interactive flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary hover:bg-secondary/60 ${
+                            i === 0
+                              ? 'border-warning/40 bg-gold/25 shadow-soft'
+                              : 'border-border bg-surface-primary shadow-soft'
+                          }`}
+                        >
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-note font-bold tabular-nums ${
+                              i === 0
+                                ? 'bg-warning text-content-inverse'
+                                : 'bg-surface-sunken text-content-muted'
+                            }`}
+                          >
+                            {i + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-body font-semibold text-content-primary">
+                              {r.name}
+                            </p>
+                            <p className="text-eyebrow font-medium text-content-muted">
+                              {r.sessions} sesi tercatat
+                            </p>
+                          </div>
+                          {/* Sparkline perkembangan — hanya bila ≥3 sesi
+                              tercatat. */}
+                          {(prHistory.get(r.name)?.length ?? 0) >= 3 && (
+                            <PrSpark
+                              points={prHistory.get(r.name)!.slice(-8)}
+                            />
+                          )}
+                          <div className="shrink-0 text-right">
+                            <p className="text-kpi-sm font-bold leading-none tabular-nums text-content-primary">
+                              {r.best.toFixed(1).replace('.', ',')}
+                            </p>
+                            <p className="font-mono text-chart-label font-medium uppercase tracking-[0.08em] text-content-muted">
+                              kg · e1RM
+                            </p>
+                          </div>
+                          <ChevronRight
+                            aria-hidden="true"
+                            className="h-4 w-4 shrink-0 text-content-muted"
+                          />
+                        </m.button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </RutinaBentoItem>
+            </RutinaBentoGrid>
+          </div>
 
           {/* ===== Riwayat Latihan (v2.59, audit Tahap 2) — kalender
               bulanan, tren kardio, dan daftar sesi dalam SATU area
@@ -2612,14 +2726,16 @@ export default function BugarScreen() {
           </section>
 
 
-          {/* Ruang kerja latihan — di ponsel tetap tumpukan vertikal
-              (ritme --layout-gap performance); begitu kontainer ≥52rem,
-              seksi berpasangan 7:5 lalu 5:7 sehingga studio performa
-              terasa seperti MEJA KERJA, bukan gulir panjang: Program
-              berdampingan Riwayat, Papan Rekor berdampingan Pustaka. */}
-          <div className="mt-[var(--layout-gap)] grid grid-cols-1 gap-[var(--layout-gap)] @[52rem]:grid-cols-12">
-      {/* ===== Program latihan — pasangan kiri (7) ===== */}
-      <section aria-label="Program latihan" className="@[52rem]:col-span-7">
+          {/* Ruang kerja latihan (v3.02 unified bento) — Program, Neraca
+              otot, dan Pustaka gerakan sebagai pita full-width
+              (RutinaBentoGrid span full): pasangan asimetris studio kini
+              hidup di dua baris bento atas (hero+coach,
+              aktivitas+rekor), sementara seksi referensi panjang
+              menikmati lebar penuh — pustaka tetap mudah dibaca & dicari. */}
+          <RutinaBentoGrid className="mt-[var(--layout-gap)]">
+      {/* ===== Program latihan — pita lebar penuh ===== */}
+      <RutinaBentoItem span="full">
+      <section aria-label="Program latihan">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-section font-semibold tracking-tight text-content-secondary">
             Program Latihan
@@ -2635,100 +2751,12 @@ export default function BugarScreen() {
           ))}
         </div>
       </section>
-
-      {/* ===== Papan rekor e1RM — pasangan kiri (5) ===== */}
-      <section aria-label="Papan rekor" className="@[52rem]:col-span-5">
-        <div className="flex items-center gap-2 px-0.5">
-          <Trophy className="h-4 w-4 text-warning" />
-          <h2 className="text-section font-semibold tracking-tight text-content-secondary">
-            Papan Rekor e1RM
-          </h2>
-        </div>
-        <p className="mt-1 px-0.5 text-meta leading-relaxed text-content-muted">
-          Estimasi kekuatan Epley (beban × (1 + reps/30)) dari set yang kamu
-          catat — terpantau otomatis.
-        </p>
-
-        {prs.length === 0 ? (
-          <RutinaEmptyState
-            className="mt-3"
-            image="30-achievement-trophy"
-            title="Rekor lahir setelah set beban pertama"
-            description="Catat satu set barbel — e1RM tiap gerakan dipantau otomatis di papan ini."
-            action={
-              <m.button
-                type="button"
-                onClick={() => openWorkoutSheet(undefined, { mode: 'beban' })}
-                whileTap={{ scale: 0.96 }}
-                className="interactive flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-5 text-note font-bold text-primary-foreground shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <Dumbbell className="h-4 w-4" aria-hidden="true" />
-                Catat Latihan Barbel
-              </m.button>
-            }
-          />
-        ) : (
-          <div className="mt-3 space-y-2">
-            {prs.map((r, i) => (
-              <m.button
-                key={r.name}
-                type="button"
-                onClick={() => setExDetail(r.name)}
-                aria-label={`Buka perkembangan ${r.name} — rekor e1RM ${r.best
-                  .toFixed(1)
-                  .replace('.', ',')} kg dari ${r.sessions} sesi`}
-                initial={playEntrance ? { opacity: 0, y: 14 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  ...motionTokens.preset.chipReveal,
-                  delay: Math.min(i * motionTokens.stagger.normal, 0.3),
-                }}
-                className={`interactive flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary hover:bg-secondary/60 ${
-                  i === 0
-                    ? 'border-warning/40 bg-gold/25 shadow-soft'
-                    : 'border-border bg-surface-primary shadow-soft'
-                }`}
-              >
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-note font-bold tabular-nums ${
-                    i === 0 ? 'bg-warning text-content-inverse' : 'bg-surface-sunken text-content-muted'
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-body font-semibold text-content-primary">
-                    {r.name}
-                  </p>
-                  <p className="text-eyebrow font-medium text-content-muted">
-                    {r.sessions} sesi tercatat
-                  </p>
-                </div>
-                {/* Sparkline perkembangan — hanya bila ≥3 sesi tercatat. */}
-                {(prHistory.get(r.name)?.length ?? 0) >= 3 && (
-                  <PrSpark points={prHistory.get(r.name)!.slice(-8)} />
-                )}
-                <div className="shrink-0 text-right">
-                  <p className="text-kpi-sm font-bold leading-none tabular-nums text-content-primary">
-                    {r.best.toFixed(1).replace('.', ',')}
-                  </p>
-                  <p className="font-mono text-chart-label font-medium uppercase tracking-[0.08em] text-content-muted">
-                    kg · e1RM
-                  </p>
-                </div>
-                <ChevronRight
-                  aria-hidden="true"
-                  className="h-4 w-4 shrink-0 text-content-muted"
-                />
-              </m.button>
-            ))}
-          </div>
-        )}
-      </section>
+      </RutinaBentoItem>
 
       {/* ===== Pustaka gerakan — baris ringkas lebar penuh (v2.59):
           baris ledger hairline, bukan kartu per gerakan. ===== */}
-      <section aria-label="Pustaka gerakan" className="@[52rem]:col-span-12">
+      <RutinaBentoItem span="full">
+      <section aria-label="Pustaka gerakan">
         <div className="flex items-center gap-2 px-0.5">
           <h2 className="text-section font-semibold tracking-tight text-content-secondary">
             Pustaka Gerakan
@@ -2862,14 +2890,16 @@ export default function BugarScreen() {
           )}
         </div>
       </section>
+      </RutinaBentoItem>
 
-      {/* ===== Neraca kelompok otot — baris penuh di bawah pasangan
-          Papan Rekor/Pustaka (review UI/UX v2.44): distribusi set per
-          kelompok otot utama, jendela 7/30 hari. ===== */}
-      <section aria-label="Neraca kelompok otot" className="@[52rem]:col-span-12">
-        <MuscleBalanceCard />
-      </section>
-          </div>
+      {/* ===== Neraca kelompok otot — pita penuh (review UI/UX v2.44):
+          distribusi set per kelompok otot utama, jendela 7/30 hari. ===== */}
+      <RutinaBentoItem span="full">
+        <section aria-label="Neraca kelompok otot">
+          <MuscleBalanceCard />
+        </section>
+      </RutinaBentoItem>
+          </RutinaBentoGrid>
         </div>
 
         {/* v2.70 (audit jarak): panel Asupan/Tubuh dulu menempel persis
