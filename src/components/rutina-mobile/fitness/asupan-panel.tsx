@@ -5,7 +5,6 @@ import { AnimatePresence } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
   AlertTriangle,
-  Apple,
   ChevronDown,
   Flame,
   Minus,
@@ -27,6 +26,7 @@ import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill } from '@/lib/motion/transitions'
 import { useAnimePop } from '../anime-kit'
+import { RutinaIllustration } from '../rutina-illustration'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -668,7 +668,13 @@ export function AsupanPanel() {
               transition={motionTokens.preset.chipReveal}
               className="rounded-xl border-2 border-dashed border-primary/30 px-6 py-9 text-center"
             >
-              <Apple className="mx-auto h-6 w-6 text-content-muted" />
+              {/* Ilustrasi mangkuk seimbang (aset 04) — konteks
+                  visual asupan pada jurnal makan kosong. */}
+              <RutinaIllustration
+                name="04-wellness-balanced-meal"
+                size={256}
+                className="mx-auto mb-1 h-24 w-32 shadow-sm"
+              />
               <p className="mt-2 text-note font-semibold text-content-muted">
                 {selDay && selDay !== today
                   ? `Belum ada catatan untuk ${dayLongLabel(selDay)}`

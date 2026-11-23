@@ -103,6 +103,7 @@ import { MuscleBalanceCard } from '../fitness/muscle-balance-card'
 import { PaceTrack } from '../visualizations/fitness/pace-track'
 import { useCheckInSheet } from '../checkin-sheet'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 
@@ -1434,10 +1435,19 @@ function CardioTrendCard({ sessions }: { sessions: Workout[] }) {
       transition={motionTokens.preset.chipReveal}
       className="mt-3 rounded-xl border border-border bg-surface-primary p-4 shadow-soft"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
-          Tren Kardio
-        </h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {/* Ilustrasi sepeda (aset 06) — simbol kardio klasik pada
+              kartu tren jarak/pace; data grafik tetap memimpin. */}
+          <RutinaIllustration
+            name="06-fitness-bicycle"
+            size={96}
+            className="size-9 shrink-0"
+          />
+          <h3 className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-secondary">
+            Tren Kardio
+          </h3>
+        </div>
         {/* Pilihan metrik — Jarak | Pace; dua unit tidak pernah dicampur
             pada satu sumbu (audit v2.37). */}
         <div
@@ -2433,11 +2443,21 @@ export default function BugarScreen() {
               <div className="mt-3">
                 <CardioTrendCard sessions={workouts} />
                 {cardioDistCount < 3 && (
-                  <p className="mt-3 rounded-xl border border-dashed border-border-strong px-4 py-3.5 text-center text-meta font-medium leading-relaxed text-content-muted">
-                    Tren kardio mulai terbaca setelah minimal 3 sesi
-                    jalan/lari dengan jarak tercatat — catat lewat pintasan
-                    di atas.
-                  </p>
+                  /* Catatan jujur + ilustrasi sepeda (aset 06) — pasangan
+                     kartu Tren Kardio: salah satu selalu menghiasi view
+                     Tren (kartu saat ≥3 sesi jarak, catatan ini bila belum). */
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-border-strong px-4 py-3.5">
+                    <RutinaIllustration
+                      name="06-fitness-bicycle"
+                      size={96}
+                      className="size-11 shrink-0"
+                    />
+                    <p className="text-meta font-medium leading-relaxed text-content-muted">
+                      Tren kardio mulai terbaca setelah minimal 3 sesi
+                      jalan/lari dengan jarak tercatat — catat lewat pintasan
+                      di atas.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -2716,6 +2736,13 @@ export default function BugarScreen() {
           <span className="rounded-full bg-secondary px-2 py-0.5 text-eyebrow font-semibold text-success">
             {EX_LIB.length}
           </span>
+          {/* Ilustrasi matras (aset 05) — aksen “latihan gerak” di
+              ujung baris judul pustaka. */}
+          <RutinaIllustration
+            name="05-fitness-yoga-mat"
+            size={96}
+            className="ml-auto size-10 shrink-0"
+          />
         </div>
 
         {/* Pencarian pustaka — entrance fade+rise standar (audit Tahap 2:

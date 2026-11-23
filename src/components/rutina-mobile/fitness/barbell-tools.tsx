@@ -15,6 +15,7 @@ import { fade, sheetSpring } from '@/lib/motion/transitions'
 import { motionTokens } from '@/lib/motion/tokens'
 import { cn } from '@/lib/utils'
 import { useAnimePop } from '../anime-kit'
+import { RutinaIllustration } from '../rutina-illustration'
 import { CONTENT_W } from '../layout-widths'
 import { useFocusTrap } from '../use-focus-trap'
 import { useEscapeLayer } from '../overlay-escape'
@@ -452,10 +453,19 @@ function WarmupTab() {
 
   return (
     <div>
-      <p className="text-note leading-relaxed text-content-muted">
-        Pemanasan bertahap menuju beban kerja — bar kosong → 40% → 60% →
-        80%, pembulatan 2,5 kg.
-      </p>
+      <div className="flex items-center gap-3.5">
+        {/* Ilustrasi peregangan (aset 09) — pemanasan sebelum beban
+            kerja; teks tangga tetap memimpin. */}
+        <RutinaIllustration
+          name="09-wellness-stretching"
+          size={160}
+          className="size-14 shrink-0"
+        />
+        <p className="text-note leading-relaxed text-content-muted">
+          Pemanasan bertahap menuju beban kerja — bar kosong → 40% → 60% →
+          80%, pembulatan 2,5 kg.
+        </p>
+      </div>
 
       <div className="mt-3 space-y-1.5">
         <label

@@ -34,6 +34,7 @@ import { playfair } from '../serif'
 import { useFocusTrap } from '../use-focus-trap'
 import { useEscapeLayer } from '../overlay-escape'
 import { useAnimePop } from '../anime-kit'
+import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaDialog } from '../rutina-dialog'
 import { deloadActive, doubleProgression, exStatOf } from './fit-utils'
 import { EX_LIB, EX_LEVELS, exerciseLabel } from './data'
@@ -1486,14 +1487,23 @@ export function SessionPickerSheet({
                 <span className="h-1.5 w-10 rounded-full bg-content-secondary/25" />
               </div>
 
-              <div className="text-left">
-                <h2 className="text-lead font-semibold tracking-tight text-content-primary">
-                  Mulai Sesi Latihan
-                </h2>
-                <p className="mt-0.5 text-note leading-relaxed text-content-muted">
-                  Mode imersif layar penuh — timer istirahat otomatis, geser
-                  antar gerakan, set tercatat seketika.
-                </p>
+              <div className="flex items-center gap-3.5 text-left">
+                {/* Ilustrasi stopwatch (aset 07) — sesi berdurasi dengan
+                    timer istirahat otomatis; teks tetap memimpin. */}
+                <RutinaIllustration
+                  name="07-productivity-stopwatch"
+                  size={160}
+                  className="size-14 shrink-0"
+                />
+                <div>
+                  <h2 className="text-lead font-semibold tracking-tight text-content-primary">
+                    Mulai Sesi Latihan
+                  </h2>
+                  <p className="mt-0.5 text-note leading-relaxed text-content-muted">
+                    Mode imersif layar penuh — timer istirahat otomatis, geser
+                    antar gerakan, set tercatat seketika.
+                  </p>
+                </div>
               </div>
 
               {/* Cepat mulai — dari riwayat nyata */}

@@ -26,6 +26,7 @@ import {
 import { motionTokens } from '@/lib/motion/tokens'
 import { barFill } from '@/lib/motion/transitions'
 import { useCheckInSheet } from '../checkin-sheet'
+import { RutinaIllustration } from '../rutina-illustration'
 import {
   addDaysISO,
   FIT_TARGETS_DEFAULT,
@@ -985,6 +986,13 @@ export function TubuhPanel() {
               Tidur semalam &amp; energi kamu — dasar kesiapan latihan
             </p>
           </div>
+          {/* Aksen ilustrasi tidur (aset 08) — sisi kanan header; kartu
+              padat kontrol di bawahnya tetap utuh. */}
+          <RutinaIllustration
+            name="08-wellness-sleep"
+            size={128}
+            className="mt-0.5 size-12 shrink-0"
+          />
         </div>
 
         {/* Tidur — stepper 30 menit */}
@@ -1121,6 +1129,14 @@ export function TubuhPanel() {
               </>
             )}
           </div>
+          {/* Aksen ilustrasi jantung (aset 10) — kesehatan umum di kartu
+              kesiapan; inset parchment berbingkai tetap terbaca di atas
+              latar warna skor. */}
+          <RutinaIllustration
+            name="10-wellness-heart-health"
+            size={128}
+            className="mt-0.5 size-12 shrink-0"
+          />
         </div>
       </m.section>
 
@@ -1225,9 +1241,14 @@ export function TubuhPanel() {
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-success">
-              <Droplets className="h-4.5 w-4.5" />
-            </span>
+            {/* Ubin ilustrasi botol minum (aset 03) menggantikan chip
+                ikon — visual hidrasi yang lebih hangat; deret gelas &
+                progres di bawah tetap menjadi sumber data. */}
+            <RutinaIllustration
+              name="03-wellness-hydration"
+              size={96}
+              className="size-10 shrink-0"
+            />
             <div>
               <p className="text-body font-semibold text-content-primary">
                 Hidrasi

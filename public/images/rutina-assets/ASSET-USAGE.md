@@ -15,14 +15,14 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 |---|------|--------|------------------|---------|
 | 01 | `01-fitness-dumbbells.webp` | ✅ | Beranda — ubin bento Bugar (slot ring, hanya saat tanpa target mingguan) | Dekorasi mengalah saat data (cincin progres) hadir |
 | 02 | `02-fitness-running-shoes.webp` | ✅ | Bugar — empty state "Belum ada aktivitas tercatat" (riwayat, mode Daftar) | |
-| 03 | `03-wellness-hydration.webp` | ⬜ | — | Kartu hidrasi padat kontrol; tidak dipaksa |
-| 04 | `04-wellness-balanced-meal.webp` | ⬜ | — | Panel Asupan padat data; tidak dipaksa |
-| 05 | `05-fitness-yoga-mat.webp` | ⬜ | — | Belum ada konteks yang pas |
-| 06 | `06-fitness-bicycle.webp` | ⬜ | — | Belum ada konteks yang pas |
-| 07 | `07-productivity-stopwatch.webp` | ⬜ | — | Kartu durasi sudah padat data |
-| 08 | `08-wellness-sleep.webp` | ⬜ | — | Cadangan pemulihan/kesiapan latihan |
-| 09 | `09-wellness-stretching.webp` | ⬜ | — | Belum ada konteks yang pas |
-| 10 | `10-wellness-heart-health.webp` | ⬜ | — | Belum ada konteks yang pas |
+| 03 | `03-wellness-hydration.webp` | ✅ | Bugar — Tubuh › kartu Hidrasi (ubin ilustrasi pengganti chip ikon header) | Deret gelas & bar progres tetap jadi sumber data |
+| 04 | `04-wellness-balanced-meal.webp` | ✅ | Bugar — Asupan › empty state “Jurnal makan masih kosong” | Menggantikan ikon Apple |
+| 05 | `05-fitness-yoga-mat.webp` | ✅ | Bugar — Latihan › header Pustaka Gerakan (aksen kanan) | Aksen “latihan gerak” pada baris judul |
+| 06 | `06-fitness-bicycle.webp` | ✅ | Bugar — Riwayat › Tren: header kartu Tren Kardio (≥3 sesi jarak) ATAU samping catatan jujurnya (<3 sesi) | View Tren selalu punya visual kardio |
+| 07 | `07-productivity-stopwatch.webp` | ✅ | Bugar — sheet “Mulai Sesi Latihan” (header) | Timer istirahat otomatis — teks tetap memimpin |
+| 08 | `08-wellness-sleep.webp` | ✅ | Bugar — Tubuh › header kartu Check-in Harian (aksen kanan) | Tidur semalam & energi |
+| 09 | `09-wellness-stretching.webp` | ✅ | Bugar — Alat Barbel › tab Tangga Pemanasan (intro) | Peregangan sebelum beban kerja |
+| 10 | `10-wellness-heart-health.webp` | ✅ | Bugar — Tubuh › kartu Kesiapan latihan (aksen kanan) | Kesehatan umum; inset parchment di atas latar warna skor |
 | 11 | `11-finance-savings-jar.webp` | ✅ | Keuangan — empty state tujuan tabungan | Toples = tujuan |
 | 12 | `12-finance-coin-stacks.webp` | ✅ | Beranda — ubin bento Keuangan (stempel pita tengah) | Aman ≥320px (QA DOM) |
 | 13 | `13-finance-wallet.webp` | ✅ | Keuangan — empty state transaksi (Ringkasan + Mutasi) | |
@@ -46,8 +46,8 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 
 ## Ringkasan
 
-- **Terpakai**: 16 aset (01, 02, 11, 12, 13, 14, 16, 17, 19, 21, 22, 24, 25, 26, 27, 30)
-- **Belum terpakai**: 14 aset — kartu targetnya padat data atau belum ada konteks yang pas; disimpan sebagai cadangan bertema (prinsip paket: "sebagian aset boleh tidak dipakai").
+- **Terpakai**: 24 aset (01–10, 11, 12, 13, 14, 16, 17, 19, 21, 22, 24, 25, 26, 27, 30)
+- **Belum terpakai**: 6 aset (15, 18, 20, 23, 28, 29) — kartu targetnya padat data atau belum ada konteks yang pas; disimpan sebagai cadangan bertema (prinsip paket: "sebagian aset boleh tidak dipakai").
 
 ## Pedoman
 
