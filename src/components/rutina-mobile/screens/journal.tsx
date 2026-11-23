@@ -32,8 +32,9 @@ import { RutinaEmptyState } from '../rutina-empty-state'
 import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { SmoothScrollArea } from '../smooth-scroll-area'
-import { WordReveal } from '../word-reveal'
 import { MotionCard } from '../rutina-motion-card'
+import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
+import { RutinaMetric } from '../rutina-metric'
 import { InkDot, InkStroke } from '../visualizations/journal/ink-stroke'
 import { MoodWheel } from '../visualizations/journal/mood-wheel'
 
@@ -209,6 +210,10 @@ function WritingActivityCard({
   const avgWordsPerDay =
     activeWriteDays > 0 ? Math.round(totalWords / activeWriteDays) : 0
 
+  /* v3.02 (unified bento): total catatan ber-mood — angka stat tile
+     "Suasana" di kepala kartu aktivitas. */
+  const moodTotal = moodCounts.reduce((a, [, n]) => a + n, 0)
+
   /* Audit v2.47 (3-d): jumlah kata pekan terfilter untuk chip — angka
      PERSIS (id-ID, mis. "1.234"), dihitung dari sumber yang sama dengan
      wordWeeks (countWords atas catatan ber-tanggal pasti; pekan berjalan
@@ -286,6 +291,54 @@ function WritingActivityCard({
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-3">
+          {/* v3.02 (unified bento) — strip stat atelier (master task):
+              jumlah tulisan · jumlah kata · streak · mood sebagai STAT
+              TILES (RutinaMetric sm) — semua angka dari memo yang sama
+              dengan viz di bawahnya, tanpa sumber data baru. Ponsel 2×2,
+              kisi 12-kolom satu baris empat. */}
+          <RutinaBentoGrid>
+            <RutinaBentoItem span="stat">
+              <RutinaMetric
+                size="sm"
+                label="Tulisan"
+                value={totalNotes}
+                unit="catatan"
+                caption="sepanjang waktu"
+              />
+            </RutinaBentoItem>
+            <RutinaBentoItem span="stat">
+              <RutinaMetric
+                size="sm"
+                label="Kata ditulis"
+                value={totalWords.toLocaleString('id-ID')}
+                caption={`${activeWriteDays} hari aktif · rata² ${avgWordsPerDay.toLocaleString('id-ID')}/hari`}
+              />
+            </RutinaBentoItem>
+            <RutinaBentoItem span="stat">
+              <RutinaMetric
+                size="sm"
+                label="Streak menulis"
+                value={streak}
+                unit="hari"
+                caption={streak > 0 ? 'berturut-turut' : 'mulai hari ini'}
+              />
+            </RutinaBentoItem>
+            <RutinaBentoItem span="stat">
+              <RutinaMetric
+                size="sm"
+                label="Suasana"
+                value={moodTotal}
+                unit="catatan"
+                caption={moodTotal > 0 ? 'ber-mood tercatat' : 'belum ada mood'}
+              />
+            </RutinaBentoItem>
+          </RutinaBentoGrid>
+
+          {/* Pasangan bento (v3.02): viz utama kalender/kata (medium/6)
+              + ringkasan folder & mood (feature/4) — ponsel menumpuk
+              penuh, ukuran baca daftar tetap dipegang max-width layar. */}
+          <RutinaBentoGrid className="mt-[var(--layout-grid-gap)]">
+            <RutinaBentoItem span="medium">
           {/* Mode baca (review v2.44): kalender jumlah catatan / volume
               kata per pekan — jumlah catatan ≠ produktivitas menulis.
               Audit v2.47 (3-d): h-6.5 (26px) → h-9 (36px) — target sentuh
@@ -513,18 +566,20 @@ function WritingActivityCard({
                       .join(' · ')}{' '}
                     kata
                   </p>
-                  <p className="mt-1 text-meta text-content-muted">
-                    {totalWords.toLocaleString('id-ID')} kata · {activeWriteDays} hari aktif
-                    menulis · rata² {avgWordsPerDay.toLocaleString('id-ID')} kata/hari
-                  </p>
+                  {/* v3.02: ringkasan total kata & hari aktif pindah ke
+                      stat tiles di kepala kartu — baris ringkas lama
+                      dihapus agar tidak dobel. */}
                 </div>
               )
             })()
           )}
+            </RutinaBentoItem>
 
+            {/* Ringkasan folder & mood — tile feature pendamping viz. */}
+            <RutinaBentoItem span="feature">
           {/* Distribusi folder — segmented bar kecil + label jumlah. */}
           {totalNotes > 0 && (
-            <div className="mt-3.5">
+            <div>
               <div
                 className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
                 role="img"
@@ -565,8 +620,8 @@ function WritingActivityCard({
               dibawa legenda teks. Hanya mood yang benar-benar tercatat.
               Arc mood yang sedang difilter tersorot halus di roda. */}
           {moodCounts.length > 0 && (
-            <div className="mt-2.5">
-              <div className="flex items-center gap-4">
+            <div className="mt-3.5">
+              <div className="flex flex-col items-start gap-2.5">
                 <MoodWheel counts={moodCounts} selectedMood={selectedMood} />
                 <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-chart-label font-medium text-content-muted">
                   {moodCounts.map(([mood, n]) => (
@@ -582,6 +637,8 @@ function WritingActivityCard({
               </div>
             </div>
           )}
+            </RutinaBentoItem>
+          </RutinaBentoGrid>
 
           {dayFilter && (
             <button
