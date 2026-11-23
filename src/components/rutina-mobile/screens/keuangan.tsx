@@ -3584,7 +3584,7 @@ export default function KeuanganScreen() {
           {findings.length === 0 ? (
             <RutinaEmptyState
               className="mt-3"
-              icon={<Info />}
+              image="15-finance-growth-chart"
               title="Belum cukup data untuk temuan bulan ini"
               description="Temuan muncul setelah ada transaksi, anggaran, atau perbandingan bulan yang cukup."
             />

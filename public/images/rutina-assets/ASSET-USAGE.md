@@ -27,7 +27,7 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 | 12 | `12-finance-coin-stacks.webp` | ✅ | Beranda — ubin bento Keuangan (stempel pita tengah) | Aman ≥320px (QA DOM) |
 | 13 | `13-finance-wallet.webp` | ✅ | Keuangan — empty state transaksi (Ringkasan + Mutasi) | |
 | 14 | `14-finance-budget-calculator.webp` | ✅ | Keuangan — empty state anggaran (Ringkasan + tab Anggaran) | |
-| 15 | `15-finance-growth-chart.webp` | ⬜ | — | Grafik keuangan sudah pakai viz data |
+| 15 | `15-finance-growth-chart.webp` | ✅ | Keuangan — Ringkasan › empty state “Belum cukup data untuk temuan bulan ini” (Analisis Pengeluaran › Temuan & Rekomendasi) | Grafik pertumbuhan = temuan menunggu data |
 | 16 | `16-finance-safe-vault.webp` | ✅ | Keuangan — SaldoCard "Rutina Vault" (samping saldo) + empty state dompet | |
 | 17 | `17-journal-leather-notebook.webp` | ✅ | Beranda desktop — ubin Jurnal panel modul (baris bawah di xl+, pojok kanan-atas di lg) | Menggantikan kartu pintu Jurnal desktop |
 | 18 | `18-journal-open-notebook.webp` | ⬜ | — | Satu aset jurnal per permukaan |
@@ -35,19 +35,19 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 | 20 | `20-journal-memory-frame.webp` | ⬜ | — | Belum ada konteks yang pas |
 | 21 | `21-habits-sprout.webp` | ✅ | Kebiasaan — empty state "Kebiasaan pertamamu menunggu ditanam" | |
 | 22 | `22-botanical-monstera.webp` | ✅ | Beranda desktop — ubin Streak panel modul | Identitas taman + hitungan kebiasaan aktif |
-| 23 | `23-botanical-blossom-branch.webp` | ⬜ | — | Aksen dekoratif, belum perlu |
+| 23 | `23-botanical-blossom-branch.webp` | ✅ | Kebiasaan — ornamen kanan judul Konsistensi (slot action header) | Aksen dekoratif ruang kebun |
 | 24 | `24-botanical-flowering-pot.webp` | ✅ | Kebiasaan — empty state "Kebun menunggu ditanam kembali" (Konsistensi) | |
 | 25 | `25-botanical-wreath.webp` | ✅ | Statistik — empty state "Belum ada kebiasaan aktif" (Wawasan › Komposisi) | |
 | 26 | `26-planner-calendar.webp` | ✅ | Beranda — empty state Agenda Hari Ini (mobile & desktop) | |
 | 27 | `27-planner-checklist.webp` | ✅ | Kebiasaan — empty state "Tidak ada agenda terjadwal" (tab Agenda) | |
-| 28 | `28-planner-hourglass.webp` | ⬜ | — | Belum ada konteks yang pas |
-| 29 | `29-planner-goal-target.webp` | ⬜ | — | Hero progres memakai ilustrasi garis daun inline; aset cadangan |
+| 28 | `28-planner-hourglass.webp` | ✅ | Statistik — Tren › empty state “Belum ada kebiasaan terjadwal” | Jam pasir = menunggu jadwal; satu keluarga planner dengan 26/27 |
+| 29 | `29-planner-goal-target.webp` | ✅ | Kebiasaan — stempel sasaran di bawah angka “dirawat/aktif” pada hero Tamanmu | Angka tetap memimpin; ilustrasi garis daun Sulur tak tersentuh |
 | 30 | `30-achievement-trophy.webp` | ✅ | Bugar — empty state "Rekor lahir setelah set beban pertama" (Papan Rekor e1RM) | |
 
 ## Ringkasan
 
-- **Terpakai**: 24 aset (01–10, 11, 12, 13, 14, 16, 17, 19, 21, 22, 24, 25, 26, 27, 30)
-- **Belum terpakai**: 6 aset (15, 18, 20, 23, 28, 29) — kartu targetnya padat data atau belum ada konteks yang pas; disimpan sebagai cadangan bertema (prinsip paket: "sebagian aset boleh tidak dipakai").
+- **Terpakai**: 28 aset (hanya 18, 20 yang tersisa)
+- **Belum terpakai**: 2 aset (18, 20) — menunggu rumah kontekstual di Jurnal/Profil (tahap berikutnya).
 
 ## Pedoman
 

@@ -64,6 +64,7 @@ import Heatmap from '../heatmap'
 import { HabitComparisonMatrix } from '../habit-comparison-matrix'
 import { PlantGlyph } from '../plant-glyph'
 import { RutinaEmptyState } from '../rutina-empty-state'
+import { RutinaIllustration } from '../rutina-illustration'
 import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { SmoothScrollArea } from '../smooth-scroll-area'
@@ -1535,6 +1536,13 @@ export default function KebiasaanScreen() {
               <p className="mt-1 text-eyebrow font-medium text-content-muted">
                 kebiasaan dirawat pekan ini
               </p>
+              {/* Sasaran anak panah (aset 29) — stempel target di bawah
+                  angka dirawat/aktif; angka tetap memimpin. */}
+              <RutinaIllustration
+                name="29-planner-goal-target"
+                size={128}
+                className="mt-3 size-12 @[34rem]:ml-auto"
+              />
             </div>
           ) : (
             <span
@@ -2011,6 +2019,15 @@ export default function KebiasaanScreen() {
                 description="Runtun, capaian pekan, dan taman pertumbuhan"
                 reveal
                 visitKey="kebiasaan-konsistensi-title"
+                /* Ranting bunga (aset 23) — ornamen ruang kebun di sisi
+                   kanan judul (slot action header). */
+                action={
+                  <RutinaIllustration
+                    name="23-botanical-blossom-branch"
+                    size={128}
+                    className="size-12"
+                  />
+                }
               />
 
               {/* v2.31 Garden: kebun tidak lagi LENYAP saat semua kebiasaan

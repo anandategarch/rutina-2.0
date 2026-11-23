@@ -1403,7 +1403,7 @@ export default function StatsScreen() {
                   {kpi.sched === 0 ? (
                     <RutinaEmptyState
                       className="px-4 py-6"
-                      icon={<CalendarDays />}
+                      image="28-planner-hourglass"
                       title="Belum ada kebiasaan terjadwal"
                       description="Atur jadwal kebiasaan di tab Kebiasaan — tren konsistensi mulai terbaca setelah ada misi terjadwal."
                     />
