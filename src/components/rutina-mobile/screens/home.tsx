@@ -860,12 +860,14 @@ export default function HomeScreen() {
          Aturan anak-berikutnya menimpa mt-* internal komponen asing
          (mis. HomeFinanceCard mt-8) secara deterministik
          lewat spesifisitas.
-         v2.98 (split screen + bento): pada lg+ konten menjadi KISI 12
-         KOLOM — panel ringkasan modul sticky (col-span-5) berdampingan
-         dengan lajur kerja agenda (col-span-7); bagian pita lebar di
-         bawahnya diberi col-span-12. Aturan mt antar-anak dinetralkan
-         di lg (jarak dipegang gap kisi) agar penempatan kisi deterministik. */
-      contentClassName="px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)] lg:grid lg:grid-cols-12 lg:items-start lg:gap-[var(--layout-gap)] lg:[&>*+*]:mt-0"
+         v3.02 (unified bento): kisi 12 kolom kini CONTAINER-AWARE
+         (@[52rem] — lebar ruang kerja nyata, satu bahasa dengan
+         RutinaBentoGrid & keenam tab lain), bukan lagi viewport lg.
+         Panel ringkasan modul sticky (col-span-5) berdampingan dengan
+         lajur kerja agenda (col-span-7); pita lebar col-span-12. Pada
+         kontainer <52rem (termasuk zona 6-kolom jendela 1280–1407px)
+         seluruh bagian menumpuk dengan mt antar-anak. */
+      contentClassName="px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)] @[52rem]:grid @[52rem]:grid-cols-12 @[52rem]:items-start @[52rem]:gap-[var(--layout-gap)] @[52rem]:[&>*+*]:mt-0"
     >
       {/* ===== v2.93 — komposisi ganda Beranda; v2.98 — split screen =====
           Ponsel (<lg): hero foto split + bento 2×2 (mockup mobile-home).
@@ -875,7 +877,7 @@ export default function HomeScreen() {
           Keduanya hidup dalam SATU pembungkus anak-pertama (col-span-12)
           sehingga aturan [&>*+*]:mt konten mobile tidak menambah margin
           di atas blok manapun. */}
-      <div className="lg:col-span-12">
+      <div className="@[52rem]:col-span-12">
         {/* Ponsel (<lg) — hero foto full-bleed + bento ringkas +
             agenda + quick insight (mockup mobile-home). -mx-4
             melepaskan hero dari padding horizontal konten. */}
@@ -1013,22 +1015,25 @@ export default function HomeScreen() {
       </div>
       </div>
 
-      {/* v2.98 — hero desktop (pita lebar di atas split, di dalam
-          pembungkus kepala col-span-12). Komposisi bento 8+4 lama
-          dipensiunkan: tile pendamping "Insight hari ini" (saldo bersih)
-          melebur ke ubin Keuangan panel modul (satu permukaan keuangan
-          di Beranda), dan metrik Streak pindah ke ubin Streak panel
-          modul — tidak ada angka yang tampil dua kali. */}
-      <m.div
-        initial={playEntrance ? { opacity: 0, y: 14 } : false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: motionTokens.duration.enter,
-          delay: motionTokens.delay.tight,
-          ease: motionTokens.easing.standard,
-        }}
-        className="mt-[var(--layout-gap)] hidden lg:block"
-      >
+      {/* v3.02 (unified bento) — HERO BENTO desktop: progres hari ini
+          sebagai tile utama (span "hero" = 8 kolom) + panel insight
+          harian sebagai tile pendamping (span "feature" = 4 kolom) —
+          komposisi editorial asimetris; keduanya menumpuk penuh pada
+          kontainer <52rem. Split internal hero (narasi kiri, metrik
+          kanan) dipertahankan. */}
+      <div className="mt-[var(--layout-gap)] hidden lg:block">
+        <RutinaBentoGrid>
+          <RutinaBentoItem span="hero">
+            <m.div
+              initial={playEntrance ? { opacity: 0, y: 14 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: motionTokens.duration.enter,
+                delay: motionTokens.delay.tight,
+                ease: motionTokens.easing.standard,
+              }}
+              className="h-full"
+            >
         <section aria-label="Progres hari ini" className="h-full">
               <MotionCard
                 /* v2.46: permukaan kebun (kabut matcha lembut) kini varian
@@ -1198,11 +1203,32 @@ export default function HomeScreen() {
                 </div>
               </MotionCard>
             </section>
-      </m.div>
+            </m.div>
+          </RutinaBentoItem>
+
+          {/* Panel insight harian — tile pendamping hero (v3.02):
+              observasi jujur yang sama dengan versi ponsel, kini hadir
+              di desktop tanpa duplikasi (ponsel memakainya di komposisi
+              mobile, desktop di sini — satu sumber komponen). */}
+          <RutinaBentoItem span="feature">
+            <HomeQuickInsight
+              streak={streak}
+              weekDone={weekMission.done}
+              weekSched={weekMission.sched}
+              missionRemaining={missionRemaining}
+              journalToday={journalToday}
+              spark={missionSpark}
+              className="flex h-full flex-col justify-center"
+            />
+          </RutinaBentoItem>
+        </RutinaBentoGrid>
+      </div>
       </div>
 
-      {/* v2.98 — SPLIT SCREEN: panel ringkasan modul (sticky, col-span-5).
-          Bento 2×2 memakai HomeBentoSummary varian "rail": Streak/Taman
+      {/* v2.98 — SPLIT SCREEN (v3.02: ambang kisi & sticky kini
+          container @[52rem], selaras tab lain): panel ringkasan modul
+          sticky (col-span-5). Bento 2×2 memakai HomeBentoSummary varian
+          "rail": Streak/Taman
           (seni monstera + hitungan aktif — streak tidak lagi dobel dengan
           hero), Keuangan (saldo + stempel koin — menyerap tile "Insight
           hari ini" lama), Bugar (cincin sesi / seni dumbbell), Jurnal
@@ -1215,10 +1241,10 @@ export default function HomeScreen() {
           (bukan area barisnya) sehingga panel bisa menembus batas
           lajur dan menimpa pita di bawahnya; lapisan dalam membatasi
           rentang sticky dengan tepat. */}
-      <div className="hidden lg:col-span-5 lg:block lg:self-stretch">
+      <div className="hidden lg:block @[52rem]:col-span-5 @[52rem]:self-stretch">
         <aside
           aria-label="Ringkasan modul"
-          className="lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:no-scrollbar lg:overscroll-contain"
+          className="no-scrollbar overscroll-contain @[52rem]:sticky @[52rem]:top-4 @[52rem]:max-h-[calc(100dvh-2rem)] @[52rem]:overflow-y-auto"
           data-lenis-prevent
         >
           <HomeBentoSummary
@@ -1264,7 +1290,7 @@ export default function HomeScreen() {
           delay: motionTokens.delay.relaxed,
           ease: motionTokens.easing.standard,
         }}
-        className="lg:col-span-7 lg:flex lg:flex-col lg:gap-[var(--layout-gap)]"
+        className="lg:flex lg:flex-col lg:gap-[var(--layout-gap)] @[52rem]:col-span-7"
       >
         {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal
             agenda; menempel di tepi atas LAJUR saat agenda digulir
@@ -1687,7 +1713,7 @@ export default function HomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.normal }}
         aria-label="Bonus harian"
-        className="lg:col-span-12"
+        className="@[52rem]:col-span-12"
       >
         <button
           type="button"
@@ -1750,16 +1776,19 @@ export default function HomeScreen() {
         </button>
       </m.section>
 
-      {/* 4 — Baris bento rekap pekan (7) + arus kas (5): satu baris
-          komposisi ruang kerja lebar (≥52rem), ponsel menumpuk rekap →
-          finance (perjalanan pertumbuhan didahulukan). mt-8 internal
-          HomeFinanceCard dinetralkan agar tepi atas kedua tile sejajar.
+      {/* 4 — Baris bento rekap pekan + arus kas (v3.02: kini pasangan
+          span "medium" 6+6 — nominal keuangan mendapat ruang setara dan
+          tetap terbaca penuh, selaras aturan "jangan kecilkan nominal
+          demi grid"; kisi 6-kolom tablet menyandingkan keduanya, ponsel
+          menumpuk rekap → finance, perjalanan pertumbuhan didahulukan).
+          mt-8 internal HomeFinanceCard dinetralkan agar tepi atas kedua
+          tile sejajar.
           v2.14: Rekap Pekan menggantikan panel "Insight pekan" — strip
           perjalanan 7 hari, perbandingan vs pekan lalu, dan chip visual
           lintas modul; kartu stempel pekan yang terlipat ikut diserap ke
           strip perjalanan. */}
-      <RutinaBentoGrid className="lg:col-span-12">
-        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
+      <RutinaBentoGrid className="@[52rem]:col-span-12">
+        <RutinaBentoItem span="medium">
           {/* v2.95: "Buka di Agenda" — desktop menggulir ke DateStrip &
               planner; ponsel membuka layar Kebiasaan. */}
           <WeeklyRecapCard
@@ -1777,7 +1806,7 @@ export default function HomeScreen() {
           />
         </RutinaBentoItem>
 
-        <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-5 [&>section]:mt-0">
+        <RutinaBentoItem span="medium" className="[&>section]:mt-0">
           {/* Ringkasan finansial harian (audit #11) */}
           <HomeFinanceCard />
         </RutinaBentoItem>
@@ -1862,13 +1891,14 @@ export default function HomeScreen() {
           Kebiasaan (pemilih visualisasi "Taman", v2.78) — tumpukan visual
           kembar di dua layar membuat Beranda terasa lebih panjang tanpa
           informasi baru. */}
-      {/* v2.98: pembungkus kisi — GardenTree jadi anak pita lebar. */}
-      <div className="lg:col-span-12">{hasActiveHabits && <GardenTree />}</div>
+      {/* v2.98: pembungkus kisi — GardenTree jadi anak pita lebar
+          (v3.02: col-span container-aware). */}
+      <div className="@[52rem]:col-span-12">{hasActiveHabits && <GardenTree />}</div>
 
       {/* 7 — Refleksi (v2.83, audit UX §A): bagian yang DIBUKA — kutipan
           harian tetap utuh (ganti/simpan), namun tidak lagi memakan
           setengah layar di kondisi awal; pemicu ringkas satu baris. */}
-      <Collapsible defaultOpen={false} className="lg:col-span-12">
+      <Collapsible defaultOpen={false} className="@[52rem]:col-span-12">
         <CollapsibleTrigger asChild>
           <button
             type="button"

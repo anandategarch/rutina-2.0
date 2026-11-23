@@ -22,8 +22,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { barFill } from '@/lib/motion/transitions'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
+import { cn } from '@/lib/utils'
 
 import { formatIDR, formatIDRShort } from './finance/utils'
+import { RutinaBentoGrid, RutinaBentoItem } from './rutina-bento'
 import { RutinaIllustration } from './rutina-illustration'
 import { playfair } from './serif'
 import { useShellRevealed } from './shell-reveal'
@@ -443,21 +445,20 @@ export function HomeBentoSummary({
   )
   const rail = variant === 'rail'
 
-  return (
-    <m.div
-      initial={playEntrance ? { opacity: 0, y: 14 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: motionTokens.duration.enter,
-        delay: motionTokens.delay.relaxed,
-        ease: motionTokens.easing.standard,
-      }}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        {/* 1 — Streak: permukaan matcha, pita foto pegunungan rendah
+  /* v3.02 (unified bento): keempat ubin didefinisikan SEKALI sebagai
+     array agar dua pembungkus memakainya tanpa duplikasi —
+     • default (ponsel/tablet): RutinaBentoGrid + RutinaBentoItem span
+       "stat" — 2×2 di bawah 42rem, tetap 2×2 pada kisi 6 kolom, satu
+       baris 4 ubin begitu kontainer ≥52rem (tablet landscape).
+     • rail (aside desktop): grid statis 2 kolom — sengaja TIDAK
+       container-aware karena container-query mengukur root ruang
+       kerja, bukan aside 5/12 (docs/BENTO-REDESIGN.md #3). */
+  const tiles = [
+        /* 1 — Streak: permukaan matcha, pita foto pegunungan rendah
             kontras di dasar kartu (aset mountain-wide-alternate dari
-            paket redesain); angka & badge TIDAK pernah tertindih. */}
+            paket redesain); angka & badge TIDAK pernah tertindih. */
         <m.button
+          key="bento-streak"
           type="button"
           onClick={onOpenKebiasaan}
           aria-label={`Streak terbaik ${streak} hari berturut-turut — buka Kebiasaan`}
@@ -465,7 +466,7 @@ export function HomeBentoSummary({
           initial={playEntrance ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={staggerIn(0)}
-          className="relative flex min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-matcha to-matcha-action-deep p-4 pb-0 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="relative flex h-full min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-matcha to-matcha-action-deep p-4 pb-0 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <div className="relative flex items-center gap-2">
             <span
@@ -522,11 +523,12 @@ export function HomeBentoSummary({
               />
             </span>
           )}
-        </m.button>
+        </m.button>,
 
-        {/* 2 — Keuangan: permukaan linen hangat (spesifikasi: warm
-            sand/beige), pill vonis arus kas 7 hari + sparkline nyata */}
+        /* 2 — Keuangan: permukaan linen hangat (spesifikasi: warm
+           sand/beige), pill vonis arus kas 7 hari + sparkline nyata */
         <m.button
+          key="bento-keuangan"
           type="button"
           onClick={onOpenKeuangan}
           aria-label={`Saldo bersih ${formatIDR(netSaldo)} — buka Keuangan`}
@@ -534,7 +536,7 @@ export function HomeBentoSummary({
           initial={playEntrance ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={staggerIn(1)}
-          className="relative flex min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-surface-secondary p-4 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="relative flex h-full min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-surface-secondary p-4 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <div className="flex items-center gap-2">
             <span
@@ -589,10 +591,11 @@ export function HomeBentoSummary({
             )}
           </div>
           {cashSpark && <CashSparkline data={cashSpark} />}
-        </m.button>
+        </m.button>,
 
-        {/* 3 — Bugar: parchment + cincin progres sesi pekan (SVG hidup) */}
+        /* 3 — Bugar: parchment + cincin progres sesi pekan (SVG hidup) */
         <m.button
+          key="bento-bugar"
           type="button"
           onClick={onOpenBugar}
           aria-label={
@@ -604,7 +607,7 @@ export function HomeBentoSummary({
           initial={playEntrance ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={staggerIn(2)}
-          className="relative flex min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-surface-primary p-4 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="relative flex h-full min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-surface-primary p-4 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <div className="flex items-center gap-2">
             <span
@@ -656,10 +659,11 @@ export function HomeBentoSummary({
               {fitTarget > 0 ? 'Target Mingguan' : 'pekan ini'}
             </span>
           </div>
-        </m.button>
+        </m.button>,
 
-        {/* 4 — Jurnal: matcha pekat + ilustrasi buku catatan */}
+        /* 4 — Jurnal: matcha pekat + ilustrasi buku catatan */
         <m.button
+          key="bento-jurnal"
           type="button"
           onClick={onOpenJurnal}
           aria-label={`${journalToday} entri jurnal hari ini — buka Jurnal`}
@@ -667,7 +671,7 @@ export function HomeBentoSummary({
           initial={playEntrance ? { opacity: 0, y: 14 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={staggerIn(3)}
-          className="relative flex min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-matcha-ink to-matcha-action-deep p-4 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="relative flex h-full min-h-[164px] cursor-pointer flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-matcha-ink to-matcha-action-deep p-4 text-left shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <div className="relative flex items-center gap-2">
             <span
@@ -733,8 +737,33 @@ export function HomeBentoSummary({
               )}
             </div>
           </div>
-        </m.button>
-      </div>
+        </m.button>,
+  ]
+
+  return (
+    <m.div
+      initial={playEntrance ? { opacity: 0, y: 14 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: motionTokens.duration.enter,
+        delay: motionTokens.delay.relaxed,
+        ease: motionTokens.easing.standard,
+      }}
+    >
+      {rail ? (
+        /* Aside desktop: grid statis — jarak gap-3 rapat khas rail. */
+        <div className="grid grid-cols-2 gap-3">{tiles}</div>
+      ) : (
+        /* Ponsel/tablet: kisi bento resmi — jarak token --layout-grid-gap
+           (16px, audit v2.64) dan span "stat" (setengah lebar ponsel). */
+        <RutinaBentoGrid>
+          {tiles.map((tile) => (
+            <RutinaBentoItem key={tile.key} span="stat">
+              {tile}
+            </RutinaBentoItem>
+          ))}
+        </RutinaBentoGrid>
+      )}
     </m.div>
   )
 }
@@ -940,6 +969,8 @@ export interface HomeQuickInsightProps {
   journalToday: number
   /** Hitungan misi 7 hari terakhir (dayCounts) — panah bila ada aktivitas. */
   spark: number[]
+  /** Kelas tambahan untuk m.section — dipakai mode tile pendamping desktop. */
+  className?: string
 }
 
 export function HomeQuickInsight({
@@ -949,6 +980,7 @@ export function HomeQuickInsight({
   missionRemaining,
   journalToday,
   spark,
+  className,
 }: HomeQuickInsightProps) {
   const playEntrance = useFirstVisit('home-quick-insight')
 
@@ -975,7 +1007,10 @@ export function HomeQuickInsight({
       animate={{ opacity: 1, y: 0 }}
       transition={motionTokens.preset.data}
       aria-label="Insight singkat"
-      className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gold/20 p-4"
+      className={cn(
+        'relative overflow-hidden rounded-3xl border border-gold/40 bg-gold/20 p-4',
+        className,
+      )}
     >
       <div className="flex items-center gap-3.5">
         <span
