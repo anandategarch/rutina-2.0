@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Dumbbell,
   Lightbulb,
+  PenLine,
   Search,
   Sprout,
   Target,
@@ -409,6 +410,15 @@ export interface HomeBentoSummaryProps {
   onOpenKeuangan: () => void
   onOpenBugar: () => void
   onOpenJurnal: () => void
+  /** Varian tampilan: "default" (ponsel) atau "rail" — panel samping
+   *  sticky Beranda desktop (v2.98). Ubin Streak memakai seni monstera
+   *  + hitungan kebiasaan aktif (streak tidak dobel dengan hero),
+   *  ubin Jurnal memakai foto buku catatan (aset 30-pak) + chip draf. */
+  variant?: 'default' | 'rail'
+  /** Jumlah kebiasaan aktif (varian rail — ubin Streak). */
+  activeHabits?: number
+  /** Label draf jurnal terakhir (varian rail — ubin Jurnal). */
+  draft?: string | null
 }
 
 export function HomeBentoSummary({
@@ -424,8 +434,14 @@ export function HomeBentoSummary({
   onOpenKeuangan,
   onOpenBugar,
   onOpenJurnal,
+  variant = 'default',
+  activeHabits,
+  draft,
 }: HomeBentoSummaryProps) {
-  const playEntrance = useFirstVisit('home-bento-summary')
+  const playEntrance = useFirstVisit(
+    variant === 'rail' ? 'home-bento-rail' : 'home-bento-summary',
+  )
+  const rail = variant === 'rail'
 
   return (
     <m.div
@@ -469,26 +485,43 @@ export function HomeBentoSummary({
             <span className="text-note font-semibold text-parchment/85">hari</span>
           </p>
           {streakDelta > 0 && (
-            <span className="relative mb-3 self-start rounded-full bg-parchment/20 px-2 py-0.5 text-chart-label font-bold tabular-nums text-parchment">
+            <span className="relative mb-1.5 self-start rounded-full bg-parchment/20 px-2 py-0.5 text-chart-label font-bold tabular-nums text-parchment">
               ↗ +{streakDelta}
             </span>
           )}
-          {/* Pita foto pegunungan — hanya bidang dekoratif paling bawah
-              (aset mountain-wide-alternate); mask memudar ke atas
-              sehingga siluet menyatu ke permukaan matcha — tanpa detail
-              di belakang angka utama (QA: tinggi dipangkas ke 44px). */}
-          <span
-            aria-hidden="true"
-            className="relative -mx-4 mb-0 block h-11 w-[calc(100%+2rem)] overflow-hidden"
-          >
-            <Image
-              src="/images/rutina-home/mountain-wide-alternate.webp"
-              alt=""
-              fill
-              sizes="200px"
-              className="object-cover object-bottom opacity-35 [mask-image:linear-gradient(to_top,black_30%,transparent)]"
+          {rail && (
+            <p className="relative mb-3 text-pretty text-chart-label font-semibold leading-snug text-parchment/80">
+              {activeHabits ?? 0} kebiasaan aktif
+            </p>
+          )}
+          {rail ? (
+            /* Varian rail (desktop, v2.98): foto monstera (aset 30-pak)
+               sebagai inset terang di pita tengah — posisi identik stempel
+               koin ubin Keuangan; pita foto pegunungan dipensiunkan agar
+               tiap breakpoint membawa identitas visualnya sendiri. */
+            <RutinaIllustration
+              name="22-botanical-monstera"
+              size={128}
+              className="absolute right-3 top-11 size-11"
             />
-          </span>
+          ) : (
+            /* Pita foto pegunungan — hanya bidang dekoratif paling bawah
+               (aset mountain-wide-alternate); mask memudar ke atas
+               sehingga siluet menyatu ke permukaan matcha — tanpa detail
+               di belakang angka utama (QA: tinggi dipangkas ke 44px). */
+            <span
+              aria-hidden="true"
+              className="relative -mx-4 mb-0 block h-11 w-[calc(100%+2rem)] overflow-hidden"
+            >
+              <Image
+                src="/images/rutina-home/mountain-wide-alternate.webp"
+                alt=""
+                fill
+                sizes="200px"
+                className="object-cover object-bottom opacity-35 [mask-image:linear-gradient(to_top,black_30%,transparent)]"
+              />
+            </span>
+          )}
         </m.button>
 
         {/* 2 — Keuangan: permukaan linen hangat (spesifikasi: warm
@@ -654,26 +687,51 @@ export function HomeBentoSummary({
             </span>
           </div>
           {/* Teks dan ilustrasi berbagi baris bawah (bukan tumpang
-              tindih) — QA 390px: label tak lagi terpotong buku. */}
-          <div className="relative mt-auto flex items-end justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-kpi font-bold leading-none tabular-nums text-parchment">
-                {journalToday}{' '}
-                <span className="text-note font-bold text-parchment/85">entri</span>
-              </p>
-              <p className="mt-1 text-pretty text-chart-label font-semibold leading-snug text-parchment/80">
-                {journalToday > 0 ? 'Hari ini' : 'Belum ada hari ini'}
-              </p>
+              tindih) — QA 390px: label tak lagi terpotong buku.
+              Varian rail (desktop): foto buku catatan dari paket 30
+              aset + chip draf terakhir di atas baris angka.
+              TANPA relative — varian rail memakai absolute relatif
+              UBIN (di bawah xl foto pindah ke pojok kanan-atas);
+              relative di sini akan menangkap anchor absolute itu. */}
+          <div className="mt-auto flex flex-col gap-1.5">
+            {rail && draft ? (
+              <span className="inline-flex max-w-full items-center gap-1.5 self-start rounded-full bg-parchment/20 px-2 py-0.5 text-chart-label font-semibold text-parchment/90">
+                <PenLine aria-hidden="true" className="h-3 w-3 shrink-0" strokeWidth={2.2} />
+                <span className="min-w-0 truncate">{draft}</span>
+              </span>
+            ) : null}
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-kpi font-bold leading-none tabular-nums text-parchment">
+                  {journalToday}{' '}
+                  <span className="text-note font-bold text-parchment/85">entri</span>
+                </p>
+                <p className="mt-1 text-pretty text-chart-label font-semibold leading-snug text-parchment/80">
+                  {journalToday > 0 ? 'Hari ini' : 'Belum ada hari ini'}
+                </p>
+              </div>
+              {rail ? (
+                /* Foto buku (aset 30-pak) — xl+: berbagi baris bawah
+                   dengan teks (pola notebook mobile); di bawah xl
+                   (ubin ±133px) pindah ke pojok kanan-atas agar teks
+                   memakai lebar penuh (posisi identik stempel koin). */
+                <RutinaIllustration
+                  name="17-journal-leather-notebook"
+                  size={160}
+                  className="max-xl:absolute max-xl:right-3 max-xl:top-11 max-xl:size-11 xl:-mb-1 xl:-mr-1 xl:h-14 xl:w-[72px] xl:shrink-0"
+                />
+              ) : (
+                <Image
+                  src="/images/rutina-home/journal-notebook.svg"
+                  alt=""
+                  width={84}
+                  height={56}
+                  unoptimized
+                  aria-hidden="true"
+                  className="pointer-events-none -mb-1.5 -mr-1 h-14 w-[84px] shrink-0 object-contain"
+                />
+              )}
             </div>
-            <Image
-              src="/images/rutina-home/journal-notebook.svg"
-              alt=""
-              width={84}
-              height={56}
-              unoptimized
-              aria-hidden="true"
-              className="pointer-events-none -mb-1.5 -mr-1 h-14 w-[84px] shrink-0 object-contain"
-            />
           </div>
         </m.button>
       </div>
@@ -985,7 +1043,7 @@ function CashSparkline({ data }: { data: number[] }) {
 }
 
 /** Cincin progres sesi latihan pekan berjalan — SVG hidup (bukan gambar). */
-function FitProgressRing({
+export function FitProgressRing({
   ratio,
   showRing,
   label,

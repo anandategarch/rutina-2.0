@@ -224,8 +224,14 @@ function DateStrip() {
 
   const selected = days.find((d) => d.iso === selectedDate) ?? null
 
+  /* v2.98: DateStrip kini hidup di dalam LAJUR KERJA split (col-span-7)
+     — bukan lagi pita lebar penuh; -mx-4 dipensiunkan agar bar menempel
+     tepat pada lebar lajur (blur & border-b tetap menyapa saat sticky).
+     hidden lg:block langsung di root sticky: TIDAK dibungkus div lain
+     supaya elemen sticky punya ruang menempel sepanjang lajur (induk
+     pendek akan mematikan sticky). */
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-border bg-surface-primary/92 px-4 pb-2 pt-2.5 backdrop-blur-md">
+    <div className="sticky top-0 z-30 hidden border-b border-border bg-surface-primary/92 pb-2 pt-2.5 backdrop-blur-md lg:block">
       <div
         ref={stripRef}
         role="group"
@@ -853,16 +859,23 @@ export default function HomeScreen() {
          Ritme daybook: tiap bagian utama dipisah --layout-gap (1.75rem).
          Aturan anak-berikutnya menimpa mt-* internal komponen asing
          (mis. HomeFinanceCard mt-8) secara deterministik
-         lewat spesifisitas. */
-      contentClassName="px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
+         lewat spesifisitas.
+         v2.98 (split screen + bento): pada lg+ konten menjadi KISI 12
+         KOLOM — panel ringkasan modul sticky (col-span-5) berdampingan
+         dengan lajur kerja agenda (col-span-7); bagian pita lebar di
+         bawahnya diberi col-span-12. Aturan mt antar-anak dinetralkan
+         di lg (jarak dipegang gap kisi) agar penempatan kisi deterministik. */
+      contentClassName="px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)] lg:grid lg:grid-cols-12 lg:items-start lg:gap-[var(--layout-gap)] lg:[&>*+*]:mt-0"
     >
-      {/* ===== v2.93 — komposisi ganda Beranda =====
+      {/* ===== v2.93 — komposisi ganda Beranda; v2.98 — split screen =====
           Ponsel (<lg): hero foto split + bento 2×2 (mockup mobile-home).
-          Desktop (lg+): kepala & hero lama persis seperti sebelumnya.
-          Keduanya hidup dalam SATU pembungkus anak-pertama sehingga
-          aturan [&>*+*]:mt konten tidak menambah margin di atas blok
-          manapun (menyembunyikan salah satunya, bukan menggeser). */}
-      <div>
+          Desktop (lg+): kepala → hero penuh → SPLIT panel modul sticky
+          (col-span-5) + lajur kerja DateStrip/agenda/Untuk Hari Ini
+          (col-span-7) → pita lebar (bonus, rekap, kebun, refleksi).
+          Keduanya hidup dalam SATU pembungkus anak-pertama (col-span-12)
+          sehingga aturan [&>*+*]:mt konten mobile tidak menambah margin
+          di atas blok manapun. */}
+      <div className="lg:col-span-12">
         {/* Ponsel (<lg) — hero foto full-bleed + bento ringkas +
             agenda + quick insight (mockup mobile-home). -mx-4
             melepaskan hero dari padding horizontal konten. */}
@@ -927,7 +940,9 @@ export default function HomeScreen() {
           </div>
         </div>
 
-        {/* Desktop (lg+) — kepala & hero lama, tidak berubah */}
+        {/* Desktop (lg+) — kepala layar (v2.98: hero & kisi bento
+            dipindah keluar sebagai anak kisi tingkat-atas agar bisa
+            ditempatkan pada kolom split). */}
         <div className="hidden lg:block">
       {/* Kepala layar — sapaan yang menyusut halus saat digulir */}
       <div className="pt-[max(1.25rem,env(safe-area-inset-top))]">
@@ -996,14 +1011,14 @@ export default function HomeScreen() {
           </m.p>
         </m.header>
       </div>
+      </div>
 
-      {/* 1 — Komposisi bento hero: progres utama (tile lebar, permukaan
-          botanical, radius token hero) + insight pendamping FLAT editorial
-          tanpa bingkai (v2.27 Daybook: bukan semua bagian adalah kartu).
-          v2.46 Daily Almanac (audit Warm Editorial P2.0): hero SPLIT —
-          narasi editorial kiri, metrik besar + rel Streak/Misi pekan di
-          kanan pada kontainer lega; ponsel menumpuk dengan narasi di atas.
-          Sorotan Hari Ini tetap di kolom samping agenda. */}
+      {/* v2.98 — hero desktop (pita lebar di atas split, di dalam
+          pembungkus kepala col-span-12). Komposisi bento 8+4 lama
+          dipensiunkan: tile pendamping "Insight hari ini" (saldo bersih)
+          melebur ke ubin Keuangan panel modul (satu permukaan keuangan
+          di Beranda), dan metrik Streak pindah ke ubin Streak panel
+          modul — tidak ada angka yang tampil dua kali. */}
       <m.div
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -1012,14 +1027,9 @@ export default function HomeScreen() {
           delay: motionTokens.delay.tight,
           ease: motionTokens.easing.standard,
         }}
-        className="mt-[var(--layout-gap)]"
+        className="mt-[var(--layout-gap)] hidden lg:block"
       >
-        <RutinaBentoGrid>
-          <RutinaBentoItem span="hero">
-            {/* v2.87: entrance kartu hero kini dipegang MotionCard
-                (motion.dev — masuk viewport + hover); pembungkus m.section
-                lama dipensiunkan agar tidak ada gerak ganda. */}
-            <section aria-label="Progres hari ini" className="h-full">
+        <section aria-label="Progres hari ini" className="h-full">
               <MotionCard
                 /* v2.46: permukaan kebun (kabut matcha lembut) kini varian
                    `botanical` resmi RutinaCard; radius token hero daybook
@@ -1125,26 +1135,10 @@ export default function HomeScreen() {
                         </p>
                       </div>
                       <div className="mt-auto grid grid-cols-2 gap-3 border-t border-border-default pt-3 @[34rem]:grid-cols-1 @[34rem]:gap-2.5">
-                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
-                          {/* Api streak — denyut ambient identitas yang
-                              diizinkan (preset ambientPulse, amplitudo
-                              6%); MotionConfig reducedMotion="user"
-                              mematikan transform ini otomatis. */}
-                          <m.span
-                            aria-hidden="true"
-                            className="flex"
-                            animate={{ scale: [1, 1.06, 1] }}
-                            transition={motionTokens.preset.ambientPulse}
-                          >
-                            <Flame
-                              className="h-3.5 w-3.5 text-warning"
-                              strokeWidth={2.2}
-                            />
-                          </m.span>
-                          <span className="tabular-nums">
-                            Streak {streak} hari
-                          </span>
-                        </span>
+                        {/* v2.98 (split screen): Streak dipindah ke ubin
+                            Streak panel modul — tidak ada angka yang tampil
+                            dua kali di satu layar; rel hero kini membawa
+                            misi pekan saja. */}
                         <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary @[34rem]:justify-end">
                           <CalendarDays
                             aria-hidden="true"
@@ -1204,52 +1198,47 @@ export default function HomeScreen() {
                 </div>
               </MotionCard>
             </section>
-          </RutinaBentoItem>
-
-          {/* Insight hari ini — tile pendamping hero, FLAT editorial tanpa
-              bingkai (v2.27 Daybook: direktif “bukan semua bagian adalah
-              kartu”; hierarki lewat permukaan — hero terangkat, insight
-              tenang di kanvas). Saldo bersih dipertahankan karena
-              informasinya tidak digambarkan grafik lain; caption kini
-              kontekstual — vonis arus kas 7 hari terakhir bila ada
-              aktivitas pekan ini. */}
-          <RutinaBentoItem span="feature">
-            <section aria-label="Insight hari ini" className="h-full pt-1">
-              <RutinaSectionHeader title="Insight hari ini" />
-              <div className="mt-4">
-                <RutinaMetric
-                  label="Saldo bersih"
-                  value={
-                    netSaldo < 0
-                      ? `−${formatIDRShort(-netSaldo)}`
-                      : formatIDRShort(netSaldo)
-                  }
-                  icon={Wallet}
-                  iconClassName="bg-gold/25 text-warning"
-                  caption={
-                    netCash7.count > 0
-                      ? `${netCash7.net >= 0 ? 'Surplus' : 'Defisit'} ${formatIDRShort(
-                          Math.abs(netCash7.net),
-                        )} dari arus kas 7 hari — transfer antar-dompet dikecualikan`
-                      : 'seluruh transaksi — transfer antar-dompet dikecualikan'
-                  }
-                />
-              </div>
-            </section>
-          </RutinaBentoItem>
-        </RutinaBentoGrid>
       </m.div>
-        </div>
       </div>
 
-      {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal
-          agenda. v2.95 (audit duplikasi): kini khusus desktop (lg+) —
-          di ponsel tanggal & misi hari ini sudah terwakili kartu
-          Agenda Hari Ini (blok tanggal) dan kartu Fokus di hero;
-          riwayat tanggal lain hidup di layar Kebiasaan (heatmap +
-          lembar detail hari). */}
-      <div className="hidden lg:block">
-        <DateStrip />
+      {/* v2.98 — SPLIT SCREEN: panel ringkasan modul (sticky, col-span-5).
+          Bento 2×2 memakai HomeBentoSummary varian "rail": Streak/Taman
+          (seni monstera + hitungan aktif — streak tidak lagi dobel dengan
+          hero), Keuangan (saldo + stempel koin — menyerap tile "Insight
+          hari ini" lama), Bugar (cincin sesi / seni dumbbell), Jurnal
+          (foto buku + chip draf — menggantikan kartu pintu Jurnal di
+          desktop; kartu pintu tetap untuk ponsel). Panel menempel di
+          tepi atas selama lajur agenda digulir. */}
+      {/* Struktur dua lapis: pembungkus grid self-stretch (setinggi
+          baris lajur kerja) + aside sticky di dalamnya — item grid
+          yang sticky langsung memakai batas KONTAINER kisi di Chromium
+          (bukan area barisnya) sehingga panel bisa menembus batas
+          lajur dan menimpa pita di bawahnya; lapisan dalam membatasi
+          rentang sticky dengan tepat. */}
+      <div className="hidden lg:col-span-5 lg:block lg:self-stretch">
+        <aside
+          aria-label="Ringkasan modul"
+          className="lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:no-scrollbar lg:overscroll-contain"
+          data-lenis-prevent
+        >
+          <HomeBentoSummary
+            variant="rail"
+            streak={streak}
+            streakDelta={streakDelta}
+            netSaldo={netSaldo}
+            netCash7={netCash7}
+            cashSpark={cashSpark}
+            fitSessions={fitWeek.sessions}
+            fitTarget={fitWeek.target}
+            journalToday={journalToday}
+            activeHabits={habits.filter((h) => !h.archived).length}
+            draft={latestDraft ? draftLabel : null}
+            onOpenKebiasaan={() => setScreen('kebiasaan')}
+            onOpenKeuangan={() => setScreen('keuangan')}
+            onOpenBugar={() => setScreen('bugar')}
+            onOpenJurnal={() => setScreen('jurnal')}
+          />
+        </aside>
       </div>
 
       {/* 2 — Komposisi bento agenda: daftar misi (tile lebar) + SATU
@@ -1262,6 +1251,11 @@ export default function HomeScreen() {
           (lg+) — di ponsel misi tertunda sudah terwakili kartu Fokus
           hero (interaktif) + kartu Agenda Hari Ini (mockup), jadi
           planner penuh tidak lagi digandakan di bawahnya. */}
+      {/* 2 — Lajur kerja split (v2.98): col-span-7 — DateStrip sticky +
+          planner agenda + "Untuk Hari Ini". Di ponsel lajur ini hanya
+          memunculkan ForTodaySection (planner & DateStrip khusus lg —
+          v2.95: di ponsel misi tertunda terwakili kartu Fokus hero +
+          kartu Agenda Hari Ini). */}
       <m.div
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -1270,9 +1264,14 @@ export default function HomeScreen() {
           delay: motionTokens.delay.relaxed,
           ease: motionTokens.easing.standard,
         }}
+        className="lg:col-span-7 lg:flex lg:flex-col lg:gap-[var(--layout-gap)]"
       >
-        <RutinaBentoGrid>
-          <RutinaBentoItem span="wide" className="hidden lg:block">
+        {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal
+            agenda; menempel di tepi atas LAJUR saat agenda digulir
+            (v2.95: khusus desktop; v2.98: pindah ke dalam lajur kerja,
+            root-nya sendiri yang sticky — lihat catatan di DateStrip). */}
+        <DateStrip />
+        <div className="hidden lg:block">
             <section aria-label="Agenda hari ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
@@ -1656,26 +1655,21 @@ export default function HomeScreen() {
                 )}
               </div>
             </section>
-          </RutinaBentoItem>
+        </div>
 
-          {/* Kolom sempit: "Untuk Hari Ini" — SATU rekomendasi
-              kontekstual (v2.56, audit Tahap 2). Dulu tiga blok menumpuk
-              di sini (Sorotan + kartu pemulihan + deretan kartu Saran
-              Coach) yang bisa tampil bersamaan; kini ForTodaySection
-              memilih satu yang paling relevan (pemulihan → sorotan
-              mendesak lintas modul → pratinjau coach → sorotan netral),
-              detail saran coach tetap hidup di layar Kebiasaan.
-              Jarak dari agenda hanya di bawah xl (mt-6 xl:mt-0). */}
-          <RutinaBentoItem
-            span="feature"
-            className="mt-6 @[52rem]:mt-0"
-          >
-            <ForTodaySection
-              recovery={attention.recovery}
-              excludeHabitIds={attention.actionIds}
-            />
-          </RutinaBentoItem>
-        </RutinaBentoGrid>
+        {/* "Untuk Hari Ini" — SATU rekomendasi kontekstual (v2.56, audit
+            Tahap 2). Dulu tiga blok menumpuk di sini (Sorotan + kartu
+            pemulihan + deretan kartu Saran Coach) yang bisa tampil
+            bersamaan; kini ForTodaySection memilih satu yang paling
+            relevan (pemulihan → sorotan mendesak lintas modul →
+            pratinjau coach → sorotan netral), detail saran coach tetap
+            hidup di layar Kebiasaan.
+            v2.98: anak lajur kerja di desktop (flex gap), satu-satunya
+            isi lajur ini di ponsel. */}
+        <ForTodaySection
+          recovery={attention.recovery}
+          excludeHabitIds={attention.actionIds}
+        />
       </m.div>
 
       {/* v2.93 — Quick Insight (ponsel): kartu hangat penutup mockup
@@ -1693,6 +1687,7 @@ export default function HomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.normal }}
         aria-label="Bonus harian"
+        className="lg:col-span-12"
       >
         <button
           type="button"
@@ -1763,7 +1758,7 @@ export default function HomeScreen() {
           perjalanan 7 hari, perbandingan vs pekan lalu, dan chip visual
           lintas modul; kartu stempel pekan yang terlipat ikut diserap ke
           strip perjalanan. */}
-      <RutinaBentoGrid>
+      <RutinaBentoGrid className="lg:col-span-12">
         <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
           {/* v2.95: "Buka di Agenda" — desktop menggulir ke DateStrip &
               planner; ponsel membuka layar Kebiasaan. */}
@@ -1791,7 +1786,10 @@ export default function HomeScreen() {
       {/* 5 — Pintu Jurnal & catatan — menggantikan kisi folder penuh:
           kini satu kartu ringkas (review v2.13: "koleksi folder lebih
           cocok menjadi pintu masuk Jurnal"); kisi folder lengkap ada
-          di layar Jurnal. */}
+          di layar Jurnal.
+          v2.98 (split screen): khusus PONSEL — di desktop pintu Jurnal
+          melebur ke ubin Jurnal panel modul (foto buku + chip draf);
+          satu permukaan Jurnal per layar, tanpa gema. */}
       <MotionCard
         as="section"
         visitKey="home-jurnal-door"
@@ -1800,7 +1798,7 @@ export default function HomeScreen() {
            band bawah halaman kini punya hierarki permukaan: flat insight,
            dashed bonus, tint jurnal, garden rekap, tint finance.
            v2.87: MotionCard — masuk viewport + hover halus (motion.dev). */
-        className="rounded-lg border border-module-journal/30 bg-module-journal-soft/55 p-4"
+        className="rounded-lg border border-module-journal/30 bg-module-journal-soft/55 p-4 lg:hidden"
       >
         <div className="flex items-center gap-3.5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-primary/90 text-module-journal-strong">
@@ -1864,12 +1862,13 @@ export default function HomeScreen() {
           Kebiasaan (pemilih visualisasi "Taman", v2.78) — tumpukan visual
           kembar di dua layar membuat Beranda terasa lebih panjang tanpa
           informasi baru. */}
-      {hasActiveHabits && <GardenTree />}
+      {/* v2.98: pembungkus kisi — GardenTree jadi anak pita lebar. */}
+      <div className="lg:col-span-12">{hasActiveHabits && <GardenTree />}</div>
 
       {/* 7 — Refleksi (v2.83, audit UX §A): bagian yang DIBUKA — kutipan
           harian tetap utuh (ganti/simpan), namun tidak lagi memakan
           setengah layar di kondisi awal; pemicu ringkas satu baris. */}
-      <Collapsible defaultOpen={false}>
+      <Collapsible defaultOpen={false} className="lg:col-span-12">
         <CollapsibleTrigger asChild>
           <button
             type="button"

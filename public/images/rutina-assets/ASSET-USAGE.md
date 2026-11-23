@@ -29,26 +29,25 @@ Legenda: ✅ terpakai · 📝 direncanakan · ⬜ belum terpakai (belum ada ruma
 | 14 | `14-finance-budget-calculator.webp` | ✅ | Keuangan — empty state anggaran (Ringkasan + tab Anggaran) | |
 | 15 | `15-finance-growth-chart.webp` | ⬜ | — | Grafik keuangan sudah pakai viz data |
 | 16 | `16-finance-safe-vault.webp` | ✅ | Keuangan — SaldoCard "Rutina Vault" (samping saldo) + empty state dompet | |
-| 17 | `17-journal-leather-notebook.webp` | 📝 | Beranda desktop — ubin Jurnal (Tahap 3) | Padanan notebook mobile |
+| 17 | `17-journal-leather-notebook.webp` | ✅ | Beranda desktop — ubin Jurnal panel modul (baris bawah di xl+, pojok kanan-atas di lg) | Menggantikan kartu pintu Jurnal desktop |
 | 18 | `18-journal-open-notebook.webp` | ⬜ | — | Satu aset jurnal per permukaan |
 | 19 | `19-journal-ink-and-pen.webp` | ✅ | Jurnal — empty state "Belum ada catatan" | |
 | 20 | `20-journal-memory-frame.webp` | ⬜ | — | Belum ada konteks yang pas |
 | 21 | `21-habits-sprout.webp` | ✅ | Kebiasaan — empty state "Kebiasaan pertamamu menunggu ditanam" | |
-| 22 | `22-botanical-monstera.webp` | 📝 | Beranda desktop — ubin Kebiasaan/Taman (Tahap 3) | Ornamen taman |
+| 22 | `22-botanical-monstera.webp` | ✅ | Beranda desktop — ubin Streak panel modul | Identitas taman + hitungan kebiasaan aktif |
 | 23 | `23-botanical-blossom-branch.webp` | ⬜ | — | Aksen dekoratif, belum perlu |
 | 24 | `24-botanical-flowering-pot.webp` | ✅ | Kebiasaan — empty state "Kebun menunggu ditanam kembali" (Konsistensi) | |
 | 25 | `25-botanical-wreath.webp` | ✅ | Statistik — empty state "Belum ada kebiasaan aktif" (Wawasan › Komposisi) | |
 | 26 | `26-planner-calendar.webp` | ✅ | Beranda — empty state Agenda Hari Ini (mobile & desktop) | |
 | 27 | `27-planner-checklist.webp` | ✅ | Kebiasaan — empty state "Tidak ada agenda terjadwal" (tab Agenda) | |
 | 28 | `28-planner-hourglass.webp` | ⬜ | — | Belum ada konteks yang pas |
-| 29 | `29-planner-goal-target.webp` | 📝 | Beranda desktop — hero progres (Tahap 3) | Target = progres |
+| 29 | `29-planner-goal-target.webp` | ⬜ | — | Hero progres memakai ilustrasi garis daun inline; aset cadangan |
 | 30 | `30-achievement-trophy.webp` | ✅ | Bugar — empty state "Rekor lahir setelah set beban pertama" (Papan Rekor e1RM) | |
 
 ## Ringkasan
 
-- **Terpakai**: 14 aset (01, 02, 11, 12, 13, 14, 16, 19, 21, 24, 25, 26, 27, 30)
-- **Direncanakan (Tahap 3 — Beranda desktop split-screen + bento)**: 17, 22, 29
-- **Belum terpakai**: 13 aset — kartu targetnya padat data atau belum ada konteks yang pas; disimpan sebagai cadangan bertema (prinsip paket: "sebagian aset boleh tidak dipakai").
+- **Terpakai**: 16 aset (01, 02, 11, 12, 13, 14, 16, 17, 19, 21, 22, 24, 25, 26, 27, 30)
+- **Belum terpakai**: 14 aset — kartu targetnya padat data atau belum ada konteks yang pas; disimpan sebagai cadangan bertema (prinsip paket: "sebagian aset boleh tidak dipakai").
 
 ## Pedoman
 
