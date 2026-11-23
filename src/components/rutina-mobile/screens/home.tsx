@@ -46,11 +46,12 @@ import { ForTodaySection } from '../for-today'
 import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaEmptyState } from '../rutina-empty-state'
-import { SmoothScrollArea } from '../smooth-scroll-area'
+import { SmoothScrollArea, useSmoothScroller } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
 import { MotionCard } from '../rutina-motion-card'
 import { useShellRevealed } from '../shell-reveal'
 import {
+  HomeAgendaToday,
   HomeBentoSummary,
   HomeMobileHero,
   HomeQuickInsight,
@@ -115,6 +116,16 @@ function getClientGreeting(): string {
   if (hour < 14) return 'Selamat siang.'
   if (hour < 18) return 'Selamat sore.'
   return 'Selamat malam.'
+}
+
+/** Nama pemilik untuk sapaan personal hero mobile (salinan mockup
+ *  mobile-home — aplikasi personal; sapaan desktop tetap netral
+ *  karena tidak ada kolom nama di model data). */
+const OWNER_NAME = 'Ananda'
+
+/** "Selamat pagi." → "Selamat pagi, Ananda! 👋" (hero mobile). */
+function personalizeGreeting(base: string): string {
+  return `${base.replace(/\.$/, '')}, ${OWNER_NAME}! 👋`
 }
 
 /* ===== Utilitas pekan (Senin = awal pekan) ===== */
@@ -424,6 +435,29 @@ export default function HomeScreen() {
   const [showAllAgenda, setShowAllAgenda] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  /* v2.94 — Lenis wadah gulir Beranda untuk "Lihat Semua" kartu
+     Agenda Hari Ini: sapuan halus ke planner penuh (reduced-motion
+     → gulir native; keduanya menyasar #home-planner). Tanpa
+     useCallback manual — React Compiler yang memoize (akses
+     lenisRef.current di dalam callback). */
+  const smooth = useSmoothScroller()
+  const seeFullAgenda = () => {
+    const wrap = scrollRef.current
+    const el = document.getElementById('home-planner')
+    if (!wrap || !el) return
+    const lenis = smooth?.lenisRef?.current
+    if (lenis) {
+      lenis.scrollTo(el, { offset: -12 })
+      return
+    }
+    const top =
+      el.getBoundingClientRect().top -
+      wrap.getBoundingClientRect().top +
+      wrap.scrollTop -
+      12
+    wrap.scrollTo({ top, behavior: 'smooth' })
+  }
+
   /* Ledakan elastis ikon hadiah saat bonus diklaim — useAnimePop melewati
      render pertama & menghormati reduced-motion (klaim tetap tercatat
      tanpa ledakan). */
@@ -522,6 +556,52 @@ export default function HomeScreen() {
       .map((h) => ({ id: h.id, title: h.title, done: true }))
     return [...pending, ...doneList].slice(0, 3)
   }, [todayAttention, todayHabits, completions, today])
+
+  /* v2.94 — baris kartu "Agenda Hari Ini" (mockup): misi tertunda
+     HARI INI terurut jam pengingat (chronological, bukan prioritas —
+     timeline), dipangkas 3; ikon domain dipetakan jujur dari data
+     kebiasaan (linkedActivity → bugar; target terukur → terukur;
+     selebihnya umum). */
+  const agendaRows = useMemo(
+    () =>
+      [...todayAttention.items]
+        .sort((a, b) => {
+          const ra = a.habit.reminder ?? '99:99'
+          const rb = b.habit.reminder ?? '99:99'
+          return ra === rb
+            ? a.habit.title.localeCompare(b.habit.title)
+            : ra < rb
+              ? -1
+              : 1
+        })
+        .slice(0, 3)
+        .map(({ habit }) => ({
+          id: habit.id,
+          title: habit.title,
+          time: habit.reminder,
+          icon: (habit.linkedActivity
+            ? 'bugar'
+            : habit.target != null
+              ? 'terukur'
+              : 'umum') as 'bugar' | 'terukur' | 'umum',
+        })),
+    [todayAttention],
+  )
+  const agendaMore = Math.max(todayAttention.items.length - agendaRows.length, 0)
+
+  /* Blok tanggal kartu agenda — angka + label bulan dari tanggal
+     HARI INI (bukan tanggal kalender yang sedang dilihat). */
+  const agendaDate = useMemo(() => {
+    const [y, mo, d] = today.split('-').map(Number)
+    const date = new Date(y!, mo! - 1, d!)
+    return {
+      num: String(d),
+      month: new Intl.DateTimeFormat('id-ID', { month: 'short' })
+        .format(date)
+        .toUpperCase()
+        .replace('.', ''),
+    }
+  }, [today])
 
   /* Delta streak terbaik vs kemarin — badge "+N hari" hanya bila memang
      naik hari ini (tidak ada tren palsu saat datar). */
@@ -799,18 +879,16 @@ export default function HomeScreen() {
           aturan [&>*+*]:mt konten tidak menambah margin di atas blok
           manapun (menyembunyikan salah satunya, bukan menggeser). */}
       <div>
-        {/* Ponsel (<lg) — hero foto full-bleed + bento ringkas. -mx-4
+        {/* Ponsel (<lg) — hero foto full-bleed + bento ringkas +
+            agenda + quick insight (mockup mobile-home). -mx-4
             melepaskan hero dari padding horizontal konten. */}
         <div className="lg:hidden">
           <div className="-mx-4">
             <HomeMobileHero
-              dateBadge={dateBadge}
-              greeting={greeting}
+              greeting={personalizeGreeting(greeting)}
               focusItems={focusItems}
               doneToday={schedDoneToday}
               scheduledToday={scheduledToday}
-              level={level}
-              xp={xp}
               playEntrance={playEntrance}
               onToggleFocus={(habitId) => toggleHabit(habitId, today)}
               onOpenStats={() => setScreen('statistik')}
@@ -831,6 +909,34 @@ export default function HomeScreen() {
               onOpenKeuangan={() => setScreen('keuangan')}
               onOpenBugar={() => setScreen('bugar')}
               onOpenJurnal={() => setScreen('jurnal')}
+            />
+          </div>
+          {/* v2.94 — Agenda Hari Ini ringkas (mockup): timeline jujur
+              hari ini; "Lihat Semua" menggulir ke planner penuh
+              (DateStrip + rel waktu) di bawah. */}
+          <div className="mt-5">
+            <HomeAgendaToday
+              dateNum={agendaDate.num}
+              dateMonth={agendaDate.month}
+              rows={agendaRows}
+              moreCount={agendaMore}
+              scheduledToday={scheduledToday}
+              doneToday={schedDoneToday}
+              onSeeAll={seeFullAgenda}
+              onAddHabit={openHabitCreate}
+            />
+          </div>
+          {/* Quick Insight — penutup blok atas mockup; fitur lama
+              (planner, bonus, rekap, arus kas, kebun, refleksi)
+              tetap utuh di bawah. */}
+          <div className="mt-5">
+            <HomeQuickInsight
+              streak={streak}
+              weekDone={weekMission.done}
+              weekSched={weekMission.sched}
+              missionRemaining={missionRemaining}
+              journalToday={journalToday}
+              spark={missionSpark}
             />
           </div>
         </div>
@@ -1150,8 +1256,13 @@ export default function HomeScreen() {
         </div>
       </div>
 
-      {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal agenda */}
-      <DateStrip />
+      {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal
+          agenda. id=home-planner: jangkar "Lihat Semua" kartu Agenda
+          Hari Ini (v2.94) — planner penuh tetap jadi satu-satunya
+          tempat interaksi misi. */}
+      <div id="home-planner">
+        <DateStrip />
+      </div>
 
       {/* 2 — Komposisi bento agenda: daftar misi (tile lebar) + SATU
           area rekomendasi "Untuk Hari Ini" (tile sempit) pada xl;
@@ -1577,17 +1688,9 @@ export default function HomeScreen() {
 
       {/* v2.93 — Quick Insight (ponsel): kartu hangat penutup mockup
           dengan SATU observasi jujur dari data nyata; desktop tetap
-          memakai metrik "Insight hari ini" di hero lamanya. */}
-      <div className="lg:hidden">
-        <HomeQuickInsight
-          streak={streak}
-          weekDone={weekMission.done}
-          weekSched={weekMission.sched}
-          missionRemaining={missionRemaining}
-          journalToday={journalToday}
-          spark={missionSpark}
-        />
-      </div>
+          memakai metrik "Insight hari ini" di hero lamanya.
+          v2.94: kartu dipindah ke blok atas (setelah Agenda Hari Ini)
+          mengikuti urutan mockup; blok di bawah ini dihapus. */}
 
       {/* 3 — Bonus konsistensi (klaim XP harian) — TINGKAT "PERLU
           PERHATIAN": aksi kecil yang menunggu pengguna, diletakkan
