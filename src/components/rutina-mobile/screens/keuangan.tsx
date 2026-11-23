@@ -3102,19 +3102,19 @@ export default function KeuanganScreen() {
             TERPASANG (keep-alive) — pergantian subtab tidak me-remount
             isi, sehingga saldo tidak menghitung ulang, batang grafik
             tidak menumbuhkan ulang, dan BlurFade tidak diulang. */}
-        {/* Kisi bento 12 kolom Vault — jarak antar-tile memakai token
-            --layout-grid-gap (kontrak RutinaBentoGrid), bukan
-            --layout-gap yang untuk jarak antar-SEKSI. */}
-        <div
-          className={
-            finTab === 'ringkasan'
-              ? 'grid grid-cols-1 gap-[var(--layout-grid-gap)] @[52rem]:grid-cols-12'
-              : 'hidden'
-          }
+        {/* v3.02 (unified bento): kisi Ringkasan kini RutinaBentoGrid
+            resmi dengan vocabulary span — [hero/8: Saldo + feature/4:
+            Aktivitas terbaru] → [wide/8: Arus kas + feature/4: Jatah
+            harian] → [medium/6: Anggaran + medium/6: Tujuan tabungan] →
+            [full/12: Analisis]. Saldo dipromosikan jadi tile utama
+            (master task); jatah menjadi pendamping arus kas (dua metrik
+            laju); jarak antar-tile --layout-grid-gap. */}
+        <RutinaBentoGrid
+          className={finTab === 'ringkasan' ? '' : 'hidden'}
         >
-        {/* KIRI col-4 — ringkasan vault (saldo + jatah) */}
-        <div className="@[52rem]:col-span-4 flex flex-col gap-[var(--layout-gap)]">
-        {/* ===== LAPISAN 1 — SALDO: dompet espresso + aksi transaksi ===== */}
+        {/* ===== LAPISAN 1 — SALDO (tile hero/8): dompet espresso +
+              aksi transaksi ===== */}
+        <RutinaBentoItem span="hero">
         <BlurFade visitKey="keuangan-saldo">
           <SaldoCard
             saldo={saldo}
@@ -3127,19 +3127,13 @@ export default function KeuanganScreen() {
             onAdd={openTxSheet}
           />
         </BlurFade>
+        </RutinaBentoItem>
 
-        {/* ===== LAPISAN 1b — JATAH HARI INI (v2.22): jatah aman/hari,
-              proyeksi akhir bulan, bar laju vs posisi ideal ===== */}
-        <BlurFade visitKey="keuangan-jatah" delay={motionTokens.delay.micro}>
-          <AllowanceCard />
-        </BlurFade>
-        </div>
-
-        {/* ===== TENGAH col-8 — LEDGER AKTIVITAS (v2.29 Vault): baris
-              buku kas (ledger-row + TxRow flat), bukan kartu berbayang
-              satu per satu; dipindah ke atas — direktif: “ledger harus
-              tetap menjadi ledger” dan transaksi adalah konten utama. */}
-        <div className="@[52rem]:col-span-8">
+        {/* ===== AKTIVITAS TERBARU (tile feature/4, pendamping saldo) —
+              baris buku kas (ledger-row + TxRow flat), bukan kartu
+              berbayang satu per satu; ledger PENUH tetap jadi konten
+              utama di tab Mutasi (direktif v2.29). ===== */}
+        <RutinaBentoItem span="feature">
         <BlurFade visitKey="keuangan-aktivitas" delay={motionTokens.delay.tight}>
           <SectionTitle
             title="Aktivitas Terbaru"
@@ -3171,14 +3165,14 @@ export default function KeuanganScreen() {
             </div>
           )}
         </BlurFade>
-        </div>
+        </RutinaBentoItem>
 
-        {/* ===== LAPISAN 2 (baris penuh) — ARUS KAS (v2.80, audit UX §D):
+        {/* ===== ARUS KAS (tile wide/8) (v2.80, audit UX §D):
               grafik kini BAGIAN TAMBAHAN yang dibuka — Ringkasan
               menonjolkan saldo, jatah, aktivitas terbaru, anggaran, dan
               tujuan; arus kas dibuka satu ketukan, net periode terbaca
               di pemicu. ===== */}
-        <div className="@[52rem]:col-span-12">
+        <RutinaBentoItem span="wide">
         <BlurFade visitKey="keuangan-arus-kas" delay={motionTokens.delay.step}>
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger asChild>
@@ -3361,17 +3355,23 @@ export default function KeuanganScreen() {
             </CollapsibleContent>
           </Collapsible>
         </BlurFade>
+        </RutinaBentoItem>
 
-        </div>
+        {/* ===== JATAH HARI INI (tile feature/4, pendamping arus kas —
+              v2.22): jatah aman/hari, proyeksi akhir bulan, bar laju
+              vs posisi ideal ===== */}
+        <RutinaBentoItem span="feature">
+          <BlurFade visitKey="keuangan-jatah" delay={motionTokens.delay.micro}>
+            <AllowanceCard />
+          </BlurFade>
+        </RutinaBentoItem>
 
-        {/* ===== LAPISAN 3 & 4 (baris penuh) — ANGGARAN + TUJUAN =====
-            grid-cols-1 eksplisit (minmax(0,1fr)) agar kolom tunggal di
-            ponsel tidak melebar mengikuti max-content isi kartu. */}
-        <div className="@[52rem]:col-span-12">
+        {/* ===== ANGGARAN + TUJUAN (pasangan medium 6+6 — v3.02: kini
+              item bento resmi, dipasangkan sejak kisi 6-kolom tablet) ===== */}
+        <RutinaBentoItem span="medium">
         <BlurFade
-          visitKey="keuangan-anggaran-tujuan"
+          visitKey="keuangan-anggaran"
           delay={motionTokens.delay.normal}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-start"
         >
           {/* Anggaran — potret pemakaian paling kritis bulan ini */}
           <div>
@@ -3439,7 +3439,14 @@ export default function KeuanganScreen() {
               </div>
             )}
           </div>
+        </BlurFade>
+        </RutinaBentoItem>
 
+        <RutinaBentoItem span="medium">
+        <BlurFade
+          visitKey="keuangan-tujuan"
+          delay={motionTokens.delay.normal}
+        >
           {/* Tujuan tabungan — progres cincin + aksi setor */}
           <div>
             <SectionTitle
@@ -3504,8 +3511,7 @@ export default function KeuanganScreen() {
             )}
           </div>
         </BlurFade>
-
-        </div>
+        </RutinaBentoItem>
 
         {/* ===== ANALISIS PENGELUARAN (audit UX density v2.37 P1) —
               analisis lanjutan kini DILIPAT default: ringkasan cepat
@@ -3513,7 +3519,7 @@ export default function KeuanganScreen() {
               awal; komposisi+langganan, peta panas 12 pekan, dan temuan
               dibuka sesuai kebutuhan. Susunan internal blok TIDAK berubah
               — hanya dipindahkan ke dalam collapsible. ===== */}
-        <div className="mt-[var(--layout-gap)] @[52rem]:col-span-12">
+        <RutinaBentoItem span="full">
         <BlurFade visitKey="keuangan-analisis" delay={motionTokens.delay.relaxed}>
           <Collapsible defaultOpen={false}>
             <CollapsibleTrigger asChild>
@@ -3635,8 +3641,8 @@ export default function KeuanganScreen() {
             </CollapsibleContent>
           </Collapsible>
         </BlurFade>
-        </div>
-        </div>
+        </RutinaBentoItem>
+        </RutinaBentoGrid>
 
         {/* ===== MUTASI: arus kas harian + seluruh transaksi ===== */}
         <div className={finTab === 'mutasi' ? 'block' : 'hidden'}>
