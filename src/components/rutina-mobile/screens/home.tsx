@@ -50,6 +50,11 @@ import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
 import { MotionCard } from '../rutina-motion-card'
 import { useShellRevealed } from '../shell-reveal'
+import {
+  HomeBentoSummary,
+  HomeMobileHero,
+  HomeQuickInsight,
+} from '../home-mobile'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
@@ -64,6 +69,7 @@ import {
   computeLevel,
   computeXp,
   dayCompliance,
+  dayCounts,
   doneCountOn,
   FOLDERS,
   fromISO,
@@ -71,6 +77,7 @@ import {
   habitStreak,
   isDoneOn,
   longDateLabel,
+  noteDateISO,
   quoteFor,
   shortDateLabel,
   todayISO,
@@ -404,6 +411,10 @@ export default function HomeScreen() {
   const claimBonus = useRutina((s) => s.claimBonus)
   const setScreen = useRutina((s) => s.setScreen)
   const txs = useRutina((s) => s.txs)
+  /* v2.93 (redesign Beranda mobile): sesi latihan & sasaran bugar untuk
+     tile Bugar bento — pelanggan baru di layar ini, tetap granular. */
+  const workouts = useRutina((s) => s.workouts)
+  const fitTargets = useRutina((s) => s.fitTargets)
 
   const [showArchive, setShowArchive] = useState(false)
   const [showDone, setShowDone] = useState(false)
@@ -488,6 +499,78 @@ export default function HomeScreen() {
     }
     return { sched, done }
   }, [habits, completions, today])
+
+  /* ===== v2.93 — Redesign Beranda mobile (mockup split-hero + bento).
+     Semua derivasi murni dari sumber yang sama dengan hero lama; tidak
+     ada satu pun angka mockup yang dikerasukan. ===== */
+
+  /* Perhatian HARI INI (bukan tanggal dilihat) — urutan prioritas untuk
+     daftar "Fokus Hari Ini" di hero mobile: tertunda dulu (risk-based,
+     dari homeAttention), lalu yang selesai mengisi sisa slot (maks 3). */
+  const todayAttention = useMemo(
+    () => homeAttention(habits, completions, today, today),
+    [habits, completions, today],
+  )
+  const focusItems = useMemo(() => {
+    const pending = todayAttention.items.map(({ habit }) => ({
+      id: habit.id,
+      title: habit.title,
+      done: false,
+    }))
+    const doneList = todayHabits
+      .filter((h) => isDoneOn(completions, today, h.id))
+      .map((h) => ({ id: h.id, title: h.title, done: true }))
+    return [...pending, ...doneList].slice(0, 3)
+  }, [todayAttention, todayHabits, completions, today])
+
+  /* Delta streak terbaik vs kemarin — badge "+N hari" hanya bila memang
+     naik hari ini (tidak ada tren palsu saat datar). */
+  const streakDelta = useMemo(() => {
+    const prev = bestStreak(habits, completions, addDaysISO(today, -1)).streak
+    return streak - prev
+  }, [habits, completions, today, streak])
+
+  /* Sesi latihan pekan berjalan vs target sesi (FitTargets) — penyebut
+     jujur; target 0 berarti tile menampilkan hitungan tanpa persen. */
+  const fitWeek = useMemo(() => {
+    const start = weekStartISO(today)
+    const sessions = workouts.filter(
+      (w) => w.date >= start && w.date <= today,
+    ).length
+    return { sessions, target: fitTargets.sessions }
+  }, [workouts, fitTargets, today])
+
+  /* Entri jurnal bertanggal HARI INI — noteDateISO adalah tangga
+     kejujuran tanggal catatan (bukan mengarang "hari ini"). */
+  const journalToday = useMemo(
+    () => notes.filter((n) => noteDateISO(n) === today).length,
+    [notes, today],
+  )
+
+  /* Tren arus kas 7 hari (kumulatif, non-transfer) — sparkline Keuangan
+     hanya dirender bila jendela ini benar-benar bertransaksi. */
+  const cashSpark = useMemo(() => {
+    const daily: number[] = []
+    for (let i = 6; i >= 0; i--) {
+      const iso = addDaysISO(today, -i)
+      let net = 0
+      for (const t of txs) {
+        if (t.ts !== iso || t.type === 'transfer') continue
+        net += t.type === 'masuk' ? t.amount : -t.amount
+      }
+      daily.push(net)
+    }
+    if (daily.every((v) => v === 0)) return null
+    let acc = 0
+    return daily.map((v) => (acc += v))
+  }, [txs, today])
+
+  /* Hitungan misi 7 hari terakhir (dayCounts) — zig-zag Quick Insight
+     hanya bila ada aktivitas sama sekali. */
+  const missionSpark = useMemo(
+    () => dayCounts(completions, today, 7).map((d) => d.count),
+    [completions, today],
+  )
 
   /* Headline editorial kontekstual (audit Daily Almanac: "Hari ini,
      pelan tapi pasti.") — satu kalimat serif yang mengikuti keadaan
@@ -709,6 +792,51 @@ export default function HomeScreen() {
          lewat spesifisitas. */
       contentClassName="px-4 pb-28 [&>*+*]:mt-[var(--layout-gap)]"
     >
+      {/* ===== v2.93 — komposisi ganda Beranda =====
+          Ponsel (<lg): hero foto split + bento 2×2 (mockup mobile-home).
+          Desktop (lg+): kepala & hero lama persis seperti sebelumnya.
+          Keduanya hidup dalam SATU pembungkus anak-pertama sehingga
+          aturan [&>*+*]:mt konten tidak menambah margin di atas blok
+          manapun (menyembunyikan salah satunya, bukan menggeser). */}
+      <div>
+        {/* Ponsel (<lg) — hero foto full-bleed + bento ringkas. -mx-4
+            melepaskan hero dari padding horizontal konten. */}
+        <div className="lg:hidden">
+          <div className="-mx-4">
+            <HomeMobileHero
+              dateBadge={dateBadge}
+              greeting={greeting}
+              focusItems={focusItems}
+              doneToday={schedDoneToday}
+              scheduledToday={scheduledToday}
+              level={level}
+              xp={xp}
+              playEntrance={playEntrance}
+              onToggleFocus={(habitId) => toggleHabit(habitId, today)}
+              onOpenStats={() => setScreen('statistik')}
+              onOpenProfile={() => setScreen('profil')}
+            />
+          </div>
+          <div className="mt-5">
+            <HomeBentoSummary
+              streak={streak}
+              streakDelta={streakDelta}
+              netSaldo={netSaldo}
+              netCash7={netCash7}
+              cashSpark={cashSpark}
+              fitSessions={fitWeek.sessions}
+              fitTarget={fitWeek.target}
+              journalToday={journalToday}
+              onOpenKebiasaan={() => setScreen('kebiasaan')}
+              onOpenKeuangan={() => setScreen('keuangan')}
+              onOpenBugar={() => setScreen('bugar')}
+              onOpenJurnal={() => setScreen('jurnal')}
+            />
+          </div>
+        </div>
+
+        {/* Desktop (lg+) — kepala & hero lama, tidak berubah */}
+        <div className="hidden lg:block">
       {/* Kepala layar — sapaan yang menyusut halus saat digulir */}
       <div className="pt-[max(1.25rem,env(safe-area-inset-top))]">
         <m.header
@@ -792,6 +920,7 @@ export default function HomeScreen() {
           delay: motionTokens.delay.tight,
           ease: motionTokens.easing.standard,
         }}
+        className="mt-[var(--layout-gap)]"
       >
         <RutinaBentoGrid>
           <RutinaBentoItem span="hero">
@@ -1018,6 +1147,8 @@ export default function HomeScreen() {
           </RutinaBentoItem>
         </RutinaBentoGrid>
       </m.div>
+        </div>
+      </div>
 
       {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal agenda */}
       <DateStrip />
@@ -1443,6 +1574,20 @@ export default function HomeScreen() {
           </RutinaBentoItem>
         </RutinaBentoGrid>
       </m.div>
+
+      {/* v2.93 — Quick Insight (ponsel): kartu hangat penutup mockup
+          dengan SATU observasi jujur dari data nyata; desktop tetap
+          memakai metrik "Insight hari ini" di hero lamanya. */}
+      <div className="lg:hidden">
+        <HomeQuickInsight
+          streak={streak}
+          weekDone={weekMission.done}
+          weekSched={weekMission.sched}
+          missionRemaining={missionRemaining}
+          journalToday={journalToday}
+          spark={missionSpark}
+        />
+      </div>
 
       {/* 3 — Bonus konsistensi (klaim XP harian) — TINGKAT "PERLU
           PERHATIAN": aksi kecil yang menunggu pengguna, diletakkan
