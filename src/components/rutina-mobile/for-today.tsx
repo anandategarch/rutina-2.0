@@ -16,7 +16,6 @@ import {
   habitsOn,
   todayISO,
   useRutina,
-  XP_BONUS,
   type Habit,
 } from './store'
 
@@ -36,7 +35,8 @@ import {
         digambarkan di mana pun di Beranda (anggaran, latihan basi,
         tujuan tabungan hampir tercapai, runtun berisiko). Kunci
         'nearly-done'/'bonus' sengaja TIDAK masuk prioritas — keduanya
-        sudah terwakili hero persen & seksi Bonus harian.
+        sudah terwakili hero persen & seksi Bonus harian (dan sejak
+        v2.95 sorotan 'bonus' sepenuhnya dipensiunkan dari rantai).
      3. PRATINJAU COACH — satu inti saran Goldilocks (judul + pesan
         agregat) + pintu ke ruang Kebiasaan; detail lengkap tetap
         hidup di layar Kebiasaan (aturan: Beranda hanya pratampil).
@@ -72,7 +72,6 @@ export function ForTodaySection({
   const budgets = useRutina((s) => s.budgets)
   const goals = useRutina((s) => s.goals)
   const workouts = useRutina((s) => s.workouts)
-  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
   const toggleHabit = useRutina((s) => s.toggleHabit)
   const setScreen = useRutina((s) => s.setScreen)
 
@@ -81,7 +80,8 @@ export function ForTodaySection({
 
   /* Kunci sorotan saat ini — fungsi pemilih murni yang sama dengan
      kartu Sorotan (deterministik; kartu menghitung ulang tipis di
-     dalam rendernya sendiri). */
+     dalam rendernya sendiri). v2.95: sorotan 'bonus' dipensiunkan —
+     klaim bonus hanya lewat seksi "Bonus harian" Beranda. */
   const hlKey = pickDailyHighlight({
     today,
     habits,
@@ -90,8 +90,6 @@ export function ForTodaySection({
     budgets,
     goals,
     workouts,
-    bonusClaimed: bonusClaimedOn === today,
-    bonusXp: XP_BONUS,
     excludeHabitIds,
   }).key
 

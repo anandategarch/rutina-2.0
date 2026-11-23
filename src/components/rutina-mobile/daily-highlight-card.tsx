@@ -18,7 +18,7 @@ import { formatIDR } from './finance/utils'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { motionTokens } from '@/lib/motion/tokens'
 
-import { todayISO, useRutina, XP_BONUS } from './store'
+import { todayISO, useRutina } from './store'
 import {
   pickDailyHighlight,
   type DailyHighlight,
@@ -60,7 +60,6 @@ const KEY_ICON: Record<DailyHighlight['key'], LucideIcon> = {
   'workout-stale': Dumbbell,
   'goal-near': Gift,
   'nearly-done': ListChecks,
-  bonus: Gift,
   perfect: PartyPopper,
   quiet: Sprout,
   welcome: Sprout,
@@ -90,9 +89,6 @@ export function DailyHighlightCard({
   const budgets = useRutina((s) => s.budgets)
   const goals = useRutina((s) => s.goals)
   const workouts = useRutina((s) => s.workouts)
-  /* v2.45: klaim bonus kini ber-tanggal — reset alami tiap ganti hari. */
-  const bonusClaimedOn = useRutina((s) => s.bonusClaimedOn)
-  const bonusClaimed = bonusClaimedOn === todayISO()
 
   /* v2.27 Daybook: kunjungan ulang tidak mengulang entrance Sorotan. */
   const playEntrance = useFirstVisit('home-sorotan')
@@ -106,8 +102,6 @@ export function DailyHighlightCard({
     budgets,
     goals,
     workouts,
-    bonusClaimed,
-    bonusXp: XP_BONUS,
     excludeHabitIds,
   }
   const hl = pickDailyHighlight(input)
@@ -136,10 +130,6 @@ export function DailyHighlightCard({
       case 'contribute-goal':
         if (hl.visual.kind === 'goal') s.openGoalSheet(hl.visual.goalId)
         break
-      case 'claim-bonus':
-        s.claimBonus()
-        toast.success(`Bonus harian diklaim — tambah ${XP_BONUS} XP!`)
-        break
       case 'open-stats':
         s.setScreen('statistik')
         break
@@ -154,7 +144,6 @@ export function DailyHighlightCard({
     'open-budget': 'Lihat anggaran',
     'log-workout': 'Catat latihan',
     'contribute-goal': 'Isi tabungan',
-    'claim-bonus': `Klaim +${XP_BONUS} XP`,
     'open-stats': 'Lihat statistik',
     'add-habit': 'Tambah kebiasaan',
   }
@@ -325,13 +314,6 @@ export function DailyHighlightCard({
                 />
               </div>
             </div>
-          )}
-
-          {hl.visual.kind === 'bonus' && (
-            <p className="mt-2.5 flex w-fit items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-meta font-bold text-success">
-              <Gift className="h-3.5 w-3.5" strokeWidth={2.2} aria-hidden="true" />
-              Hadiah harian gratis
-            </p>
           )}
 
           {hl.visual.kind === 'perfect' && (

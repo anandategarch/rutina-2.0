@@ -90,8 +90,6 @@ function baseInput(overrides: Partial<HighlightInput> = {}): HighlightInput {
     budgets: {},
     goals: [],
     workouts: [],
-    bonusClaimed: false,
-    bonusXp: 120,
     ...overrides,
   }
 }
@@ -109,16 +107,13 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
     const hl = pickDailyHighlight(
       baseInput({
         habits: [habit({ schedule: [1] })], // hanya Senin; hari ini Jumat
-        bonusClaimed: true,
       }),
     )
     expect(hl.key).toBe('quiet')
   })
 
-  test('pengguna tanpa kebiasaan: sambutan menang atas bonus (onboarding dulu)', () => {
-    const hl = pickDailyHighlight(
-      baseInput({ habits: [], bonusClaimed: false }),
-    )
+  test('pengguna tanpa kebiasaan → sambutan (onboarding dulu)', () => {
+    const hl = pickDailyHighlight(baseInput({ habits: [] }))
     expect(hl.key).toBe('welcome')
   })
 
@@ -153,7 +148,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ id: 'a' })],
         completions: c,
-        bonusClaimed: true,
       }),
     )
     expect(hl.key).not.toBe('streak-risk')
@@ -170,7 +164,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
         habits: [habit({ schedule: [1] })],
         budgets,
         txs,
-        bonusClaimed: true,
       }),
     )
     expect(hl.key).toBe('budget-warning')
@@ -187,7 +180,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
         habits: [habit({ schedule: [1] })],
         budgets: { makan: 100_000 },
         txs: [tx({ cat: 'makan', amount: 500_000, ts: '2025-02-20' })],
-        bonusClaimed: true,
       }),
     )
     expect(hl.key).not.toBe('budget-warning')
@@ -219,7 +211,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ schedule: [1] })],
         workouts: [workout({ date: '2025-03-10' })], // 4 hari lalu
-        bonusClaimed: true,
       }),
     )
     expect(stale.key).toBe('workout-stale')
@@ -229,7 +220,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ schedule: [1] })],
         workouts: [], // tidak pernah latihan — bukan domainnya
-        bonusClaimed: true,
       }),
     )
     expect(noHistory.key).toBe('quiet')
@@ -238,7 +228,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ schedule: [1] })],
         workouts: [workout({ date: '2025-03-13' })], // kemarin
-        bonusClaimed: true,
       }),
     )
     expect(fresh.key).toBe('quiet')
@@ -252,7 +241,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ schedule: [1] })],
         goals,
-        bonusClaimed: true,
       }),
     )
     expect(hl.key).toBe('goal-near')
@@ -266,21 +254,21 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ schedule: [1] })],
         goals: [{ id: 'g1', name: 'Laptop', target: 10_000_000, saved: 10_000_000 }],
-        bonusClaimed: true,
       }),
     )
     expect(full.key).toBe('quiet')
   })
 
-  test('bonus belum diklaim → bonus', () => {
+  test("v2.95: bonus tak lagi jadi sorotan — satu pintu klaim di seksi Bonus harian", () => {
+    // Sorotan 'bonus' dipensiunkan: hari tanpa urgensi & tanpa saran coach
+    // jatuh ke pengisi netral ('quiet'), bukan UI klaim kedua.
     const hl = pickDailyHighlight(
       baseInput({
         habits: [habit({ schedule: [1] })],
-        bonusClaimed: false,
       }),
     )
-    expect(hl.key).toBe('bonus')
-    expect(hl.cta).toBe('claim-bonus')
+    expect(hl.key).toBe('quiet')
+    expect(hl.cta).toBe('add-habit')
   })
 
   test('semua misi selesai + bonus terklaim → perfect', () => {
@@ -290,7 +278,6 @@ describe('Sorotan Hari Ini — prioritas & ambang', () => {
       baseInput({
         habits: [habit({ id: 'a' }), habit({ id: 'b' })],
         completions: c,
-        bonusClaimed: true,
       }),
     )
     expect(hl.key).toBe('perfect')

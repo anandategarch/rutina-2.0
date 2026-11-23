@@ -46,7 +46,7 @@ import { ForTodaySection } from '../for-today'
 import { homeAttention, HOME_AGENDA_LIMIT } from '../home-attention'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaEmptyState } from '../rutina-empty-state'
-import { SmoothScrollArea, useSmoothScroller } from '../smooth-scroll-area'
+import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
 import { MotionCard } from '../rutina-motion-card'
 import { useShellRevealed } from '../shell-reveal'
@@ -435,28 +435,12 @@ export default function HomeScreen() {
   const [showAllAgenda, setShowAllAgenda] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  /* v2.94 — Lenis wadah gulir Beranda untuk "Lihat Semua" kartu
-     Agenda Hari Ini: sapuan halus ke planner penuh (reduced-motion
-     → gulir native; keduanya menyasar #home-planner). Tanpa
-     useCallback manual — React Compiler yang memoize (akses
-     lenisRef.current di dalam callback). */
-  const smooth = useSmoothScroller()
-  const seeFullAgenda = () => {
-    const wrap = scrollRef.current
-    const el = document.getElementById('home-planner')
-    if (!wrap || !el) return
-    const lenis = smooth?.lenisRef?.current
-    if (lenis) {
-      lenis.scrollTo(el, { offset: -12 })
-      return
-    }
-    const top =
-      el.getBoundingClientRect().top -
-      wrap.getBoundingClientRect().top +
-      wrap.scrollTop -
-      12
-    wrap.scrollTo({ top, behavior: 'smooth' })
-  }
+  /* v2.95 (audit duplikasi): di ponsel, misi tertunda hari ini tidak
+     lagi tampil TIGA kali (kartu Fokus hero + kartu Agenda Hari Ini +
+     planner penuh). DateStrip & planner kini hanya desktop (lg+);
+     "Lihat Semua" kartu Agenda membuka layar Kebiasaan — hub lengkap
+     (semua kebiasaan, centang, heatmap, lembar detail hari).
+     scrollRef tetap dipakai useScroll (header desktop) & Rekap Pekan. */
 
   /* Ledakan elastis ikon hadiah saat bonus diklaim — useAnimePop melewati
      render pertama & menghormati reduced-motion (klaim tetap tercatat
@@ -911,9 +895,10 @@ export default function HomeScreen() {
               onOpenJurnal={() => setScreen('jurnal')}
             />
           </div>
-          {/* v2.94 — Agenda Hari Ini ringkas (mockup): timeline jujur
-              hari ini; "Lihat Semua" menggulir ke planner penuh
-              (DateStrip + rel waktu) di bawah. */}
+          {/* v2.94 — Agenda Hari Ini ringkas (mockup); v2.95: karena
+              planner penuh kini khusus desktop, "Lihat Semua" membuka
+              layar Kebiasaan — SATU tempat lengkap untuk semua misi
+              (centang, riwayat via heatmap, lembar detail hari). */}
           <div className="mt-5">
             <HomeAgendaToday
               dateNum={agendaDate.num}
@@ -922,13 +907,14 @@ export default function HomeScreen() {
               moreCount={agendaMore}
               scheduledToday={scheduledToday}
               doneToday={schedDoneToday}
-              onSeeAll={seeFullAgenda}
+              onSeeAll={() => setScreen('kebiasaan')}
               onAddHabit={openHabitCreate}
             />
           </div>
           {/* Quick Insight — penutup blok atas mockup; fitur lama
-              (planner, bonus, rekap, arus kas, kebun, refleksi)
-              tetap utuh di bawah. */}
+              (Untuk Hari Ini, bonus, rekap, arus kas, kebun, refleksi
+              tetap utuh di bawah; planner & DateStrip kini khusus
+              desktop — v2.95). */}
           <div className="mt-5">
             <HomeQuickInsight
               streak={streak}
@@ -1257,10 +1243,12 @@ export default function HomeScreen() {
       </div>
 
       {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal
-          agenda. id=home-planner: jangkar "Lihat Semua" kartu Agenda
-          Hari Ini (v2.94) — planner penuh tetap jadi satu-satunya
-          tempat interaksi misi. */}
-      <div id="home-planner">
+          agenda. v2.95 (audit duplikasi): kini khusus desktop (lg+) —
+          di ponsel tanggal & misi hari ini sudah terwakili kartu
+          Agenda Hari Ini (blok tanggal) dan kartu Fokus di hero;
+          riwayat tanggal lain hidup di layar Kebiasaan (heatmap +
+          lembar detail hari). */}
+      <div className="hidden lg:block">
         <DateStrip />
       </div>
 
@@ -1269,7 +1257,11 @@ export default function HomeScreen() {
           urutan DOM sama. Kolom rekomendasi selalu terisi (pratinjau
           coach / sorotan netral sebagai pengisi) sehingga agenda tidak
           pernah kehilangan pasangannya (v2.56 — dulu kondisional
-          melebar penuh saat kolom kosong; layout kini stabil). */}
+          melebar penuh saat kolom kosong; layout kini stabil).
+          v2.95 (audit duplikasi): tile planner kini khusus desktop
+          (lg+) — di ponsel misi tertunda sudah terwakili kartu Fokus
+          hero (interaktif) + kartu Agenda Hari Ini (mockup), jadi
+          planner penuh tidak lagi digandakan di bawahnya. */}
       <m.div
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -1280,7 +1272,7 @@ export default function HomeScreen() {
         }}
       >
         <RutinaBentoGrid>
-          <RutinaBentoItem span="wide">
+          <RutinaBentoItem span="wide" className="hidden lg:block">
             <section aria-label="Agenda hari ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
@@ -1773,13 +1765,20 @@ export default function HomeScreen() {
           strip perjalanan. */}
       <RutinaBentoGrid>
         <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-7">
-          {/* onNavigateToAgenda: Beranda menggulir di kontainer sendiri —
-              "Buka di Agenda" membawa pandangan pengguna ke DateStrip di
-              puncak layar (revisi audit v2.45; window.scrollTo no-op). */}
+          {/* v2.95: "Buka di Agenda" — desktop menggulir ke DateStrip &
+              planner; ponsel membuka layar Kebiasaan. */}
           <WeeklyRecapCard
-            onNavigateToAgenda={() =>
-              scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-            }
+            onNavigateToAgenda={() => {
+              /* v2.95: desktop (lg+) — gulir ke DateStrip & planner di
+                 puncak Beranda; ponsel — planner tak ada lagi di Beranda,
+                 langsung buka layar Kebiasaan (heatmap + lembar detail
+                 hari menutup kebutuhan riwayat tanggal). */
+              if (window.matchMedia('(min-width: 1024px)').matches) {
+                scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+              } else {
+                setScreen('kebiasaan')
+              }
+            }}
           />
         </RutinaBentoItem>
 

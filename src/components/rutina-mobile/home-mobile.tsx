@@ -733,8 +733,9 @@ export function HomeAgendaToday({
       className="overflow-hidden rounded-3xl border border-border bg-surface-primary p-4 shadow-soft"
     >
       {/* Kepala kartu — ikon kalender + judul + aksi "Lihat Semua"
-          yang membawa pandangan ke planner penuh (DateStrip + rel
-          waktu) di bawah — bukan tombol hias. */}
+          yang membuka layar Kebiasaan (v2.95 — hub lengkap semua
+          misi: centang, heatmap, lembar detail hari) — bukan tombol
+          hias. */}
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
@@ -757,7 +758,7 @@ export function HomeAgendaToday({
 
       {isEmpty ? (
         /* Tidak ada misi terjadwal — pesan tenang + pintu tambah
-           kebiasaan (aksi nyata yang sudah ada di planner). */
+           kebiasaan (aksi nyata yang sudah ada di aplikasi). */
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-surface-secondary/60 p-3.5">
           <p className="min-w-0 flex-1 text-pretty text-meta font-medium leading-relaxed text-content-secondary">
             Tidak ada misi terjadwal hari ini. Nikmati jedamu — tambah

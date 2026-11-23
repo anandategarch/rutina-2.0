@@ -13,10 +13,12 @@
      5. nearly-done     — sebagian misi hari ini sudah selesai, sisa
                           tinggal sedikit (informatif; cta open-stats —
                           TIDAK membuat tombol centang kedua, audit v2.37)
-     6. bonus           — bonus harian belum diklaim
-     7. perfect         — semua misi hari ini selesai (rayakan)
-     8. quiet           — tidak ada misi terjadwal hari ini
-     9. welcome         — belum punya kebiasaan aktif sama sekali
+     6. perfect         — semua misi hari ini selesai (rayakan)
+     7. quiet           — tidak ada misi terjadwal hari ini
+     8. welcome         — belum punya kebiasaan aktif sama sekali
+
+   v2.95: sorotan 'bonus' dipensiunkan — klaim bonus harian kini hanya
+   lewat seksi "Bonus harian" Beranda (satu pintu, tanpa UI klaim kembar).
    ============================================================ */
 
 import { CAT_META } from './finance/cats'
@@ -53,7 +55,6 @@ export type HighlightKey =
   | 'workout-stale'
   | 'goal-near'
   | 'nearly-done'
-  | 'bonus'
   | 'perfect'
   | 'quiet'
   | 'welcome'
@@ -61,13 +62,15 @@ export type HighlightKey =
 /** Modul asal sorotan — menentukan aksen warna kartu. */
 export type HighlightModule = 'kebiasaan' | 'keuangan' | 'bugar' | 'beranda'
 
-/** Aksi CTA — dipetakan komponen kartu ke aksi store. */
+/** Aksi CTA — dipetakan komponen kartu ke aksi store.
+ *  ('claim-bonus' dipensiunkan v2.95: klaim bonus kini punya SATU
+ *  pintu — seksi "Bonus harian" di Beranda; Sorotan tidak lagi
+ *  menampilkan UI klaim kedua yang identik.) */
 export type HighlightCta =
   | 'complete-habit'
   | 'open-budget'
   | 'log-workout'
   | 'contribute-goal'
-  | 'claim-bonus'
   | 'open-stats'
   | 'add-habit'
 
@@ -108,7 +111,6 @@ export interface DailyHighlight {
          *  satuannya memang "menit"; satuan lain tidak dikonversi. */
         nextTargetMin: number | null
       }
-    | { kind: 'bonus'; xp: number }
     | { kind: 'perfect'; missions: number }
     | { kind: 'plain' }
 }
@@ -121,9 +123,6 @@ export interface HighlightInput {
   budgets: Budgets
   goals: Goal[]
   workouts: Workout[]
-  bonusClaimed: boolean
-  /** XP bonus harian — untuk teks CTA klaim. */
-  bonusXp: number
   /** habit.id yang sudah punya baris aksi di Beranda (Agenda /
    *  pemulihan) — kandidat streak-risk yang ada di sini DILEWATI
    *  supaya Sorotan tidak pernah membuat tombol centang kedua
@@ -152,18 +151,8 @@ function daysBetween(a: string, b: string): number {
 
 /** Pilih SATU sorotan paling relevan untuk hari ini. */
 export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
-  const {
-    today,
-    habits,
-    completions,
-    txs,
-    budgets,
-    goals,
-    workouts,
-    bonusClaimed,
-    bonusXp,
-    excludeHabitIds,
-  } = input
+  const { today, habits, completions, txs, budgets, goals, workouts, excludeHabitIds } =
+    input
 
   const active = habits.filter((h) => !h.archived)
   const todayHabits = habitsOn(habits, today)
@@ -334,21 +323,10 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 6 — Bonus harian menunggu (hanya bila pengguna benar-benar
-     menjalani ekonomi misi — pengguna baru tanpa kebiasaan lebih
-     tepat disambut dulu lewat welcome). */
-  if (!bonusClaimed && active.length > 0) {
-    return {
-      key: 'bonus',
-      module: 'beranda',
-      title: 'Bonus harian menunggu',
-      text: `Klaim +${bonusXp} XP gratis — konsistensi dihargai setiap hari.`,
-      cta: 'claim-bonus',
-      visual: { kind: 'bonus', xp: bonusXp },
-    }
-  }
-
-  /* 7 — Hari sempurna: semua misi terjadwal hari ini selesai. */
+  /* 6 — Hari sempurna: semua misi terjadwal hari ini selesai.
+     (v2.95: sorotan 'bonus' dipensiunkan — klaim bonus harian kini
+     hanya lewat seksi "Bonus harian" Beranda, tidak diduplikasi
+     Sorotan; slot fallback ini digilir 'perfect'/'quiet'/'welcome.) */
   if (todayHabits.length > 0 && doneToday === todayHabits.length) {
     return {
       key: 'perfect',
@@ -360,7 +338,7 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 8 — Jadwal kosong: ada kebiasaan aktif tapi tidak terjadwal hari ini. */
+  /* 7 — Jadwal kosong: ada kebiasaan aktif tapi tidak terjadwal hari ini. */
   if (active.length > 0 && todayHabits.length === 0) {
     return {
       key: 'quiet',
@@ -372,7 +350,7 @@ export function pickDailyHighlight(input: HighlightInput): DailyHighlight {
     }
   }
 
-  /* 9 — Selamat datang: belum ada kebiasaan aktif sama sekali. */
+  /* 8 — Selamat datang: belum ada kebiasaan aktif sama sekali. */
   return {
     key: 'welcome',
     module: 'kebiasaan',
