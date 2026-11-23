@@ -1466,7 +1466,11 @@ export default function StatsScreen() {
             aktivitas bulanan; panel detail tanggal tetap di samping pada
             ruang kerja lebar. */}
         <RutinaBentoGrid>
-          <RutinaBentoItem className="col-span-2 @[52rem]:col-span-7">
+          {/* v3.02 (unified bento): vocabulary span — kalender "wide" (8)
+              berpasangan inspector "feature" (4); tanpa inspector
+              (ponsel) kalender mengambil "full" — tidak ada kolom
+              yatim. Gerbang JS inspectorWide (832px) selaras @[52rem]. */}
+          <RutinaBentoItem span={inspectorWide ? 'wide' : 'full'}>
             {/* ===== Kalender Aktivitas — peta bulan + detail harian (audit #7) ===== */}
             <m.section
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
@@ -1723,7 +1727,7 @@ export default function StatsScreen() {
 
 
           {inspectorWide && (
-            <RutinaBentoItem className="col-span-2 @[52rem]:col-span-5">
+            <RutinaBentoItem span="feature">
               {/* Inspector tanggal desktop — PERMANEN di ruang kerja lebar:
                   tanggal terpilih dari kalender (default hari ini). Ponsel:
                   sheet di bawah layar. */}
@@ -1990,7 +1994,7 @@ export default function StatsScreen() {
           {/* Pasangan bento feature(4) + wide(8): panel menyimpan sakelar
               periode, total, dan ringkasan; kartu grafik murni batang. */}
           <RutinaBentoGrid>
-          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-4">
+          <RutinaBentoItem span="feature">
             {/* Panel fokus periode — sakelar periode + pembacaan ringkas */}
             <m.section
               initial={playEntrance ? { opacity: 0, y: 16 } : false}
@@ -2049,7 +2053,7 @@ export default function StatsScreen() {
             </m.section>
           </RutinaBentoItem>
 
-          <RutinaBentoItem className="col-span-2 @[42rem]:col-span-6 @[52rem]:col-span-8">
+          <RutinaBentoItem span="wide">
             {/* Instrumen grafik — batang misi selesai (analisis lanjutan
                 di dalam lipatan Wawasan & Pencapaian, v2.58). Kartu
                 instrumen parchment (audit Tahap 2 #6): garis & indikator
