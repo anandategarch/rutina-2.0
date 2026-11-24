@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { useReducedMotion } from 'motion/react'
 import * as m from 'motion/react-m'
 import {
@@ -535,11 +542,22 @@ export default function ProfileScreen() {
   )
 
   /* v2.33 Control Room: ruang aktif untuk navigasi kategori split
-     (desktop lg+) — scrollspy pita tengah, pola petunjuk arah Kebiasaan. */
+     (desktop lg+) — scrollspy pita tengah, pola petunjuk arah Kebiasaan.
+     v3.2 (audit paritas mobile/desktop): IntersectionObserver diganti
+     spy posisi deterministik — seksi TERAKHIR yang melewati garis 112px
+     dari tepi atas wadah gulir menjadi aktif. Di ponsel seksi lebih
+     pendek sehingga pita IO lama sering salah menyorot seksi BERIKUTNYA
+     tepat setelah pil ditekan; spy posisi akurat di kedua lebar. */
   const [activeCat, setActiveCat] = useState<
     'identitas' | 'preferensi' | 'data' | 'zona' | 'bantuan'
   >('identitas')
+  /* Ref wadah gulir — SmoothScrollArea membagikannya lewat viewportRef
+     (useSmoothScroller TIDAK bisa: hook itu hanya untuk ANAK provider,
+     sedangkan layar ini PARENT yang me-render SmoothScrollArea). */
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
+    /* Urutan DOM (zona sebelum bantuan) — monotonic agar bisa berhenti
+       di seksi pertama yang belum melewati garis. */
     const cats: [string, typeof activeCat][] = [
       ['profil-identitas', 'identitas'],
       ['profil-preferensi', 'preferensi'],
@@ -547,22 +565,90 @@ export default function ProfileScreen() {
       ['profil-zona', 'zona'],
       ['profil-bantuan', 'bantuan'],
     ]
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue
-          const hit = cats.find(([id]) => id === e.target.id)
-          if (hit) setActiveCat(hit[1])
-        }
-      },
-      { rootMargin: '-30% 0px -55% 0px' },
-    )
-    for (const [id] of cats) {
-      const el = document.getElementById(id)
-      if (el) obs.observe(el)
+    const LINE = 112
+    /* Wadah gulir = wrapper SmoothScrollArea via viewportRef (Lenis
+       memakai scrollTop asli → event scroll native menyala tiap frame). */
+    const wrapper = scrollViewportRef.current
+    const spy = () => {
+      const wrapRect = wrapper?.getBoundingClientRect()
+      const wrapTop = wrapRect?.top ?? 0
+      const vh = wrapRect?.height ?? window.innerHeight
+      /* Gulir mentok dasar: seksi terakhir tak mungkin mencapai garis
+         112px (konten di bawahnya terlalu pendek) — turunkan garis ke
+         TENGAH area: seksi dominan yang terlihat tetap aktif, sedangkan
+         seksi berikutnya yang hanya mengintip di dasar tidak mencuri
+         sorotan (zona + bantuan sama-sama terlihat → zona menang:
+         topnya lebih atas). */
+      const atBottom = wrapper
+        ? wrapper.scrollTop + vh >= wrapper.scrollHeight - 8
+        : false
+      const line = atBottom ? Math.max(LINE, Math.round(vh / 2)) : LINE
+      let next: typeof activeCat | null = null
+      for (const [id, key] of cats) {
+        const el = document.getElementById(id)
+        if (
+          el &&
+          el.getBoundingClientRect().top - wrapTop <= line
+        )
+          next = key
+        else break
+      }
+      if (next) setActiveCat((prev) => (prev === next ? prev : next))
     }
-    return () => obs.disconnect()
-  }, [])
+    spy()
+    if (wrapper) {
+      wrapper.addEventListener('scroll', spy, { passive: true })
+      /* Ekspansi/lipatan seksi menggeser seksi di bawahnya TANPA event
+         gulir — pantau tinggi konten agar garis aktif ikut dihitung
+         ulang (padanan otomatis IntersectionObserver yang lama). */
+      const ro = new ResizeObserver(() => spy())
+      if (wrapper.firstElementChild instanceof HTMLElement) {
+        ro.observe(wrapper.firstElementChild)
+      }
+      return () => {
+        wrapper.removeEventListener('scroll', spy)
+        ro.disconnect()
+      }
+    }
+    window.addEventListener('scroll', spy, { passive: true })
+    return () => window.removeEventListener('scroll', spy)
+  }, [scrollViewportRef])
+
+  /* v3.2 (audit paritas mobile/desktop): satu daftar seksi + satu handler
+     kini dipakai BERSAMA nav desktop (kolom kiri sticky) dan nav ponsel
+     (deret pil gulir-horizontal) — sebelumnya ponsel tidak punya navigasi
+     seksi sama sekali, satu-satunya layar yang "menyusut" dibanding
+     desktop. Handler membuka lipatan dulu (v2.86) baru menggulir.
+     v3.2b: membuka lipatan mengubah tinggi konten di TENGAH gliding —
+     gulir native smooth mendarat pendek (target dihitung dari layout
+     lama, dan Lenis bisa memutus gliding). Ulangi gulir setelah layout
+     pasca-commit stabil (80ms) + satu penyelamatan akhir (320ms). */
+  const goToSection = useCallback(
+    (id: string) => {
+      const fold =
+        id === 'profil-data'
+          ? setDataOpen
+          : id === 'profil-zona'
+            ? setZonaOpen
+            : id === 'profil-bantuan'
+              ? setBantuanOpen
+              : null
+      fold?.(true)
+      const doScroll = () =>
+        document
+          .getElementById(id)
+          ?.scrollIntoView({
+            behavior: reducedMotion ? 'auto' : 'smooth',
+            block: 'start',
+          })
+      doScroll()
+      if (fold) {
+        window.setTimeout(doScroll, 80)
+        window.setTimeout(doScroll, 320)
+      }
+    },
+    [reducedMotion],
+  )
 
   /* Lebar kolom TIDAK diulang di akar layar — cangkang rutina-app sudah
      membungkus tiap layar dalam CONTENT_W; penggandaan max-w ganda
@@ -571,6 +657,7 @@ export default function ProfileScreen() {
     <SmoothScrollArea
       data-module="profil"
       data-layout="control-room"
+      viewportRef={scrollViewportRef}
       /* v2.87: gulir halus Lenis per-wadah + ScrollTrigger; ritme
          padding (pb-16 khas Profil) tetap seperti aslinya. */
       className="w-full"
@@ -618,10 +705,58 @@ export default function ProfileScreen() {
           seluruh halaman DIHENTIKAN (initial={false}) — ruang kendali
           menuntut ketenangan; switch/accordion/toast tetap bergerak. */}
       <m.div variants={staggerRows} initial={false} animate="show">
+        {/* v3.2 (audit paritas mobile/desktop): nav seksi PONSEL — deret
+            pil yang menggulir horizontal, sticky di tepi atas area gulir
+            (nav desktop kolom-kiri tetap lg+). Pil aktif mengikuti
+            scrollspy yang sama (activeCat); Zona Kritis memakai warna
+            bahaya. Bidang pill memakai --background (= warna kanvas) agar
+            pil menempel mulus di atas konten yang lewat. */}
+        <nav
+          aria-label="Kategori pengaturan"
+          className="sticky top-0 z-30 -mx-4 mt-3 bg-background/95 px-4 py-2.5 backdrop-blur-md lg:hidden"
+        >
+          <ul
+            className="flex list-none gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {(
+              [
+                ['profil-identitas', 'Identitas', false],
+                ['profil-preferensi', 'Preferensi', false],
+                ['profil-data', 'Data & Penyimpanan', false],
+                ['profil-bantuan', 'Bantuan', false],
+                ['profil-zona', 'Zona Kritis', true],
+              ] as const
+            ).map(([id, label, danger]) => {
+              const isActive = activeCat === id.replace('profil-', '')
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => goToSection(id)}
+                    aria-current={isActive ? 'location' : undefined}
+                    className={
+                      'interactive shrink-0 cursor-pointer rounded-full border px-3.5 py-1.5 text-eyebrow font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
+                      (danger
+                        ? 'text-content-danger ' +
+                          (isActive
+                            ? 'border-destructive/40 bg-destructive/10'
+                            : 'border-border-default hover:bg-destructive/10')
+                        : isActive
+                          ? 'border-transparent bg-module-accent/15 text-module-accent-strong'
+                          : 'border-border-default text-content-muted hover:bg-surface-sunken hover:text-content-primary')
+                    }
+                  >
+                    {label}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
         {/* Split layout desktop (v2.33): navigasi kategori kiri (sticky),
-            konten pengaturan kanan; ponsel/tablet menumpuk (nav disembunyikan). */}
+            konten pengaturan kanan; ponsel memakai deret pil di atas. */}
         <div className="grid grid-cols-1 lg:grid-cols-[168px_minmax(0,1fr)] lg:gap-8">
-          <nav aria-label="Kategori pengaturan" className="hidden lg:block">
+          <nav aria-label="Kategori pengaturan desktop" className="hidden lg:block">
             <ul className="sticky top-6 space-y-0.5">
               {(
                 [
@@ -637,23 +772,7 @@ export default function ProfileScreen() {
                   <li key={id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        /* v2.86 (audit P2): tiga seksi ini lipatan sejak
-                           v2.83 — nav MEMBUKA dulu, baru menggulir, agar
-                           pengguna tidak mendarat di pemicu terlipat. */
-                        if (id === 'profil-data') setDataOpen(true)
-                        else if (id === 'profil-zona') setZonaOpen(true)
-                        else if (id === 'profil-bantuan') setBantuanOpen(true)
-                        document
-                          .getElementById(id)
-                          ?.scrollIntoView({
-                            /* behavior mengikuti preferensi reduce-motion —
-                               tanpa animasi gulir untuk pengguna yang
-                               memintanya. */
-                            behavior: reducedMotion ? 'auto' : 'smooth',
-                            block: 'start',
-                          })
-                      }}
+                      onClick={() => goToSection(id)}
                       aria-current={isActive ? 'location' : undefined}
                       className={
                         'w-full cursor-pointer rounded-lg px-3 py-2 text-left text-meta font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +
@@ -674,7 +793,11 @@ export default function ProfileScreen() {
           </nav>
           <div className="min-w-0">
         {/* ===== 1 · IDENTITAS PENGGUNA — paling atas ===== */}
-        <m.div id="profil-identitas" variants={slideInRow} className="mt-4 scroll-mt-4">
+        <m.div
+          id="profil-identitas"
+          variants={slideInRow}
+          className="mt-4 scroll-mt-[3.25rem] lg:scroll-mt-4"
+        >
           <RutinaSectionHeader
             title="Identitas"
             description="Siapa dirimu di Rutina — tanpa akun, tersinkron cloud"
@@ -925,7 +1048,7 @@ export default function ProfileScreen() {
           id="profil-preferensi"
           variants={slideInRow}
           aria-label="Preferensi aplikasi"
-          className="mt-3 scroll-mt-4 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+          className="mt-3 scroll-mt-[3.25rem] overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft lg:scroll-mt-4"
         >
           <div className="divide-y divide-border-default">
             {/* Mode gelap — Switch (next-themes; satu sumber tema). */}
@@ -1076,7 +1199,7 @@ export default function ProfileScreen() {
           id="profil-data"
           variants={slideInRow}
           aria-label="Data dan penyimpanan"
-          className="mt-8 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+          className="mt-8 scroll-mt-[3.25rem] overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft lg:scroll-mt-4"
         >
           <Collapsible open={dataOpen} onOpenChange={setDataOpen}>
             <CollapsibleTrigger asChild>
@@ -1253,7 +1376,7 @@ export default function ProfileScreen() {
           id="profil-zona"
           variants={slideInRow}
           aria-label="Zona kritis"
-          className="mt-10 overflow-hidden rounded-xl border border-destructive/30 bg-surface-primary shadow-soft"
+          className="mt-10 scroll-mt-[3.25rem] overflow-hidden rounded-xl border border-destructive/30 bg-surface-primary shadow-soft lg:scroll-mt-4"
         >
           <Collapsible open={zonaOpen} onOpenChange={setZonaOpen}>
             <CollapsibleTrigger asChild>
@@ -1358,7 +1481,7 @@ export default function ProfileScreen() {
           id="profil-bantuan"
           variants={slideInRow}
           aria-label="Aplikasi dan bantuan"
-          className="mt-8 overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft"
+          className="mt-8 scroll-mt-[3.25rem] overflow-hidden rounded-xl border border-border bg-surface-primary shadow-soft lg:scroll-mt-4"
         >
           <Collapsible open={bantuanOpen} onOpenChange={setBantuanOpen}>
             <CollapsibleTrigger asChild>

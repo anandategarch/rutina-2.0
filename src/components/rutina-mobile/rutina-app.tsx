@@ -315,15 +315,15 @@ export function RutinaApp() {
   const dir =
     ORDER.indexOf(screen) >= ORDER.indexOf(prevScreen) ? 1 : -1
 
-  /* "Ruang Warna" — kanvas & cahaya ambien tiap layar mengikuti identitas
-     domainnya (SCREEN_THEME): Bugar eucalyptus, Keuangan bronze, Kebiasaan
-     rose clay, Statistik slate, dst. Kanvas crossfade saat pindah tab;
-     mode gelap memakai varian espresso bertint domain. */
+  /* "Ruang Warna" (v3.1, mock Make): kanvas TIAP layar kini cream polos
+     yang SAMA (flat #F6F5EF / espresso #1A201C di gelap) — blob cahaya
+     ambien lama dihapus agar ponsel & desktop identik dengan mock: satu
+     bidang tenang tanpa gradasi. Kanvas tetap crossfade saat pindah tab
+     (transisi terasa walau warna kini seragam). */
   const { resolvedTheme } = useTheme()
   const dark = resolvedTheme === 'dark'
   const theme = SCREEN_THEME[screen]
   const canvas = dark ? theme.bgDark : theme.bg
-  const glow = dark ? theme.glowDark : theme.glow
 
   /* Momen naik level — konfeti + toast, dipusatkan di shell agar berlaku
      untuk semua layar (misi bisa dicentang dari Beranda maupun Statistik).
@@ -378,7 +378,11 @@ export function RutinaApp() {
             className="absolute inset-0 flex flex-col"
             inert={!revealed}
           >
-            {/* Kanvas utama — warnanya ber-crossfade mengikuti tab aktif */}
+            {/* Kanvas utama — warnanya ber-crossfade mengikuti tab aktif.
+                v3.2 (audit paritas mobile/desktop): cahaya ambien tiga blob
+                DIHAPUS — di ponsel blob hijau pucat terlihat mencolok di
+                separuh bawah layar sementara desktop tampak cream polos;
+                mock Make memang bidang flat tanpa gradasi. */}
             <m.div
               aria-hidden="true"
               className="absolute inset-0"
@@ -386,28 +390,6 @@ export function RutinaApp() {
               animate={{ backgroundColor: canvas }}
               transition={canvasFade}
             />
-
-            {/* Cahaya ambien — tiga blob lembut bernuansa warna domain layar */}
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-              <m.div
-                className="absolute -left-24 -top-24 h-72 w-72 rounded-full blur-3xl"
-                initial={false}
-                animate={{ backgroundColor: glow[0] }}
-                transition={{ duration: motionTokens.duration.ambient }}
-              />
-              <m.div
-                className="absolute -bottom-28 -right-20 h-80 w-80 rounded-full blur-3xl"
-                initial={false}
-                animate={{ backgroundColor: glow[1] }}
-                transition={{ duration: motionTokens.duration.ambient, delay: motionTokens.delay.tight }}
-              />
-              <m.div
-                className="absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl"
-                initial={false}
-                animate={{ backgroundColor: glow[2] }}
-                transition={{ duration: motionTokens.duration.ambient, delay: motionTokens.delay.normal }}
-              />
-            </div>
 
             {/* Area konten — kolom terpusat, layar penuh di perangkat kecil.
                 v2.40: mode="wait" diganti SYNC — dulu exit (0,24 dtk)

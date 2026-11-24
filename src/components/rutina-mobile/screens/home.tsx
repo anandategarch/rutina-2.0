@@ -804,14 +804,19 @@ export default function HomeScreen() {
             <section aria-label="Edisi harian" className="h-full">
               <MotionCard
                 visitKey="home-hero"
-                className="relative h-full overflow-hidden rounded-[var(--layout-hero-radius)] bg-editorial-surface p-6 shadow-soft @[34rem]:p-7"
+                className="relative h-full overflow-hidden rounded-[var(--layout-hero-radius)] bg-editorial-surface p-6 pb-[7.5rem] shadow-soft @[34rem]:p-7"
               >
                 {/* Ilustrasi flat — orang menyiram tanaman (mock Make);
-                    dekoratif, disembunyikan di kontainer sempit. */}
+                    v3.2 (audit paritas mobile/desktop): kini TAMPIL di
+                    ponsel juga — kartu mendapat pita bawah 7,5rem agar
+                    ilustrasi punya ruangnya sendiri di bawah teks, seperti
+                    komposisi mock (teks kiri, seni kanan-bawah). Sebelumnya
+                    `hidden` di bawah @[34rem] membuat hero ponsel kehilangan
+                    seni + lencana — terlihat "beda" vs desktop. */}
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 220 170"
-                  className="pointer-events-none absolute bottom-0 right-4 hidden h-40 w-52 text-forest opacity-90 @[34rem]:block @[44rem]:h-48 @[44rem]:w-64"
+                  className="pointer-events-none absolute bottom-0 right-4 h-24 w-32 text-forest opacity-90 @[34rem]:h-40 @[34rem]:w-52 @[44rem]:h-48 @[44rem]:w-64"
                   fill="none"
                 >
                   {/* matahari */}
@@ -877,10 +882,14 @@ export default function HomeScreen() {
                   />
                 </svg>
 
-                {/* Lencana putih miring — pesan tenang mock. */}
+                {/* Lencana putih miring — pesan tenang mock. v3.2: di ponsel
+                    lencana turun ke pita ilustrasi sisi KIRI (seni tetap di
+                    kanan — keduanya tidak pernah bersinggungan, tombol CTA
+                    di atasnya bebas tabrakan); di kontainer lega ia kembali
+                    ke posisi mock asli (pojok kanan-atas). */}
                 <span
                   aria-hidden="true"
-                  className="absolute right-5 top-5 hidden rotate-[6deg] rounded-full bg-cream-card px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-forest-ink shadow-soft @[40rem]:block"
+                  className="absolute bottom-3 left-6 rotate-[6deg] rounded-full bg-cream-card px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-forest-ink shadow-soft @[34rem]:bottom-auto @[34rem]:left-auto @[34rem]:right-5 @[34rem]:top-5"
                 >
                   Grow at your own pace
                 </span>

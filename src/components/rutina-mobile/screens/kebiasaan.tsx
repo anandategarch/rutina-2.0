@@ -1532,9 +1532,12 @@ export default function KebiasaanScreen() {
               </p>
             </div>
           ) : (
+            /* v3.2 (audit paritas mobile/desktop): glif tunas kini tampil
+               di ponsel juga (dulu `hidden @[34rem]:flex` — hero ponsel
+               kehilangan aksen kebun yang terlihat di desktop). */
             <span
               aria-hidden="true"
-              className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong @[34rem]:flex"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-module-accent-soft text-module-accent-strong"
             >
               <Sprout className="h-6 w-6" />
             </span>

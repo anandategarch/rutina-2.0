@@ -67,3 +67,4 @@ vercel-env.txt
 .sync-token-record.txt
 upload/
 .zscripts/
+audit-qa/
