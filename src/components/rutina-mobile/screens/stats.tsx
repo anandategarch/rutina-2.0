@@ -97,6 +97,7 @@ import { RutinaMetric } from '../rutina-metric'
 import { RutinaSectionHeader } from '../rutina-section-header'
 import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
+import { playfair } from '../serif'
 import { MotionCard } from '../rutina-motion-card'
 import { RutinaTabs, RutinaTabsList, RutinaTabsTrigger } from '../rutina-tabs'
 import { motionTokens } from '@/lib/motion/tokens'
@@ -993,8 +994,10 @@ export default function StatsScreen() {
             visitKey="stats-title"
             className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight"
           />
-          <p className="mt-2 text-body font-medium text-content-muted">
-            Petualanganmu dalam angka
+          <p
+            className={`${playfair.className} mt-1.5 text-lg font-semibold italic leading-snug tracking-tight text-module-stats-strong`}
+          >
+            Petualanganmu dalam angka.
           </p>
         </header>
 
