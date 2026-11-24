@@ -241,7 +241,7 @@ function TaskRowCompact({
           )}
           {streakRisk && !missedYesterday && streak > 0 && (
             <span
-              className="flex shrink-0 items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 font-semibold text-module-accent-strong"
+              className="flex shrink-0 items-center gap-0.5 rounded-full bg-tan-soft px-1.5 py-0.5 font-semibold text-tan-deep"
               title={`Streak ${streak} hari dipertaruhkan`}
             >
               <Flame className="h-3 w-3" aria-hidden="true" />
@@ -507,11 +507,10 @@ function TaskRowFull({
         ) : streak > 0 ? (
           <span
             title={`${streak} hari berturut-turut`}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-eyebrow font-semibold text-content-secondary"
+            className="flex shrink-0 items-center gap-1 rounded-full bg-tan-soft px-2.5 py-1 text-eyebrow font-semibold text-tan-deep"
           >
             <Flame className="h-3.5 w-3.5" aria-hidden="true" />
-            {streak}
-            <span className="sr-only"> hari</span>
+            <span className="tabular-nums">{streak}</span> hari
           </span>
         ) : habit.cat !== 'Kebiasaan' ? (
           <span className="shrink-0 rounded-full bg-surface-secondary px-2.5 py-1 text-eyebrow font-semibold text-content-secondary">
@@ -524,7 +523,7 @@ function TaskRowFull({
         {habit.reminder && streak > 0 && (
           <span
             title={`${streak} hari berturut-turut`}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-surface-secondary px-2 py-1 text-eyebrow font-semibold text-content-secondary"
+            className="flex shrink-0 items-center gap-1 rounded-full bg-tan-soft px-2 py-1 text-eyebrow font-semibold text-tan-deep"
           >
             <Flame className="h-3 w-3" aria-hidden="true" />
             <span className="tabular-nums">{streak}</span>

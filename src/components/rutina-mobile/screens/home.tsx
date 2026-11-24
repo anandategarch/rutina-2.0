@@ -1119,7 +1119,8 @@ export default function HomeScreen() {
           <RutinaBentoItem span="wide">
             <section aria-label="Agenda hari ini" id="agenda-hari-ini">
               <RutinaSectionHeader
-                title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
+                eyebrow={viewingToday ? 'Your daily little wins' : undefined}
+                title={viewingToday ? 'Satu per satu, hari ini.' : 'Agenda'}
                 description={
                   viewingToday
                     ? undefined

@@ -1214,14 +1214,9 @@ export default function KebiasaanScreen() {
   )
   /* Headline editorial taman (audit: "Terus tumbuh.") — kontekstual
      mengikuti keadaan kebun pekan ini. */
-  const gardenHeadline =
-    activeHabits.length === 0
-      ? 'Kebun menunggu.'
-      : tendedCount === activeHabits.length
-        ? 'Terus tumbuh.'
-        : tendedCount >= Math.ceil(activeHabits.length / 2)
-          ? 'Tumbuh pelan-pelan.'
-          : 'Waktunya menyiram.'
+  /* v3.1 mock Make: headline taman statis editorial; keadaan kebun
+     tetap terbaca lewat angka di kanan kepala. */
+  const gardenHeadline = 'Rawat yang kecil. Lihat ia tumbuh.'
   const maturePlants = useMemo(
     () =>
       activeHabits.filter((h) => {
@@ -1498,7 +1493,7 @@ export default function KebiasaanScreen() {
                 aria-hidden="true"
                 className="h-1.5 w-1.5 shrink-0 rounded-full bg-module-accent"
               />
-              Tamanmu · Pekan {isoWeekOf(today)}
+              Taman kebiasaanmu · Pekan {isoWeekOf(today)}
             </p>
             <WordReveal
               as="h1"
@@ -1640,7 +1635,8 @@ export default function KebiasaanScreen() {
             transition={motionTokens.preset.chipReveal}
           >
             <RutinaSectionHeader
-              title="Agenda hari ini"
+              eyebrow="Your daily little wins"
+              title="Satu per satu, hari ini."
               reveal
               visitKey="kebiasaan-agenda-title"
               description={
