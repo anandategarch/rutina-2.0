@@ -120,6 +120,7 @@ import { RutinaSectionHeader } from '../rutina-section-header'
 import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
+import { playfair } from '../serif'
 import { MotionCard } from '../rutina-motion-card'
 
 /* ===== Konstanta gerak =====
@@ -3041,8 +3042,8 @@ export default function KeuanganScreen() {
          padding tetap seperti aslinya. */
       contentClassName="px-4 pb-28 pt-[max(1.25rem,env(safe-area-inset-top))] text-content-primary"
     >
-      {/* Kepala halaman — Tipografi System v1: judul operasional Geist
-          Sans (bukan serif); hierarki jelas sebelum segmented tabs. */}
+      {/* Kepala halaman — v3.1 mock Make: judul 'Keuangan yang lebih
+          tenang' + subserif 'Uang terarah. Pikiran lapang.' */}
       <header>
         <p className="flex items-center gap-1.5 text-eyebrow font-semibold uppercase tracking-[0.16em] text-module-accent-strong">
           <Wallet className="h-3.5 w-3.5" />
@@ -3050,12 +3051,14 @@ export default function KeuanganScreen() {
         </p>
         <WordReveal
           as="h1"
-          text="Keuangan"
+          text="Keuangan yang lebih tenang"
           visitKey="keuangan-title"
-          className="mt-1.5 text-balance text-fluid-page font-bold leading-none tracking-tight"
+          className="mt-1.5 text-balance text-fluid-editorial font-bold leading-tight tracking-tight"
         />
-        <p className="mt-2 text-body font-medium text-content-muted">
-          Ringkasan kondisi keuanganmu
+        <p
+          className={`${playfair.className} mt-1.5 text-lg font-semibold italic leading-snug tracking-tight text-module-finance-strong`}
+        >
+          Uang terarah. Pikiran lapang.
         </p>
       </header>
 
