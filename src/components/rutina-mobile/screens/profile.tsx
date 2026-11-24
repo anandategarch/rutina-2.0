@@ -605,6 +605,11 @@ export default function ProfileScreen() {
           suffix={<span className="text-module-accent">.</span>}
           className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-none tracking-tight text-content-primary`}
         />
+        <p
+          className={`${playfair.className} mt-1.5 text-lg font-semibold italic leading-snug tracking-tight text-module-profil-strong`}
+        >
+          Bukan versi sempurna — versi yang paling kamu.
+        </p>
       </header>
 
       {/* ANIMATION OWNERSHIP RULE — koreografi seluruh baris/seksi dipegang
