@@ -98,6 +98,7 @@ import { TrainingCalendar } from '../fitness/training-calendar'
 import { ExerciseDetailSheet } from '../fitness/exercise-detail-sheet'
 import { SmoothScrollArea } from '../smooth-scroll-area'
 import { WordReveal } from '../word-reveal'
+import { playfair } from '../serif'
 import { MotionCard } from '../rutina-motion-card'
 import { MuscleBalanceCard } from '../fitness/muscle-balance-card'
 import { PaceTrack } from '../visualizations/fitness/pace-track'
@@ -1824,7 +1825,12 @@ export default function BugarScreen() {
           suffix={<span className="text-module-accent">.</span>}
           className="mt-1.5 text-balance text-fluid-page font-bold leading-none"
         />
-        <p className="mt-2 text-body font-medium text-content-muted">
+        <p
+          className={`${playfair.className} mt-1.5 text-lg font-semibold italic leading-snug tracking-tight text-module-bugar-strong`}
+        >
+          Bukan tentang lebih keras.
+        </p>
+        <p className="mt-1.5 text-body font-medium text-content-muted">
           {tab === 'latihan'
             ? week.runSessions + week.badmintonSessions + week.strengthSessions > 0
               ? `${week.runSessions + week.badmintonSessions + week.strengthSessions} aktivitas pekan ini${topPr ? ` · PR e1RM ≈ ${topPr.best.toFixed(1).replace('.', ',')} kg` : ''}`
@@ -1845,7 +1851,7 @@ export default function BugarScreen() {
             <RutinaTabsTrigger
               key={t.id}
               value={t.id}
-              className="flex-1 data-[state=active]:bg-module-accent/15 data-[state=active]:text-module-accent-strong"
+              className="flex-1 data-[state=active]:bg-forest data-[state=active]:text-cream-text data-[state=active]:shadow-soft"
             >
               {t.label}
             </RutinaTabsTrigger>
