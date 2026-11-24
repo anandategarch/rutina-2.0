@@ -757,7 +757,7 @@ export default function JournalScreen() {
       >
         <RutinaSectionHeader
           eyebrow={longDateLabel(todayISO())}
-          title="Jurnal"
+          title="Pages of your life."
           description={summary}
           accent
           reveal
