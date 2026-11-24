@@ -54,6 +54,8 @@ import { RutinaBentoGrid, RutinaBentoItem } from '../rutina-bento'
 import { RutinaMetric } from '../rutina-metric'
 import { formatIDRShort } from '../finance/utils'
 import { isDraftNote, noteFirstLine, useJournalUi } from '../journal-ui'
+import { useCheckInSheet } from '../checkin-sheet'
+import { useQuickHub } from '../quick-action-hub'
 import { motionTokens } from '@/lib/motion/tokens'
 import { useFirstVisit } from '@/lib/motion/first-visit'
 import { barFill, pressSnappy } from '@/lib/motion/transitions'
@@ -101,14 +103,22 @@ function getClientDateBadge(): string {
     .toUpperCase()
 }
 
-/** Sapaan Playfair sesuai jam lokal pembuka aplikasi. */
+/** Sapaan Playfair — v3.1 mock Make: satu sapaan tenang "Selamat
+ *  datang kembali." (mock menambahkan nama pengguna; Rutina belum
+ *  menyimpan nama sehingga sapaan generik — bentuk & rasa tetap sama). */
 function getClientGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 11) return 'Selamat pagi.'
-  if (hour < 14) return 'Selamat siang.'
-  if (hour < 18) return 'Selamat sore.'
-  return 'Selamat malam.'
+  return 'Selamat datang kembali.'
 }
+
+/* Wajah suasana kartu "A moment for yourself" (mock Make) — padanan
+   empat MOODS check-in Rutina (Ceria/Baik/Biasa/Lelah) dengan emoji.
+   Ketuk membuka lembar Check-in harian. */
+const MOOD_FACES: { mood: string; label: string; emoji: string }[] = [
+  { mood: 'Lelah', label: 'Lelah', emoji: '😮\u200d💨' },
+  { mood: 'Biasa', label: 'Biasa', emoji: '😐' },
+  { mood: 'Baik', label: 'Baik', emoji: '🙂' },
+  { mood: 'Ceria', label: 'Ceria', emoji: '😊' },
+]
 
 /* ===== Utilitas pekan (Senin = awal pekan) ===== */
 
@@ -458,7 +468,6 @@ export default function HomeScreen() {
   const xp = computeXp(doneToday, bonusClaimed)
   const level = computeLevel(xp)
   const xpProgress = Math.min(xp / XP_TARGET, 1)
-  const xpRemaining = Math.max(XP_TARGET - xp, 0)
   /* Streak hero chip — bestStreak dipakai chip hero; tile duplikat sudah
      dihapus (audit visualisasi v2.12). v2.16 (audit T5-c #8): dibungkus
      useMemo — bestStreak O(habits×800) tidak perlu dihitung tiap render. */
@@ -489,19 +498,8 @@ export default function HomeScreen() {
     return { sched, done }
   }, [habits, completions, today])
 
-  /* Headline editorial kontekstual (audit Daily Almanac: "Hari ini,
-     pelan tapi pasti.") — satu kalimat serif yang mengikuti keadaan
-     misi hari ini; sapaan di kepala layar tetap menjadi pintu masuk. */
-  const heroHeadline =
-    scheduledToday === 0
-      ? 'Hari yang tenang.'
-      : pct === 100
-        ? 'Hari yang sempurna.'
-        : pct >= 60
-          ? 'Pelan tapi pasti.'
-          : pct > 0
-            ? 'Sedang bertumbuh.'
-            : 'Waktunya memulai.'
+  /* v3.1: heroHeadline dipensiunkan — kartu editorial beige memakai
+     headline mock; narasi progres hidup di kartu sage. */
 
   /* Arus kas bersih seluruh transaksi (transfer antar-dompet dilewati).
      v2.16 (audit T5-c #8): useMemo — O(txs) per render sebelumnya. */
@@ -643,10 +641,9 @@ export default function HomeScreen() {
      satu keputusan prioritas; Beranda cukup meneruskan hasil
      homeAttention (recovery + actionIds) tanpa langganan slice baru. */
 
-  /* Header menyusut halus saat layar digulir — transform & opacity saja. */
+  /* Header menyusut halus saat layar digulir — transform saja. */
   const { scrollY } = useScroll({ container: scrollRef })
   const headerScale = useTransform(scrollY, [0, 120], [1, 0.96])
-  const subtitleOpacity = useTransform(scrollY, [0, 120], [1, 0])
 
   const dateBadge = useSyncExternalStore(
     emptySubscribe,
@@ -666,6 +663,12 @@ export default function HomeScreen() {
   /* v2.87: judul sapaan menunggu splash — kata terungkap per kata
      PERSIS saat kanvas pertama kali terlihat (bukan di balik splash). */
   const shellRevealed = useShellRevealed()
+
+  /* Kartu suasana — mood tersimpan hari ini (log harian > state global). */
+  const mood = useRutina((s) => s.mood)
+  const moodLogs = useRutina((s) => s.moodLogs)
+  const openCheckIn = useCheckInSheet((s) => s.openCheckIn)
+  const todayMood = moodLogs[today] ?? mood
 
   /* Perayaan + toast saat SEMUA misi terjadwal hari ini selesai —
      hanya sekali per hari. v2.49 (audit): penanda kini PERSISTENT
@@ -721,6 +724,18 @@ export default function HomeScreen() {
               {dateBadge}
             </p>
             <div className="flex shrink-0 items-center gap-1.5">
+              {/* v3.1 mock Make: pil CTA "Aksi cepat" di kepala — pintu
+                  utama ke hub catat universal, senada pil gelap hero. */}
+              <m.button
+                type="button"
+                onClick={() => useQuickHub.getState().openHub()}
+                aria-label="Aksi cepat — catat sesuatu"
+                whileTap={{ scale: 0.94 }}
+                className="interactive hidden h-9 cursor-pointer items-center gap-1.5 rounded-full bg-action-primary px-4 text-meta font-bold text-action-primary-fg shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring min-[420px]:flex"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.6} aria-hidden="true" />
+                Aksi cepat
+              </m.button>
               {/* Statistik — pintu cepat ke ringkasan & perkembangan dari
                   header Beranda (gaya identik tombol Jurnal di sebelahnya). */}
               <m.button
@@ -768,22 +783,13 @@ export default function HomeScreen() {
             hold={!shellRevealed}
             className={`${playfair.className} mt-2.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
           />
-          <m.p
-            style={{ opacity: subtitleOpacity }}
-            className="mt-1 text-body font-medium text-content-muted"
-          >
-            Mari mulai dengan satu langkah kecil.
-          </m.p>
         </m.header>
       </div>
 
-      {/* 1 — Komposisi bento hero: progres utama (tile lebar, permukaan
-          botanical, radius token hero) + insight pendamping FLAT editorial
-          tanpa bingkai (v2.27 Daybook: bukan semua bagian adalah kartu).
-          v2.46 Daily Almanac (audit Warm Editorial P2.0): hero SPLIT —
-          narasi editorial kiri, metrik besar + rel Streak/Misi pekan di
-          kanan pada kontainer lega; ponsel menumpuk dengan narasi di atas.
-          Sorotan Hari Ini tetap di kolom samping agenda. */}
+      {/* 1 — Komposisi hero v3.1 (mock Make, 100% sama): kartu editorial
+          beige "The Daily Edition" (tile lebar) + kartu progres sage
+          "Hari ini, kamu" (tile pendamping). Semua metrik hero lama
+          (persen, streak, misi pekan, Level/XP) hidup di kartu sage. */}
       <m.div
         initial={playEntrance ? { opacity: 0, y: 14 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -795,228 +801,300 @@ export default function HomeScreen() {
       >
         <RutinaBentoGrid>
           <RutinaBentoItem span="hero">
-            {/* v2.87: entrance kartu hero kini dipegang MotionCard
-                (motion.dev — masuk viewport + hover); pembungkus m.section
-                lama dipensiunkan agar tidak ada gerak ganda. */}
-            <section aria-label="Progres hari ini" className="h-full">
+            <section aria-label="Edisi harian" className="h-full">
               <MotionCard
-                /* v2.46: permukaan kebun (kabut matcha lembut) kini varian
-                   `botanical` resmi RutinaCard; radius token hero daybook
-                   tetap — lebih lapang dari kartu biasa. */
-                variant="botanical"
-                density="spacious"
-                radius="2xl"
                 visitKey="home-hero"
-                className="h-full rounded-[var(--layout-hero-radius)] shadow-soft"
+                className="relative h-full overflow-hidden rounded-[var(--layout-hero-radius)] bg-editorial-surface p-6 shadow-soft @[34rem]:p-7"
               >
-                {/* Ilustrasi botanical tipis — HANYA pada hero (audit:
-                    jangan menanam ilustrasi di setiap kartu); garis daun
-                    halus beraksen matcha, dekoratif, disembunyikan di
-                    kontainer sempit agar narasi tak terganggu. */}
+                {/* Ilustrasi flat — orang menyiram tanaman (mock Make);
+                    dekoratif, disembunyikan di kontainer sempit. */}
                 <svg
                   aria-hidden="true"
-                  viewBox="0 0 120 160"
-                  className="pointer-events-none absolute -right-2 -top-2 hidden h-44 w-32 text-module-accent opacity-[0.10] @[34rem]:block"
+                  viewBox="0 0 220 170"
+                  className="pointer-events-none absolute bottom-0 right-4 hidden h-40 w-52 text-forest opacity-90 @[34rem]:block @[44rem]:h-48 @[44rem]:w-64"
                   fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
                 >
-                  <path d="M60 150 C 60 110, 58 80, 60 40" />
-                  <path d="M60 96 C 40 92, 26 78, 22 56 C 44 58, 58 72, 60 96 Z" />
-                  <path d="M60 70 C 80 66, 94 52, 98 30 C 76 32, 62 46, 60 70 Z" />
-                  <path d="M60 44 C 48 40, 40 30, 38 16 C 52 18, 60 28, 60 44 Z" />
-                  <path d="M60 40 C 60 28, 66 16, 76 8 C 78 22, 72 34, 60 40 Z" />
+                  {/* matahari */}
+                  <circle cx="182" cy="30" r="16" className="fill-tan/70" />
+                  {/* busur tanah */}
+                  <path
+                    d="M18 152 C 60 138, 150 138, 204 150"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    opacity="0.5"
+                  />
+                  {/* tanaman bertumbuh */}
+                  <path
+                    d="M96 150 C 96 128, 95 112, 96 96"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M96 122 C 82 118, 74 108, 72 94 C 86 96, 95 106, 96 122 Z"
+                    className="fill-sage-deep/80"
+                  />
+                  <path
+                    d="M96 108 C 110 104, 118 94, 120 80 C 106 82, 97 92, 96 108 Z"
+                    className="fill-sage-deep"
+                  />
+                  <path
+                    d="M96 92 C 88 88, 84 80, 83 70 C 92 72, 97 80, 96 92 Z"
+                    className="fill-sage"
+                  />
+                  {/* orang merawat (siluet flat) */}
+                  <circle cx="46" cy="84" r="11" className="fill-current" />
+                  <path
+                    d="M40 96 C 34 108, 34 126, 38 148 L 54 148 C 56 130, 58 114, 64 102 C 68 94, 60 90, 54 96 Z"
+                    className="fill-current"
+                  />
+                  {/* lengan + penyiram */}
+                  <path
+                    d="M62 106 C 72 110, 80 114, 88 116"
+                    stroke="currentColor"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M86 108 L 104 112 L 100 126 L 84 120 Z"
+                    className="fill-current"
+                  />
+                  <path
+                    d="M102 114 L 116 104"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  {/* tetesan air */}
+                  <path
+                    d="M112 108 C 114 112, 114 114, 112 116 C 110 114, 110 112, 112 108 Z"
+                    className="fill-sky-deep/60"
+                  />
+                  <path
+                    d="M120 102 C 122 106, 122 108, 120 110 C 118 108, 118 106, 120 102 Z"
+                    className="fill-sky-deep/60"
+                  />
                 </svg>
-                <div className="relative z-[1]">
-                  <div className="flex flex-col gap-5 @[34rem]:flex-row @[34rem]:items-stretch @[34rem]:gap-7">
-                    {/* Kiri — narasi editorial almanac (audit: header
-                        tanggal & sapaan editorial, bukan dashboard). */}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-eyebrow font-semibold uppercase tracking-[0.14em] text-content-muted">
-                        Progres hari ini
-                      </p>
-                      <h2
-                        className={`${playfair.className} mt-1.5 text-balance text-fluid-editorial font-semibold leading-tight tracking-tight text-content-primary`}
-                      >
-                        {heroHeadline}
-                      </h2>
-                      <p className="mt-1.5 text-body font-medium text-content-secondary">
-                        Kamu sudah menyelesaikan{' '}
-                        <span className="font-bold tabular-nums text-content-primary">
-                          {/* v2.50 (audit konsistensi): penyebut kini
-                              dcToday.due — sama dengan persen di kanan;
-                              dulu todayHabits.length menghitung misi
-                              hari-jeda sehingga "3 dari 5 misi" bisa
-                              bersebelahan dengan "100%". */}
-                          {schedDoneToday} dari {scheduledToday}
-                        </span>{' '}
-                        misi.
-                        {extraDoneToday > 0 && (
-                          <span className="ml-1.5 align-middle text-meta font-semibold text-success">
-                            +{extraDoneToday} bonus
-                          </span>
-                        )}
-                      </p>
-                      <p
-                        className={
-                          'mt-0.5 text-note font-medium ' +
-                          (scheduledToday > 0 && missionRemaining === 0
-                            ? 'text-success'
-                            : 'text-content-muted')
-                        }
-                      >
-                        {scheduledToday === 0
-                          ? todayHabits.length > 0
-                            ? 'Hari jeda — tidak ada misi jatuh tempo.'
-                            : 'Belum ada misi terjadwal.'
-                          : missionRemaining === 1
-                            ? 'Satu langkah lagi menuju hari sempurna.'
-                            : missionRemaining > 0
-                              ? `${missionRemaining} misi tersisa`
-                              : 'Semua misi selesai — hari yang sempurna.'}
-                      </p>
-                      {/* v2.56 (audit Tahap 2): petak misi MissionSteps
-                          DIHAPUS dari hero — dua indikator visual progres
-                          harian (petak + Jalur Misi di Agenda) saling
-                          mengulang informasi yang sama; hero cukup membawa
-                          narasi angka "X dari Y misi" + persen di kanan.
-                          Jalur Misi tetap hidup di kepala planner Agenda. */}
-                    </div>
 
-                    {/* Kanan — metrik utama + rel pekan (split desktop);
-                        ponsel: dua petak sejajar di bawah narasi. Streak
-                        pindah ke sini sehingga strip bawah hanya membawa
-                        Level/XP (audit: metrik sekunder jelas hierarkinya). */}
-                    <div className="flex shrink-0 flex-col gap-3 @[34rem]:w-40 @[34rem]:border-l @[34rem]:border-border-default @[34rem]:pl-6">
-                      <div>
-                        <p className="flex items-baseline @[34rem]:justify-end">
-                          <span className="text-kpi font-bold leading-none tracking-tight">
-                            <Counter to={pct} immediate={!playEntrance} />
-                          </span>
-                          <span className="ml-0.5 text-note font-bold text-content-muted">
-                            %
-                          </span>
-                        </p>
-                        <p className="mt-1 text-eyebrow font-medium text-content-muted @[34rem]:text-right">
-                          perjalanan hari ini
-                        </p>
-                      </div>
-                      <div className="mt-auto grid grid-cols-2 gap-3 border-t border-border-default pt-3 @[34rem]:grid-cols-1 @[34rem]:gap-2.5">
-                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
-                          {/* Api streak — denyut ambient identitas yang
-                              diizinkan (preset ambientPulse, amplitudo
-                              6%); MotionConfig reducedMotion="user"
-                              mematikan transform ini otomatis. */}
-                          <m.span
-                            aria-hidden="true"
-                            className="flex"
-                            animate={{ scale: [1, 1.06, 1] }}
-                            transition={motionTokens.preset.ambientPulse}
-                          >
-                            <Flame
-                              className="h-3.5 w-3.5 text-warning"
-                              strokeWidth={2.2}
-                            />
-                          </m.span>
-                          <span className="tabular-nums">
-                            Streak {streak} hari
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary @[34rem]:justify-end">
-                          <CalendarDays
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5 text-module-accent-strong"
-                            strokeWidth={2.2}
-                          />
-                          <span className="tabular-nums">
-                            Misi pekan {weekMission.done}/{weekMission.sched}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                {/* Lencana putih miring — pesan tenang mock. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute right-5 top-5 hidden rotate-[6deg] rounded-full bg-cream-card px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-forest-ink shadow-soft @[40rem]:block"
+                >
+                  Grow at your own pace
+                </span>
 
-                  {/* v2.27 Daybook: strip pendamping di bawah hairline —
-                      Level + mini-bar XP (pola sub-metri studio Bugar:
-                      informasi tetap lengkap, tenang, tak berebut). */}
-                  <div className="mt-5 border-t border-border-default pt-4">
-                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-                      <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
-                        <Zap
-                          aria-hidden="true"
-                          className="h-3.5 w-3.5 text-success"
-                          strokeWidth={2.2}
-                        />
-                        <span className="tabular-nums">Level {level}</span>
-                      </span>
-                      <div className="flex min-w-[200px] max-w-[260px] flex-1 items-center gap-2.5 sm:justify-end">
-                        <span className="shrink-0 text-meta font-bold tabular-nums text-content-primary">
-                          <Counter to={xp} immediate={!playEntrance} /> XP
-                        </span>
-                        <div
-                          className="h-1.5 min-w-14 flex-1 overflow-hidden rounded-full bg-surface-sunken"
-                          role="progressbar"
-                          aria-label={`Progres XP menuju ${XP_TARGET}`}
-                          /* v2.49 (audit): xp bisa melampaui target (bonus) —
-                             visual memangkas & label bilang MAX, ARIA ikut
-                             jujur tanpa melampaui valuemax-nya sendiri. */
-                          aria-valuenow={Math.min(xp, XP_TARGET)}
-                          aria-valuemin={0}
-                          aria-valuemax={XP_TARGET}
-                        >
-                          <m.div
-                            className="h-full origin-left rounded-full bg-secondary"
-                            style={{ width: '100%' }}
-                            initial={playEntrance ? { scaleX: 0 } : false}
-                            animate={{ scaleX: xpProgress }}
-                            transition={barFill}
-                          />
-                        </div>
-                        <span className="shrink-0 text-meta font-medium tabular-nums text-content-muted">
-                          {xpRemaining > 0 ? `${xpRemaining} lagi` : 'MAX'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="relative z-[1] max-w-[34rem]">
+                  <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
+                    The Daily Edition · Rutina
+                  </p>
+                  <h2
+                    className={`${playfair.className} mt-2.5 text-balance text-fluid-title font-semibold leading-[1.08] tracking-tight text-content-primary`}
+                  >
+                    Hidup bukan perlombaan.{' '}
+                    <em className="text-sage-deep">Nikmati ritmenya.</em>
+                  </h2>
+                  <p className="mt-3 max-w-[26rem] text-body font-medium leading-relaxed text-content-secondary">
+                    Setiap hari adalah edisi barumu — rawat kebiasaan kecil,
+                    catat ceritamu, dan biarkan pertumbuhan datang dari
+                    kesabaran, bukan terburu-buru.
+                  </p>
+                  <m.button
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    transition={motionTokens.spring.snappy}
+                    onClick={() =>
+                      document
+                        .getElementById('agenda-hari-ini')
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                    className="interactive mt-5 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-action-primary px-5 text-meta font-bold text-action-primary-fg shadow-soft hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    Mulai langkah kecil
+                    <span aria-hidden="true">→</span>
+                  </m.button>
                 </div>
               </MotionCard>
             </section>
           </RutinaBentoItem>
 
-          {/* Insight hari ini — tile pendamping hero, FLAT editorial tanpa
-              bingkai (v2.27 Daybook: direktif “bukan semua bagian adalah
-              kartu”; hierarki lewat permukaan — hero terangkat, insight
-              tenang di kanvas). Saldo bersih dipertahankan karena
-              informasinya tidak digambarkan grafik lain; caption kini
-              kontekstual — vonis arus kas 7 hari terakhir bila ada
-              aktivitas pekan ini. */}
+          {/* Kartu progres sage (mock "Hari ini, kamu / Sudah melangkah
+              sejauh ini.") — menampung seluruh metrik hero lama: cincin
+              persen, N-dari-M kebiasaan, streak, misi pekan, Level/XP. */}
           <RutinaBentoItem span="feature">
-            <section aria-label="Insight hari ini" className="h-full pt-1">
-              <RutinaSectionHeader title="Insight hari ini" />
-              <div className="mt-4">
-                <RutinaMetric
-                  label="Saldo bersih"
-                  value={
-                    netSaldo < 0
-                      ? `−${formatIDRShort(-netSaldo)}`
-                      : formatIDRShort(netSaldo)
-                  }
-                  icon={Wallet}
-                  iconClassName="bg-gold/25 text-warning"
-                  caption={
-                    netCash7.count > 0
-                      ? `${netCash7.net >= 0 ? 'Surplus' : 'Defisit'} ${formatIDRShort(
-                          Math.abs(netCash7.net),
-                        )} dari arus kas 7 hari — transfer antar-dompet dikecualikan`
-                      : 'seluruh transaksi — transfer antar-dompet dikecualikan'
-                  }
-                />
-              </div>
+            <section aria-label="Progres hari ini" className="h-full">
+              <MotionCard
+                visitKey="home-progress"
+                className="flex h-full flex-col rounded-2xl bg-module-kebiasaan-soft p-5 shadow-soft"
+              >
+                <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-sage-ink/70">
+                  Hari ini, kamu
+                </p>
+                <h3
+                  className={`${playfair.className} mt-1 text-lg font-semibold leading-snug tracking-tight text-content-primary`}
+                >
+                  Sudah melangkah sejauh ini.
+                </h3>
+
+                {/* Cincin progres + N-dari-M (mock: ring 50%, "2 dari 4
+                    kebiasaan →"). */}
+                <div className="mt-4 flex items-center gap-4">
+                  <div className="relative h-[74px] w-[74px] shrink-0">
+                    <svg viewBox="0 0 84 84" className="h-full w-full -rotate-90">
+                      <circle
+                        cx="42"
+                        cy="42"
+                        r="35"
+                        fill="none"
+                        strokeWidth="8"
+                        className="stroke-forest-ink/12"
+                      />
+                      <m.circle
+                        cx="42"
+                        cy="42"
+                        r="35"
+                        fill="none"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        className="stroke-sage-deep"
+                        strokeDasharray={2 * Math.PI * 35}
+                        initial={playEntrance ? { strokeDashoffset: 2 * Math.PI * 35 } : false}
+                        animate={{
+                          strokeDashoffset:
+                            2 * Math.PI * 35 * (1 - (scheduledToday > 0 ? schedDoneToday / scheduledToday : 0)),
+                        }}
+                        transition={{ ...barFill, duration: motionTokens.duration.dramatic }}
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-kpi-sm font-bold tabular-nums text-content-primary">
+                      <Counter to={pct} immediate={!playEntrance} />
+                      <span className="ml-0.5 text-note font-bold text-content-muted">%</span>
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document
+                          .getElementById('agenda-hari-ini')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                      className="text-left text-body font-bold text-content-primary underline decoration-sage-deep/40 underline-offset-4 transition-colors hover:decoration-sage-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <span className="tabular-nums">
+                        {schedDoneToday} dari {scheduledToday}
+                      </span>{' '}
+                      kebiasaan <span aria-hidden="true">→</span>
+                    </button>
+                    <p
+                      className={
+                        'mt-1 text-note font-medium ' +
+                        (scheduledToday > 0 && missionRemaining === 0
+                          ? 'text-success'
+                          : 'text-content-muted')
+                      }
+                    >
+                      {scheduledToday === 0
+                        ? todayHabits.length > 0
+                          ? 'Hari jeda — tidak ada misi jatuh tempo.'
+                          : 'Belum ada misi terjadwal.'
+                        : missionRemaining === 1
+                          ? 'Satu langkah lagi menuju hari sempurna.'
+                          : missionRemaining > 0
+                            ? `${missionRemaining} misi tersisa`
+                            : 'Semua misi selesai — hari yang sempurna.'}
+                    </p>
+                    {extraDoneToday > 0 && (
+                      <span className="mt-1 inline-block text-meta font-semibold text-success">
+                        +{extraDoneToday} bonus
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Rel metrik sekunder — streak & misi pekan (hero lama). */}
+                <div className="mt-auto grid grid-cols-2 gap-2.5 border-t border-forest-ink/10 pt-3.5 text-meta font-semibold text-content-secondary">
+                  <span className="flex items-center gap-1.5">
+                    <m.span
+                      aria-hidden="true"
+                      className="flex"
+                      animate={{ scale: [1, 1.06, 1] }}
+                      transition={motionTokens.preset.ambientPulse}
+                    >
+                      <Flame className="h-3.5 w-3.5 text-rust" strokeWidth={2.2} />
+                    </m.span>
+                    <span className="tabular-nums">Streak {streak} hari</span>
+                  </span>
+                  <span className="flex items-center justify-end gap-1.5">
+                    <CalendarDays
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 text-sage-ink"
+                      strokeWidth={2.2}
+                    />
+                    <span className="tabular-nums">
+                      Pekan {weekMission.done}/{weekMission.sched}
+                    </span>
+                  </span>
+                </div>
+
+                {/* Strip Level + XP (hero lama) — tetap satu baris tenang. */}
+                <div className="mt-3 border-t border-forest-ink/10 pt-3">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className="flex items-center gap-1.5 text-meta font-semibold text-content-secondary">
+                      <Zap aria-hidden="true" className="h-3.5 w-3.5 text-sage-ink" strokeWidth={2.2} />
+                      <span className="tabular-nums">Level {level}</span>
+                    </span>
+                    <span className="shrink-0 text-meta font-bold tabular-nums text-content-primary">
+                      <Counter to={xp} immediate={!playEntrance} /> XP
+                    </span>
+                  </div>
+                  <div
+                    className="mt-2 h-1.5 overflow-hidden rounded-full bg-forest-ink/10"
+                    role="progressbar"
+                    aria-label={`Progres XP menuju ${XP_TARGET}`}
+                    aria-valuenow={Math.min(xp, XP_TARGET)}
+                    aria-valuemin={0}
+                    aria-valuemax={XP_TARGET}
+                  >
+                    <m.div
+                      className="h-full origin-left rounded-full bg-sage-deep"
+                      style={{ width: '100%' }}
+                      initial={playEntrance ? { scaleX: 0 } : false}
+                      animate={{ scaleX: xpProgress }}
+                      transition={barFill}
+                    />
+                  </div>
+                </div>
+              </MotionCard>
             </section>
           </RutinaBentoItem>
         </RutinaBentoGrid>
+
+        {/* Insight saldo bersih — pendamping flat (bukan kartu) di bawah
+            komposisi hero; fitur lama dipertahankan. */}
+        <section aria-label="Insight hari ini" className="mt-5">
+          <RutinaSectionHeader title="Insight hari ini" />
+          <div className="mt-3.5">
+            <RutinaMetric
+              label="Saldo bersih"
+              value={
+                netSaldo < 0
+                  ? `−${formatIDRShort(-netSaldo)}`
+                  : formatIDRShort(netSaldo)
+              }
+              icon={Wallet}
+              iconClassName="bg-sky-soft text-sky-deep"
+              caption={
+                netCash7.count > 0
+                  ? `${netCash7.net >= 0 ? 'Surplus' : 'Defisit'} ${formatIDRShort(
+                      Math.abs(netCash7.net),
+                    )} dari arus kas 7 hari — transfer antar-dompet dikecualikan`
+                  : 'seluruh transaksi — transfer antar-dompet dikecualikan'
+              }
+            />
+          </div>
+        </section>
       </m.div>
 
       {/* Kalender dua pekan melayang (sticky) — mengendalikan tanggal agenda */}
@@ -1039,7 +1117,7 @@ export default function HomeScreen() {
       >
         <RutinaBentoGrid>
           <RutinaBentoItem span="wide">
-            <section aria-label="Agenda hari ini">
+            <section aria-label="Agenda hari ini" id="agenda-hari-ini">
               <RutinaSectionHeader
                 title={viewingToday ? 'Agenda hari ini' : 'Agenda'}
                 description={
@@ -1515,6 +1593,61 @@ export default function HomeScreen() {
         </button>
       </m.section>
 
+      {/* 3.5 — Kartu suasana (mock Make "A moment for yourself /
+          Bagaimana perasaanmu?") — lima wajah membuka Check-in harian;
+          suasana terakhir hari ini ditandai bila sudah ada. */}
+      <m.section
+        initial={playEntrance ? { opacity: 0, y: 16 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...motionTokens.preset.data, delay: motionTokens.delay.normal }}
+        aria-label="Suasana hati hari ini"
+      >
+        <MotionCard
+          visitKey="home-mood"
+          className="rounded-2xl bg-editorial-surface p-5 shadow-soft"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-content-muted">
+                A moment for yourself
+              </p>
+              <h3
+                className={`${playfair.className} mt-1 text-lg font-semibold leading-snug tracking-tight text-content-primary`}
+              >
+                Bagaimana perasaanmu?
+              </h3>
+              <p className="mt-0.5 text-note font-medium text-content-muted">
+                Tidak ada jawaban yang salah.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+            {MOOD_FACES.map((face) => {
+              const active = todayMood === face.mood
+              return (
+                <button
+                  key={face.mood}
+                  type="button"
+                  onClick={() => openCheckIn()}
+                  aria-label={`Suasana hati: ${face.label} — buka check-in harian`}
+                  aria-pressed={active}
+                  className={`interactive flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border text-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                    active
+                      ? 'border-transparent bg-sage text-forest-ink'
+                      : 'border-forest-ink/20 bg-transparent hover:bg-forest-ink/5'
+                  }`}
+                >
+                  <span aria-hidden="true">{face.emoji}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-3.5 text-note font-medium italic text-content-muted">
+            Berhenti sebentar. Dengarkan dirimu.
+          </p>
+        </MotionCard>
+      </m.section>
+
       {/* 4 — Baris bento rekap pekan (7) + arus kas (5): satu baris
           komposisi ruang kerja lebar (≥52rem), ponsel menumpuk rekap →
           finance (perjalanan pertumbuhan didahulukan). mt-8 internal
@@ -1549,21 +1682,23 @@ export default function HomeScreen() {
         as="section"
         visitKey="home-jurnal-door"
         aria-label="Jurnal dan catatan"
-        /* v2.27 Daybook: pintu Jurnal bertint domain (dusty mauve) —
-           band bawah halaman kini punya hierarki permukaan: flat insight,
-           dashed bonus, tint jurnal, garden rekap, tint finance.
-           v2.87: MotionCard — masuk viewport + hover halus (motion.dev). */
-        className="rounded-lg border border-module-journal/30 bg-module-journal-soft/55 p-4"
+        /* v3.1 mock Make "Dear me," — kartu jurnal lavender. */
+        className="relative overflow-hidden rounded-2xl bg-module-journal-soft p-5 shadow-soft"
       >
-        <div className="flex items-center gap-3.5">
+        <div className="flex flex-wrap items-center gap-3.5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-primary/90 text-module-journal-strong">
             <BookOpen className="h-5 w-5" strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-body font-semibold text-content-primary">
-              Jurnal &amp; Catatan
+            <p className="text-eyebrow font-semibold uppercase tracking-[0.16em] text-module-journal-strong/80">
+              Dear me,
             </p>
-            <p className="mt-0.5 line-clamp-2 break-words text-meta font-medium text-content-muted">
+            <p
+              className={`${playfair.className} mt-0.5 text-lg font-semibold leading-snug tracking-tight text-content-primary`}
+            >
+              Hari ini layak dicatat.
+            </p>
+            <p className="mt-0.5 text-meta font-medium text-content-muted">
               {notes.length} catatan di {FOLDERS.length} folder
             </p>
           </div>
@@ -1573,15 +1708,15 @@ export default function HomeScreen() {
               variant="outline"
               onClick={() => openCompose()}
               aria-label="Buat catatan baru"
-              className="h-9 rounded-full border-border px-4 text-meta font-bold text-content-secondary hover:bg-surface-sunken hover:text-content-primary"
+              className="h-9 rounded-full border-border px-4 text-meta font-bold text-content-secondary hover:bg-surface-primary hover:text-content-primary"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
-              Catatan
+              Tulis satu cerita
             </Button>
             <Button
               type="button"
               onClick={() => setScreen('jurnal')}
-              className="h-9 rounded-full bg-primary px-4 text-meta font-bold text-primary-foreground shadow-soft hover:bg-action-hover"
+              className="h-9 rounded-full bg-module-journal-strong px-4 text-meta font-bold text-module-journal-fg shadow-soft hover:opacity-90"
             >
               Buka
             </Button>

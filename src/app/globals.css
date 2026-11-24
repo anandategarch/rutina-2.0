@@ -120,6 +120,12 @@
   --hero-content-muted: rgb(247 243 230 / 68%);
   --hero-accent: var(--palette-sage);
 
+  /* Permukaan editorial (v3.1) — kartu hero beige "The Daily Edition"
+     & kartu suasana: beige mock di mode terang, arang-hijau bertint di
+     mode gelap. */
+  --editorial-surface: var(--palette-beige);
+  --editorial-surface-deep: #e3dcc6;
+
   /* Warna domain modul — v3.1 Calm Editorial: pastel per domain mock.
      Kebiasaan sage · Bugar peach/rust · Keuangan sky · Jurnal lavender ·
      Statistik forest · Profil tan. Peran: base = ikon/aksen; strong =
@@ -270,6 +276,10 @@
   --hero-content: var(--palette-cream-text);
   --hero-content-muted: rgb(247 243 230 / 68%);
   --hero-accent: var(--palette-sage);
+
+  /* Editorial gelap — beige menjadi arang ber-tint beige redup. */
+  --editorial-surface: #2b2a22;
+  --editorial-surface-deep: #323126;
 
   /* Warna domain modul — versi gelap: base diterangkan agar kontras di
      atas permukaan arang; strong menjadi aksen teks terang; soft menjadi
@@ -437,6 +447,8 @@
   --color-hero-content: var(--hero-content);
   --color-hero-content-muted: var(--hero-content-muted);
   --color-hero-accent: var(--hero-accent);
+  --color-editorial-surface: var(--editorial-surface);
+  --color-editorial-surface-deep: var(--editorial-surface-deep);
 
   /* Warna domain modul — utilitas: bg-module-bugar, text-module-finance-strong,
      border-module-stats, dst. Dipakai HANYA untuk identitas modul; warna
