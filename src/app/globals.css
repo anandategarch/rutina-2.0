@@ -16,16 +16,52 @@
    (bg-surface-primary, text-content-muted, bg-primary, …) — bukan
    nilai heksadesimal arbitrer. Primitive hanya dirujuk oleh lapisan
    semantic, tidak pernah langsung oleh komponen.
+
+   v3.1 "Calm Editorial Wellness" (adaptasi Figma Make v3, 100% sama):
+   identitas berpindah ke hutan-sage-krem: sidebar & CTA forest green,
+   kanvas cream, kartu putih hangat, aksen pastel per domain
+   (sage/peach-rust/sky/lavender/tan). Semua nilai disampel langsung
+   dari mockup Make.
    ===================================================================== */
 
 /* ---------- Lapisan 1 · Primitive tokens (nilai brand) ---------- */
 :root {
+  /* Forest — jangkar identitas baru: sidebar, CTA pil gelap, kartu
+     statistik. Disampel dari mock: sidebar #263F34, kartu stat #293F35,
+     hover/naik #203830, tinta judul #2E362E. */
+  --palette-forest: #263f34;
+  --palette-forest-deep: #203830;
+  --palette-forest-raised: #2e4a3e;
+  --palette-forest-ink: #2e362e;
+  /* Cream — kanvas utama & kartu putih hangat */
+  --palette-cream: #f6f5ef;
+  --palette-cream-card: #fffef9;
+  --palette-cream-text: #f7f3e6;
+  /* Beige — kartu hero editorial (THE DAILY EDITION) */
+  --palette-beige: #eee8d8;
+  /* Sage — domain hijau lembut: kartu progres, pil nav aktif, taman */
+  --palette-sage: #dce5ba;
+  --palette-sage-pale: #e2e9c8;
+  --palette-sage-deep: #55734c;
+  --palette-sage-ink: #47603b;
+  /* Tan — pil streak & domain Profil */
+  --palette-tan: #d49d72;
+  --palette-tan-soft: #f0e6cc;
+  --palette-tan-deep: #8a6f52;
+  /* Peach/Rust — domain Bugar (kartu peach lembut + hero rust) */
+  --palette-peach: #f5eee5;
+  --palette-peach-deep: #ead0bb;
+  --palette-rust: #a74b34;
+  --palette-rust-cream: #f1d3b8;
+  /* Sky — domain Keuangan & air (kartu biru muda) */
+  --palette-sky: #dfe9ef;
+  --palette-sky-deep: #4f5f73;
+  /* Lavender — domain Jurnal */
+  --palette-lavender: #eae1ee;
+  --palette-lavender-deep: #6e5a7c;
+
+  /* ---- Palet lama yang masih dirujuk komponen turunan ---- */
   --palette-matcha: #749b58;
-  /* Color System v2 — hijau aksi khusus CTA/solid: matcha asli (3,20:1 vs
-     putih) tidak lolos WCAG AA sebagai latar teks kecil. Matcha-action
-     4,86:1 & action-deep 5,63:1 vs putih; action-deep juga aman sebagai
-     TEKS di atas mist/parchment (4,75:1 / 5,05:1). Matcha asli tetap
-     dipakai untuk ilustrasi, aksen, garis progres & dekorasi. */
   --palette-matcha-action: #587b40;
   --palette-matcha-action-deep: #4f713a;
   --palette-matcha-deep: #5e8347;
@@ -37,17 +73,11 @@
   --palette-espresso: #231f1e;
   --palette-espresso-soft: #3a2e24;
   --palette-cocoa: #4a3b32;
-  /* Cocoa-mud digelapkan dari #766b62 → lolos uji kontras WCAG AA
-     (≥ 4,5:1) di atas parchment MAUPUN linen untuk teks kecil. */
   --palette-cocoa-muted: #6b6057;
   --palette-terracotta: #b25e3f;
   --palette-clay: #d98e6b;
   --palette-gold: #d9b98c;
   --palette-linen: #eae5d9;
-  /* Perluasan palet donat Vault (v2.37, audit desain): 4 nama yang
-     direferensikan DONUT_COLORS Keuangan namun belum didefinisikan —
-     slice 4–7 kategori pengeluaran pernah dirender hitam/tak terlihat.
-     Semua mid-tone agar terbaca di kanvas parchment MAUPUN espresso. */
   --palette-eucalyptus: #8aa892;
   --palette-bronze: #a5804e;
   --palette-mauve: #a08b96;
@@ -56,99 +86,87 @@
 
 /* ---------- Lapisan 2 · Semantic tokens ---------- */
 :root {
-  /* Kanvas & permukaan */
-  --background: var(--palette-sand);
-  --foreground: var(--palette-espresso);
+  /* Kanvas & permukaan — v3.1: kanvas cream, kartu putih hangat,
+     permukaan inverse = forest (kartu statistik, sidebar, hero gelap). */
+  --background: var(--palette-cream);
+  --foreground: var(--palette-forest-ink);
 
-  --surface-primary: var(--palette-parchment);
-  --surface-secondary: var(--palette-linen);
-  --surface-sunken: var(--palette-sand);
-  --surface-inverse: var(--palette-espresso);
-  /* Varian "terangkat" permukaan inverse — untuk hover tombol gelap
-     (espresso → espresso-soft). Di dark mode surface-inverse menjadi
-     parchment, jadi varian terangkatnya parchment 85% (bukan espresso-soft
-     yang justru menggelap — perbaikan audit v2.20). */
-  --surface-inverse-raised: var(--palette-espresso-soft);
+  --surface-primary: var(--palette-cream-card);
+  --surface-secondary: var(--palette-beige);
+  --surface-sunken: var(--palette-cream);
+  --surface-inverse: var(--palette-forest);
+  --surface-inverse-raised: var(--palette-forest-deep);
 
-  /* Konten teks */
-  --content-primary: var(--palette-espresso);
-  --content-secondary: var(--palette-cocoa);
-  --content-muted: var(--palette-cocoa-muted);
-  --content-inverse: var(--palette-parchment);
+  /* Konten teks — forest-ink sebagai tinta utama (tinta judul mock),
+     sekunder/muted abu-hijau hangat. */
+  --content-primary: var(--palette-forest-ink);
+  --content-secondary: #4e5b52;
+  --content-muted: #5f6b60;
+  --content-inverse: var(--palette-cream-text);
 
-  /* Garis & aksi — Color System v2: aksi utama memakai matcha-action
-     (kontras AA vs putih), bukan matcha identitas. */
-  --border-default: rgb(74 59 50 / 14%);
-  --border-strong: rgb(74 59 50 / 24%);
-  --action-primary: var(--palette-matcha-action);
-  --action-primary-fg: #ffffff;
-  --action-hover: var(--palette-matcha-action-deep);
+  /* Garis & aksi — v3.1: aksi utama = pil forest gelap (CTA mock
+     "Mulai langkah kecil", "+ Aksi cepat"), teks cream. */
+  --border-default: rgb(38 63 52 / 13%);
+  --border-strong: rgb(38 63 52 / 24%);
+  --action-primary: var(--palette-forest);
+  --action-primary-fg: var(--palette-cream-text);
+  --action-hover: var(--palette-forest-raised);
 
-  /* Hero — kartu fokus identitas tetap (espresso + emas + parchment).
-     TIDAK ikut terbalik saat dark mode: aksen emas #D9B98C hanya lolos
-     kontras di atas permukaan gelap, maka permukaan hero selalu espresso. */
-  --hero-surface: var(--palette-espresso);
-  --hero-surface-raised: var(--palette-espresso-soft);
-  --hero-content: var(--palette-parchment);
-  --hero-content-muted: rgb(250 249 246 / 68%);
-  --hero-accent: var(--palette-gold);
+  /* Hero — kartu fokus kini forest + aksen sage (kartu statistik mock:
+     forest #263F34 dengan angka cream). TIDAK ikut terbalik dark mode. */
+  --hero-surface: var(--palette-forest);
+  --hero-surface-raised: var(--palette-forest-deep);
+  --hero-content: var(--palette-cream-text);
+  --hero-content-muted: rgb(247 243 230 / 68%);
+  --hero-accent: var(--palette-sage);
 
-  /* Warna domain modul — Color System 2.0 (Earth-Tone Editorial Bento).
-     Identitas pendukung per modul; matcha tetap warna interaksi utama.
-     Peran: base = ikon/aksen/gradasi hero modul; strong = teks & aksen
-     dalam (kontras AA di atas soft); soft = latar tile/panel modul;
-     fg = teks di atas base. Kontras strong-vs-soft: bugar 5,42:1,
-     keuangan 4,68:1, jurnal 5,37:1, statistik 4,76:1 (WCAG AA). */
-  --module-bugar: #5f8a82; /* Eucalyptus Teal */
-  --module-bugar-strong: #41665f;
-  --module-bugar-soft: #e4efeb;
-  --module-bugar-fg: #ffffff;
-
-  --module-finance: #ac8148; /* Antique Bronze */
-  --module-finance-strong: #82602f;
-  --module-finance-soft: #f1e7d7;
-  --module-finance-fg: #ffffff;
-
-  --module-journal: #8c7a91; /* Dusty Mauve */
-  --module-journal-strong: #68596f;
-  --module-journal-soft: #eee8ef;
-  --module-journal-fg: #ffffff;
-
-  --module-stats: #71899a; /* Mineral Slate */
-  --module-stats-strong: #536b7c;
-  --module-stats-soft: #e7eef2;
-  --module-stats-fg: #ffffff;
-
-  /* Ruang Warna — dua domain baru (v2.5): Kebiasaan Rose Clay (tanah pot
-     kebun kebiasaan) & Profil Cocoa Gold (kamar tenang preferensi).
-     Kontras strong-vs-soft: kebiasaan 5,3:1, profil 5,1:1 (WCAG AA). */
-  --module-kebiasaan: #b0765f; /* Rose Clay */
-  --module-kebiasaan-strong: #8a5642;
-  --module-kebiasaan-soft: #f6e9e3;
+  /* Warna domain modul — v3.1 Calm Editorial: pastel per domain mock.
+     Kebiasaan sage · Bugar peach/rust · Keuangan sky · Jurnal lavender ·
+     Statistik forest · Profil tan. Peran: base = ikon/aksen; strong =
+     teks & aksen dalam (kontras AA di atas soft); soft = latar tile/panel
+     domain; fg = teks di atas base. */
+  --module-kebiasaan: #6e8a5e; /* Sage */
+  --module-kebiasaan-strong: #47603b;
+  --module-kebiasaan-soft: #e2e9c8;
   --module-kebiasaan-fg: #ffffff;
 
-  --module-profil: #97795e; /* Cocoa Gold */
-  --module-profil-strong: #6e5642;
-  --module-profil-soft: #f2ebe2;
+  --module-bugar: #b06a4a; /* Peach/Rust */
+  --module-bugar-strong: #8a4230;
+  --module-bugar-soft: #f5eee5;
+  --module-bugar-fg: #ffffff;
+
+  --module-finance: #7a93a8; /* Sky */
+  --module-finance-strong: #4f5f73;
+  --module-finance-soft: #dfe9ef;
+  --module-finance-fg: #ffffff;
+
+  --module-journal: #9b84a8; /* Lavender */
+  --module-journal-strong: #6e5a7c;
+  --module-journal-soft: #eae1ee;
+  --module-journal-fg: #ffffff;
+
+  --module-stats: #4e6b5b; /* Forest */
+  --module-stats-strong: #263f34;
+  --module-stats-soft: #e7ede4;
+  --module-stats-fg: #ffffff;
+
+  --module-profil: #b39775; /* Tan */
+  --module-profil-strong: #8a6f52;
+  --module-profil-soft: #f0e6cc;
   --module-profil-fg: #ffffff;
 
-  /* Aksen modul kontekstual — default matcha (identitas global). Layar
-     menimpa lewat data-module (lihat blok [data-module] di bawah), maka
-     utilitas bg-module-accent / text-module-accent-strong otomatis mengikuti
-     domain layar aktif tanpa pemetaan per komponen.
-     Color System v2: strong default memakai matcha-action-deep agar teks
-     module-accent-strong lolos AA di atas soft/mist (4,75:1) DAN layak
-     menjadi latar solid dengan teks putih (5,63:1). */
-  --module-accent: var(--palette-matcha);
-  --module-accent-strong: var(--palette-matcha-action-deep);
-  --module-accent-soft: var(--palette-mist);
+  /* Aksen modul kontekstual — default sage (identitas Beranda/global
+     mock). Layar menimpa lewat data-module (lihat blok [data-module]). */
+  --module-accent: var(--palette-sage-deep);
+  --module-accent-strong: var(--palette-sage-ink);
+  --module-accent-soft: var(--palette-sage-pale);
   --module-accent-fg: #ffffff;
 
   /* Status — nilai teks AMAN kontras (≥ 4,5:1) di atas permukaan terang.
-     Gunakan untuk teks kecil bermakna (nominal, label status). */
-  --success: #4f7440; /* matcha tua — teks berhasil/positif */
-  --warning: #8a6a3b; /* gold tua — teks peringatan */
-  --content-danger: #9a4e33; /* terracotta tua — teks risiko/gagal */
+     v3.1: berhasil = sage tua, peringatan = tan tua, risiko = rust. */
+  --success: #47603b; /* sage tua — teks berhasil/positif */
+  --warning: #8a6f52; /* tan tua — teks peringatan */
+  --content-danger: #a7432a; /* rust tua — teks risiko/gagal */
 
   /* --- Pemetaan semantic shadcn/ui (satu sumber kebenaran) --- */
   --primary: var(--action-primary);
@@ -167,29 +185,24 @@
   --destructive-foreground: #ffffff;
   --border: var(--border-default);
   --input: var(--border-strong);
-  /* Ring fokus (audit kontras v2.65): matcha identitas hanya 2,5–3,0:1
-     di atas permukaan tinted (linen/mist/soft modul) — di bawah ambang
-     non-teks WCAG 1.4.11 (3:1). Matcha-action 3,9–4,6:1 di atas semua
-     permukaan terang produk. Mode gelap pistachio sudah 6,8–7,8:1. */
-  --ring: var(--palette-matcha-action);
+  /* Ring fokus (v3.1): sage-deep 4,5:1 di atas semua permukaan terang
+     produk; mode gelap sage terang 6,8:1+. */
+  --ring: var(--palette-sage-deep);
 
-  /* Grafik — turunan palet earth-tone.
-     Color System v2 memisahkan dua peran:
+  /* Grafik — v3.1: turunan palet pastel domain (sage/tan/sky/lavender).
      · chart-N      = warna ISI/area (lembut, untuk fill & dekorasi);
-     · chart-stroke = varian GELAP untuk garis, titik data & indikator
-       penting di permukaan terang (WCAG 1.4.11 ≥ 3:1; nilai di bawah
-       4,1–4,9:1 di atas parchment). Di mode gelap stroke mengikuti
-       chart-N (sudah terang di atas permukaan gelap). */
-  --chart-1: var(--palette-matcha);
-  --chart-2: var(--palette-clay);
-  --chart-3: var(--palette-gold);
-  --chart-4: var(--palette-pistachio);
-  --chart-5: var(--palette-cocoa-muted);
-  --chart-stroke-1: var(--palette-matcha-action); /* 4,62:1 parchment */
-  --chart-stroke-2: var(--palette-terracotta); /* 4,37:1 — clay tua */
-  --chart-stroke-3: #8a6a3b; /* gold tua — 4,75:1 */
-  --chart-stroke-4: var(--palette-matcha-deep); /* 4,14:1 — pistachio tua */
-  --chart-stroke-5: var(--palette-cocoa); /* 9,6:1 */
+     · chart-stroke = varian GELAP untuk garis & indikator penting di
+       permukaan terang (WCAG 1.4.11 ≥ 3:1). */
+  --chart-1: #9db483; /* sage terang */
+  --chart-2: var(--palette-tan); /* tan */
+  --chart-3: #9fb3c2; /* sky terang */
+  --chart-4: #b7a5c2; /* lavender terang */
+  --chart-5: #c9b393; /* tan terang */
+  --chart-stroke-1: var(--palette-sage-deep); /* 4,5:1 di atas cream */
+  --chart-stroke-2: var(--palette-rust); /* 4,9:1 */
+  --chart-stroke-3: var(--palette-sky-deep); /* 5,6:1 */
+  --chart-stroke-4: var(--palette-lavender-deep); /* 5,2:1 */
+  --chart-stroke-5: var(--palette-tan-deep); /* 5,3:1 */
 
   /* Warna kategori kebiasaan — Color System v2: dipusatkan sebagai token
      (sebelumnya hard-code di store.ts) agar Kebiasaan & Statistik konsisten
@@ -200,15 +213,16 @@
   --habit-cat-pribadi: #8c7b6b;
   --habit-cat-belajar: #c7a17a;
 
-  /* Sidebar (dipetakan ke permukaan earth-tone bila dipakai) */
-  --sidebar: var(--surface-primary);
-  --sidebar-foreground: var(--content-primary);
-  --sidebar-primary: var(--palette-matcha);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--palette-mist);
-  --sidebar-accent-foreground: var(--palette-espresso);
-  --sidebar-border: var(--border-default);
-  --sidebar-ring: var(--palette-matcha);
+  /* Sidebar — v3.1: selalu forest green (mode terang & gelap) — jangkar
+     identitas mock; teks cream, pil aktif sage pucat. */
+  --sidebar: var(--palette-forest);
+  --sidebar-foreground: var(--palette-cream-text);
+  --sidebar-primary: var(--palette-sage-pale);
+  --sidebar-primary-foreground: var(--palette-forest-ink);
+  --sidebar-accent: var(--palette-forest-deep);
+  --sidebar-accent-foreground: var(--palette-cream-text);
+  --sidebar-border: rgb(247 243 230 / 14%);
+  --sidebar-ring: var(--palette-sage-pale);
 
   /* ---------- Lapisan 3 · Component tokens ---------- */
   /* (v2.37: --radius & --card-radius dihapus — 0 konsumen; radius kartu
@@ -225,105 +239,105 @@
   --layout-content-max: 45rem; /* 720px */
 }
 
-/* Mode gelap — kanvas espresso, permukaan arang hangat, aksen pistachio */
+/* Mode gelap — v3.1: kanvas forest-espresso (arang ber-tint hijau hutan),
+   permukaan arang hijau, aksen sage terang. Sidebar tetap forest (identitas
+   merek tidak terbalik). */
 .dark {
-  --background: #1c1817;
-  --foreground: var(--palette-parchment);
+  --background: #1a201c;
+  --foreground: #efeee6;
 
-  --surface-primary: #2a2523;
-  --surface-secondary: #352e2b;
-  --surface-sunken: #1c1817;
-  --surface-inverse: var(--palette-parchment);
-  --surface-inverse-raised: rgb(250 249 246 / 85%);
+  --surface-primary: #252d27;
+  --surface-secondary: #2d362f;
+  --surface-sunken: #1a201c;
+  --surface-inverse: var(--palette-cream-text);
+  --surface-inverse-raised: rgb(247 243 230 / 85%);
 
-  --content-primary: var(--palette-parchment);
-  --content-secondary: #d8cfc4;
-  --content-muted: #a89b8d;
-  --content-inverse: var(--palette-espresso);
+  --content-primary: #efeee6;
+  --content-secondary: #d3d6c9;
+  --content-muted: #a3a89b;
+  --content-inverse: var(--palette-forest-ink);
 
-  --border-default: rgb(250 249 246 / 12%);
-  --border-strong: rgb(250 249 246 / 20%);
-  --action-primary: var(--palette-pistachio);
-  --action-primary-fg: var(--palette-espresso);
-  --action-hover: #b3d49b;
+  --border-default: rgb(239 238 230 / 12%);
+  --border-strong: rgb(239 238 230 / 20%);
+  --action-primary: #b5c99a;
+  --action-primary-fg: #1a201c;
+  --action-hover: #c3d5ab;
 
-  /* Hero tetap espresso di kanvas gelap — sedikit diangkat agar terbedakan
-     dari background (#1c1817); aksen emas & teks parchment tetap kontras. */
-  --hero-surface: #26211f;
-  --hero-surface-raised: #362d27;
-  --hero-content: var(--palette-parchment);
-  --hero-content-muted: rgb(250 249 246 / 68%);
-  --hero-accent: var(--palette-gold);
+  /* Hero tetap forest di kanvas gelap — sedikit diangkat agar terbedakan
+     dari background; aksen sage & teks cream tetap kontras. */
+  --hero-surface: #223129;
+  --hero-surface-raised: #2b3d33;
+  --hero-content: var(--palette-cream-text);
+  --hero-content-muted: rgb(247 243 230 / 68%);
+  --hero-accent: var(--palette-sage);
 
   /* Warna domain modul — versi gelap: base diterangkan agar kontras di
      atas permukaan arang; strong menjadi aksen teks terang; soft menjadi
      permukaan gelap bertint domain (terbedakan dari surface-secondary). */
-  --module-bugar: #8fb8af;
-  --module-bugar-strong: #a9cdc5;
-  --module-bugar-soft: #283230;
-  --module-bugar-fg: #1c1817;
+  --module-kebiasaan: #a9c48e;
+  --module-kebiasaan-strong: #c2d7a8;
+  --module-kebiasaan-soft: #28311f;
+  --module-kebiasaan-fg: #1a201c;
 
-  --module-finance: #c9a06a;
-  --module-finance-strong: #ddbc8c;
-  --module-finance-soft: #342d24;
-  --module-finance-fg: #1c1817;
+  --module-bugar: #c9977a;
+  --module-bugar-strong: #dfb79c;
+  --module-bugar-soft: #332a24;
+  --module-bugar-fg: #1a201c;
 
-  --module-journal: #ad9db1;
-  --module-journal-strong: #c6b9ca;
-  --module-journal-soft: #312c36;
-  --module-journal-fg: #1c1817;
+  --module-finance: #9fb4c4;
+  --module-finance-strong: #bdcedb;
+  --module-finance-soft: #263932;
+  --module-finance-fg: #1a201c;
 
-  --module-stats: #9bafc0;
-  --module-stats-strong: #b9c9d6;
-  --module-stats-soft: #2a3138;
-  --module-stats-fg: #1c1817;
+  --module-journal: #bba9c6;
+  --module-journal-strong: #d0c3d9;
+  --module-journal-soft: #2d2833;
+  --module-journal-fg: #1a201c;
 
-  --module-kebiasaan: #cf9b85;
-  --module-kebiasaan-strong: #e3b8a4;
-  --module-kebiasaan-soft: #332723;
-  --module-kebiasaan-fg: #1c1817;
+  --module-stats: #9db483;
+  --module-stats-strong: #b9cca1;
+  --module-stats-soft: #262e28;
+  --module-stats-fg: #1a201c;
 
-  --module-profil: #bfa98d;
-  --module-profil-strong: #d6c4a8;
-  --module-profil-soft: #2e2822;
-  --module-profil-fg: #1c1817;
+  --module-profil: #c9b393;
+  --module-profil-strong: #dcc9ad;
+  --module-profil-soft: #2e2a22;
+  --module-profil-fg: #1a201c;
 
-  /* Default aksen kontekstual di kanvas gelap — pistachio (mode gelap
-     dari matcha); layar bermodule menimpa lewat data-module dan ikut
-     terbalik otomatis karena menunjuk var --module-*. */
-  --module-accent: var(--palette-pistachio);
-  --module-accent-strong: var(--palette-pistachio);
-  --module-accent-soft: #35302a;
-  --module-accent-fg: #1c1817;
+  /* Default aksen kontekstual di kanvas gelap — sage terang. */
+  --module-accent: #a9c48e;
+  --module-accent-strong: #c2d7a8;
+  --module-accent-soft: #2b332a;
+  --module-accent-fg: #1a201c;
 
   /* Status — versi terang untuk kanvas gelap */
-  --success: var(--palette-pistachio);
-  --warning: var(--palette-gold);
-  --content-danger: var(--palette-clay);
+  --success: #a9c48e;
+  --warning: #d9b98c;
+  --content-danger: #dd9b7d;
 
   --primary: var(--action-primary);
   --primary-foreground: var(--action-primary-fg);
-  --secondary: #35302a;
-  --secondary-foreground: var(--palette-parchment);
+  --secondary: #2d362f;
+  --secondary-foreground: #efeee6;
   --card: var(--surface-primary);
   --card-foreground: var(--content-primary);
   --popover: var(--surface-primary);
   --popover-foreground: var(--content-primary);
   --muted: var(--surface-secondary);
   --muted-foreground: var(--content-muted);
-  --accent: #35302a;
-  --accent-foreground: var(--palette-parchment);
-  --destructive: var(--palette-clay);
-  --destructive-foreground: var(--palette-espresso);
+  --accent: #2d362f;
+  --accent-foreground: #efeee6;
+  --destructive: #dd9b7d;
+  --destructive-foreground: #1a201c;
   --border: var(--border-default);
   --input: var(--border-strong);
-  --ring: var(--palette-pistachio);
+  --ring: #b5c99a;
 
-  --chart-1: var(--palette-pistachio);
-  --chart-2: var(--palette-clay);
-  --chart-3: var(--palette-gold);
-  --chart-4: var(--palette-matcha);
-  --chart-5: #a89b8d;
+  --chart-1: #a9c48e;
+  --chart-2: #d49d72;
+  --chart-3: #9fb4c4;
+  --chart-4: #bba9c6;
+  --chart-5: #c9b393;
   /* Stroke grafik mode gelap = warna chart terang (sudah kontras di atas
      permukaan arang); tidak perlu varian lebih gelap. */
   --chart-stroke-1: var(--chart-1);
@@ -339,14 +353,15 @@
   --habit-cat-pribadi: #b3a396;
   --habit-cat-belajar: #d9bb92;
 
-  --sidebar: var(--surface-primary);
-  --sidebar-foreground: var(--content-primary);
-  --sidebar-primary: var(--palette-pistachio);
-  --sidebar-primary-foreground: var(--palette-espresso);
-  --sidebar-accent: var(--surface-secondary);
-  --sidebar-accent-foreground: var(--palette-parchment);
-  --sidebar-border: var(--border-default);
-  --sidebar-ring: var(--palette-pistachio);
+  /* Sidebar tetap forest di mode gelap — identitas merek. */
+  --sidebar: var(--palette-forest-deep);
+  --sidebar-foreground: var(--palette-cream-text);
+  --sidebar-primary: var(--palette-sage-pale);
+  --sidebar-primary-foreground: var(--palette-forest-ink);
+  --sidebar-accent: var(--palette-forest);
+  --sidebar-accent-foreground: var(--palette-cream-text);
+  --sidebar-border: rgb(247 243 230 / 12%);
+  --sidebar-ring: var(--palette-sage-pale);
 }
 
 /* ---------- Jembatan Tailwind: token → utilitas ----------
@@ -356,6 +371,32 @@
   /* Primitive — utilitas bg-matcha, text-espresso, dst. tetap hidup.
      Pemakaian primitive dibatasi elemen dekoratif/ilustrasi; komponen
      fungsional wajib memakai token semantic. */
+  /* v3.1 Calm Editorial — primitif Figma Make (forest/cream/beige/sage/
+     tan/peach/rust/sky/lavender) tersedia sebagai utilitas untuk kartu
+     pastel domain & elemen dekoratif. */
+  --color-forest: var(--palette-forest);
+  --color-forest-deep: var(--palette-forest-deep);
+  --color-forest-raised: var(--palette-forest-raised);
+  --color-forest-ink: var(--palette-forest-ink);
+  --color-cream: var(--palette-cream);
+  --color-cream-card: var(--palette-cream-card);
+  --color-cream-text: var(--palette-cream-text);
+  --color-beige: var(--palette-beige);
+  --color-sage: var(--palette-sage);
+  --color-sage-pale: var(--palette-sage-pale);
+  --color-sage-deep: var(--palette-sage-deep);
+  --color-sage-ink: var(--palette-sage-ink);
+  --color-tan: var(--palette-tan);
+  --color-tan-soft: var(--palette-tan-soft);
+  --color-tan-deep: var(--palette-tan-deep);
+  --color-peach: var(--palette-peach);
+  --color-peach-deep: var(--palette-peach-deep);
+  --color-rust: var(--palette-rust);
+  --color-rust-cream: var(--palette-rust-cream);
+  --color-sky-soft: var(--palette-sky);
+  --color-sky-deep: var(--palette-sky-deep);
+  --color-lavender-soft: var(--palette-lavender);
+  --color-lavender-deep: var(--palette-lavender-deep);
   /* Primitif aksi — utilitas bg-matcha-action, text-matcha-action-deep. */
   --color-matcha: var(--palette-matcha);
   --color-matcha-deep: var(--palette-matcha-deep);
@@ -606,13 +647,12 @@
     --module-accent-soft: var(--module-profil-soft);
     --module-accent-fg: var(--module-profil-fg);
   }
-  /* Beranda — matcha eksplisit (identik aksen default global; dideklarasikan
-     agar layar Beranda tetap mandiri bila default global suatu saat berubah).
-     Strong memakai matcha-action-deep (AA sebagai teks maupun latar solid). */
+  /* Beranda — sage eksplisit (identik aksen default global; dideklarasikan
+     agar layar Beranda tetap mandiri bila default global suatu saat berubah). */
   [data-module='home'] {
-    --module-accent: var(--palette-matcha);
-    --module-accent-strong: var(--palette-matcha-action-deep);
-    --module-accent-soft: var(--palette-mist);
+    --module-accent: var(--palette-sage-deep);
+    --module-accent-strong: var(--palette-sage-ink);
+    --module-accent-soft: var(--palette-sage-pale);
     --module-accent-fg: #ffffff;
   }
 
@@ -705,10 +745,10 @@
     /* Hilangkan sorotan abu-abu saat ketuk di browser WebKit/Android. */
     -webkit-tap-highlight-color: transparent;
   }
-  /* Seleksi teks mengikuti identitas merek (pistachio → espresso). */
+  /* Seleksi teks mengikuti identitas merek (sage → forest ink). */
   ::selection {
-    background-color: var(--palette-pistachio);
-    color: var(--palette-espresso);
+    background-color: var(--palette-sage);
+    color: var(--palette-forest-ink);
   }
   /* Validasi native: isyarat visual hanya setelah interaksi pengguna
      (:user-invalid) — memakai token destructive earth-tone. */

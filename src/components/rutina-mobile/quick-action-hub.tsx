@@ -25,6 +25,7 @@ import {
   UserRound,
   UtensilsCrossed,
   Wallet,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,6 +42,7 @@ import { cn } from '@/lib/utils'
 
 import { useCheckInSheet } from './checkin-sheet'
 import { formatIDR } from './finance/utils'
+import { playfair } from './serif'
 import { useFocusTrap } from './use-focus-trap'
 import { useEscapeLayer } from './overlay-escape'
 import {
@@ -128,7 +130,7 @@ const PRIMARY_ACTIONS: HubAction[] = [
   },
   {
     key: 'note',
-    label: 'Catatan',
+    label: 'Jurnal',
     listLabel: 'Catatan baru',
     value: 'catatan baru tulis jurnal menulis',
     icon: PenLine,
@@ -141,7 +143,7 @@ const PRIMARY_ACTIONS: HubAction[] = [
     listLabel: 'Transaksi baru',
     value: 'transaksi baru catat uang pemasukan pengeluaran keuangan',
     icon: Wallet,
-    tint: 'bg-gold/30 text-warning',
+    tint: 'bg-sky-soft text-sky-deep',
     run: () => useRutina.getState().openTxSheet(),
   },
   {
@@ -150,7 +152,7 @@ const PRIMARY_ACTIONS: HubAction[] = [
     listLabel: 'Catat latihan',
     value: 'latihan baru workout sesi angkat beban olahraga bugar',
     icon: Dumbbell,
-    tint: 'bg-clay/25 text-terracotta',
+    tint: 'bg-peach text-rust',
     run: () => useRutina.getState().openWorkoutSheet(),
   },
   {
@@ -159,7 +161,7 @@ const PRIMARY_ACTIONS: HubAction[] = [
     listLabel: 'Catat asupan',
     value: 'asupan makan makanan kalori gizi',
     icon: UtensilsCrossed,
-    tint: 'bg-primary/15 text-success',
+    tint: 'bg-tan-soft text-tan-deep',
     run: () => useRutina.getState().openFoodSheet(),
   },
   {
@@ -172,6 +174,21 @@ const PRIMARY_ACTIONS: HubAction[] = [
     run: () => useCheckInSheet.getState().openCheckIn(),
   },
 ]
+
+/* ===== Lima tile pastel Make (v3.1) — komposisi statis modal "Mau
+   mencatat apa?": Kebiasaan sage · Latihan peach · Transaksi sky ·
+   Jurnal lavender · Asupan tan. Tile memakai latar pastel domain
+   penuh (token module-*-soft — mode gelap otomatis dapat varian
+   gelap bertint). Check-in tetap hidup di lipatan "Aksi lainnya"
+   dan hasil pencarian. ===== */
+const TILE_BG: Record<string, string> = {
+  habit: 'bg-module-kebiasaan-soft',
+  workout: 'bg-module-bugar-soft',
+  tx: 'bg-module-finance-soft',
+  note: 'bg-module-journal-soft',
+  food: 'bg-module-profil-soft',
+}
+const MAKE_TILE_KEYS = ['habit', 'workout', 'tx', 'note', 'food'] as const
 
 /* Item navigasi — melengkapi grup "Aksi" saat mencari. Profil & Jurnal
    ikut terdaftar: keduanya bukan tab bawah, jadi hub menjadi akses global
@@ -267,7 +284,6 @@ function useIsDesktop() {
 export function QuickActionHub() {
   const open = useQuickHub((s) => s.open)
   const closeHub = useQuickHub((s) => s.closeHub)
-  const recent = useQuickHub((s) => s.recent)
   const habits = useRutina((s) => s.habits)
   const notes = useRutina((s) => s.notes)
   const txs = useRutina((s) => s.txs)
@@ -361,25 +377,14 @@ export function QuickActionHub() {
       .slice(0, 6)
   }, [q, txs])
 
-  /* Tiga aksi terakhir yang key-nya masih dikenal — data lama di
-     penyimpanan lokal bisa memuat key yang sudah tidak ada (chip mati);
-     dedup jaga-jaga agar React key selalu unik. */
-  const recentActions = Array.from(new Set(recent))
-    .map((k) => PRIMARY_ACTIONS.find((a) => a.key === k))
-    .filter((a): a is HubAction => a !== undefined)
+  /* Tiga aksi terakhir — v3.1: kisi tile memakai komposisi statis lima
+     tile Make, riwayat tidak lagi memampatkan kisi; slice `recent` tetap
+     dicatat oleh store (persist) untuk pemakaian mendatang. */
 
-  /* Susunan empat aksi terlihat: terakhir-dipakai di depan (terbaru
-     dahulu), disusul aksi utama lain yang belum terwakili. Riwayat
-     MEMAMPATKAN daftar utama — bukan menambah blok tersendiri. */
-  const visibleActions = (() => {
-    const rest = PRIMARY_ACTIONS.filter(
-      (a) => !recentActions.some((r) => r.key === a.key),
-    )
-    return [...recentActions, ...rest].slice(0, 4)
-  })()
-  /* Dua aksi utama yang tidak mendapat slot — dilipat ke "Aksi lainnya". */
+  /* Aksi tanpa tile (check-in) dilipat ke "Aksi lainnya" bersama pintu
+     Jelajahi. */
   const overflowActions = PRIMARY_ACTIONS.filter(
-    (a) => !visibleActions.some((v) => v.key === a.key),
+    (a) => !MAKE_TILE_KEYS.includes(a.key as (typeof MAKE_TILE_KEYS)[number]),
   )
 
   /* Pola onSelect: tutup hub dulu, jalankan aksi sesudahnya. */
@@ -421,12 +426,13 @@ export function QuickActionHub() {
     <AnimatePresence>
       {open && (
         <>
-          {/* Latar belakang — ketuk untuk menutup. */}
+          {/* Latar belakang — ketuk untuk menutup. v3.1: hijau forest
+              redup (overlay mock Make). */}
           <m.div
             key="hub-backdrop"
             aria-hidden="true"
             onClick={closeHub}
-            className="absolute inset-0 z-[65] bg-espresso/45 backdrop-blur-[2px]"
+            className="absolute inset-0 z-[65] bg-forest/45 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -464,7 +470,7 @@ export function QuickActionHub() {
                     }
                   : motionTokens.spring.sheet
               }
-              className="pointer-events-auto flex max-h-[82dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-t-sheet bg-surface-primary shadow-sheet sm:max-h-[560px] sm:max-w-md sm:rounded-2xl sm:shadow-ink-deep"
+              className="pointer-events-auto flex max-h-[82dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-t-sheet bg-surface-primary shadow-sheet sm:max-h-[600px] sm:max-w-md sm:rounded-3xl sm:shadow-ink-deep"
             >
               {/* Pegangan seret — hanya ponsel. */}
               <div
@@ -473,6 +479,24 @@ export function QuickActionHub() {
                 aria-hidden="true"
               >
                 <span className="h-1.5 w-10 rounded-full bg-cocoa/15" />
+              </div>
+
+              {/* Kepala modal — v3.1 mock Make: judul serif "Mau mencatat
+                  apa?" + tombol tutup lingkaran di kanan atas. */}
+              <div className="flex items-start justify-between gap-3 px-5 pb-1 pt-4 sm:px-6 sm:pt-5">
+                <h2
+                  className={`${playfair.className} text-2xl font-bold leading-tight tracking-tight text-content-primary`}
+                >
+                  Mau mencatat apa?
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeHub}
+                  aria-label="Tutup dialog"
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-strong text-content-secondary transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.4} />
+                </button>
               </div>
 
               <Command className="h-auto min-h-0 flex-1 rounded-none bg-transparent">
@@ -514,45 +538,48 @@ export function QuickActionHub() {
                       }}
                       className="overflow-hidden"
                     >
-                      {/* Susunan aksi terlihat: terakhir-dipakai dulu
-                          (menggantikan slot terdepan), disusul aksi utama
-                          lain hingga empat — sesuai arah audit: riwayat
-                          MEMAMPATKAN daftar utama, bukan menambah blok. */}
+                      {/* Lima tile pastel Make — komposisi statis (urutan
+                          mock), latar pastel domain penuh, ikon + label
+                          tinta gelap; 3 kolom di desktop, 2 di ponsel
+                          lebar. */}
                       <div
                         role="group"
                         aria-label="Aksi utama"
-                        className="grid grid-cols-2 gap-2.5 px-5 pb-2 pt-4"
+                        className="grid grid-cols-3 gap-2.5 px-5 pb-2 pt-3 sm:px-6"
                       >
-                        {visibleActions.map((a, i) => (
-                          <m.button
-                            key={a.key}
-                            type="button"
-                            onClick={() => run(() => runAction(a))}
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                              ...motionTokens.spring.snappy,
-                              delay: i * motionTokens.stagger.tight,
-                            }}
-                            whileTap={{
-                              scale: 0.96,
-                              transition: motionTokens.spring.snappy,
-                            }}
-                            className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-border bg-surface-primary px-1 py-4 outline-none transition-colors duration-150 hover:bg-surface-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          >
-                            <span
-                              className={cn(
-                                'flex h-11 w-11 items-center justify-center rounded-full',
-                                a.tint,
-                              )}
+                        {MAKE_TILE_KEYS.map((key) => {
+                          const a = PRIMARY_ACTIONS.find(
+                            (x) => x.key === key,
+                          )!
+                          return (
+                            <m.button
+                              key={a.key}
+                              type="button"
+                              onClick={() => run(() => runAction(a))}
+                              initial={{ opacity: 0, y: 12 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                ...motionTokens.spring.snappy,
+                                delay:
+                                  MAKE_TILE_KEYS.indexOf(key) *
+                                  motionTokens.stagger.tight,
+                              }}
+                              whileTap={{
+                                scale: 0.96,
+                                transition: motionTokens.spring.snappy,
+                              }}
+                              className={`flex cursor-pointer flex-col items-center gap-2 rounded-2xl px-1 py-4 outline-none transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${TILE_BG[a.key]}`}
                             >
-                              <a.icon className="h-5 w-5" strokeWidth={2.1} />
-                            </span>
-                            <span className="text-meta font-bold leading-none text-content-primary">
-                              {a.label}
-                            </span>
-                          </m.button>
-                        ))}
+                              <a.icon
+                                className="h-5 w-5 text-content-primary"
+                                strokeWidth={2.1}
+                              />
+                              <span className="text-meta font-bold leading-none text-content-primary">
+                                {a.label}
+                              </span>
+                            </m.button>
+                          )
+                        })}
                       </div>
 
                       {/* Aksi lainnya — dua aksi utama sisanya + pintu

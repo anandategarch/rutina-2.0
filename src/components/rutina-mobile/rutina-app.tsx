@@ -98,17 +98,17 @@ const DesignBoard = dynamic(
   { ssr: false },
 )
 /* Urutan tab — menentukan arah geser transisi (kiri ↔ kanan).
-   Kebiasaan menggantikan Jurnal sebagai tab ke-4; layar Jurnal tetap
-   ada (dibuka lewat Quick Action Hub) namun bukan tab. Profil berada
-   terakhir untuk arah transisi, tetapi TIDAK ada di navigasi bawah —
-   dibuka dari avatar header Beranda. */
+   v3.1: mengikuti urutan nav mock Make (Beranda, Kebiasaan, Bugar,
+   Keuangan, Jurnal, Statistik, Profil). Profil berada terakhir untuk
+   arah transisi; di desktop pintunya avatar topbar, di ponsel tetap
+   dari kepala Beranda / hub. */
 const ORDER: Screen[] = [
   'beranda',
+  'kebiasaan',
   'bugar',
   'keuangan',
-  'kebiasaan',
-  'statistik',
   'jurnal',
+  'statistik',
   'profil',
 ]
 

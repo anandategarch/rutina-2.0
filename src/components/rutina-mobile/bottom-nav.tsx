@@ -43,12 +43,14 @@ interface NavAccent {
   pill: string
 }
 
-/** Peta aksen layar — dipakai tab bawah & bilah sisi desktop (satu sumber). */
+/** Peta aksen layar — dipakai tab bawah & bilah sisi desktop (satu sumber).
+ *  v3.1: Beranda kini sage (identitas global mock); domain lain mengikuti
+ *  token module-* yang sudah dipetakan ulang ke pastel Make. */
 export const NAV_ACCENT: Record<Screen, NavAccent> = {
   beranda: {
-    icon: 'var(--palette-matcha)',
-    label: 'var(--success)',
-    pill: 'var(--palette-mist)',
+    icon: 'var(--palette-sage-deep)',
+    label: 'var(--palette-sage-ink)',
+    pill: 'var(--palette-sage-pale)',
   },
   bugar: {
     icon: 'var(--module-bugar)',

@@ -1303,21 +1303,13 @@ export function todayFinISO(): string {
   return todayISO()
 }
 
-/* ===== Tema layar — "Ruang Warna" (v2.5) =====
-   Tiap layar adalah kamar dengan karakter sendiri: kanvas bernuansa warna
-   domain (sangat halus, ~3-5% tint di atas Warm Sand) + tiga cahaya ambien
-   yang ikut berganti per tab. Pergantian kanvas dianimasikan shell
-   (rutina-app) sehingga pindah tab terasa seperti berpindah ruangan —
-   bukan berganti aplikasi.
-
-   Pemetaan identitas:
-     beranda   · Matcha (jangkar merek — warna interaksi global)
-     bugar     · Eucalyptus Teal   keuangan · Antique Bronze
-     kebiasaan · Rose Clay (tanah pot kebun) statistik · Mineral Slate
-     jurnal    · Dusty Mauve       profil    · Cocoa Gold
-
-   Kanvas gelap = espresso #1C1817 diberi tint domain setipis 2-4% agar
-   tetap tenang; cahaya ambien memakai base domain versi terang. */
+/* ===== Tema layar — v3.1 Calm Editorial (adaptasi Figma Make) =====
+   Mock Make memakai SATU kanvas cream (#F6F5EF) untuk semua layar —
+   identitas ruangan hadir lewat KARTU pastel domain (sage/peach/sky/
+   lavender), bukan kanvas. Struktur ScreenTheme dipertahankan agar
+   shell tetap bisa crossfade; seluruh nilai kini seragam: cream di
+   mode terang, forest-espresso di mode gelap, cahaya ambien netral
+   ber-tint sage tipis. */
 
 export interface ScreenTheme {
   /** Warna kanvas utama — mode terang. */
@@ -1330,49 +1322,27 @@ export interface ScreenTheme {
   glowDark: readonly [string, string, string]
 }
 
+const CANVAS_LIGHT = '#F6F5EF'
+const CANVAS_DARK = '#1A201C'
+const GLOW_LIGHT: readonly [string, string, string] = [
+  'rgba(226,233,200,0.5)',
+  'rgba(85,115,76,0.07)',
+  'rgba(238,232,216,0.45)',
+]
+const GLOW_DARK: readonly [string, string, string] = [
+  'rgba(169,196,142,0.06)',
+  'rgba(169,196,142,0.05)',
+  'rgba(42,54,46,0.5)',
+]
+
 export const SCREEN_THEME: Record<Screen, ScreenTheme> = {
-  beranda: {
-    bg: '#F5F3EE',
-    bgDark: '#1C1817',
-    glow: ['rgba(228,239,224,0.55)', 'rgba(116,155,88,0.08)', 'rgba(234,229,217,0.45)'],
-    glowDark: ['rgba(163,196,137,0.07)', 'rgba(163,196,137,0.05)', 'rgba(58,46,36,0.5)'],
-  },
-  bugar: {
-    bg: '#EEF3F0',
-    bgDark: '#1A1E1C',
-    glow: ['rgba(228,239,235,0.6)', 'rgba(95,138,130,0.12)', 'rgba(143,184,175,0.1)'],
-    glowDark: ['rgba(143,184,175,0.07)', 'rgba(95,138,130,0.09)', 'rgba(40,50,48,0.55)'],
-  },
-  keuangan: {
-    bg: '#F4F0E7',
-    bgDark: '#1E1B16',
-    glow: ['rgba(241,231,215,0.6)', 'rgba(172,129,72,0.12)', 'rgba(217,185,140,0.14)'],
-    glowDark: ['rgba(201,160,106,0.07)', 'rgba(172,129,72,0.09)', 'rgba(52,45,36,0.55)'],
-  },
-  kebiasaan: {
-    bg: '#F6F0EB',
-    bgDark: '#211B17',
-    glow: ['rgba(246,233,227,0.6)', 'rgba(176,118,95,0.12)', 'rgba(217,142,107,0.12)'],
-    glowDark: ['rgba(207,155,133,0.07)', 'rgba(176,118,95,0.09)', 'rgba(51,39,35,0.55)'],
-  },
-  statistik: {
-    bg: '#F0F2F4',
-    bgDark: '#1A1C1E',
-    glow: ['rgba(231,238,242,0.6)', 'rgba(113,137,154,0.12)', 'rgba(155,201,214,0.1)'],
-    glowDark: ['rgba(155,175,192,0.07)', 'rgba(113,137,154,0.09)', 'rgba(42,49,56,0.55)'],
-  },
-  jurnal: {
-    bg: '#F3F1F3',
-    bgDark: '#1E1A1E',
-    glow: ['rgba(238,232,239,0.6)', 'rgba(140,122,145,0.12)', 'rgba(198,185,202,0.12)'],
-    glowDark: ['rgba(173,157,177,0.07)', 'rgba(140,122,145,0.09)', 'rgba(49,44,54,0.55)'],
-  },
-  profil: {
-    bg: '#F2EEE7',
-    bgDark: '#1B1714',
-    glow: ['rgba(242,235,226,0.6)', 'rgba(151,121,94,0.12)', 'rgba(217,185,140,0.12)'],
-    glowDark: ['rgba(191,169,141,0.07)', 'rgba(151,121,94,0.09)', 'rgba(46,40,34,0.55)'],
-  },
+  beranda: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
+  bugar: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
+  keuangan: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
+  kebiasaan: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
+  statistik: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
+  jurnal: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
+  profil: { bg: CANVAS_LIGHT, bgDark: CANVAS_DARK, glow: GLOW_LIGHT, glowDark: GLOW_DARK },
 }
 
 /* ===== Store ===== */

@@ -6,18 +6,20 @@ import { AppMotionProvider } from '@/lib/motion/providers'
 
 import { ContextRail } from '@/components/rutina-mobile/context-rail'
 import { DesktopSidebar } from '@/components/rutina-mobile/desktop-sidebar'
+import { DesktopTopbar } from '@/components/rutina-mobile/desktop-topbar'
 import { RutinaApp } from '@/components/rutina-mobile/rutina-app'
 import { useRutina, type Screen } from '@/components/rutina-mobile/store'
 
 /* Pintasan keyboard desktop: tombol 1-7 memindah layar sesuai urutan nav
-   (review UI/UX v2.44 — Jurnal kini layar ke-6, sejajar bilah sisi). */
+   v3.1 (mock Make): Beranda, Kebiasaan, Bugar, Keuangan, Jurnal,
+   Statistik + 7 = Profil (via topbar avatar). */
 const SHORTCUT_SCREENS: readonly Screen[] = [
   'beranda',
-  'bugar',
   'kebiasaan',
+  'bugar',
   'keuangan',
-  'statistik',
   'jurnal',
+  'statistik',
   'profil',
 ] as const
 
@@ -81,20 +83,17 @@ export function AppFrame() {
         <div className="mx-auto h-full max-w-[1600px] lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-1 xl:grid-cols-[auto_minmax(0,1fr)_auto]">
           <DesktopSidebar />
 
-          {/* Area utama — meja lembut dengan cahaya ambien (lg+).
-              Di bawah lg TIDAK ada padding: aplikasi full-bleed. */}
-          <main className="relative h-full min-w-0 overflow-hidden lg:p-6 xl:p-8">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 hidden lg:block"
-            >
-              <div className="absolute left-1/4 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-secondary/60 blur-3xl" />
-              <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] translate-x-1/4 translate-y-1/4 rounded-full bg-surface-secondary blur-3xl" />
+          {/* Area utama — v3.1: kanvas cream polos (blob ambien dihapus —
+              mock Make bersih), topbar remah + lonceng + avatar di atas,
+              konten layar di bawahnya. Di bawah lg TIDAK ada topbar/padding:
+              aplikasi full-bleed dengan kepala layar sendiri. */}
+          <main className="relative flex h-full min-w-0 flex-col overflow-hidden">
+            <DesktopTopbar />
+            <div className="relative min-h-0 flex-1 lg:px-6 lg:pb-6 xl:px-8 xl:pb-8">
+              {/* Permukaan aplikasi — mengisi area utama apa adanya,
+                  tanpa bingkai/rounded: tampilan program desktop natif. */}
+              <RutinaApp />
             </div>
-
-            {/* Permukaan aplikasi — mengisi area utama apa adanya,
-                tanpa bingkai/rounded: tampilan program desktop natif. */}
-            <RutinaApp />
           </main>
 
           <ContextRail />
